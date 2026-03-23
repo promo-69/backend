@@ -1,0 +1,25 @@
+meta {
+  name: Refresh Session (Valid)
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/auth/refresh
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{refreshToken}}
+}
+
+script:post-response {
+  const data = res.getBody();
+  if (data.data && data.data.accessToken) {
+    bru.setEnvVar("accessToken", data.data.accessToken);
+  }
+  if (data.data && data.data.refreshToken) {
+    bru.setEnvVar("refreshToken", data.data.refreshToken);
+  }
+}

@@ -1,0 +1,18 @@
+meta {
+  name: Login (Credenciales Incorrectas)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "uid": "usuario_inexistente",
+    "password": "clave_incorrecta"
+  }
+}
