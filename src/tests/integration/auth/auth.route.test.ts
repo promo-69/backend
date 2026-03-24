@@ -2,10 +2,10 @@ import { jest, describe, it, expect, beforeEach, afterEach } from '@jest/globals
 import request from 'supertest';
 import express from 'express';
 import cookieParser from 'cookie-parser';
-import { Database } from '../../../src/database/index.js';
-import JWTUtil from '../../../src/shared/utils/jwt.util.js';
-import { AppConfig } from '../../../src/config/app.config.js';
-import authRoute from '../../../src/modules/auth/_.route.js';
+import { Database } from '../../../database/index.js';
+import JWTUtil from '../../../shared/utils/jwt.util.js';
+import { AppConfig } from '../../../config/app.config.js';
+import authRoute from '../../../modules/auth/_.route.js';
 
 // Setup Test App
 const app = express();

@@ -1,9 +1,9 @@
 import { jest, describe, it, expect, beforeEach, afterEach } from '@jest/globals';
-import { Database } from '../../../src/database/index.js';
-import AuthService from '../../../src/modules/auth/_.service.js';
-import JWTUtil from '../../../src/shared/utils/jwt.util.js';
-import { AuthError, ValidationError } from '../../../src/shared/errors/index.js';
-import type { QueryResult } from '../../../src/core/bases/repository.base.js';
+import { Database } from '../../../database/index.js';
+import AuthService from '../../../modules/auth/_.service.js';
+import JWTUtil from '../../../shared/utils/jwt.util.js';
+import { AuthError, ValidationError } from '../../../shared/errors/index.js';
+import type { QueryResult } from '../../../core/bases/repository.base.js';
 
 // Removed jest.mock for ESM compatibility. Using jest.spyOn below instead.
 

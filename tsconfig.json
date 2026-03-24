@@ -36,7 +36,7 @@
             "@middlewares/*": ["shared/middlewares/*"],
             "@utils/*": ["shared/utils/*"],
             "@providers/*": ["shared/providers/*"],
-            "@tests/*": ["tests/*"]
+            "@tests/*": ["src/tests/*"]
         }
     },
     "include": ["src/**/*.ts", "src/**/*.d.ts"],
