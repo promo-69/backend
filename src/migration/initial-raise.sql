@@ -1,16 +1,11 @@
 -- ==============================================================================
--- SCRIPT DE INICIALIZACIÓN - SISTEMA INTEGRAL CINEFLIX
--- MOTOR: PostgreSQL
--- ==============================================================================
-
--- ==============================================================================
 -- FASE 1: CREACIÓN DE ESTRUCTURAS, RESTRICCIONES DE DOMINIO E ÍNDICES ÚNICOS
 -- ==============================================================================
 
 -- --- MÓDULO 1: CATÁLOGOS BASE Y OPERADORES ---
 CREATE TABLE statuses (
     id SERIAL PRIMARY KEY,
-    description TEXT NOT NULL
+    description VARCHAR(255) NOT NULL
 );
 CREATE UNIQUE INDEX idx_statuses_description_uq ON statuses (description);
 
@@ -22,12 +17,19 @@ CREATE TABLE operation_types (
 );
 CREATE UNIQUE INDEX idx_operation_types_description_uq ON operation_types (description);
 
+CREATE TABLE genders (
+    id SERIAL PRIMARY KEY,
+    description VARCHAR(255) NOT NULL,
+    status INTEGER NOT NULL
+);
+CREATE UNIQUE INDEX idx_genders_description_uq ON genders (description);
+
 -- --- MÓDULO 2: IDENTIDAD, SUCURSALES Y RBAC ---
 CREATE TABLE cinemas (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    address TEXT NOT NULL,
-    phone VARCHAR(50) NOT NULL,
+    address TEXT,
+    phone VARCHAR(50),
     opening_time TIME NOT NULL,
     closing_time TIME NOT NULL,
     status INTEGER NOT NULL,
@@ -37,29 +39,30 @@ CREATE UNIQUE INDEX idx_cinemas_name_uq ON cinemas (name);
 
 CREATE TABLE people (
     id SERIAL PRIMARY KEY,
-    identification_number VARCHAR(50) NOT NULL,
+    document_number VARCHAR(50) NOT NULL,
     first_name VARCHAR(255) NOT NULL,
     last_name VARCHAR(255) NOT NULL,
-    email VARCHAR(255),
+    gender INTEGER,
     phone_number VARCHAR(50),
+    email VARCHAR(100),
     birth_date date,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP,
     status INTEGER NOT NULL
 );
-CREATE UNIQUE INDEX idx_people_id_number_uq ON people (identification_number);
+CREATE UNIQUE INDEX idx_people_document_number_uq ON people (document_number);
 
 CREATE TABLE user_types (
     id SERIAL PRIMARY KEY,
-    description VARCHAR(255),
+    description VARCHAR(255) NOT NULL,
     status INTEGER NOT NULL
 );
 CREATE UNIQUE INDEX idx_user_types_description_uq ON user_types (description);
 
 CREATE TABLE roles (
     id SERIAL PRIMARY KEY,
-    code VARCHAR(255) NOT NULL,
-    description VARCHAR(255),
+    code VARCHAR(100) NOT NULL,
+    description VARCHAR(255) NOT NULL,
     status INTEGER NOT NULL
 );
 CREATE UNIQUE INDEX idx_roles_code_uq ON roles (code);
@@ -69,13 +72,15 @@ CREATE TABLE users (
     person INTEGER NOT NULL,
     user_type INTEGER NOT NULL,
     role INTEGER,
-    username VARCHAR(255) NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
+    username VARCHAR(100) NOT NULL,
+    password VARCHAR(255) NOT NULL,
     last_login TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP,
     status INTEGER NOT NULL,
     CHECK ((user_type = 1 AND role IS NOT NULL) OR (user_type = 2 AND role IS NULL))
 );
-CREATE UNIQUE INDEX idx_users ON users (username, person);
+CREATE UNIQUE INDEX idx_users ON users (username);
 
 CREATE TABLE employees (
     id SERIAL PRIMARY KEY,
@@ -96,24 +101,24 @@ CREATE UNIQUE INDEX idx_customers_person_uq ON customers (person);
 
 CREATE TABLE actions (
     id SERIAL PRIMARY KEY,
-    code VARCHAR(255) NOT NULL,
-    description VARCHAR(255),
+    code VARCHAR(100) NOT NULL,
+    description VARCHAR(255) NOT NULL,
     status INTEGER NOT NULL
 );
 CREATE UNIQUE INDEX idx_actions_code_uq ON actions (code);
 
 CREATE TABLE resources (
     id SERIAL PRIMARY KEY,
-    code VARCHAR(255) NOT NULL,
-    description VARCHAR(255),
+    code VARCHAR(100) NOT NULL,
+    description VARCHAR(255) NOT NULL,
     status INTEGER NOT NULL
 );
 CREATE UNIQUE INDEX idx_resources_code_uq ON resources (code);
 
 CREATE TABLE permission_types (
     id SERIAL PRIMARY KEY,
-    code VARCHAR(255) NOT NULL,
-    description VARCHAR(255),
+    code VARCHAR(100) NOT NULL,
+    description VARCHAR(255) NOT NULL,
     status INTEGER NOT NULL
 );
 CREATE UNIQUE INDEX idx_permission_types_code_uq ON permission_types (code);
@@ -146,17 +151,17 @@ CREATE UNIQUE INDEX idx_role_inheritances_uq ON role_inheritances (parent_role, 
 
 CREATE TABLE user_permissions (
     id SERIAL PRIMARY KEY,
-    user INTEGER NOT NULL,
+    "user" INTEGER NOT NULL,
     permission INTEGER NOT NULL,
     is_granted BOOLEAN NOT NULL,
     status INTEGER NOT NULL
 );
-CREATE UNIQUE INDEX idx_user_permissions_uq ON user_permissions (user, permission);
+CREATE UNIQUE INDEX idx_user_permissions_uq ON user_permissions ("user", permission);
 
 -- --- MÓDULO 3: INFRAESTRUCTURA FÍSICA ---
 CREATE TABLE projection_types (
     id SERIAL PRIMARY KEY,
-    description VARCHAR(255),
+    description VARCHAR(255) NOT NULL,
     status INTEGER NOT NULL
 );
 CREATE UNIQUE INDEX idx_projection_types_description_uq ON projection_types (description);
@@ -164,7 +169,7 @@ CREATE UNIQUE INDEX idx_projection_types_description_uq ON projection_types (des
 CREATE TABLE rooms (
     id SERIAL PRIMARY KEY,
     cinema INTEGER NOT NULL,
-    name VARCHAR(255) NOT NULL,
+    name VARCHAR(100) NOT NULL,
     grid_rows INTEGER NOT NULL,
     grid_columns INTEGER NOT NULL,
     total_capacity INTEGER NOT NULL,
@@ -183,14 +188,14 @@ CREATE UNIQUE INDEX idx_room_projection_types_uq ON room_projection_types (room,
 
 CREATE TABLE seat_categories (
     id SERIAL PRIMARY KEY,
-    description VARCHAR(255),
+    description VARCHAR(255) NOT NULL,
     status INTEGER NOT NULL
 );
 CREATE UNIQUE INDEX idx_seat_categories_description_uq ON seat_categories (description);
 
 CREATE TABLE seat_conditions (
     id SERIAL PRIMARY KEY,
-    description VARCHAR(255),
+    description VARCHAR(255) NOT NULL,
     status INTEGER NOT NULL
 );
 CREATE UNIQUE INDEX idx_seat_conditions_description_uq ON seat_conditions (description);
@@ -198,7 +203,7 @@ CREATE UNIQUE INDEX idx_seat_conditions_description_uq ON seat_conditions (descr
 CREATE TABLE seats (
     id SERIAL PRIMARY KEY,
     room INTEGER NOT NULL,
-    row_identifier VARCHAR(10) NOT NULL,
+    row_identifier VARCHAR(2) NOT NULL,
     column_number INTEGER NOT NULL,
     seat_category INTEGER NOT NULL,
     seat_condition INTEGER NOT NULL,
@@ -222,7 +227,7 @@ CREATE TABLE exchange_rates (
     id SERIAL PRIMARY KEY,
     currency INTEGER NOT NULL,
     rate NUMERIC(10, 2) NOT NULL,
-    user INTEGER NOT NULL,
+    "user" INTEGER NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     status INTEGER NOT NULL,
     CHECK (rate > 0)
@@ -347,10 +352,10 @@ CREATE TABLE price_modifiers (
 -- --- MÓDULO 6: INVENTARIO Y COMBOS ---
 CREATE TABLE product_categories (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
+    description VARCHAR(255) NOT NULL,
     status INTEGER NOT NULL
 );
-CREATE UNIQUE INDEX idx_product_categories_name_uq ON product_categories (name);
+CREATE UNIQUE INDEX idx_product_categories_name_uq ON product_categories (description);
 
 CREATE TABLE products (
     id SERIAL PRIMARY KEY,
@@ -368,7 +373,7 @@ CREATE TABLE combos (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     sku VARCHAR(100) NOT NULL,
-    description VARCHAR(255),
+    description VARCHAR(255) NOT NULL,
     currency INTEGER NOT NULL,
     price NUMERIC(10, 2) NOT NULL,
     earned_loyalty_points INTEGER,
@@ -411,26 +416,29 @@ CREATE TABLE inventory_movements (
 -- --- MÓDULO 7: TRANSACCIONES, PAGOS Y FIDELIDAD ---
 CREATE TABLE order_statuses (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
+    description VARCHAR(255) NOT NULL,
     status INTEGER NOT NULL
 );
+CREATE UNIQUE INDEX idx_order_statuses_uq ON order_statuses (description);
 
 CREATE TABLE payment_methods (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
+    description VARCHAR(255) NOT NULL,
     requires_reference BOOLEAN NOT NULL,
     status INTEGER NOT NULL
 );
+CREATE UNIQUE INDEX idx_payment_methods_uq ON payment_methods (description);
 
 CREATE TABLE line_types (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
+    description VARCHAR(255) NOT NULL,
     status INTEGER NOT NULL
 );
+CREATE UNIQUE INDEX idx_line_types_uq ON line_types (description);
 
 CREATE TABLE orders (
     id SERIAL PRIMARY KEY,
-    customer INTEGER,
+    customer INTEGER NOT NULL,
     employee INTEGER,
     cinema INTEGER NOT NULL,
     order_status INTEGER NOT NULL,
@@ -450,10 +458,13 @@ CREATE TABLE order_lines (
     product INTEGER,
     combo INTEGER,
     quantity INTEGER NOT NULL,
+    original_unit_price NUMERIC(10, 2) NOT NULL, 
+    price_modifier INTEGER,
     unit_price NUMERIC(10, 2) NOT NULL,
     applied_exchange_rate INTEGER NOT NULL,
     status INTEGER NOT NULL,
     CHECK (quantity > 0),
+    CHECK (original_unit_price >= 0),
     CHECK (unit_price >= 0),
     CHECK (
         (line_type = 1 AND product IS NOT NULL AND combo IS NULL) 
@@ -467,11 +478,14 @@ CREATE TABLE tickets (
     "order" INTEGER NOT NULL,
     showtime INTEGER NOT NULL,
     seat INTEGER NOT NULL,
+    original_price NUMERIC(10, 2) NOT NULL,
+    price_modifier INTEGER,
     price NUMERIC(10, 2) NOT NULL,
     applied_exchange_rate INTEGER NOT NULL,
     qr_code VARCHAR(500) NOT NULL,
     validation_time TIMESTAMP,
     status INTEGER NOT NULL,
+    CHECK (original_price >= 0),
     CHECK (price >= 0)
 );
 CREATE UNIQUE INDEX idx_tickets_showtime_seat_uq ON tickets (showtime, seat);
@@ -488,6 +502,7 @@ CREATE TABLE order_payments (
     status INTEGER NOT NULL,
     CHECK (amount > 0)
 );
+CREATE UNIQUE INDEX idx_order_payments_ref_uq ON order_payments (payment_method, reference_number);
 
 CREATE TABLE loyalty_ledgers (
     id SERIAL PRIMARY KEY,
@@ -501,7 +516,7 @@ CREATE TABLE loyalty_ledgers (
 );
 
 -- ==============================================================================
--- FASE 2: DEFINICIÓN DE CLAVES FORÁNEAS (INTEGRIDAD REFERENCIAL)
+-- FASE 2: DEFINICIÓN DE CLAVES FORÁNEAS
 -- ==============================================================================
 
 -- Módulo 1: Catálogos Base
@@ -509,6 +524,7 @@ ALTER TABLE operation_types ADD CONSTRAINT fk_operation_types_status FOREIGN KEY
 
 -- Módulo 2: Identidad, Sucursales y RBAC
 ALTER TABLE cinemas ADD CONSTRAINT fk_cinemas_status FOREIGN KEY (status) REFERENCES statuses(id);
+ALTER TABLE people ADD CONSTRAINT fk_people_gender FOREIGN KEY (gender) REFERENCES genders(id);
 ALTER TABLE people ADD CONSTRAINT fk_people_status FOREIGN KEY (status) REFERENCES statuses(id);
 ALTER TABLE user_types ADD CONSTRAINT fk_user_types_status FOREIGN KEY (status) REFERENCES statuses(id);
 ALTER TABLE roles ADD CONSTRAINT fk_roles_status FOREIGN KEY (status) REFERENCES statuses(id);
@@ -648,12 +664,14 @@ ALTER TABLE order_lines ADD CONSTRAINT fk_order_lines_order FOREIGN KEY ("order"
 ALTER TABLE order_lines ADD CONSTRAINT fk_order_lines_line_type FOREIGN KEY (line_type) REFERENCES line_types(id);
 ALTER TABLE order_lines ADD CONSTRAINT fk_order_lines_product FOREIGN KEY (product) REFERENCES products(id);
 ALTER TABLE order_lines ADD CONSTRAINT fk_order_lines_combo FOREIGN KEY (combo) REFERENCES combos(id);
+ALTER TABLE order_lines ADD CONSTRAINT fk_order_lines_price_modifier FOREIGN KEY (price_modifier) REFERENCES price_modifiers(id);
 ALTER TABLE order_lines ADD CONSTRAINT fk_order_lines_applied_exchange_rate FOREIGN KEY (applied_exchange_rate) REFERENCES exchange_rates(id);
 ALTER TABLE order_lines ADD CONSTRAINT fk_order_lines_status FOREIGN KEY (status) REFERENCES statuses(id);
 
 ALTER TABLE tickets ADD CONSTRAINT fk_tickets_order FOREIGN KEY ("order") REFERENCES orders(id);
 ALTER TABLE tickets ADD CONSTRAINT fk_tickets_showtime FOREIGN KEY (showtime) REFERENCES showtimes(id);
 ALTER TABLE tickets ADD CONSTRAINT fk_tickets_seat FOREIGN KEY (seat) REFERENCES seats(id);
+ALTER TABLE tickets ADD CONSTRAINT fk_tickets_price_modifier FOREIGN KEY (price_modifier) REFERENCES price_modifiers(id);
 ALTER TABLE tickets ADD CONSTRAINT fk_tickets_applied_exchange_rate FOREIGN KEY (applied_exchange_rate) REFERENCES exchange_rates(id);
 ALTER TABLE tickets ADD CONSTRAINT fk_tickets_status FOREIGN KEY (status) REFERENCES statuses(id);
 
@@ -666,5 +684,3 @@ ALTER TABLE loyalty_ledgers ADD CONSTRAINT fk_loyalty_ledgers_customer FOREIGN K
 ALTER TABLE loyalty_ledgers ADD CONSTRAINT fk_loyalty_ledgers_order FOREIGN KEY ("order") REFERENCES orders(id);
 ALTER TABLE loyalty_ledgers ADD CONSTRAINT fk_loyalty_ledgers_operation_type FOREIGN KEY (operation_type) REFERENCES operation_types(id);
 ALTER TABLE loyalty_ledgers ADD CONSTRAINT fk_loyalty_ledgers_status FOREIGN KEY (status) REFERENCES statuses(id);
-
--- FIN DEL SCRIPT

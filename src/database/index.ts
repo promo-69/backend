@@ -3,14 +3,10 @@ import { BaseDatabaseConnector } from '@bases/db-connector.base.js';
 import { DatabaseConfig } from '@config/database.config.js';
 import { SequelizeConnector } from '@database/connectors/sequelize.connector.js';
 import { Logger } from '@utils/logger.util.js';
-import { fileURLToPath } from 'url';
-import path from 'path';
 import { BaseRepository } from '@bases/repository.base.js';
 import { DatabaseRepositoryError } from '@errors/database.error.js';
 import { ANSI } from '@utils/ansi.util.js';
 import { AppConfig } from '@config/app.config.js';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export { WhereOperators as Ops } from '@bases/repository.base.js';
 
