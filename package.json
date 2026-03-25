@@ -1,8 +1,8 @@
 {
-    "name": "promo69-backend",
+    "name": "cineflix-backend",
     "version": "1.0.0",
-    "description": "API Restful by Alidev Backend Scaffolding",
-    "author": "alidev00",
+    "description": "API Restful by Promo69",
+    "author": "promo69-team",
     "main": "build/index.js",
     "type": "module",
     "scripts": {
