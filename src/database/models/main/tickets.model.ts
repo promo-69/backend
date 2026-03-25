@@ -49,6 +49,7 @@ export default class TicketsModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }

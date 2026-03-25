@@ -31,6 +31,7 @@ export default class MovieSubscriptionsModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }

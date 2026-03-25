@@ -25,6 +25,7 @@ export default class UserPermissionsModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }

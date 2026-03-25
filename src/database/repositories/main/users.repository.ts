@@ -14,9 +14,32 @@ export interface UsersAttributes {
     status: number;
 }
 
+interface UsersWithPeople extends UsersAttributes {
+    _People: {
+        first_name: string;
+        last_name: string;
+        email: string;
+        phone_number: string;
+    };
+}
+
 class UsersRepository extends SequelizeRepositoryBase<UsersAttributes, number> {
     constructor() {
         super(UsersModel);
+    }
+
+    getByCredentials(credentials: { username: string; password: string }): Promise<UsersWithPeople | null> {
+        return this.getOne({ username: credentials.username, password: credentials.password },
+            {
+                relations: [
+                    {
+                        association: '_People',
+                        attributes: ['first_name', 'last_name', 'email', 'phone_number'],
+                        required: true,
+                    },
+                ],
+            }
+        ) as Promise<UsersWithPeople | null>;
     }
 }
 

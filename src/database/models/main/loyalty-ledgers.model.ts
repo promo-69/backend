@@ -34,6 +34,7 @@ export default class LoyaltyLedgersModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }

@@ -25,6 +25,7 @@ export default class EmployeesModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -44,7 +45,7 @@ export default class EmployeesModel extends SequelizeModelBase {
             {
                 type: 'belongsTo',
                 target: 'People',
-                options: { foreignKey: 'person', targetKey: 'id', as: '_Person' },
+                options: { foreignKey: 'person', targetKey: 'id', as: '_People' },
             },
             {
                 inversed: true,

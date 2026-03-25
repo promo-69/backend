@@ -25,6 +25,7 @@ export default class OrdersModel extends SequelizeModelBase {
             order_status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
             base_currency: {
                 allowNull: false,
@@ -46,6 +47,7 @@ export default class OrdersModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }

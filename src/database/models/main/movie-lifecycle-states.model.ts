@@ -17,6 +17,7 @@ export default class MovieLifecycleStatesModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
