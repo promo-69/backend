@@ -64,14 +64,14 @@ class DatabaseManager {
                     if (dbInstanceId !== config.id) continue;
                     if (/^(index)/.test(repoFileName)) continue; // ignore index files
 
-                    const loadedModule = await repoModules[pathRepo]() as any;
+                    const loadedModule = (await repoModules[pathRepo]()) as any;
                     let repoDefinition = loadedModule;
                     if (!repoDefinition.default || typeof repoDefinition.default !== 'object') {
                         throw new Error(`Model ${repoFileName} does not export a valid class`);
                     }
 
                     repoDefinition = repoDefinition.default;
-                    
+
                     // Normaliza el nombre del repositorio ('AuthRepository' => 'auth', etc)
                     const repoRawName = repoDefinition.constructor.name
                         .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
@@ -100,10 +100,17 @@ class DatabaseManager {
                 let loadedCount = 0;
                 const repoPath = path.join(__dirname, 'repositories', config.id);
 
-                try { fs.accessSync(repoPath); } catch { continue; }
+                try {
+                    fs.accessSync(repoPath);
+                } catch {
+                    continue;
+                }
 
-                const repoNames = fs.readdirSync(repoPath, { withFileTypes: true })
-                    .filter((dirent) => dirent.isFile() && !/^(index)/.test(dirent.name) && /\.(js|ts)$/.test(dirent.name))
+                const repoNames = fs
+                    .readdirSync(repoPath, { withFileTypes: true })
+                    .filter(
+                        (dirent) => dirent.isFile() && !/^(index)/.test(dirent.name) && /\.(js|ts)$/.test(dirent.name),
+                    )
                     .map((dirent) => dirent.name)
                     .reduce((acu: string[], cur: string) => {
                         const index = acu.findIndex((name: string) => {

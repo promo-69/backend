@@ -12,6 +12,10 @@ export default class RolesModel extends SequelizeModelBase {
             },
             code: {
                 allowNull: false,
+                type: DataTypes.STRING(50),
+            },
+            name: {
+                allowNull: false,
                 type: DataTypes.STRING(100),
             },
             description: {
@@ -21,7 +25,7 @@ export default class RolesModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
-                defaultValue: 1
+                defaultValue: 1,
             },
         };
     }

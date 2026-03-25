@@ -220,7 +220,13 @@ export abstract class ControllerBase {
      */
     private normalizeError(error: any): AppError {
         // Verificar usando instanceof o estructuralmente (duck typing para entornos de tests aislados como Jest)
-        if (error instanceof AppError || (error && typeof error === 'object' && typeof error.statusCode === 'number' && typeof error.code === 'string')) {
+        if (
+            error instanceof AppError ||
+            (error &&
+                typeof error === 'object' &&
+                typeof error.statusCode === 'number' &&
+                typeof error.code === 'string')
+        ) {
             return error;
         }
 

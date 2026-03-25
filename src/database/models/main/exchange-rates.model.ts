@@ -30,7 +30,7 @@ export default class ExchangeRatesModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
-                defaultValue: 1
+                defaultValue: 1,
             },
         };
     }

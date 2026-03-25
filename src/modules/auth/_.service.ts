@@ -9,7 +9,7 @@ export class AuthService extends BaseService {
     }
 
     private get _accesos() {
-        return Database.repository('main', 'system-access') as any;
+        return Database.repository('main', 'users') as any;
     }
     private get _rolesUsuarios() {
         return Database.repository('main', 'user-roles') as any;
@@ -40,44 +40,25 @@ export class AuthService extends BaseService {
     // --- Authentication & Sessions ---
 
     private async _buildUserPayload(foundSession: any) {
-        const rolesRes = await this._rolesUsuarios.getFullByUser({ userId: foundSession.id });
-        const rolesResData = Array.isArray(rolesRes) ? rolesRes : rolesRes?.rows || [];
+        const rolesData: any[] = [];
+        const permissionsData: string[] = [];
 
-        const rolesData = rolesResData.map((rol: any) => ({
-            id: rol._Roles?.id,
-            code: rol._Roles?.code,
-        }));
-
-        const roleIds = rolesResData.map((e: any) => e.roleId);
-        let permissionsData: string[] = [];
-
-        let perms: any[] = [];
-        for (const rId of roleIds) {
-            const rRes = await this._rolesPermisos.getFullByRole({ roleId: rId });
-            const rResData = Array.isArray(rRes) ? rRes : rRes?.rows || [];
-            perms.push(...rResData);
-        }
-        permissionsData = this.parsePermissions(perms);
-
-        return {
+        const payload = {
             id: foundSession.id,
-            empId: foundSession.responsibleEmployeeId,
-            adminUnit: foundSession.adminUnitId,
-            adminUnitDesc: (foundSession as any)._AdminUnit?.description,
-            uid: foundSession.username,
-            empPersonId: (foundSession as any)._Employees?.document_number,
+            document_number: foundSession.document_number,
             roles: rolesData,
             permissions: permissionsData,
-            name: (foundSession as any)._Employees?.first_name,
-            surname: (foundSession as any)._Employees?.last_name,
+            name: foundSession._People.first_name,
+            surname: foundSession._People.last_name,
+            email: foundSession._People.email,
+            phone_number: foundSession._People.phone_number,
         };
+
+        return payload;
     }
 
     async authenticateUser({ uid, password }: Record<string, any>) {
-        if (!uid || !password) {
-            const error = new ValidationError('Las credenciales están incompletas', []);
-            throw error;
-        }
+        if (!uid || !password) throw new ValidationError('Las credenciales están incompletas', []);
 
         const uidRegExp = /^[a-zA-Z0-9_\-\.]{4,20}$/;
         const passRegExp = /^.{6,50}$/;

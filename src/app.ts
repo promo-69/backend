@@ -127,11 +127,12 @@ export class App {
 
     private async setupRoutes(): Promise<void> {
         Logger.natural(ANSI.info('----------- [ Setting up Routes ] ----------'));
+        const routerEssentialApi = express.Router();
         const router = express.Router();
         const apiPrefix = `/api/v1`;
 
         // Health check global
-        this.app.use('/health', (req: Request, res: Response) => {
+        routerEssentialApi.get('/health', (req: Request, res: Response) => {
             const health = {
                 status: 'healthy',
                 uptime: process.uptime(),
@@ -143,7 +144,7 @@ export class App {
         });
 
         // Ruta raíz con información de la API
-        this.app.use('/', (req: Request, res: Response) => {
+        routerEssentialApi.get('/', (req: Request, res: Response) => {
             const welcome = {
                 message: 'Welcome to the API',
                 documentation: 'See /./health for service status',
@@ -156,6 +157,8 @@ export class App {
 
             res.json(welcome);
         });
+
+        this.app.use(routerEssentialApi);
 
         // Ruta para mostrar todos los endpoints disponibles
         router.get('/endpoints', (req: Request, res: Response) => {

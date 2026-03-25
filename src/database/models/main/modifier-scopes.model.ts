@@ -17,7 +17,7 @@ export default class ModifierScopesModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
-                defaultValue: 1
+                defaultValue: 1,
             },
         };
     }

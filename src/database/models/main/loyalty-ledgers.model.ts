@@ -34,7 +34,7 @@ export default class LoyaltyLedgersModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
-                defaultValue: 1
+                defaultValue: 1,
             },
         };
     }
@@ -51,14 +51,46 @@ export default class LoyaltyLedgersModel extends SequelizeModelBase {
 
     static override relations(): RelationsReturn {
         return [
-            { type: 'belongsTo', target: 'Customers', options: { foreignKey: 'customer', targetKey: 'id', as: '_Customer' } },
-            { inversed: true, type: 'hasMany', target: 'Customers', options: { foreignKey: 'customer', targetKey: 'id', as: '_LoyaltyLedgers' } },
+            {
+                type: 'belongsTo',
+                target: 'Customers',
+                options: { foreignKey: 'customer', targetKey: 'id', as: '_Customer' },
+            },
+            {
+                inversed: true,
+                type: 'hasMany',
+                target: 'Customers',
+                options: { foreignKey: 'customer', targetKey: 'id', as: '_LoyaltyLedgers' },
+            },
             { type: 'belongsTo', target: 'Orders', options: { foreignKey: 'order', targetKey: 'id', as: '_Order' } },
-            { inversed: true, type: 'hasMany', target: 'Orders', options: { foreignKey: 'order', targetKey: 'id', as: '_LoyaltyLedgers' } },
-            { type: 'belongsTo', target: 'OperationTypes', options: { foreignKey: 'operation_type', targetKey: 'id', as: '_OperationType' } },
-            { inversed: true, type: 'hasMany', target: 'OperationTypes', options: { foreignKey: 'operation_type', targetKey: 'id', as: '_LoyaltyLedgers' } },
-            { type: 'belongsTo', target: 'Statuses', options: { foreignKey: 'status', targetKey: 'id', as: '_Status' } },
-            { inversed: true, type: 'hasMany', target: 'Statuses', options: { foreignKey: 'status', targetKey: 'id', as: '_LoyaltyLedgers' } },
+            {
+                inversed: true,
+                type: 'hasMany',
+                target: 'Orders',
+                options: { foreignKey: 'order', targetKey: 'id', as: '_LoyaltyLedgers' },
+            },
+            {
+                type: 'belongsTo',
+                target: 'OperationTypes',
+                options: { foreignKey: 'operation_type', targetKey: 'id', as: '_OperationType' },
+            },
+            {
+                inversed: true,
+                type: 'hasMany',
+                target: 'OperationTypes',
+                options: { foreignKey: 'operation_type', targetKey: 'id', as: '_LoyaltyLedgers' },
+            },
+            {
+                type: 'belongsTo',
+                target: 'Statuses',
+                options: { foreignKey: 'status', targetKey: 'id', as: '_Status' },
+            },
+            {
+                inversed: true,
+                type: 'hasMany',
+                target: 'Statuses',
+                options: { foreignKey: 'status', targetKey: 'id', as: '_LoyaltyLedgers' },
+            },
         ];
     }
 }

@@ -25,7 +25,7 @@ export default class OrdersModel extends SequelizeModelBase {
             order_status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
-                defaultValue: 1
+                defaultValue: 1,
             },
             base_currency: {
                 allowNull: false,
@@ -47,7 +47,7 @@ export default class OrdersModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
-                defaultValue: 1
+                defaultValue: 1,
             },
         };
     }
@@ -64,18 +64,68 @@ export default class OrdersModel extends SequelizeModelBase {
 
     static override relations(): RelationsReturn {
         return [
-            { type: 'belongsTo', target: 'Customers', options: { foreignKey: 'customer', targetKey: 'id', as: '_Customer' } },
-            { inversed: true, type: 'hasMany', target: 'Customers', options: { foreignKey: 'customer', targetKey: 'id', as: '_Orders' } },
-            { type: 'belongsTo', target: 'Employees', options: { foreignKey: 'employee', targetKey: 'id', as: '_Employee' } },
-            { inversed: true, type: 'hasMany', target: 'Employees', options: { foreignKey: 'employee', targetKey: 'id', as: '_Orders' } },
+            {
+                type: 'belongsTo',
+                target: 'Customers',
+                options: { foreignKey: 'customer', targetKey: 'id', as: '_Customer' },
+            },
+            {
+                inversed: true,
+                type: 'hasMany',
+                target: 'Customers',
+                options: { foreignKey: 'customer', targetKey: 'id', as: '_Orders' },
+            },
+            {
+                type: 'belongsTo',
+                target: 'Employees',
+                options: { foreignKey: 'employee', targetKey: 'id', as: '_Employee' },
+            },
+            {
+                inversed: true,
+                type: 'hasMany',
+                target: 'Employees',
+                options: { foreignKey: 'employee', targetKey: 'id', as: '_Orders' },
+            },
             { type: 'belongsTo', target: 'Cinemas', options: { foreignKey: 'cinema', targetKey: 'id', as: '_Cinema' } },
-            { inversed: true, type: 'hasMany', target: 'Cinemas', options: { foreignKey: 'cinema', targetKey: 'id', as: '_Orders' } },
-            { type: 'belongsTo', target: 'OrderStatuses', options: { foreignKey: 'order_status', targetKey: 'id', as: '_OrderStatus' } },
-            { inversed: true, type: 'hasMany', target: 'OrderStatuses', options: { foreignKey: 'order_status', targetKey: 'id', as: '_Orders' } },
-            { type: 'belongsTo', target: 'Currencies', options: { foreignKey: 'base_currency', targetKey: 'id', as: '_BaseCurrency' } },
-            { inversed: true, type: 'hasMany', target: 'Currencies', options: { foreignKey: 'base_currency', targetKey: 'id', as: '_Orders' } },
-            { type: 'belongsTo', target: 'Statuses', options: { foreignKey: 'status', targetKey: 'id', as: '_Status' } },
-            { inversed: true, type: 'hasMany', target: 'Statuses', options: { foreignKey: 'status', targetKey: 'id', as: '_Orders' } },
+            {
+                inversed: true,
+                type: 'hasMany',
+                target: 'Cinemas',
+                options: { foreignKey: 'cinema', targetKey: 'id', as: '_Orders' },
+            },
+            {
+                type: 'belongsTo',
+                target: 'OrderStatuses',
+                options: { foreignKey: 'order_status', targetKey: 'id', as: '_OrderStatus' },
+            },
+            {
+                inversed: true,
+                type: 'hasMany',
+                target: 'OrderStatuses',
+                options: { foreignKey: 'order_status', targetKey: 'id', as: '_Orders' },
+            },
+            {
+                type: 'belongsTo',
+                target: 'Currencies',
+                options: { foreignKey: 'base_currency', targetKey: 'id', as: '_BaseCurrency' },
+            },
+            {
+                inversed: true,
+                type: 'hasMany',
+                target: 'Currencies',
+                options: { foreignKey: 'base_currency', targetKey: 'id', as: '_Orders' },
+            },
+            {
+                type: 'belongsTo',
+                target: 'Statuses',
+                options: { foreignKey: 'status', targetKey: 'id', as: '_Status' },
+            },
+            {
+                inversed: true,
+                type: 'hasMany',
+                target: 'Statuses',
+                options: { foreignKey: 'status', targetKey: 'id', as: '_Orders' },
+            },
         ];
     }
 }

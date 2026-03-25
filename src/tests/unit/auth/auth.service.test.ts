@@ -28,7 +28,7 @@ describe('AuthService Suite', () => {
             getFullByUser: jest.fn(),
             getAllActive: jest.fn(),
             getFullByRole: jest.fn(),
-            getAllFull: jest.fn()
+            getAllFull: jest.fn(),
         };
 
         mockAuthRolesUsuarios = {
@@ -36,7 +36,7 @@ describe('AuthService Suite', () => {
             getFullByUser: jest.fn(),
             getAllActive: jest.fn(),
             getFullByRole: jest.fn(),
-            getAllFull: jest.fn()
+            getAllFull: jest.fn(),
         };
 
         mockAuthRolesPermisos = {
@@ -44,7 +44,7 @@ describe('AuthService Suite', () => {
             getFullByUser: jest.fn(),
             getAllActive: jest.fn(),
             getFullByRole: jest.fn(),
-            getAllFull: jest.fn()
+            getAllFull: jest.fn(),
         };
 
         jest.spyOn(Database, 'repository').mockImplementation((connector: string, name: string) => {
@@ -61,22 +61,26 @@ describe('AuthService Suite', () => {
 
     describe('authenticateUser', () => {
         it('should throw ValidationError if no uid or password are provided', async () => {
-            await expect(AuthService.authenticateUser({ uid: '', password: '' }))
-                .rejects.toThrow(ValidationError);
+            await expect(AuthService.authenticateUser({ uid: '', password: '' })).rejects.toThrow(ValidationError);
         });
 
         it('should throw ValidationError if uid or password patterns are invalid', async () => {
-            await expect(AuthService.authenticateUser({ uid: 'usr', password: '123' }))
-                .rejects.toThrow(ValidationError);
+            await expect(AuthService.authenticateUser({ uid: 'usr', password: '123' })).rejects.toThrow(
+                ValidationError,
+            );
         });
 
         it('should throw AuthError if credentials do not match any user', async () => {
             mockAuthAccesosSistemas.getByCredentials.mockResolvedValueOnce(null);
 
-            await expect(AuthService.authenticateUser({ uid: 'valid_user', password: 'valid_password' }))
-                .rejects.toThrow(AuthError);
-                
-            expect(mockAuthAccesosSistemas.getByCredentials).toHaveBeenCalledWith({ usuario: 'valid_user', clave: 'valid_password' });
+            await expect(
+                AuthService.authenticateUser({ uid: 'valid_user', password: 'valid_password' }),
+            ).rejects.toThrow(AuthError);
+
+            expect(mockAuthAccesosSistemas.getByCredentials).toHaveBeenCalledWith({
+                usuario: 'valid_user',
+                clave: 'valid_password',
+            });
         });
 
         it('should return valid session data dynamically pulling nested permissions via simulated Where clauses', async () => {
@@ -86,31 +90,35 @@ describe('AuthService Suite', () => {
                 unidad_administradora: 20,
                 usuario: 'valid_user',
                 _UniAdm: { descripcion: 'Administration' },
-                _Empleados: { cedula: 'V-12345678', nombres: 'John', apellidos: 'Doe' }
+                _Empleados: { cedula: 'V-12345678', nombres: 'John', apellidos: 'Doe' },
             };
 
-            const fakeRolesData: QueryResult<{ rol: number, _Roles: { id: number, codigo: string } }> = {
-                rows: [
-                    { rol: 101, _Roles: { id: 101, codigo: 'ADMIN_ROLE' } }
-                ]
+            const fakeRolesData: QueryResult<{ rol: number; _Roles: { id: number; codigo: string } }> = {
+                rows: [{ rol: 101, _Roles: { id: 101, codigo: 'ADMIN_ROLE' } }],
             };
 
-            const fakePermissionsData: QueryResult<{ _Permisos: { _Recursos: { codigo: string }, _Acciones: { codigo: string }, _TipPer: { codigo: string } } }> = {
+            const fakePermissionsData: QueryResult<{
+                _Permisos: {
+                    _Recursos: { codigo: string };
+                    _Acciones: { codigo: string };
+                    _TipPer: { codigo: string };
+                };
+            }> = {
                 rows: [
                     {
                         _Permisos: {
                             _Recursos: { codigo: 'USERS' },
                             _Acciones: { codigo: 'READ' },
-                            _TipPer: { codigo: 'GRANT' }
-                        }
-                    }
-                ]
+                            _TipPer: { codigo: 'GRANT' },
+                        },
+                    },
+                ],
             };
 
             mockAuthAccesosSistemas.getByCredentials.mockResolvedValueOnce(fakeSessionObj);
             mockAuthRolesUsuarios.getFullByUser.mockResolvedValueOnce(fakeRolesData);
             mockAuthRolesPermisos.getFullByRole.mockResolvedValueOnce(fakePermissionsData);
-            
+
             jest.spyOn(JWTUtil, 'generateToken').mockReturnValue('mocked_access_token');
             jest.spyOn(JWTUtil, 'generateRefreshToken').mockReturnValue('mocked_refresh_token');
 
@@ -126,7 +134,7 @@ describe('AuthService Suite', () => {
                 id: 1,
                 uid: 'valid_user',
                 roles: [{ id: 101, code: 'ADMIN_ROLE' }],
-                permissions: ['GRANT:READ:USERS'] // The parsed string representation
+                permissions: ['GRANT:READ:USERS'], // The parsed string representation
             });
         });
     });

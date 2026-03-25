@@ -20,9 +20,10 @@ export class UnknownError extends AppError {
 
         super({
             statusCode: 500,
-            message: process.env.NODE_ENV === 'development'
-                ? `Unexpected error: ${errorName}: ${errorMessage}`
-                : `Unexpected error: ${errorMessage}`,
+            message:
+                process.env.NODE_ENV === 'development'
+                    ? `Unexpected error: ${errorName}: ${errorMessage}`
+                    : `Unexpected error: ${errorMessage}`,
             code: 'UNKNOWN_ERROR',
             cause: originalError,
             data: {

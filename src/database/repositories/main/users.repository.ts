@@ -29,7 +29,8 @@ class UsersRepository extends SequelizeRepositoryBase<UsersAttributes, number> {
     }
 
     getByCredentials(credentials: { username: string; password: string }): Promise<UsersWithPeople | null> {
-        return this.getOne({ username: credentials.username, password: credentials.password },
+        return this.getOne(
+            { username: credentials.username, password: credentials.password },
             {
                 relations: [
                     {
@@ -38,7 +39,7 @@ class UsersRepository extends SequelizeRepositoryBase<UsersAttributes, number> {
                         required: true,
                     },
                 ],
-            }
+            },
         ) as Promise<UsersWithPeople | null>;
     }
 }
