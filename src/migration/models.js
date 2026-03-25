@@ -57,6 +57,7 @@ export default class OperationTypesModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -108,6 +109,7 @@ export default class GendersModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -175,6 +177,7 @@ export default class CinemasModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -259,6 +262,7 @@ export default class PeopleModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -321,6 +325,7 @@ export default class UserTypesModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -376,6 +381,7 @@ export default class RolesModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -456,6 +462,7 @@ export default class UsersModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -475,7 +482,7 @@ export default class UsersModel extends SequelizeModelBase {
             {
                 type: 'belongsTo',
                 target: 'People',
-                options: { foreignKey: 'person', targetKey: 'id', as: '_Person' },
+                options: { foreignKey: 'person', targetKey: 'id', as: '_People' },
             },
             {
                 inversed: true,
@@ -548,6 +555,7 @@ export default class EmployeesModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -567,7 +575,7 @@ export default class EmployeesModel extends SequelizeModelBase {
             {
                 type: 'belongsTo',
                 target: 'People',
-                options: { foreignKey: 'person', targetKey: 'id', as: '_Person' },
+                options: { foreignKey: 'person', targetKey: 'id', as: '_People' },
             },
             {
                 inversed: true,
@@ -626,6 +634,7 @@ export default class CustomersModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -645,7 +654,7 @@ export default class CustomersModel extends SequelizeModelBase {
             {
                 type: 'belongsTo',
                 target: 'People',
-                options: { foreignKey: 'person', targetKey: 'id', as: '_Person' },
+                options: { foreignKey: 'person', targetKey: 'id', as: '_People' },
             },
             {
                 inversed: true,
@@ -692,6 +701,7 @@ export default class ActionsModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -747,6 +757,7 @@ export default class ResourcesModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -802,6 +813,7 @@ export default class PermissionTypesModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -861,6 +873,7 @@ export default class PermissionsModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -949,6 +962,7 @@ export default class RolePermissionsModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -1026,6 +1040,7 @@ export default class RoleInheritancesModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -1107,6 +1122,7 @@ export default class UserPermissionsModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -1180,6 +1196,7 @@ export default class ProjectionTypesModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -1247,6 +1264,7 @@ export default class RoomsModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -1313,6 +1331,7 @@ export default class RoomProjectionTypesModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -1386,6 +1405,7 @@ export default class SeatCategoriesModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -1437,6 +1457,7 @@ export default class SeatConditionsModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -1504,6 +1525,7 @@ export default class SeatsModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -1600,6 +1622,7 @@ export default class CurrenciesModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -1664,6 +1687,7 @@ export default class ExchangeRatesModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -1737,6 +1761,7 @@ export default class GenresModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -1788,6 +1813,7 @@ export default class AgeClassificationsModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -1839,6 +1865,7 @@ export default class MovieLifecycleStatesModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -1914,6 +1941,7 @@ export default class MoviesModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -1991,6 +2019,7 @@ export default class MovieGenresModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -2078,6 +2107,7 @@ export default class MovieSubscriptionsModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -2179,6 +2209,7 @@ export default class ShowtimesModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -2274,6 +2305,7 @@ export default class AudienceCategoriesModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -2329,6 +2361,7 @@ export default class WeekDaysModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -2380,6 +2413,7 @@ export default class ModifierScopesModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -2475,6 +2509,7 @@ export default class PriceModifiersModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -2535,6 +2570,7 @@ export default class ProductCategoriesModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -2606,6 +2642,7 @@ export default class ProductsModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -2699,6 +2736,7 @@ export default class CombosModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -2769,6 +2807,7 @@ export default class ComboProductsModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -2850,6 +2889,7 @@ export default class InventoriesModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -2944,6 +2984,7 @@ export default class InventoryMovementsModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -3028,6 +3069,7 @@ export default class OrderStatusesModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -3083,6 +3125,7 @@ export default class PaymentMethodsModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -3134,6 +3177,7 @@ export default class LineTypesModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -3193,6 +3237,7 @@ export default class OrdersModel extends SequelizeModelBase {
             order_status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
             base_currency: {
                 allowNull: false,
@@ -3214,6 +3259,7 @@ export default class OrdersModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -3298,6 +3344,7 @@ export default class OrderLinesModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -3384,6 +3431,7 @@ export default class TicketsModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -3456,6 +3504,7 @@ export default class OrderPaymentsModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }
@@ -3521,6 +3570,7 @@ export default class LoyaltyLedgersModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
+                defaultValue: 1
             },
         };
     }

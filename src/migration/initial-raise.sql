@@ -13,14 +13,14 @@ CREATE TABLE operation_types (
     id SERIAL PRIMARY KEY,
     description VARCHAR(255) NOT NULL,
     is_increment BOOLEAN NOT NULL,
-    status INTEGER NOT NULL
+    status INTEGER NOT NULL DEFAULT 1
 );
 CREATE UNIQUE INDEX idx_operation_types_description_uq ON operation_types (description);
 
 CREATE TABLE genders (
     id SERIAL PRIMARY KEY,
     description VARCHAR(255) NOT NULL,
-    status INTEGER NOT NULL
+    status INTEGER NOT NULL DEFAULT 1
 );
 CREATE UNIQUE INDEX idx_genders_description_uq ON genders (description);
 
@@ -32,7 +32,7 @@ CREATE TABLE cinemas (
     phone VARCHAR(50),
     opening_time TIME NOT NULL,
     closing_time TIME NOT NULL,
-    status INTEGER NOT NULL,
+    status INTEGER NOT NULL DEFAULT 1,
     CHECK (closing_time > opening_time)
 );
 CREATE UNIQUE INDEX idx_cinemas_name_uq ON cinemas (name);
@@ -48,14 +48,14 @@ CREATE TABLE people (
     birth_date date,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP,
-    status INTEGER NOT NULL
+    status INTEGER NOT NULL DEFAULT 1
 );
 CREATE UNIQUE INDEX idx_people_document_number_uq ON people (document_number);
 
 CREATE TABLE user_types (
     id SERIAL PRIMARY KEY,
     description VARCHAR(255) NOT NULL,
-    status INTEGER NOT NULL
+    status INTEGER NOT NULL DEFAULT 1
 );
 CREATE UNIQUE INDEX idx_user_types_description_uq ON user_types (description);
 
@@ -63,7 +63,7 @@ CREATE TABLE roles (
     id SERIAL PRIMARY KEY,
     code VARCHAR(100) NOT NULL,
     description VARCHAR(255) NOT NULL,
-    status INTEGER NOT NULL
+    status INTEGER NOT NULL DEFAULT 1
 );
 CREATE UNIQUE INDEX idx_roles_code_uq ON roles (code);
 
@@ -77,7 +77,7 @@ CREATE TABLE users (
     last_login TIMESTAMP,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP,
-    status INTEGER NOT NULL,
+    status INTEGER NOT NULL DEFAULT 1,
     CHECK ((user_type = 1 AND role IS NOT NULL) OR (user_type = 2 AND role IS NULL))
 );
 CREATE UNIQUE INDEX idx_users ON users (username);
@@ -87,7 +87,7 @@ CREATE TABLE employees (
     person INTEGER NOT NULL,
     cinema INTEGER NOT NULL,
     hire_date DATE NOT NULL,
-    status INTEGER NOT NULL
+    status INTEGER NOT NULL DEFAULT 1
 );
 CREATE UNIQUE INDEX idx_employees_person_uq ON employees (person);
 
@@ -95,7 +95,7 @@ CREATE TABLE customers (
     id SERIAL PRIMARY KEY,
     person INTEGER NOT NULL,
     registration_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    status INTEGER NOT NULL
+    status INTEGER NOT NULL DEFAULT 1
 );
 CREATE UNIQUE INDEX idx_customers_person_uq ON customers (person);
 
@@ -103,7 +103,7 @@ CREATE TABLE actions (
     id SERIAL PRIMARY KEY,
     code VARCHAR(100) NOT NULL,
     description VARCHAR(255) NOT NULL,
-    status INTEGER NOT NULL
+    status INTEGER NOT NULL DEFAULT 1
 );
 CREATE UNIQUE INDEX idx_actions_code_uq ON actions (code);
 
@@ -111,7 +111,7 @@ CREATE TABLE resources (
     id SERIAL PRIMARY KEY,
     code VARCHAR(100) NOT NULL,
     description VARCHAR(255) NOT NULL,
-    status INTEGER NOT NULL
+    status INTEGER NOT NULL DEFAULT 1
 );
 CREATE UNIQUE INDEX idx_resources_code_uq ON resources (code);
 
@@ -119,7 +119,7 @@ CREATE TABLE permission_types (
     id SERIAL PRIMARY KEY,
     code VARCHAR(100) NOT NULL,
     description VARCHAR(255) NOT NULL,
-    status INTEGER NOT NULL
+    status INTEGER NOT NULL DEFAULT 1
 );
 CREATE UNIQUE INDEX idx_permission_types_code_uq ON permission_types (code);
 
@@ -128,7 +128,7 @@ CREATE TABLE permissions (
     action INTEGER NOT NULL,
     resource INTEGER NOT NULL,
     permission_type INTEGER NOT NULL,
-    status INTEGER NOT NULL
+    status INTEGER NOT NULL DEFAULT 1
 );
 CREATE UNIQUE INDEX idx_permissions_uq ON permissions (action, resource, permission_type);
 
@@ -136,7 +136,7 @@ CREATE TABLE role_permissions (
     id SERIAL PRIMARY KEY,
     role INTEGER NOT NULL,
     permission INTEGER NOT NULL,
-    status INTEGER NOT NULL
+    status INTEGER NOT NULL DEFAULT 1
 );
 CREATE UNIQUE INDEX idx_role_permissions_uq ON role_permissions (role, permission);
 
@@ -144,7 +144,7 @@ CREATE TABLE role_inheritances (
     id SERIAL PRIMARY KEY,
     parent_role INTEGER NOT NULL,
     child_role INTEGER NOT NULL,
-    status INTEGER NOT NULL,
+    status INTEGER NOT NULL DEFAULT 1,
     CHECK (parent_role <> child_role)
 );
 CREATE UNIQUE INDEX idx_role_inheritances_uq ON role_inheritances (parent_role, child_role);
@@ -154,7 +154,7 @@ CREATE TABLE user_permissions (
     "user" INTEGER NOT NULL,
     permission INTEGER NOT NULL,
     is_granted BOOLEAN NOT NULL,
-    status INTEGER NOT NULL
+    status INTEGER NOT NULL DEFAULT 1
 );
 CREATE UNIQUE INDEX idx_user_permissions_uq ON user_permissions ("user", permission);
 
@@ -162,7 +162,7 @@ CREATE UNIQUE INDEX idx_user_permissions_uq ON user_permissions ("user", permiss
 CREATE TABLE projection_types (
     id SERIAL PRIMARY KEY,
     description VARCHAR(255) NOT NULL,
-    status INTEGER NOT NULL
+    status INTEGER NOT NULL DEFAULT 1
 );
 CREATE UNIQUE INDEX idx_projection_types_description_uq ON projection_types (description);
 
@@ -173,7 +173,7 @@ CREATE TABLE rooms (
     grid_rows INTEGER NOT NULL,
     grid_columns INTEGER NOT NULL,
     total_capacity INTEGER NOT NULL,
-    status INTEGER NOT NULL,
+    status INTEGER NOT NULL DEFAULT 1,
     CHECK (grid_rows > 0 AND grid_columns > 0 AND total_capacity >= 0)
 );
 CREATE UNIQUE INDEX idx_rooms_cinema_name_uq ON rooms (cinema, name);
@@ -182,21 +182,21 @@ CREATE TABLE room_projection_types (
     id SERIAL PRIMARY KEY,
     room INTEGER NOT NULL,
     projection_type INTEGER NOT NULL,
-    status INTEGER NOT NULL
+    status INTEGER NOT NULL DEFAULT 1
 );
 CREATE UNIQUE INDEX idx_room_projection_types_uq ON room_projection_types (room, projection_type);
 
 CREATE TABLE seat_categories (
     id SERIAL PRIMARY KEY,
     description VARCHAR(255) NOT NULL,
-    status INTEGER NOT NULL
+    status INTEGER NOT NULL DEFAULT 1
 );
 CREATE UNIQUE INDEX idx_seat_categories_description_uq ON seat_categories (description);
 
 CREATE TABLE seat_conditions (
     id SERIAL PRIMARY KEY,
     description VARCHAR(255) NOT NULL,
-    status INTEGER NOT NULL
+    status INTEGER NOT NULL DEFAULT 1
 );
 CREATE UNIQUE INDEX idx_seat_conditions_description_uq ON seat_conditions (description);
 
@@ -207,7 +207,7 @@ CREATE TABLE seats (
     column_number INTEGER NOT NULL,
     seat_category INTEGER NOT NULL,
     seat_condition INTEGER NOT NULL,
-    status INTEGER NOT NULL,
+    status INTEGER NOT NULL DEFAULT 1,
     CHECK (column_number > 0)
 );
 CREATE UNIQUE INDEX idx_seats_room_row_col_uq ON seats (room, row_identifier, column_number);
@@ -219,7 +219,7 @@ CREATE TABLE currencies (
     description VARCHAR(255) NOT NULL,
     symbol VARCHAR(10) NOT NULL,
     is_base_currency BOOLEAN NOT NULL,
-    status INTEGER NOT NULL
+    status INTEGER NOT NULL DEFAULT 1
 );
 CREATE UNIQUE INDEX idx_currencies_code_uq ON currencies (code);
 
@@ -229,7 +229,7 @@ CREATE TABLE exchange_rates (
     rate NUMERIC(10, 2) NOT NULL,
     "user" INTEGER NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    status INTEGER NOT NULL,
+    status INTEGER NOT NULL DEFAULT 1,
     CHECK (rate > 0)
 );
 
@@ -237,21 +237,21 @@ CREATE TABLE exchange_rates (
 CREATE TABLE genres (
     id SERIAL PRIMARY KEY,
     description VARCHAR(255) NOT NULL,
-    status INTEGER NOT NULL
+    status INTEGER NOT NULL DEFAULT 1
 );
 CREATE UNIQUE INDEX idx_genres_description_uq ON genres (description);
 
 CREATE TABLE age_classifications (
     id SERIAL PRIMARY KEY,
     description VARCHAR(255) NOT NULL,
-    status INTEGER NOT NULL
+    status INTEGER NOT NULL DEFAULT 1
 );
 CREATE UNIQUE INDEX idx_age_classifications_description_uq ON age_classifications (description);
 
 CREATE TABLE movie_lifecycle_states (
     id SERIAL PRIMARY KEY,
     description VARCHAR(255) NOT NULL,
-    status INTEGER NOT NULL
+    status INTEGER NOT NULL DEFAULT 1
 );
 CREATE UNIQUE INDEX idx_movie_lifecycle_states_description_uq ON movie_lifecycle_states (description);
 
@@ -264,7 +264,7 @@ CREATE TABLE movies (
     synopsis TEXT NOT NULL,
     trailer_url VARCHAR(255),
     release_date DATE NOT NULL,
-    status INTEGER NOT NULL,
+    status INTEGER NOT NULL DEFAULT 1,
     CHECK (duration_minutes > 0)
 );
 CREATE UNIQUE INDEX idx_movies_title_uq ON movies (title);
@@ -273,7 +273,7 @@ CREATE TABLE movie_genres (
     id SERIAL PRIMARY KEY,
     movie INTEGER NOT NULL,
     genre INTEGER NOT NULL,
-    status INTEGER NOT NULL
+    status INTEGER NOT NULL DEFAULT 1
 );
 CREATE UNIQUE INDEX idx_movie_genres_uq ON movie_genres (movie, genre);
 
@@ -283,7 +283,7 @@ CREATE TABLE movie_subscriptions (
     movie INTEGER NOT NULL,
     is_notified BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    status INTEGER NOT NULL
+    status INTEGER NOT NULL DEFAULT 1
 );
 CREATE UNIQUE INDEX idx_movie_subscriptions_uq ON movie_subscriptions (customer, movie);
 
@@ -297,7 +297,7 @@ CREATE TABLE showtimes (
     currency INTEGER NOT NULL,
     price NUMERIC(10, 2) NOT NULL,
     earned_loyalty_points INTEGER,
-    status INTEGER NOT NULL,
+    status INTEGER NOT NULL DEFAULT 1,
     CHECK (end_time > start_time AND price >= 0)
 );
 CREATE UNIQUE INDEX idx_showtimes_room_time_uq ON showtimes (room, start_time);
@@ -305,7 +305,7 @@ CREATE UNIQUE INDEX idx_showtimes_room_time_uq ON showtimes (room, start_time);
 CREATE TABLE audience_categories (
     id SERIAL PRIMARY KEY,
     description VARCHAR(255) NOT NULL,
-    status INTEGER NOT NULL
+    status INTEGER NOT NULL DEFAULT 1
 );
 CREATE UNIQUE INDEX idx_audience_categories_description_uq ON audience_categories (description);
 
@@ -313,7 +313,7 @@ CREATE TABLE week_days (
     id SERIAL PRIMARY KEY,
     description VARCHAR(50) NOT NULL,
     day_number INTEGER NOT NULL,
-    status INTEGER NOT NULL,
+    status INTEGER NOT NULL DEFAULT 1,
     CHECK (day_number BETWEEN 1 AND 7)
 );
 CREATE UNIQUE INDEX idx_week_days_day_number_uq ON week_days (day_number);
@@ -321,7 +321,7 @@ CREATE UNIQUE INDEX idx_week_days_day_number_uq ON week_days (day_number);
 CREATE TABLE modifier_scopes (
     id SERIAL PRIMARY KEY,
     description VARCHAR(255) NOT NULL,
-    status INTEGER NOT NULL
+    status INTEGER NOT NULL DEFAULT 1
 );
 
 CREATE TABLE price_modifiers (
@@ -338,7 +338,7 @@ CREATE TABLE price_modifiers (
     operation_type INTEGER NOT NULL,
     is_percentage BOOLEAN NOT NULL,
     value NUMERIC(10, 2) NOT NULL,
-    status INTEGER NOT NULL,
+    status INTEGER NOT NULL DEFAULT 1,
     CHECK (value > 0),
     CHECK (
         (modifier_scope = 1 AND product_category IS NULL AND product IS NULL AND combo IS NULL) 
@@ -353,7 +353,7 @@ CREATE TABLE price_modifiers (
 CREATE TABLE product_categories (
     id SERIAL PRIMARY KEY,
     description VARCHAR(255) NOT NULL,
-    status INTEGER NOT NULL
+    status INTEGER NOT NULL DEFAULT 1
 );
 CREATE UNIQUE INDEX idx_product_categories_name_uq ON product_categories (description);
 
@@ -365,7 +365,7 @@ CREATE TABLE products (
     currency INTEGER NOT NULL,
     price NUMERIC(10, 2) NOT NULL,
     earned_loyalty_points INTEGER,
-    status INTEGER NOT NULL
+    status INTEGER NOT NULL DEFAULT 1
 );
 CREATE UNIQUE INDEX idx_products_sku_uq ON products (sku);
 
@@ -377,7 +377,7 @@ CREATE TABLE combos (
     currency INTEGER NOT NULL,
     price NUMERIC(10, 2) NOT NULL,
     earned_loyalty_points INTEGER,
-    status INTEGER NOT NULL
+    status INTEGER NOT NULL DEFAULT 1
 );
 CREATE UNIQUE INDEX idx_combos_sku_uq ON combos (sku);
 
@@ -386,7 +386,7 @@ CREATE TABLE combo_products (
     combo INTEGER NOT NULL,
     product INTEGER NOT NULL,
     quantity INTEGER NOT NULL,
-    status INTEGER NOT NULL,
+    status INTEGER NOT NULL DEFAULT 1,
     CHECK (quantity > 0)
 );
 CREATE UNIQUE INDEX idx_combo_products_uq ON combo_products (combo, product);
@@ -396,7 +396,7 @@ CREATE TABLE inventories (
     cinema INTEGER NOT NULL,
     product INTEGER NOT NULL,
     stock INTEGER NOT NULL,
-    status INTEGER NOT NULL,
+    status INTEGER NOT NULL DEFAULT 1,
     CHECK (stock >= 0)
 );
 CREATE UNIQUE INDEX idx_inventories_cinema_product_uq ON inventories (cinema, product);
@@ -409,7 +409,7 @@ CREATE TABLE inventory_movements (
     "user" INTEGER NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     remarks VARCHAR(255),
-    status INTEGER NOT NULL,
+    status INTEGER NOT NULL DEFAULT 1,
     CHECK (quantity > 0)
 );
 
@@ -417,7 +417,7 @@ CREATE TABLE inventory_movements (
 CREATE TABLE order_statuses (
     id SERIAL PRIMARY KEY,
     description VARCHAR(255) NOT NULL,
-    status INTEGER NOT NULL
+    status INTEGER NOT NULL DEFAULT 1
 );
 CREATE UNIQUE INDEX idx_order_statuses_uq ON order_statuses (description);
 
@@ -425,14 +425,14 @@ CREATE TABLE payment_methods (
     id SERIAL PRIMARY KEY,
     description VARCHAR(255) NOT NULL,
     requires_reference BOOLEAN NOT NULL,
-    status INTEGER NOT NULL
+    status INTEGER NOT NULL DEFAULT 1
 );
 CREATE UNIQUE INDEX idx_payment_methods_uq ON payment_methods (description);
 
 CREATE TABLE line_types (
     id SERIAL PRIMARY KEY,
     description VARCHAR(255) NOT NULL,
-    status INTEGER NOT NULL
+    status INTEGER NOT NULL DEFAULT 1
 );
 CREATE UNIQUE INDEX idx_line_types_uq ON line_types (description);
 
@@ -441,12 +441,12 @@ CREATE TABLE orders (
     customer INTEGER NOT NULL,
     employee INTEGER,
     cinema INTEGER NOT NULL,
-    order_status INTEGER NOT NULL,
+    order_status INTEGER NOT NULL DEFAULT 1,
     base_currency INTEGER NOT NULL,
     total_amount_base_currency NUMERIC(10, 2) NOT NULL,
     generated_points INTEGER NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    status INTEGER NOT NULL,
+    status INTEGER NOT NULL DEFAULT 1,
     CHECK (total_amount_base_currency >= 0),
     CHECK (generated_points >= 0)
 );
@@ -462,7 +462,7 @@ CREATE TABLE order_lines (
     price_modifier INTEGER,
     unit_price NUMERIC(10, 2) NOT NULL,
     applied_exchange_rate INTEGER NOT NULL,
-    status INTEGER NOT NULL,
+    status INTEGER NOT NULL DEFAULT 1,
     CHECK (quantity > 0),
     CHECK (original_unit_price >= 0),
     CHECK (unit_price >= 0),
@@ -484,7 +484,7 @@ CREATE TABLE tickets (
     applied_exchange_rate INTEGER NOT NULL,
     qr_code VARCHAR(500) NOT NULL,
     validation_time TIMESTAMP,
-    status INTEGER NOT NULL,
+    status INTEGER NOT NULL DEFAULT 1,
     CHECK (original_price >= 0),
     CHECK (price >= 0)
 );
@@ -499,7 +499,7 @@ CREATE TABLE order_payments (
     applied_exchange_rate INTEGER NOT NULL,
     reference_number VARCHAR(255),
     is_approved BOOLEAN NOT NULL,
-    status INTEGER NOT NULL,
+    status INTEGER NOT NULL DEFAULT 1,
     CHECK (amount > 0)
 );
 CREATE UNIQUE INDEX idx_order_payments_ref_uq ON order_payments (payment_method, reference_number);
@@ -511,7 +511,7 @@ CREATE TABLE loyalty_ledgers (
     operation_type INTEGER NOT NULL,
     points INTEGER NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    status INTEGER NOT NULL,
+    status INTEGER NOT NULL DEFAULT 1,
     CHECK (points > 0)
 );
 
