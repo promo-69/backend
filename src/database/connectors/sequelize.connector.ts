@@ -4,7 +4,7 @@ import { type IDatabaseConfig } from '@rules/database.type.js';
 import { Logger } from '@utils/logger.util.js';
 
 export class SequelizeConnector extends BaseDatabaseConnector {
-    protected declare connector: Sequelize;
+    declare protected connector: Sequelize;
 
     constructor(config: IDatabaseConfig) {
         super(config);

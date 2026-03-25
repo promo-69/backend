@@ -100,7 +100,8 @@ export class DatabaseConfig {
             if (!value) continue;
 
             const match = key.match(/^DB_(?<type>[A-Z]+)(?:_(?<id>[A-Z]+))?_(?<prop>.+)$/);
-            if (!match) continue;
+            if (!match)
+                continue;
 
             const { type, id, prop } = match.groups!;
 

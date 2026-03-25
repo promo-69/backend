@@ -20,7 +20,7 @@ export class Logger {
         message: string,
         { format, firm }: { format?: string; firm?: string } = {},
     ): string {
-        const timestamp = new Date().toISOString();
+        const timestamp = new Date().toLocaleString();
         const prefixFormat = format != null ? format : '';
         const suffixFormat = ANSI.getCode('reset');
         let logType: string = '';
@@ -72,11 +72,11 @@ export class Logger {
     }
 
     static error(message: string | null, error: Error, { sepStart, sepEnd }: ISeparatorOptions = {}): void {
-        const stack: string = error && error.stack ? error.stack : (error ? error.message : '');
+        const stack: string = error && error.stack ? error.stack : error ? error.message : '';
         const color = ANSI.getCode('error');
 
         const logs: string[] = [];
-        
+
         if (message) {
             logs.push(this.formatMessage('error', message, { format: color }));
             if (stack) logs.push(`  ${color + ANSI.getCode('underline')}STACK:${this.resetFormatCode}\n${stack}`);

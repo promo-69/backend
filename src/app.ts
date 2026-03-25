@@ -127,11 +127,12 @@ export class App {
 
     private async setupRoutes(): Promise<void> {
         Logger.natural(ANSI.info('----------- [ Setting up Routes ] ----------'));
+        const routerEssentialApi = express.Router();
         const router = express.Router();
         const apiPrefix = `/api/v1`;
 
         // Health check global
-        router.get('/health', (req: Request, res: Response) => {
+        routerEssentialApi.get('/health', (req: Request, res: Response) => {
             const health = {
                 status: 'healthy',
                 uptime: process.uptime(),
@@ -142,25 +143,22 @@ export class App {
             res.json(health);
         });
 
-        // Ready check
-        router.get('/ready', (req: Request, res: Response) => {
-            res.json({ status: 'ready' });
-        });
-
         // Ruta raíz con información de la API
-        router.get('/', (req: Request, res: Response) => {
+        routerEssentialApi.get('/', (req: Request, res: Response) => {
             const welcome = {
                 message: 'Welcome to the API',
                 documentation: 'See /./health for service status',
                 endpoints: {
-                    ready: '/ready',
-                    health: '/./health',
-                    api: `${this.appConfig.apiBaseUrl}/[module]`,
+                    ready: `/ready: Check if the API is ready to receive requests (${this.appConfig.apiBaseUrl}/ready)`,
+                    health: `/health: Check the health of the API (${this.appConfig.apiBaseUrl}/health)`,
+                    api: `${this.appConfig.apiBaseUrl}/api/v[version-number]/[module]: API endpoints`,
                 },
             };
 
             res.json(welcome);
         });
+
+        this.app.use(routerEssentialApi);
 
         // Ruta para mostrar todos los endpoints disponibles
         router.get('/endpoints', (req: Request, res: Response) => {

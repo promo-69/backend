@@ -182,7 +182,7 @@ export class ANSI {
     static link(url: string, { text, styles }: { text?: string; styles?: string | string[] } = {}): string {
         if (!this._supportsColor) return text || url;
 
-        styles = styles != null && !Array.isArray(styles) ? [styles] : styles ?? [];
+        styles = styles != null && !Array.isArray(styles) ? [styles] : (styles ?? []);
         const linkText = text || url;
         const formattedText =
             styles.length > 0 ? this.format(linkText, ...styles) : this.format(linkText, ...this.messageTypes.link);

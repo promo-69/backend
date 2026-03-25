@@ -662,8 +662,6 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
         }
 
         return [include];
-
-        return [];
     }
 
     getModel(): ModelStatic<Model> {

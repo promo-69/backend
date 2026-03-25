@@ -18,7 +18,7 @@ router.get('/permissions', verifySession, authController.findAllPermissions);
 router.get('/permissions/:id', verifySession, authController.findPermissionById);
 
 // --- Users ---
-router.get('/users', authController.findAllUsers);
+router.get('/users', verifySession, authController.findAllUsers);
 router.get('/users/:id', verifySession, authController.findUserById);
 router.post('/users', verifySession, authController.createUser);
 

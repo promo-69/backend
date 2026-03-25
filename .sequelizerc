@@ -1,0 +1,13 @@
+const path = require('path');
+
+module.exports = {
+  // Ruta donde estará el archivo de conexión a la base de datos
+  'config': path.resolve('src', 'database', 'connectors', 'config.cjs'),
+  
+  // Ruta donde ya tienes tus modelos
+  'models-path': path.resolve('src', 'database', 'models', 'main'),
+  
+  // Rutas donde el CLI guardará y leerá las migraciones y seeders
+  'seeders-path': path.resolve('src', 'migrate', 'seeders'),
+  'migrations-path': path.resolve('src', 'migrate', 'migrations')
+};

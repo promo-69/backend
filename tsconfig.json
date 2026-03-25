@@ -39,7 +39,7 @@
             "@tests/*": ["src/tests/*"]
         }
     },
-    "include": ["src/**/*.ts", "src/**/*.d.ts"],
+    "include": ["src/**/*.ts", "src/**/*.d.ts", "src/database/models/models.js"],
     "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts"],
     "ts-node": {
         "esm": true,

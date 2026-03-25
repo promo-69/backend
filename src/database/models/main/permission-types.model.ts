@@ -12,16 +12,16 @@ export default class PermissionTypesModel extends SequelizeModelBase {
             },
             code: {
                 allowNull: false,
-                type: DataTypes.STRING(50),
+                type: DataTypes.STRING(100),
             },
             description: {
-                allowNull: true,
-                type: DataTypes.STRING(200),
+                allowNull: false,
+                type: DataTypes.STRING(255),
             },
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
-                defaultValue: '1',
+                defaultValue: 1,
             },
         };
     }
@@ -31,7 +31,8 @@ export default class PermissionTypesModel extends SequelizeModelBase {
             isBasicTable: true,
             schema: 'public',
             tableName: 'permission_types',
-            appRawName: 'permission-types',
+            appRawName: 'permission_types',
+            timestamps: false,
         };
     }
 
@@ -39,22 +40,14 @@ export default class PermissionTypesModel extends SequelizeModelBase {
         return [
             {
                 type: 'belongsTo',
-                target: 'Status',
-                options: {
-                    foreignKey: 'status',
-                    targetKey: 'id',
-                    as: '_Status',
-                },
+                target: 'Statuses',
+                options: { foreignKey: 'status', targetKey: 'id', as: '_Status' },
             },
             {
                 inversed: true,
                 type: 'hasMany',
-                target: 'Status',
-                options: {
-                    foreignKey: 'status',
-                    targetKey: 'id',
-                    as: '_PermissionTypes',
-                },
+                target: 'Statuses',
+                options: { foreignKey: 'status', targetKey: 'id', as: '_PermissionTypes' },
             },
         ];
     }

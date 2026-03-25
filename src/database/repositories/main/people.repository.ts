@@ -1,4 +1,4 @@
-import { SequelizeRepositoryBase, type RelationConfig } from '@repositories/bases/sequelize.repository.js';
+import { SequelizeRepositoryBase } from '@repositories/bases/sequelize.repository.js';
 import PeopleModel from '@database/models/main/people.model.js';
 
 export interface PeopleAttributes {
@@ -10,20 +10,14 @@ export interface PeopleAttributes {
     phone_number?: string;
     email?: string;
     birth_date?: Date | string;
+    created_at?: Date | string;
+    updated_at?: Date | string;
     status: number;
 }
 
 class PeopleRepository extends SequelizeRepositoryBase<PeopleAttributes, number> {
     constructor() {
         super(PeopleModel);
-    }
-
-    async getByDocumentNumber({ document_number }: { document_number?: string } = {}): Promise<PeopleAttributes | null> {
-        const relations: RelationConfig[] = [
-            { association: '_Gender', attributes: ['genderDesc'] },
-        ];
-
-        return this.getOne({ document_number }, { relations });
     }
 }
 

@@ -3,14 +3,10 @@ import { BaseDatabaseConnector } from '@bases/db-connector.base.js';
 import { DatabaseConfig } from '@config/database.config.js';
 import { SequelizeConnector } from '@database/connectors/sequelize.connector.js';
 import { Logger } from '@utils/logger.util.js';
-import { fileURLToPath } from 'url';
-import path from 'path';
 import { BaseRepository } from '@bases/repository.base.js';
 import { DatabaseRepositoryError } from '@errors/database.error.js';
 import { ANSI } from '@utils/ansi.util.js';
 import { AppConfig } from '@config/app.config.js';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export { WhereOperators as Ops } from '@bases/repository.base.js';
 
@@ -68,14 +64,14 @@ class DatabaseManager {
                     if (dbInstanceId !== config.id) continue;
                     if (/^(index)/.test(repoFileName)) continue; // ignore index files
 
-                    const loadedModule = await repoModules[pathRepo]() as any;
+                    const loadedModule = (await repoModules[pathRepo]()) as any;
                     let repoDefinition = loadedModule;
                     if (!repoDefinition.default || typeof repoDefinition.default !== 'object') {
                         throw new Error(`Model ${repoFileName} does not export a valid class`);
                     }
 
                     repoDefinition = repoDefinition.default;
-                    
+
                     // Normaliza el nombre del repositorio ('AuthRepository' => 'auth', etc)
                     const repoRawName = repoDefinition.constructor.name
                         .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
@@ -104,10 +100,17 @@ class DatabaseManager {
                 let loadedCount = 0;
                 const repoPath = path.join(__dirname, 'repositories', config.id);
 
-                try { fs.accessSync(repoPath); } catch { continue; }
+                try {
+                    fs.accessSync(repoPath);
+                } catch {
+                    continue;
+                }
 
-                const repoNames = fs.readdirSync(repoPath, { withFileTypes: true })
-                    .filter((dirent) => dirent.isFile() && !/^(index)/.test(dirent.name) && /\.(js|ts)$/.test(dirent.name))
+                const repoNames = fs
+                    .readdirSync(repoPath, { withFileTypes: true })
+                    .filter(
+                        (dirent) => dirent.isFile() && !/^(index)/.test(dirent.name) && /\.(js|ts)$/.test(dirent.name),
+                    )
                     .map((dirent) => dirent.name)
                     .reduce((acu: string[], cur: string) => {
                         const index = acu.findIndex((name: string) => {

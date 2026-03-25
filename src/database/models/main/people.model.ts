@@ -12,15 +12,15 @@ export default class PeopleModel extends SequelizeModelBase {
             },
             document_number: {
                 allowNull: false,
-                type: DataTypes.STRING(16),
+                type: DataTypes.STRING(50),
             },
             first_name: {
                 allowNull: false,
-                type: DataTypes.STRING(50),
+                type: DataTypes.STRING(255),
             },
             last_name: {
                 allowNull: false,
-                type: DataTypes.STRING(50),
+                type: DataTypes.STRING(255),
             },
             gender: {
                 allowNull: true,
@@ -28,30 +28,40 @@ export default class PeopleModel extends SequelizeModelBase {
             },
             phone_number: {
                 allowNull: true,
-                type: DataTypes.STRING(30),
+                type: DataTypes.STRING(50),
             },
             email: {
                 allowNull: true,
-                type: DataTypes.STRING(50),
+                type: DataTypes.STRING(100),
             },
             birth_date: {
                 allowNull: true,
                 type: DataTypes.DATEONLY,
             },
+            created_at: {
+                allowNull: false,
+                type: DataTypes.DATE,
+                defaultValue: DataTypes.NOW,
+            },
+            updated_at: {
+                allowNull: true,
+                type: DataTypes.DATE,
+            },
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
-                defaultValue: '1',
+                defaultValue: 1,
             },
         };
     }
 
     static config() {
         return {
-            isBasicTable: true,
+            isBasicTable: false,
             schema: 'public',
             tableName: 'people',
             appRawName: 'people',
+            timestamps: false,
         };
     }
 
@@ -60,40 +70,24 @@ export default class PeopleModel extends SequelizeModelBase {
             {
                 type: 'belongsTo',
                 target: 'Genders',
-                options: {
-                    foreignKey: 'gender',
-                    targetKey: 'id',
-                    as: '_Gender',
-                },
+                options: { foreignKey: 'gender', targetKey: 'id', as: '_Gender' },
             },
             {
                 inversed: true,
                 type: 'hasMany',
                 target: 'Genders',
-                options: {
-                    foreignKey: 'gender',
-                    targetKey: 'id',
-                    as: '_People',
-                },
+                options: { foreignKey: 'gender', targetKey: 'id', as: '_People' },
             },
             {
                 type: 'belongsTo',
-                target: 'Status',
-                options: {
-                    foreignKey: 'status',
-                    targetKey: 'id',
-                    as: '_Status',
-                },
+                target: 'Statuses',
+                options: { foreignKey: 'status', targetKey: 'id', as: '_Status' },
             },
             {
                 inversed: true,
                 type: 'hasMany',
-                target: 'Status',
-                options: {
-                    foreignKey: 'status',
-                    targetKey: 'id',
-                    as: '_People',
-                },
+                target: 'Statuses',
+                options: { foreignKey: 'status', targetKey: 'id', as: '_People' },
             },
         ];
     }

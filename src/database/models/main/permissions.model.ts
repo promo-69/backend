@@ -10,32 +10,33 @@ export default class PermissionsModel extends SequelizeModelBase {
                 type: DataTypes.INTEGER,
                 autoIncrement: true,
             },
-            resource: {
-                allowNull: false,
-                type: DataTypes.INTEGER,
-            },
             action: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
             },
-            permissionType: {
+            resource: {
+                allowNull: false,
+                type: DataTypes.INTEGER,
+            },
+            permission_type: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
             },
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
-                defaultValue: '1',
+                defaultValue: 1,
             },
         };
     }
 
     static config() {
         return {
-            isBasicTable: true,
+            isBasicTable: false,
             schema: 'public',
             tableName: 'permissions',
             appRawName: 'permissions',
+            timestamps: false,
         };
     }
 
@@ -43,79 +44,47 @@ export default class PermissionsModel extends SequelizeModelBase {
         return [
             {
                 type: 'belongsTo',
-                target: 'PermissionResources',
-                options: {
-                    foreignKey: 'resource',
-                    targetKey: 'id',
-                    as: '_Resources',
-                },
+                target: 'Actions',
+                options: { foreignKey: 'action', targetKey: 'id', as: '_Action' },
             },
             {
                 inversed: true,
                 type: 'hasMany',
-                target: 'PermissionResources',
-                options: {
-                    foreignKey: 'resource',
-                    targetKey: 'id',
-                    as: '_Permissions',
-                },
+                target: 'Actions',
+                options: { foreignKey: 'action', targetKey: 'id', as: '_Permissions' },
             },
             {
                 type: 'belongsTo',
-                target: 'PermissionActions',
-                options: {
-                    foreignKey: 'action',
-                    targetKey: 'id',
-                    as: '_Actions',
-                },
+                target: 'Resources',
+                options: { foreignKey: 'resource', targetKey: 'id', as: '_Resource' },
             },
             {
                 inversed: true,
                 type: 'hasMany',
-                target: 'PermissionActions',
-                options: {
-                    foreignKey: 'action',
-                    targetKey: 'id',
-                    as: '_Permissions',
-                },
+                target: 'Resources',
+                options: { foreignKey: 'resource', targetKey: 'id', as: '_Permissions' },
             },
             {
                 type: 'belongsTo',
                 target: 'PermissionTypes',
-                options: {
-                    foreignKey: 'permissionType',
-                    targetKey: 'id',
-                    as: '_PermissionTypes',
-                },
+                options: { foreignKey: 'permission_type', targetKey: 'id', as: '_PermissionType' },
             },
             {
                 inversed: true,
                 type: 'hasMany',
                 target: 'PermissionTypes',
-                options: {
-                    foreignKey: 'permissionType',
-                    targetKey: 'id',
-                    as: '_Permissions',
-                },
+                options: { foreignKey: 'permission_type', targetKey: 'id', as: '_Permissions' },
             },
             {
                 type: 'belongsTo',
-                target: 'Status',
-                options: {
-                    foreignKey: 'status',
-                    targetKey: 'id',
-                    as: '_Status',
-                },
+                target: 'Statuses',
+                options: { foreignKey: 'status', targetKey: 'id', as: '_Status' },
             },
             {
                 inversed: true,
                 type: 'hasMany',
-                target: 'Status',
-                options: {
-                    foreignKey: 'status',
-                    targetKey: 'id',
-                    as: '_Permissions',
-                },
+                target: 'Statuses',
+                options: { foreignKey: 'status', targetKey: 'id', as: '_Permissions' },
             },
         ];
     }

@@ -4,7 +4,7 @@ import PermissionTypesModel from '@database/models/main/permission-types.model.j
 export interface PermissionTypesAttributes {
     id?: number;
     code: string;
-    description?: string;
+    description: string;
     status: number;
 }
 

@@ -10,7 +10,7 @@ export default class RolePermissionsModel extends SequelizeModelBase {
                 type: DataTypes.INTEGER,
                 autoIncrement: true,
             },
-            roleId: {
+            role: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
             },
@@ -21,16 +21,18 @@ export default class RolePermissionsModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
-                defaultValue: '1',
+                defaultValue: 1,
             },
         };
     }
 
     static config() {
         return {
+            isBasicTable: false,
             schema: 'public',
             tableName: 'role_permissions',
-            appRawName: 'role-permissions',
+            appRawName: 'role_permissions',
+            timestamps: false,
         };
     }
 
@@ -38,60 +40,36 @@ export default class RolePermissionsModel extends SequelizeModelBase {
         return [
             {
                 type: 'belongsTo',
-                target: 'SystemRoles',
-                options: {
-                    foreignKey: 'roleId',
-                    targetKey: 'id',
-                    as: '_Roles',
-                },
+                target: 'Roles',
+                options: { foreignKey: 'role', targetKey: 'id', as: '_Role' },
             },
             {
                 inversed: true,
                 type: 'hasMany',
-                target: 'SystemRoles',
-                options: {
-                    foreignKey: 'roleId',
-                    targetKey: 'id',
-                    as: '_RolePermissions',
-                },
+                target: 'Roles',
+                options: { foreignKey: 'role', targetKey: 'id', as: '_RolePermissions' },
             },
             {
                 type: 'belongsTo',
                 target: 'Permissions',
-                options: {
-                    foreignKey: 'permission',
-                    targetKey: 'id',
-                    as: '_Permissions',
-                },
+                options: { foreignKey: 'permission', targetKey: 'id', as: '_Permission' },
             },
             {
                 inversed: true,
                 type: 'hasMany',
                 target: 'Permissions',
-                options: {
-                    foreignKey: 'permission',
-                    targetKey: 'id',
-                    as: '_RolePermissions',
-                },
+                options: { foreignKey: 'permission', targetKey: 'id', as: '_RolePermissions' },
             },
             {
                 type: 'belongsTo',
-                target: 'Status',
-                options: {
-                    foreignKey: 'status',
-                    targetKey: 'id',
-                    as: '_Status',
-                },
+                target: 'Statuses',
+                options: { foreignKey: 'status', targetKey: 'id', as: '_Status' },
             },
             {
                 inversed: true,
                 type: 'hasMany',
-                target: 'Status',
-                options: {
-                    foreignKey: 'status',
-                    targetKey: 'id',
-                    as: '_RolePermissions',
-                },
+                target: 'Statuses',
+                options: { foreignKey: 'status', targetKey: 'id', as: '_RolePermissions' },
             },
         ];
     }
