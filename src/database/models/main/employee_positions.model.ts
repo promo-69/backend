@@ -1,7 +1,7 @@
 import { DataTypes } from 'sequelize';
 import { type RelationsReturn, SequelizeModelBase } from '@database/models/bases/sequelize.model.js';
 
-export default class CustomersModel extends SequelizeModelBase {
+export default class EmployeePositionsModel extends SequelizeModelBase {
     static definition() {
         return {
             id: {
@@ -10,24 +10,29 @@ export default class CustomersModel extends SequelizeModelBase {
                 type: DataTypes.INTEGER,
                 autoIncrement: true,
             },
-            person: {
+            employee: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
             },
-            loyalty_level: {
+            job_position: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
-                defaultValue: 1,
             },
-            level_progress_points: {
+            cinema: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
-                defaultValue: 0,
             },
-            registration_date: {
+            start_date: {
                 allowNull: false,
-                type: DataTypes.DATE,
-                defaultValue: DataTypes.NOW,
+                type: DataTypes.DATEONLY,
+            },
+            end_date: {
+                allowNull: true,
+                type: DataTypes.DATEONLY,
+            },
+            salary_base: {
+                allowNull: true,
+                type: DataTypes.DECIMAL(10, 2),
             },
             status: {
                 allowNull: false,
@@ -41,31 +46,42 @@ export default class CustomersModel extends SequelizeModelBase {
         return {
             isBasicTable: false,
             schema: 'public',
-            tableName: 'customers',
-            appRawName: 'customers',
+            tableName: 'employee_positions',
+            appRawName: 'employee_positions',
             timestamps: false,
         };
     }
 
     static override relations(): RelationsReturn {
         return [
-            { type: 'belongsTo', target: 'People', options: { foreignKey: 'person', targetKey: 'id', as: '_People' } },
-            {
-                inversed: true,
-                type: 'hasOne',
-                target: 'People',
-                options: { foreignKey: 'person', targetKey: 'id', as: '_Customer' },
-            },
             {
                 type: 'belongsTo',
-                target: 'LoyaltyLevels',
-                options: { foreignKey: 'loyalty_level', targetKey: 'id', as: '_LoyaltyLevel' },
+                target: 'Employees',
+                options: { foreignKey: 'employee', targetKey: 'id', as: '_Employee' },
             },
             {
                 inversed: true,
                 type: 'hasMany',
-                target: 'LoyaltyLevels',
-                options: { foreignKey: 'loyalty_level', targetKey: 'id', as: '_Customers' },
+                target: 'Employees',
+                options: { foreignKey: 'employee', targetKey: 'id', as: '_Positions' },
+            },
+            {
+                type: 'belongsTo',
+                target: 'JobPositions',
+                options: { foreignKey: 'job_position', targetKey: 'id', as: '_JobPosition' },
+            },
+            {
+                inversed: true,
+                type: 'hasMany',
+                target: 'JobPositions',
+                options: { foreignKey: 'job_position', targetKey: 'id', as: '_EmployeeAssignments' },
+            },
+            { type: 'belongsTo', target: 'Cinemas', options: { foreignKey: 'cinema', targetKey: 'id', as: '_Cinema' } },
+            {
+                inversed: true,
+                type: 'hasMany',
+                target: 'Cinemas',
+                options: { foreignKey: 'cinema', targetKey: 'id', as: '_StaffPositions' },
             },
             {
                 type: 'belongsTo',
@@ -76,7 +92,7 @@ export default class CustomersModel extends SequelizeModelBase {
                 inversed: true,
                 type: 'hasMany',
                 target: 'Statuses',
-                options: { foreignKey: 'status', targetKey: 'id', as: '_Customers' },
+                options: { foreignKey: 'status', targetKey: 'id', as: '_EmployeePositions' },
             },
         ];
     }

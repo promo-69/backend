@@ -95,18 +95,48 @@ module.exports = {
         });
         await addUnique('users', ['username'], 'idx_users_username_uq');
 
+        await createTable('job_positions', {
+            id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true, allowNull: false },
+            title: { type: Sequelize.STRING(255), allowNull: false },
+            description: { type: Sequelize.STRING(255), allowNull: true },
+            is_pensionable: { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false },
+            status: { type: Sequelize.INTEGER, allowNull: false, defaultValue: 1 },
+        });
+        await addUnique('job_positions', ['title'], 'idx_job_positions_title_uq');
+
         await createTable('employees', {
             id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true, allowNull: false },
             person: { type: Sequelize.INTEGER, allowNull: false },
-            cinema: { type: Sequelize.INTEGER, allowNull: false },
-            hire_date: { type: Sequelize.DATEONLY, allowNull: false },
+            employee_code: { type: Sequelize.STRING(50), allowNull: false },
             status: { type: Sequelize.INTEGER, allowNull: false, defaultValue: 1 },
         });
         await addUnique('employees', ['person'], 'idx_employees_people_uq');
+        await addUnique('employees', ['employee_code'], 'idx_employees_code_uq');
+
+        await createTable('employee_positions', {
+            id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true, allowNull: false },
+            employee: { type: Sequelize.INTEGER, allowNull: false },
+            job_position: { type: Sequelize.INTEGER, allowNull: false },
+            cinema: { type: Sequelize.INTEGER, allowNull: false },
+            start_date: { type: Sequelize.DATEONLY, allowNull: false },
+            end_date: { type: Sequelize.DATEONLY, allowNull: true },
+            salary_base: { type: Sequelize.DECIMAL(10, 2), allowNull: true },
+            status: { type: Sequelize.INTEGER, allowNull: false, defaultValue: 1 },
+        });
+
+        await createTable('loyalty_levels', {
+            id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true, allowNull: false },
+            name: { type: Sequelize.STRING(100), allowNull: false },
+            required_points: { type: Sequelize.INTEGER, allowNull: true },
+            status: { type: Sequelize.INTEGER, allowNull: false, defaultValue: 1 },
+        });
+        await addUnique('loyalty_levels', ['name'], 'idx_loyalty_levels_name_uq');
 
         await createTable('customers', {
             id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true, allowNull: false },
             person: { type: Sequelize.INTEGER, allowNull: false },
+            loyalty_level: { type: Sequelize.INTEGER, allowNull: false, defaultValue: 1 },
+            level_progress_points: { type: Sequelize.INTEGER, allowNull: false, defaultValue: 0 },
             registration_date: {
                 type: Sequelize.DATE,
                 allowNull: false,
@@ -428,7 +458,7 @@ module.exports = {
         await createTable('orders', {
             id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true, allowNull: false },
             customer: { type: Sequelize.INTEGER, allowNull: false },
-            employee: { type: Sequelize.INTEGER, allowNull: true },
+            employee_position: { type: Sequelize.INTEGER, allowNull: true },
             cinema: { type: Sequelize.INTEGER, allowNull: false },
             order_status: { type: Sequelize.INTEGER, allowNull: false, defaultValue: 1 },
             base_currency: { type: Sequelize.INTEGER, allowNull: false },
@@ -512,28 +542,29 @@ module.exports = {
             'ALTER TABLE showtimes ADD CONSTRAINT chk_showtimes_times CHECK (end_time > start_time AND price >= 0);',
             'ALTER TABLE week_days ADD CONSTRAINT chk_week_days_range CHECK (day_number BETWEEN 1 AND 7);',
             `ALTER TABLE price_modifiers ADD CONSTRAINT chk_price_modifiers_logic 
-       CHECK (value > 0 AND 
-        ((modifier_scope = 1 AND product_category IS NULL AND product IS NULL AND combo IS NULL) OR 
+            CHECK (value > 0 AND 
+            ((modifier_scope = 1 AND product_category IS NULL AND product IS NULL AND combo IS NULL) OR 
          (modifier_scope = 2 AND audience_category IS NULL AND seat_category IS NULL AND projection_type IS NULL) OR 
          (modifier_scope = 3 AND product_category IS NULL AND product IS NULL AND combo IS NULL AND audience_category IS NULL AND seat_category IS NULL AND projection_type IS NULL))
-       );`,
+         );`,
             'ALTER TABLE combo_products ADD CONSTRAINT chk_combo_products_qty CHECK (quantity > 0);',
             'ALTER TABLE inventories ADD CONSTRAINT chk_inventories_stock CHECK (stock >= 0);',
             'ALTER TABLE inventory_movements ADD CONSTRAINT chk_inventory_movements_qty CHECK (quantity > 0);',
             'ALTER TABLE orders ADD CONSTRAINT chk_orders_amounts CHECK (total_amount_base_currency >= 0 AND generated_points >= 0);',
             `ALTER TABLE order_lines ADD CONSTRAINT chk_order_lines_logic 
-       CHECK (quantity > 0 AND original_unit_price >= 0 AND unit_price >= 0 AND 
-        ((line_type = 1 AND product IS NOT NULL AND combo IS NULL) OR 
+         CHECK (quantity > 0 AND original_unit_price >= 0 AND unit_price >= 0 AND 
+         ((line_type = 1 AND product IS NOT NULL AND combo IS NULL) OR 
          (line_type = 2 AND product IS NULL AND combo IS NOT NULL))
-       );`,
+         );`,
             'ALTER TABLE tickets ADD CONSTRAINT chk_tickets_prices CHECK (original_price >= 0 AND price >= 0);',
             'ALTER TABLE order_payments ADD CONSTRAINT chk_order_payments_amt CHECK (amount > 0);',
             'ALTER TABLE loyalty_ledgers ADD CONSTRAINT chk_loyalty_ledgers_pts CHECK (points > 0);',
+            'ALTER TABLE employee_positions ADD CONSTRAINT chk_employee_positions_dates CHECK (end_date IS NULL OR end_date >= start_date);',
+            'ALTER TABLE loyalty_levels ADD CONSTRAINT chk_loyalty_levels_pts CHECK (required_points >= 0);',
+            'ALTER TABLE customers ADD CONSTRAINT chk_customers_progress CHECK (level_progress_points >= 0);',
         ];
 
-        for (const sql of checkConstraints) {
-            await queryInterface.sequelize.query(sql);
-        }
+        for (const sql of checkConstraints) await queryInterface.sequelize.query(sql);
     },
 
     async down(queryInterface, Sequelize) {
@@ -580,7 +611,10 @@ module.exports = {
             'resources',
             'actions',
             'customers',
+            'loyalty_levels',
+            'employee_positions',
             'employees',
+            'job_positions',
             'users',
             'roles',
             'user_types',

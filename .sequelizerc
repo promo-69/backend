@@ -2,7 +2,7 @@ const path = require('path');
 
 module.exports = {
   // Ruta donde estará el archivo de conexión a la base de datos
-  'config': path.resolve('src', 'database', 'connectors', 'config.cjs'),
+  'config': path.resolve('src', 'migrate', 'config.js'),
   
   // Ruta donde ya tienes tus modelos
   'models-path': path.resolve('src', 'database', 'models', 'main'),

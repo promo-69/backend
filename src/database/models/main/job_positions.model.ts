@@ -1,7 +1,7 @@
 import { DataTypes } from 'sequelize';
 import { type RelationsReturn, SequelizeModelBase } from '@database/models/bases/sequelize.model.js';
 
-export default class EmployeesModel extends SequelizeModelBase {
+export default class JobPositionsModel extends SequelizeModelBase {
     static definition() {
         return {
             id: {
@@ -10,13 +10,18 @@ export default class EmployeesModel extends SequelizeModelBase {
                 type: DataTypes.INTEGER,
                 autoIncrement: true,
             },
-            person: {
+            title: {
                 allowNull: false,
-                type: DataTypes.INTEGER,
+                type: DataTypes.STRING(255),
             },
-            employee_code: {
+            description: {
+                allowNull: true,
+                type: DataTypes.STRING(255),
+            },
+            is_pensionable: {
                 allowNull: false,
-                type: DataTypes.STRING(50),
+                type: DataTypes.BOOLEAN,
+                defaultValue: false,
             },
             status: {
                 allowNull: false,
@@ -28,27 +33,16 @@ export default class EmployeesModel extends SequelizeModelBase {
 
     static config() {
         return {
-            isBasicTable: false,
+            isBasicTable: true,
             schema: 'public',
-            tableName: 'employees',
-            appRawName: 'employees',
+            tableName: 'job_positions',
+            appRawName: 'job_positions',
             timestamps: false,
         };
     }
 
     static override relations(): RelationsReturn {
         return [
-            {
-                type: 'belongsTo',
-                target: 'People',
-                options: { foreignKey: 'person', targetKey: 'id', as: '_Person' },
-            },
-            {
-                inversed: true,
-                type: 'hasOne',
-                target: 'People',
-                options: { foreignKey: 'person', targetKey: 'id', as: '_EmployeeRecord' },
-            },
             {
                 type: 'belongsTo',
                 target: 'Statuses',
@@ -58,7 +52,7 @@ export default class EmployeesModel extends SequelizeModelBase {
                 inversed: true,
                 type: 'hasMany',
                 target: 'Statuses',
-                options: { foreignKey: 'status', targetKey: 'id', as: '_Employees' },
+                options: { foreignKey: 'status', targetKey: 'id', as: '_JobPositions' },
             },
         ];
     }
