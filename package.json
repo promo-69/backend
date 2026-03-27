@@ -19,13 +19,15 @@
         "type-check": "tsc --noEmit",
         "test": "cross-env NODE_OPTIONS=--experimental-vm-modules npx jest",
         "db:setup": "npx sequelize-cli db:create && npx sequelize-cli db:migrate",
+        "db:setup:full": "npx sequelize-cli db:create && npx sequelize-cli db:migrate && yarn db:seed",
         "db:reset": "npx sequelize-cli db:drop && yarn db:setup",
+        "db:reset:full": "npx sequelize-cli db:drop && yarn db:setup:full",
         "db:migrate:undo": "npx sequelize-cli db:migrate:undo",
         "db:migrate:undo:all": "npx sequelize-cli db:migrate:undo:all",
         "db:seed": "npx sequelize-cli db:seed:all",
         "db:seed:undo": "npx sequelize-cli db:seed:undo:all",
-        "db:seed:generate": "npx sequelize-cli seed:generate",
-        "db:migrate:generate": "npx sequelize-cli db:migrate:generate"
+        "db:generate:seed": "npx sequelize-cli seed:generate",
+        "db:generate:migration": "npx sequelize-cli migration:generate"
     },
     "devDependencies": {
         "@types/bcryptjs": "^3.0.0",
