@@ -88,6 +88,12 @@ class AuthController extends ControllerBase {
         return this.created(data);
     }
 
+    async register() {
+        const body = this.getBody();
+        const data = await AuthService.registerUser(body);
+        return this.created(data);
+    }
+
     // --- Roles ---
 
     async findAllRoles() {

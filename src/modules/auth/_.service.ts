@@ -24,6 +24,10 @@ export class AuthService extends BaseService {
         return Database.repository('main', 'permissions') as any;
     }
 
+    private get _personas() {
+        return Database.repository('main', 'people') as any;
+    }
+
     private parsePermissions(permissions: any[]): string[] {
         return Array.from(
             new Set(
@@ -117,6 +121,45 @@ export class AuthService extends BaseService {
             for (const r of mapRoles) await this._rolesUsuarios.create(r);
         }
         return created;
+    }
+
+    async registerUser({ name, lastname, email, phone, username, password, document_number }: Record<string, any>) {
+        if (!name || !lastname || !email || !username || !password || !document_number)
+            throw new ValidationError('Los datos de registro están incompletos', []);
+
+        const emailRegExp = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const passRegExp = /^.{6,50}$/;
+        const uidRegExp = /^[a-zA-Z0-9_\-\.]{4,20}$/;
+
+        if (!emailRegExp.test(email)) throw new ValidationError('El correo electrónico no es válido', []);
+        if (!passRegExp.test(password))
+            throw new ValidationError('La contraseña debe tener entre 6 y 50 caracteres', []);
+        if (!uidRegExp.test(username)) throw new ValidationError('El nombre de usuario no es válido', []);
+
+        const existingPerson = await this._personas.getOne({ email });
+        if (existingPerson) throw new ValidationError('El correo electrónico ya está registrado', []);
+
+        const existingUser = await this._accesos.getOne({ username });
+        if (existingUser) throw new ValidationError('El nombre de usuario ya está en uso', []);
+
+        const person = await this._personas.create({
+            document_number,
+            first_name: name,
+            last_name: lastname,
+            email,
+            phone_number: phone || null,
+            status: 1,
+        });
+
+        const user = await this._accesos.create({
+            person: person.id,
+            user_type: 2,
+            username,
+            password,
+            status: 1,
+        });
+
+        return { id: user.id, username, email, name, lastname };
     }
 
     // --- Roles ---
