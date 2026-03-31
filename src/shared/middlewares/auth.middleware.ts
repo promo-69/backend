@@ -1,6 +1,6 @@
 import { type Request, type Response, type NextFunction } from 'express';
 import { AppConfig } from '@config/app.config.js';
-import { JWTUtil } from '@utils/jwt.util.js';
+import { JWTPayload, JWTUtil } from '@utils/jwt.util.js';
 import { AuthError, ForbiddenError, ConflictError, ValidationError } from '@errors';
 import { SessionNotFoundError } from '@errors/auth.error.js';
 import { UserSession } from '@rules/api.type.js';
@@ -21,14 +21,20 @@ export class AuthMiddleware {
 
     private static config: AuthConfig = this.DEFAULT_CONFIG;
 
-    static buildSession(session: any): Partial<UserSession> {
-        return {
-            userId: session.userId || session.sub,
-            email: session.email,
-            role: session.role,
-            permissions: Array.isArray(session.permissions) ? session.permissions : [],
-            ...session,
+    static buildSession(_session: any): UserSession {
+        const session: Partial<UserSession> = {
+            userId: _session.userId || _session.sub,
+            documentNumber: _session.documentNumber,
+            firstName: _session.firstName,
+            lastName: _session.lastName,
+            email: _session?.email,
+            phoneNumber: _session?.phoneNumber,
+            permissions: Array.isArray(_session.permissions) ? _session.permissions : [],
+            roleCode: _session?.roleCode,
+            roleDesc: _session?.roleDesc,
         };
+
+        return session as UserSession;
     }
 
     /**
@@ -72,22 +78,16 @@ export class AuthMiddleware {
 
             if (!token) throw new AuthError('Token de autenticación no encontrado', { code: 'TOKEN_NOT_FOUND' });
 
-            const session = JWTUtil.verifyToken(token);
+            const session: JWTPayload & UserSession = JWTUtil.verifyToken(token);
 
             if (!session) throw new AuthError('Token inválido', { code: 'TOKEN_INVALID' });
 
             // Validar estructura básica
-            if (!session.userId && !session.sub)
+            if (!session.userId && !session.type)
                 throw new AuthError('Token no contiene identificador de usuario', { code: 'INVALID_TOKEN_PAYLOAD' });
 
             // Establecer sesión
-            req.session = {
-                userId: session.userId || session.sub,
-                email: session.email,
-                role: session.role,
-                permissions: Array.isArray(session.permissions) ? session.permissions : [],
-                ...session,
-            };
+            req.session = session as UserSession;
 
             next();
         } catch (error) {
@@ -142,11 +142,11 @@ export class AuthMiddleware {
             try {
                 if (!req.session) throw new SessionNotFoundError();
 
-                if (!req.session.role)
+                if (!req.session.roleCode)
                     throw new ForbiddenError('Usuario no tiene rol asignado', { code: 'NO_ROLE_ASSIGNED' });
 
                 const requiredRoles = Array.isArray(role) ? role : [role];
-                const userRole = req.session.role.toUpperCase();
+                const userRole = req.session.roleCode.toUpperCase();
 
                 const hasRequiredRole = requiredRoles.some((r) => r.toUpperCase() === userRole);
 
@@ -205,13 +205,7 @@ export class AuthMiddleware {
                     const session = JWTUtil.verifyToken(token);
 
                     if (session) {
-                        req.session = {
-                            userId: session.userId || session.sub,
-                            email: session.email,
-                            role: session.role,
-                            permissions: Array.isArray(session.permissions) ? session.permissions : [],
-                            ...session,
-                        };
+                        req.session = session as UserSession;
                     }
                 } catch {
                     // Ignorar errores de token en autenticación opcional

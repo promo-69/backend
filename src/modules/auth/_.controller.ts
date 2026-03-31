@@ -8,7 +8,7 @@ class AuthController extends ControllerBase {
         super();
     }
 
-    async register() {
+    async signup() {
         const { person, user } = this.getBody();
         const data = await AuthService.registerUser({ person, user });
         return this.created(data);

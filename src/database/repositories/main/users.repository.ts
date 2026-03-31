@@ -59,11 +59,8 @@ class UsersRepository extends SequelizeRepositoryBase<UsersAttributes, number> {
         return this.getOne({ id }, { relations: this._relations }) as Promise<UsersWithPeople | null>;
     }
 
-    async getByCredentials(credentials: { username: string; password: string }): Promise<UsersWithPeople | null> {
-        return this.getOne(
-            { username: credentials.username, password: credentials.password },
-            { relations: this._relations },
-        ) as Promise<UsersWithPeople | null>;
+    async getByUsername(username: string) {
+        return this.getOne({ username }, { relations: this._relations }) as Promise<UsersWithPeople | null>;
     }
 }
 

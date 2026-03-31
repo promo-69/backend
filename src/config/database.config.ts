@@ -27,9 +27,10 @@ export class DatabaseConfig {
 
         const enabledDatabases = this.getEnabledDatabases();
         const defaultDatabase = this.getDefaultDatabaseName();
+        const defaultDatabaseHost = this.getDefaultDatabaseHost();
 
         const configs = this.parseEnvGroups()
-            .map((group) => this.buildConfig(group, enabledDatabases, defaultDatabase))
+            .map((group) => this.buildConfig(group, { enabledDatabases, defaultDatabase, defaultDatabaseHost }))
             .filter((c): c is IDatabaseConfig => Boolean(c));
 
         this._configCache = configs;
@@ -78,6 +79,13 @@ export class DatabaseConfig {
     }
 
     /**
+     * Obtiene el host de la base de datos por defecto
+     */
+    static getDefaultDatabaseHost(): string {
+        return process.env.DEFAULT_DATABASE_HOST?.toLowerCase() || '';
+    }
+
+    /**
      * Verifica si una base de datos está habilitada
      */
     static isDatabaseEnabled(dbType: string): boolean {
@@ -100,8 +108,7 @@ export class DatabaseConfig {
             if (!value) continue;
 
             const match = key.match(/^DB_(?<type>[A-Z]+)(?:_(?<id>[A-Z]+))?_(?<prop>.+)$/);
-            if (!match)
-                continue;
+            if (!match) continue;
 
             const { type, id, prop } = match.groups!;
 
@@ -128,8 +135,11 @@ export class DatabaseConfig {
 
     private static buildConfig(
         group: EnvGroup,
-        enabledDatabases: string[],
-        defaultDatabase: string,
+        {
+            enabledDatabases,
+            defaultDatabase,
+            defaultDatabaseHost,
+        }: { enabledDatabases: string[]; defaultDatabase: string; defaultDatabaseHost: string },
     ): IDatabaseConfig | null {
         // Verificar si el tipo está habilitado
         if (!enabledDatabases.includes(group.type)) return null;
@@ -142,7 +152,7 @@ export class DatabaseConfig {
             id: group.id,
             enabled,
             isDefault: group.id === defaultDatabase || (defaultDatabase === '' && group.type === group.id),
-            host: group.values.host,
+            host: group.values.host || defaultDatabaseHost,
             port: group.values.port ? Number(group.values.port) : undefined,
             database: group.values.database,
             username: group.values.username,

@@ -1,11 +1,11 @@
 meta {
-  name: Create user
+  name: Create a customer account
   type: http
   seq: 1
 }
 
 post {
-  url: {{baseUrl}}/auth/users
+  url: {{baseUrl}}/auth/signup
   body: json
   auth: none
 }
@@ -13,19 +13,17 @@ post {
 body:json {
     {
         "user": {
-            "username": "testuser",
-            "password": "[PASSWORD]",
-            "user_type":1,
-            "role":1
+            "username": "testuserda",
+            "password": "tesT*1234"
         },
         "person": {
-            "document_number": "12345600",
-            "first_name": "[FIRST_NAME]",
-            "last_name": "[LAST_NAME]",
-            "gender":2,
-            "birth_date": "2001-01-01",
-            "email": null,
-            "phone_number": null
+            "documentNumber": "v-12315600",
+            "firstName": "test firstname",
+            "lastName": "test lastname",
+            "gender": 1,
+            "birthDate": "2001-01-01",
+            "email": "test.te_st@test.test",
+            "phoneNumber": "12345678900"
         }
     }
 }

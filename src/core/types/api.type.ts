@@ -26,14 +26,14 @@ export interface ResponseOptions {
  * Tipos para el payload del token de sesión
  */
 
-export interface UserSession extends JWTPayload {
+export interface UserSession {
     userId: string;
     documentNumber: string;
-    firstname: string;
-    lastname: string;
+    firstName: string;
+    lastName: string;
     permissions?: string[];
     roleCode?: string;
-    roleName?: string;
+    roleDesc?: string;
     email?: string;
     phoneNumber?: string;
 }

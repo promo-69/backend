@@ -133,12 +133,16 @@ export class App {
 
         // Health check global
         routerEssentialApi.get('/health', (req: Request, res: Response) => {
-            const health = {
+            const health: Record<string, any> = {
                 status: 'healthy',
-                uptime: process.uptime(),
-                memory: process.memoryUsage(),
-                environment: this.appConfig.nodeEnv,
+                timestamp: new Date().toLocaleString(),
             };
+
+            if (this.appConfig.nodeEnv == 'development') {
+                health.uptime = process.uptime();
+                health.memoryUsage = process.memoryUsage();
+                health.environment = this.appConfig.nodeEnv;
+            }
 
             res.json(health);
         });
@@ -149,7 +153,6 @@ export class App {
                 message: 'Welcome to the API',
                 documentation: 'See /./health for service status',
                 endpoints: {
-                    ready: `/ready: Check if the API is ready to receive requests (${this.appConfig.apiBaseUrl}/ready)`,
                     health: `/health: Check the health of the API (${this.appConfig.apiBaseUrl}/health)`,
                     api: `${this.appConfig.apiBaseUrl}/api/v[version-number]/[module]: API endpoints`,
                 },

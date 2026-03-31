@@ -17,6 +17,10 @@ body:json {
   }
 }
 
+vars:pre-request {
+  username: alirio2
+}
+
 script:post-response {
   const data = res.getBody();
   if (data.data && data.data.accessToken) {

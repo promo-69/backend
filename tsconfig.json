@@ -35,6 +35,7 @@
             "@errors": ["shared/errors/index.ts"],
             "@middlewares/*": ["shared/middlewares/*"],
             "@utils/*": ["shared/utils/*"],
+            "@constants/*": ["shared/constants/*"],
             "@providers/*": ["shared/providers/*"],
             "@tests/*": ["src/tests/*"]
         }

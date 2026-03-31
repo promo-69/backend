@@ -6,6 +6,8 @@ import { Transaction } from 'sequelize';
 import { ExceptionPermissions } from '@rules/permission-exceptions.type.js';
 import { BcryptUtil } from '@utils/bcrypt.util.js';
 import { UserSession } from '@rules/api.type.js';
+import { REGEX } from '@constants/regex.constant.js';
+import { convertCase } from '@utils/string-formatters.util.js';
 
 export class AuthService extends BaseService {
     constructor() {
@@ -41,33 +43,35 @@ export class AuthService extends BaseService {
 
     // --- Authentication & Sessions ---
 
-    private async _buildUserPayload(foundUser: any): Promise<Partial<UserSession>> {
-        const permissionsExceptions: ExceptionPermissions = foundUser._UserPermissions.reduce(
-            (acu: ExceptionPermissions, cur: any) => {
-                acu[cur.is_granted ? 'granted' : 'revoked'].push(cur.permission);
-
-                return acu;
-            },
-            { granted: [], revoked: [] },
-        );
-
-        // Encontrar permisos del rol
-        const { rows: permissions } = await this._permisos.getByRolesWithExceptions({
-            roles: [foundUser.role, ...foundUser._Roles._RoleInheritancesChild.map((r: any) => r.parent_role)],
-            exceptions: permissionsExceptions,
-        });
-
-        const payload = {
+    private async _buildUserPayload(foundUser: any): Promise<UserSession> {
+        const payload: UserSession = {
             userId: foundUser.id,
             documentNumber: foundUser.document_number,
-            firstname: foundUser._People.first_name,
-            lastname: foundUser._People.last_name,
+            firstName: foundUser._People.first_name,
+            lastName: foundUser._People.last_name,
             email: foundUser._People?.email,
             phoneNumber: foundUser._People?.phone_number,
-            roleDesc: foundUser._Roles?.description,
-            roleCode: foundUser._Roles?.code,
-            permissions: this.parsePermissions(permissions),
         };
+
+        // Encontrar permisos del rol cuando el usuario es de tipo "empleado"
+        if (foundUser.user_type == 1) {
+            const permissionsExceptions: ExceptionPermissions = foundUser._UserPermissions.reduce(
+                (acu: ExceptionPermissions, cur: any) => {
+                    acu[cur.is_granted ? 'granted' : 'revoked'].push(cur.permission);
+
+                    return acu;
+                },
+                { granted: [], revoked: [] },
+            );
+            const { rows: permissions } = await this._permisos.getByRolesWithExceptions({
+                roles: [foundUser.role, ...foundUser._Roles._RoleInheritancesChild.map((r: any) => r.parent_role)],
+                exceptions: permissionsExceptions,
+            });
+
+            payload.roleDesc = foundUser._Roles?.description;
+            payload.roleCode = foundUser._Roles?.code;
+            payload.permissions = this.parsePermissions(permissions);
+        }
 
         return payload;
     }
@@ -87,15 +91,65 @@ export class AuthService extends BaseService {
         person: Record<string, string | null>;
         user: Record<string, string>;
     }) {
-        const foundUser = await this._users.getByCredentials(_user);
+        const { firstName, lastName, email, phoneNumber, documentNumber, gender, birthDate } = _person;
+        const { username, password } = _user;
+        if (
+            !username ||
+            !password ||
+            !documentNumber ||
+            !firstName ||
+            !lastName ||
+            !email ||
+            !phoneNumber ||
+            !gender ||
+            !birthDate
+        )
+            throw new ValidationError('Los datos de registro están incompletos', []);
 
+        const validations = [
+            { value: email, regex: REGEX.EMAIL, message: 'El correo electrónico no es válido' },
+            {
+                value: password,
+                regex: REGEX.PASSWORD,
+                message:
+                    'La contraseña debe tener entre 8 y 20 caracteres y contener al menos un símbolo especial, una letra y un número',
+            },
+            { value: username, regex: REGEX.USERNAME, message: 'El nombre de usuario no es válido' },
+            { value: documentNumber, regex: REGEX.DOCUMENT_NUMBER, message: 'El número de documento no es válido' },
+            { value: firstName, regex: REGEX.PERSON_NAME, message: 'El nombre no es válido' },
+            { value: lastName, regex: REGEX.PERSON_NAME, message: 'El apellido no es válido' },
+            { value: phoneNumber, regex: REGEX.PHONE_NUMBER, message: 'El número de teléfono no es válido' },
+            { value: gender, regex: REGEX.DATABASE_ID, message: 'El género no es válido' },
+            { value: birthDate, regex: REGEX.DATE, message: 'La fecha de nacimiento no es válida' },
+        ];
+        const validated = { good: [] as string[], bad: [] as string[] };
+
+        for (const validation of validations)
+            validated[!validation.regex.test(validation.value) ? 'bad' : 'good'].push(validation.message);
+        if (validated.bad.length > 0) throw new ValidationError(validated.bad.join('; '), []);
+
+        const foundUser = await this._users.getByUsername(username);
         if (foundUser) throw new AuthError('El usuario ya existe', { code: 'USER_ALREADY_EXISTS' });
 
+        Object.fromEntries(
+            Object.entries({ ..._person, ..._user }).map(([key, value]) => [
+                convertCase(key, 'pascal', 'snake'),
+                value,
+            ]),
+        );
         const created = await this._people.transaction(async (transaction: Transaction) => {
-            const createdPerson = await this._people.create(_person, { transaction });
+            const createdPerson = await this._people.create(
+                Object.fromEntries(
+                    Object.entries(_person).map(([key, value]) => [convertCase(key, 'pascal', 'snake'), value]),
+                ),
+                { transaction },
+            );
             const createdUser = await this._users.create(
                 {
-                    ..._user,
+                    ...Object.fromEntries(
+                        Object.entries(_user).map(([key, value]) => [convertCase(key, 'pascal', 'snake'), value]),
+                    ),
+                    user_type: 2, // Por defecto usuario de tipo "cliente"
                     password: await BcryptUtil.hash(_user.password),
                     person: createdPerson.id,
                 },
@@ -116,13 +170,10 @@ export class AuthService extends BaseService {
     }: Record<string, any>): Promise<{ user: Record<string, any>; accessToken: string; refreshToken: string }> {
         if (!username || !password) throw new ValidationError('Las credenciales están incompletas', []);
 
-        const usernameRegExp = /^[a-zA-Z0-9_\-\.]{4,20}$/;
-        const passRegExp = /^.{6,50}$/;
-
-        if (!usernameRegExp.test(username) || !passRegExp.test(password))
+        if (!REGEX.USERNAME.test(username) || !REGEX.PASSWORD.test(password))
             throw new ValidationError('Las credenciales no son válidas', []);
 
-        const foundUser = await this._users.getByCredentials({ username });
+        const foundUser = await this._users.getByUsername(username);
         if (!foundUser || !(await BcryptUtil.compare(password, foundUser.password)))
             throw new AuthError('Las credenciales no son correctas', { code: 'INVALID_LOGIN' });
 

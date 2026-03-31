@@ -1,12 +1,25 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export default defineConfig(({ mode }) => {
+    loadEnv(mode, process.cwd(), '');
+
     return {
+        server: {
+            host: true,
+            strictPort: true,
+            hmr: {
+                protocol: process.env.IS_DOCKER ? 'wss' : 'ws',
+                ...(process.env.IS_DOCKER ? { host: 'localhost' } : {}),
+            },
+            watch: {
+                usePolling: !!process.env.IS_DOCKER,
+            },
+        },
         resolve: {
             alias: {
                 '@config': path.resolve(__dirname, 'src/config'),
@@ -21,6 +34,7 @@ export default defineConfig(({ mode }) => {
                 '@errors': path.resolve(__dirname, 'src/shared/errors'),
                 '@middlewares': path.resolve(__dirname, 'src/shared/middlewares'),
                 '@utils': path.resolve(__dirname, 'src/shared/utils'),
+                '@constants': path.resolve(__dirname, 'src/shared/constants'),
                 '@providers': path.resolve(__dirname, 'src/shared/providers'),
                 '@tests': path.resolve(__dirname, 'tests'),
             },

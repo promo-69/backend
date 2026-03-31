@@ -1,8 +1,9 @@
 import jwt from 'jsonwebtoken';
 import { AppConfig } from '@config/app.config.js';
+import { UserSession } from '@rules/api.type.js';
 
 export interface JWTPayload {
-    [key: string]: any;
+    sub?: string;
     iat?: number;
     exp?: number;
     type?: string;
@@ -55,7 +56,7 @@ export class JWTUtil {
         }
     }
 
-    static generateToken(payload: Omit<JWTPayload, 'type'>): string {
+    static generateToken(payload: UserSession): string {
         return jwt.sign(
             {
                 ...payload,
@@ -88,7 +89,7 @@ export class JWTUtil {
         }
     }
 
-    static generateRefreshToken(payload: Omit<JWTPayload, 'type'>): string {
+    static generateRefreshToken(payload: { userId: string }): string {
         return jwt.sign(
             {
                 ...payload,
