@@ -3,22 +3,33 @@ import { AppConfig } from '@config/app.config.js';
 import { JWTUtil } from '@utils/jwt.util.js';
 import { AuthError, ForbiddenError, ConflictError, ValidationError } from '@errors';
 import { SessionNotFoundError } from '@errors/auth.error.js';
+import { UserSession } from '@rules/api.type.js';
 
 // Configuración simple
 interface AuthConfig {
     /** Nombre de la cookie (si se usan cookies) */
-    cookieName?: string;
+    cookieNames?: string[];
     /** Nombre del header (si se usan headers) */
     headerName?: string;
 }
 
 export class AuthMiddleware {
     private static readonly DEFAULT_CONFIG: AuthConfig = {
-        cookieName: 'access_token',
+        cookieNames: ['at', 'rt'],
         headerName: 'Authorization',
     };
 
     private static config: AuthConfig = this.DEFAULT_CONFIG;
+
+    static buildSession(session: any): Partial<UserSession> {
+        return {
+            userId: session.userId || session.sub,
+            email: session.email,
+            role: session.role,
+            permissions: Array.isArray(session.permissions) ? session.permissions : [],
+            ...session,
+        };
+    }
 
     /**
      * Configurar globalmente el middleware
@@ -26,27 +37,27 @@ export class AuthMiddleware {
     static configure(config: Partial<AuthConfig>): void {
         this.config = { ...this.DEFAULT_CONFIG, ...config };
 
-        if (!this.config.cookieName && !this.config.headerName)
-            throw new ValidationError('Debe configurar al menos cookieName o headerName', [], {
+        if (!this.config.headerName && (!this.config.cookieNames || this.config.cookieNames.length === 0))
+            throw new ValidationError('Debe configurar al menos cookieNames o headerName', [], {
                 code: 'AUTH_CONFIG_INVALID',
             });
     }
 
     /**
-     * Extraer token de la request strictly obeying SESSION_TRANSMISSION_METHOD
+     * Extraer token de la request strictly obeying AUTH_TRANSPORT
      */
-    private static extractToken(req: Request): string | null {
+    private static extractToken(req: Request, tokenType?: 'access' | 'refresh'): string | null {
         const security = AppConfig.load().security;
-        const transmissionMethod = security.sessionTransmissionMethod;
-
-        if (transmissionMethod === 'cookie') {
-            const cookieName = security.jwtCookieAccessName || this.config.cookieName || 'access_token';
-            return req.cookies ? req.cookies[cookieName] : null;
-        }
+        const transmissionMethod = security.authTransport;
 
         if (transmissionMethod === 'bearer') {
-            const authHeader = req.header(this.config.headerName || 'Authorization');
+            const authHeader = req.header(this.config.headerName!);
             if (authHeader?.startsWith('Bearer ')) return authHeader.slice(7);
+        }
+
+        if (transmissionMethod === 'cookie') {
+            const cookieName = tokenType === 'refresh' ? security.jwtCookieRefreshName : security.jwtCookieAccessName;
+            return req.cookies ? req.cookies[cookieName] : null;
         }
 
         return null;
@@ -69,7 +80,7 @@ export class AuthMiddleware {
             if (!session.userId && !session.sub)
                 throw new AuthError('Token no contiene identificador de usuario', { code: 'INVALID_TOKEN_PAYLOAD' });
 
-            // Establecer sesión (compatibilidad con tu código)
+            // Establecer sesión
             req.session = {
                 userId: session.userId || session.sub,
                 email: session.email,
@@ -124,7 +135,36 @@ export class AuthMiddleware {
     }
 
     /**
-     * 3. Prevenir login doble
+     * 3. Verificar rol
+     */
+    static verifyRole(role: string | string[]) {
+        return (req: Request, _res: Response, next: NextFunction): void => {
+            try {
+                if (!req.session) throw new SessionNotFoundError();
+
+                if (!req.session.role)
+                    throw new ForbiddenError('Usuario no tiene rol asignado', { code: 'NO_ROLE_ASSIGNED' });
+
+                const requiredRoles = Array.isArray(role) ? role : [role];
+                const userRole = req.session.role.toUpperCase();
+
+                const hasRequiredRole = requiredRoles.some((r) => r.toUpperCase() === userRole);
+
+                if (!hasRequiredRole) {
+                    throw new ForbiddenError(`Usuario no tiene el rol necesario para realizar esta acción`, {
+                        code: 'INSUFFICIENT_ROLE',
+                    });
+                }
+
+                next();
+            } catch (error) {
+                next(error);
+            }
+        };
+    }
+
+    /**
+     * 4. Prevenir login doble
      */
     static preventDoubleLogin(req: Request, _res: Response, next: NextFunction): void {
         try {
@@ -151,36 +191,6 @@ export class AuthMiddleware {
         } catch (error) {
             next(error);
         }
-    }
-
-    /**
-     * Verificar rol
-     */
-    static verifyRole(role: string | string[]) {
-        return (req: Request, _res: Response, next: NextFunction): void => {
-            try {
-                if (!req.session) throw new SessionNotFoundError();
-
-                if (!req.session.role)
-                    throw new ForbiddenError('Usuario no tiene rol asignado', { code: 'NO_ROLE_ASSIGNED' });
-
-                const requiredRoles = Array.isArray(role) ? role : [role];
-                const userRole = req.session.role.toUpperCase();
-
-                const hasRequiredRole = requiredRoles.some((r) => r.toUpperCase() === userRole);
-
-                if (!hasRequiredRole) {
-                    throw new ForbiddenError(
-                        `Rol insuficiente. Requerido: ${requiredRoles.join(' o ')}, Actual: ${req.session.role}`,
-                        { code: 'INSUFFICIENT_ROLE' },
-                    );
-                }
-
-                next();
-            } catch (error) {
-                next(error);
-            }
-        };
     }
 
     /**

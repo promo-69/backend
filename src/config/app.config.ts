@@ -25,11 +25,12 @@ export interface IAppConfig {
     };
     security: {
         jwtSecret: string;
+        jwtRefreshSecret: string;
         jwtAccessExpiresIn: string;
         jwtRefreshExpiresIn: string;
         jwtCookieAccessName: string;
         jwtCookieRefreshName: string;
-        sessionTransmissionMethod: string;
+        authTransport: string;
         bcryptRounds: number;
     };
     limits: {
@@ -83,11 +84,12 @@ export class AppConfig {
             },
             security: {
                 jwtSecret: process.env.JWT_SECRET || 'your-secret-key-change-in-production',
+                jwtRefreshSecret: process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key-change-in-production',
                 jwtAccessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '1h',
                 jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
                 jwtCookieAccessName: process.env.JWT_COOKIE_ACCESS_NAME || 'AT',
                 jwtCookieRefreshName: process.env.JWT_COOKIE_REFRESH_NAME || 'RT',
-                sessionTransmissionMethod: process.env.SESSION_TRANSMISSION_METHOD || 'bearer',
+                authTransport: process.env.AUTH_TRANSPORT || 'bearer',
                 bcryptRounds: parseInt(process.env.BCRYPT_ROUNDS || '10', 10),
             },
             limits: {

@@ -70,14 +70,14 @@ export default class UsersModel extends SequelizeModelBase {
             },
             {
                 inversed: true,
-                type: 'hasOne',
+                type: 'hasMany',
                 target: 'People',
-                options: { foreignKey: 'person', targetKey: 'id', as: '_User' },
+                options: { foreignKey: 'person', targetKey: 'id', as: '_Users' },
             },
             {
                 type: 'belongsTo',
                 target: 'UserTypes',
-                options: { foreignKey: 'user_type', targetKey: 'id', as: '_UserType' },
+                options: { foreignKey: 'user_type', targetKey: 'id', as: '_UserTypes' },
             },
             {
                 inversed: true,
@@ -88,7 +88,7 @@ export default class UsersModel extends SequelizeModelBase {
             {
                 type: 'belongsTo',
                 target: 'Roles',
-                options: { foreignKey: 'role', targetKey: 'id', as: '_Role' },
+                options: { foreignKey: 'role', targetKey: 'id', as: '_Roles' },
             },
             {
                 inversed: true,

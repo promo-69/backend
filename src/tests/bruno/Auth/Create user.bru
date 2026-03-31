@@ -1,0 +1,41 @@
+meta {
+  name: Create user
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/auth/users
+  body: json
+  auth: none
+}
+
+body:json {
+    {
+        "user": {
+            "username": "testuser",
+            "password": "[PASSWORD]",
+            "user_type":1,
+            "role":1
+        },
+        "person": {
+            "document_number": "12345600",
+            "first_name": "[FIRST_NAME]",
+            "last_name": "[LAST_NAME]",
+            "gender":2,
+            "birth_date": "2001-01-01",
+            "email": null,
+            "phone_number": null
+        }
+    }
+}
+
+script:post-response {
+  const data = res.getBody();
+  if (data.data && data.data.accessToken) {
+    bru.setEnvVar("accessToken", data.data.accessToken);
+  }
+  if (data.data && data.data.refreshToken) {
+    bru.setEnvVar("refreshToken", data.data.refreshToken);
+  }
+}

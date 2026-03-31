@@ -1,5 +1,6 @@
 import { SequelizeRepositoryBase } from '@repositories/bases/sequelize.repository.js';
 import UsersModel from '@database/models/main/users.model.js';
+import { Sequelize } from 'sequelize';
 
 export interface UsersAttributes {
     id?: number;
@@ -28,18 +29,40 @@ class UsersRepository extends SequelizeRepositoryBase<UsersAttributes, number> {
         super(UsersModel);
     }
 
-    getByCredentials(credentials: { username: string; password: string }): Promise<UsersWithPeople | null> {
+    private get _relations() {
+        return [
+            {
+                association: '_People',
+                attributes: ['first_name', 'last_name', 'email', 'phone_number'],
+                required: true,
+            },
+            {
+                association: '_Roles',
+                attributes: ['code'],
+                required: false,
+                nested: [{ association: '_RoleInheritancesChild' }],
+            },
+            {
+                association: '_UserType',
+                attributes: ['description'],
+                required: true,
+            },
+            {
+                association: '_UserPermissions',
+                attributes: ['permission', 'is_granted'],
+                required: false,
+            },
+        ];
+    }
+
+    async getFull(id: number) {
+        return this.getOne({ id }, { relations: this._relations }) as Promise<UsersWithPeople | null>;
+    }
+
+    async getByCredentials(credentials: { username: string; password: string }): Promise<UsersWithPeople | null> {
         return this.getOne(
             { username: credentials.username, password: credentials.password },
-            {
-                relations: [
-                    {
-                        association: '_People',
-                        attributes: ['first_name', 'last_name', 'email', 'phone_number'],
-                        required: true,
-                    },
-                ],
-            },
+            { relations: this._relations },
         ) as Promise<UsersWithPeople | null>;
     }
 }

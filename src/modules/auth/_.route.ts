@@ -8,6 +8,7 @@ const router = Router();
 router.post('/login', preventDoubleLogin, authController.login);
 router.post('/refresh', authController.refresh);
 router.post('/logout', authController.logout);
+router.post('/users', authController.register);
 
 // --- Roles ---
 router.get('/roles', verifySession, authController.findAllRoles);

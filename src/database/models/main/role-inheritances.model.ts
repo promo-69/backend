@@ -47,7 +47,7 @@ export default class RoleInheritancesModel extends SequelizeModelBase {
                 inversed: true,
                 type: 'hasMany',
                 target: 'Roles',
-                options: { foreignKey: 'parent_role', targetKey: 'id', as: '_ChildInheritances' },
+                options: { foreignKey: 'parent_role', targetKey: 'id', as: '_RoleInheritancesParent' },
             },
             {
                 type: 'belongsTo',
@@ -58,7 +58,7 @@ export default class RoleInheritancesModel extends SequelizeModelBase {
                 inversed: true,
                 type: 'hasMany',
                 target: 'Roles',
-                options: { foreignKey: 'child_role', targetKey: 'id', as: '_ParentInheritances' },
+                options: { foreignKey: 'child_role', targetKey: 'id', as: '_RoleInheritancesChild' },
             },
             {
                 type: 'belongsTo',

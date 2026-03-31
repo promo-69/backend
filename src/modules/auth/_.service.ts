@@ -2,23 +2,25 @@ import { BaseService } from '@bases/service.base.js';
 import { Database } from '@database/index.js';
 import JWTUtil from '@utils/jwt.util.js';
 import { AuthError, ValidationError } from '@errors';
+import { Transaction } from 'sequelize';
+import { ExceptionPermissions } from '@rules/permission-exceptions.type.js';
+import { BcryptUtil } from '@utils/bcrypt.util.js';
+import { UserSession } from '@rules/api.type.js';
 
 export class AuthService extends BaseService {
     constructor() {
         super();
     }
 
-    private get _accesos() {
+    private get _users() {
         return Database.repository('main', 'users') as any;
     }
-    private get _rolesUsuarios() {
-        return Database.repository('main', 'user-roles') as any;
-    }
-    private get _rolesPermisos() {
-        return Database.repository('main', 'role-permissions') as any;
+    private get _people() {
+        return Database.repository('main', 'people') as any;
     }
     private get _roles() {
-        return Database.repository('main', 'system-roles') as any;
+        return {} as any;
+        //return Database.repository('main', 'roles') as any;
     }
     private get _permisos() {
         return Database.repository('main', 'permissions') as any;
@@ -28,9 +30,9 @@ export class AuthService extends BaseService {
         return Array.from(
             new Set(
                 permissions.map((per) => {
-                    const resource = per._Permissions?._Resources?.code;
-                    const action = per._Permissions?._Actions?.code;
-                    const type = per._Permissions?._PermissionTypes?.code;
+                    const resource = per._Resources?.code;
+                    const action = per._Actions?.code;
+                    const type = per._PermissionTypes?.code;
                     return `${type}:${action}:${resource}`;
                 }),
             ),
@@ -39,47 +41,99 @@ export class AuthService extends BaseService {
 
     // --- Authentication & Sessions ---
 
-    private async _buildUserPayload(foundSession: any) {
-        const rolesData: any[] = [];
-        const permissionsData: string[] = [];
+    private async _buildUserPayload(foundUser: any): Promise<Partial<UserSession>> {
+        const permissionsExceptions: ExceptionPermissions = foundUser._UserPermissions.reduce(
+            (acu: ExceptionPermissions, cur: any) => {
+                acu[cur.is_granted ? 'granted' : 'revoked'].push(cur.permission);
+
+                return acu;
+            },
+            { granted: [], revoked: [] },
+        );
+
+        // Encontrar permisos del rol
+        const { rows: permissions } = await this._permisos.getByRolesWithExceptions({
+            roles: [foundUser.role, ...foundUser._Roles._RoleInheritancesChild.map((r: any) => r.parent_role)],
+            exceptions: permissionsExceptions,
+        });
 
         const payload = {
-            id: foundSession.id,
-            document_number: foundSession.document_number,
-            roles: rolesData,
-            permissions: permissionsData,
-            name: foundSession._People.first_name,
-            surname: foundSession._People.last_name,
-            email: foundSession._People.email,
-            phone_number: foundSession._People.phone_number,
+            userId: foundUser.id,
+            documentNumber: foundUser.document_number,
+            firstname: foundUser._People.first_name,
+            lastname: foundUser._People.last_name,
+            email: foundUser._People?.email,
+            phoneNumber: foundUser._People?.phone_number,
+            roleDesc: foundUser._Roles?.description,
+            roleCode: foundUser._Roles?.code,
+            permissions: this.parsePermissions(permissions),
         };
 
         return payload;
     }
 
-    async authenticateUser({ uid, password }: Record<string, any>) {
-        if (!uid || !password) throw new ValidationError('Las credenciales están incompletas', []);
-
-        const uidRegExp = /^[a-zA-Z0-9_\-\.]{4,20}$/;
-        const passRegExp = /^.{6,50}$/;
-
-        if (!uidRegExp.test(uid) || !passRegExp.test(password))
-            throw new ValidationError('Las credenciales son inválidas', []);
-
-        const foundSession = await this._accesos.getByCredentials({ username: uid, password: password });
-        if (!foundSession) throw new AuthError('Las credenciales no son correctas', { code: 'INVALID_LOGIN' });
-
-        const payload = await this._buildUserPayload(foundSession);
+    private async _buildLoginResponse(sessionData: any) {
+        const payload = await this._buildUserPayload(sessionData);
         const accessToken = JWTUtil.generateToken(payload);
-        const refreshToken = JWTUtil.generateRefreshToken({ userId: foundSession.id });
+        const refreshToken = JWTUtil.generateRefreshToken({ userId: sessionData.id });
 
         return { user: payload, accessToken, refreshToken };
+    }
+
+    async registerUser({
+        person: _person,
+        user: _user,
+    }: {
+        person: Record<string, string | null>;
+        user: Record<string, string>;
+    }) {
+        const foundUser = await this._users.getByCredentials(_user);
+
+        if (foundUser) throw new AuthError('El usuario ya existe', { code: 'USER_ALREADY_EXISTS' });
+
+        const created = await this._people.transaction(async (transaction: Transaction) => {
+            const createdPerson = await this._people.create(_person, { transaction });
+            const createdUser = await this._users.create(
+                {
+                    ..._user,
+                    password: await BcryptUtil.hash(_user.password),
+                    person: createdPerson.id,
+                },
+                { transaction },
+            );
+
+            return createdUser;
+        });
+
+        const user = await this.findUserById(created.id);
+
+        return this._buildLoginResponse(user);
+    }
+
+    async authenticateUser({
+        username,
+        password,
+    }: Record<string, any>): Promise<{ user: Record<string, any>; accessToken: string; refreshToken: string }> {
+        if (!username || !password) throw new ValidationError('Las credenciales están incompletas', []);
+
+        const usernameRegExp = /^[a-zA-Z0-9_\-\.]{4,20}$/;
+        const passRegExp = /^.{6,50}$/;
+
+        if (!usernameRegExp.test(username) || !passRegExp.test(password))
+            throw new ValidationError('Las credenciales no son válidas', []);
+
+        const foundUser = await this._users.getByCredentials({ username });
+        if (!foundUser || !(await BcryptUtil.compare(password, foundUser.password)))
+            throw new AuthError('Las credenciales no son correctas', { code: 'INVALID_LOGIN' });
+
+        return this._buildLoginResponse(foundUser);
     }
 
     async refreshUserSession(currentToken: string | null) {
         if (!currentToken) throw new AuthError('No es posible reiniciar la sesión.');
 
         let savedSession: any;
+
         try {
             savedSession = JWTUtil.verifyRefreshToken<any>(currentToken);
         } catch (error: any) {
@@ -88,35 +142,25 @@ export class AuthService extends BaseService {
 
         if (!savedSession.userId) throw new AuthError('Falta identificación en el token.', { code: 'INVALID_TOKEN' });
 
-        const foundSession = await this.findUserById(savedSession.userId);
-        if (!foundSession || foundSession.status !== 1)
+        const foundUser = await this.findUserById(savedSession.userId);
+        if (!foundUser || foundUser.status !== 1)
             throw new AuthError('El usuario no existe o está inactivo.', { code: 'USER_INACTIVE' });
 
-        const payload = await this._buildUserPayload(foundSession);
-        const accessToken = JWTUtil.generateToken(payload);
-        const refreshToken = JWTUtil.generateRefreshToken({ userId: foundSession.id });
-
-        return { accessToken, refreshToken, user: payload };
+        return this._buildLoginResponse(foundUser);
     }
 
     // --- Users ---
 
     async findAllUsers(filters?: any) {
-        return this._accesos.getAllFull(filters);
+        return this._users.getAllFull(filters);
     }
 
     async findUserById(id: number) {
-        return this._accesos.getFull(id);
+        return this._users.getFull(id);
     }
 
-    async createUser(body: any, newRoles?: number[]) {
-        const created = await this._accesos.create(body);
-        if (newRoles?.length) {
-            const mapRoles = newRoles.map((rol) => ({ userId: created.id, roleId: rol }));
-            // Creating multiple roles manually to avoid complex TS partial array mapping errors gracefully
-            for (const r of mapRoles) await this._rolesUsuarios.create(r);
-        }
-        return created;
+    async createUser(userData: any) {
+        return this._users.create(userData);
     }
 
     // --- Roles ---

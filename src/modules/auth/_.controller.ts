@@ -8,15 +8,27 @@ class AuthController extends ControllerBase {
         super();
     }
 
-    // --- Authentication ---
+    async register() {
+        const { person, user } = this.getBody();
+        const data = await AuthService.registerUser({ person, user });
+        return this.created(data);
+    }
 
     async login() {
         const body = this.getBody();
-        const { user, accessToken, refreshToken } = await AuthService.authenticateUser(body);
+        const {
+            user,
+            accessToken,
+            refreshToken,
+        }: {
+            user: Record<string, any>;
+            accessToken: string;
+            refreshToken: string;
+        } = await AuthService.authenticateUser(body);
 
         const security = AppConfig.load().security;
 
-        if (security.sessionTransmissionMethod === 'cookie') {
+        if (security.authTransport === 'cookie') {
             const accessName = security.jwtCookieAccessName || 'AT';
             const refreshName = security.jwtCookieRefreshName || 'RT';
 
@@ -33,7 +45,7 @@ class AuthController extends ControllerBase {
         let currentToken: string | null = null;
         const security = AppConfig.load().security;
 
-        if (security.sessionTransmissionMethod === 'cookie') {
+        if (security.authTransport === 'cookie') {
             const refreshName = security.jwtCookieRefreshName;
             currentToken = this.getRequest().cookies?.[refreshName] || null;
         } else {
@@ -43,7 +55,7 @@ class AuthController extends ControllerBase {
 
         const { accessToken, refreshToken, user } = await AuthService.refreshUserSession(currentToken);
 
-        if (security.sessionTransmissionMethod === 'cookie') {
+        if (security.authTransport === 'cookie') {
             const accessName = security.jwtCookieAccessName;
             const refreshName = security.jwtCookieRefreshName;
 
@@ -58,7 +70,7 @@ class AuthController extends ControllerBase {
     async logout() {
         const security = AppConfig.load().security;
 
-        if (security.sessionTransmissionMethod === 'cookie') {
+        if (security.authTransport === 'cookie') {
             const accessName = security.jwtCookieAccessName;
             const refreshName = security.jwtCookieRefreshName;
 
@@ -83,9 +95,10 @@ class AuthController extends ControllerBase {
     }
 
     async createUser() {
-        const { roles, ...body } = this.getBody();
-        const data = await AuthService.createUser(body, roles);
-        return this.created(data);
+        const userData = this.getBody();
+        const data = await AuthService.createUser(userData);
+
+        return data;
     }
 
     // --- Roles ---

@@ -178,7 +178,7 @@ class DatabaseManager {
     repository(connectorName: string, repoName: string): BaseRepository<any, any> {
         const key = `${connectorName}.${repoName}`;
 
-        if (!this.repositories.has(key)) throw new DatabaseRepositoryError('Not found');
+        if (!this.repositories.has(key)) throw new DatabaseRepositoryError('Not found', { connectorName, repoName });
 
         return this.repositories.get(key);
     }

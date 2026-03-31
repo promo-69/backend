@@ -45,7 +45,7 @@ export default class PermissionsModel extends SequelizeModelBase {
             {
                 type: 'belongsTo',
                 target: 'Actions',
-                options: { foreignKey: 'action', targetKey: 'id', as: '_Action' },
+                options: { foreignKey: 'action', targetKey: 'id', as: '_Actions' },
             },
             {
                 inversed: true,
@@ -56,7 +56,7 @@ export default class PermissionsModel extends SequelizeModelBase {
             {
                 type: 'belongsTo',
                 target: 'Resources',
-                options: { foreignKey: 'resource', targetKey: 'id', as: '_Resource' },
+                options: { foreignKey: 'resource', targetKey: 'id', as: '_Resources' },
             },
             {
                 inversed: true,
@@ -67,7 +67,7 @@ export default class PermissionsModel extends SequelizeModelBase {
             {
                 type: 'belongsTo',
                 target: 'PermissionTypes',
-                options: { foreignKey: 'permission_type', targetKey: 'id', as: '_PermissionType' },
+                options: { foreignKey: 'permission_type', targetKey: 'id', as: '_PermissionTypes' },
             },
             {
                 inversed: true,

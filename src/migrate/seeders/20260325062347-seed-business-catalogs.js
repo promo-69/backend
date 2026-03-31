@@ -135,16 +135,16 @@ module.exports = {
         await queryInterface.bulkInsert(
             'loyalty_levels',
             [
-                { id: 1, name: 'Cuarzo', required_points: 500, status: 1 },
-                { id: 2, name: 'Ámbar', required_points: 1200, status: 1 },
-                { id: 3, name: 'Jade', required_points: 2500, status: 1 },
-                { id: 4, name: 'Ópalo', required_points: 5000, status: 1 },
-                { id: 5, name: 'Topacio', required_points: 10000, status: 1 },
-                { id: 6, name: 'Zafiro', required_points: 20000, status: 1 },
-                { id: 7, name: 'Esmeralda', required_points: 40000, status: 1 },
-                { id: 8, name: 'Rubí', required_points: 75000, status: 1 },
-                { id: 9, name: 'Diamante', required_points: 150000, status: 1 },
-                { id: 10, name: 'Obsidiana', required_points: null, status: 1 }, // NULL = Nivel Tope
+                { id: 1, name: 'Cuarzo', required_points: 300, status: 1 },
+                { id: 2, name: 'Ámbar', required_points: 900, status: 1 },
+                { id: 3, name: 'Jade', required_points: 2100, status: 1 },
+                { id: 4, name: 'Ópalo', required_points: 4500, status: 1 },
+                { id: 5, name: 'Topacio', required_points: 9300, status: 1 },
+                { id: 6, name: 'Zafiro', required_points: 18900, status: 1 },
+                { id: 7, name: 'Esmeralda', required_points: 38100, status: 1 },
+                { id: 8, name: 'Rubí', required_points: 76500, status: 1 },
+                { id: 9, name: 'Diamante', required_points: 153300, status: 1 },
+                { id: 10, name: 'Obsidiana', required_points: 306900, status: 1 },
             ],
             {},
         );
@@ -194,6 +194,8 @@ module.exports = {
             ],
             {},
         );
+
+        await queryInterface.sequelize.query(`CALL update_serial_sequence();`);
     },
 
     async down(queryInterface, Sequelize) {

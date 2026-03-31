@@ -1,5 +1,5 @@
 import { SequelizeRepositoryBase } from '@repositories/bases/sequelize.repository.js';
-import OrdersModel from '@database/models/main/orders.model.js';
+import OrdersModel from '@database/models/main/orders.models.js';
 
 export interface OrdersAttributes {
     id?: number;

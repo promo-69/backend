@@ -5,7 +5,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import { AppConfig, type IAppConfig } from '@config/app.config.js';
-import { NotFoundError } from '@errors';
+import { AppError, NotFoundError } from '@errors';
 import { ANSI } from '@utils/ansi.util.js';
 import { Logger } from '@utils/logger.util.js';
 import { Database } from '@database/index.js';
@@ -263,7 +263,9 @@ export class App {
 
         // 3. Manejador de errores global
         this.app.use((err: any, req: Request, res: Response, next: NextFunction) => {
-            res.status(err.statusCode || 500).json(err.toJSON());
+            const error = err instanceof AppError ? err : new AppError({ statusCode: err.statusCode, cause: err });
+
+            res.status(error.statusCode || 500).json(error.toJSON());
         });
     }
 

@@ -27,7 +27,15 @@ export interface ResponseOptions {
  */
 
 export interface UserSession extends JWTPayload {
-    [key: string]: any;
+    userId: string;
+    documentNumber: string;
+    firstname: string;
+    lastname: string;
+    permissions?: string[];
+    roleCode?: string;
+    roleName?: string;
+    email?: string;
+    phoneNumber?: string;
 }
 
 /**
