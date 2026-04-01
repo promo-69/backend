@@ -6,18 +6,18 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export default defineConfig(({ mode }) => {
-    loadEnv(mode, process.cwd(), '');
+    const env = loadEnv(mode, process.cwd(), '');
+    const isDocker = env.IS_DOCKER === 'true';
 
     return {
         server: {
             host: true,
             strictPort: true,
             hmr: {
-                protocol: process.env.IS_DOCKER ? 'wss' : 'ws',
-                ...(process.env.IS_DOCKER ? { host: 'localhost' } : {}),
+                protocol: isDocker ? 'wss' : 'ws',
             },
             watch: {
-                usePolling: !!process.env.IS_DOCKER,
+                usePolling: isDocker,
             },
         },
         resolve: {
