@@ -231,7 +231,7 @@ module.exports = {
             {},
         );
 
-        const mariaPassword = await bcrypt.hash('password123', 10);
+        const mariaPassword = await bcrypt.hash('password123.', 10);
         const adminPassword = await bcrypt.hash(process.env.SUPER_ADMIN_PASSWORD, 10);
 
         await queryInterface.bulkInsert(

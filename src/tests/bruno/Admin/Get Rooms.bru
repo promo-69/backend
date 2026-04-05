@@ -1,0 +1,19 @@
+meta {
+  name: Get Rooms
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/admin/rooms
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: AT
+}
+
+vars:pre-request {
+  baseUrl: http://127.0.0.1:4000/api/v1
+}
