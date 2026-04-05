@@ -175,7 +175,7 @@ export class AuthService extends BaseService {
 
         const foundUser = await this._users.getByUsername(username);
         if (!foundUser || !(await BcryptUtil.compare(password, foundUser.password)))
-            throw new AuthError('Las credenciales no son correctas'+` ${foundUser}`, { code: 'INVALID_LOGIN' });
+            throw new AuthError('Las credenciales no son correctas', { code: 'INVALID_LOGIN' });
 
         return this._buildLoginResponse(foundUser);
     }
