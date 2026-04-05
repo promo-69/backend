@@ -27,7 +27,7 @@ export class MoviesService extends BaseService {
     }
 
     async deleteMovie(id: number) {
-        return this._movies.delete(id);
+        return this._movies.update(id, { status: 0 });
     }
 }
 

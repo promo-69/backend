@@ -27,7 +27,7 @@ export class RoomsService extends BaseService {
     }
 
     async deleteRoom(id: number) {
-        return this._rooms.delete(id);
+        return this._rooms.update(id, { status: 0 });
     }
 }
 
