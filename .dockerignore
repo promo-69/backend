@@ -1,5 +1,8 @@
 node_modules
+src/tests
 dist
+build
 .git
 .vscode
-docker/nginx/certs/*.pem
+docker/nginx/certs/*
+!docker/nginx/certs/.gitkeep

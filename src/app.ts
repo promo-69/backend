@@ -13,6 +13,7 @@ import { Database } from '@database/index.js';
 export class App {
     private app: Express;
     private appConfig: IAppConfig;
+    private httpServer?: http.Server;
 
     constructor(config: IAppConfig) {
         this.app = express();
@@ -22,17 +23,25 @@ export class App {
     }
 
     async start(): Promise<http.Server> {
-        const server = await this.initialize();
+        const serverApp = await this.initialize();
 
-        return new Promise((resolve) => {
-            const httpServer = http.createServer(server).listen(this.appConfig.port, this.appConfig.host, () => {
-                resolve(httpServer);
+        return new Promise((resolve, reject) => {
+            this.httpServer = http.createServer(serverApp);
+
+            this.httpServer.on('error', (err) => {
+                reject(err);
             });
 
-            // Configurar timeout del servidor
-            httpServer.setTimeout(30000);
-            httpServer.keepAliveTimeout = 65000;
-            httpServer.headersTimeout = 66000;
+            this.httpServer.listen(this.appConfig.port, this.appConfig.host, () => {
+                Logger.natural(ANSI.info(`Server running on ${ANSI.link(this.appConfig.apiBaseUrl)}${ANSI.getCode('reset')}`));
+                Logger.natural(ANSI.info('Waiting for requests...\n'));
+                
+                resolve(this.httpServer as http.Server);
+            });
+
+            this.httpServer.setTimeout(30000);
+            this.httpServer.keepAliveTimeout = 65000;
+            this.httpServer.headersTimeout = 66000;
         });
     }
 
@@ -50,8 +59,6 @@ export class App {
         this.setupErrorHandling();
 
         Logger.natural(ANSI.success('[+] Application initialized successfully'), { sepStart: true, sepEnd: true });
-        Logger.natural(ANSI.info(`Server running on ${ANSI.link(this.appConfig.apiBaseUrl)}${ANSI.getCode('reset')}`));
-        Logger.natural(ANSI.info('Waiting for requests...\n'));
 
         return this.app;
     }
@@ -122,6 +129,10 @@ export class App {
         );
         Logger.natural(ANSI.success('[+] Static Files middleware loaded'));
 
+        // 10. Trust proxy
+        this.app.set('trust proxy', 1);
+        Logger.natural(ANSI.success('[+] Trust Proxy middleware loaded'));
+
         Logger.natural(ANSI.info(''.padEnd(44, '-')), { sepEnd: true });
     }
 
@@ -149,12 +160,13 @@ export class App {
 
         // Ruta raíz con información de la API
         routerEssentialApi.get('/', (req: Request, res: Response) => {
+            const interfaceIp = req.headers.host;
             const welcome = {
                 message: 'Welcome to the API',
                 documentation: 'See /./health for service status',
                 endpoints: {
-                    health: `/health: Check the health of the API (${this.appConfig.apiBaseUrl}/health)`,
-                    api: `${this.appConfig.apiBaseUrl}/api/v[version-number]/[module]: API endpoints`,
+                    health: `/health: Check the health of the API (${this.appConfig.protocol}://${interfaceIp}/health)`,
+                    api: `${this.appConfig.protocol}://${interfaceIp}/api/v[version-number]/[module]: API endpoints`,
                 },
             };
 

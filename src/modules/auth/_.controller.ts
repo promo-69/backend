@@ -8,8 +8,11 @@ class AuthController extends ControllerBase {
         super();
     }
 
+    // --- Auth & Session---
+
     async signup() {
         const { person, user } = this.getBody();
+        
         const data = await AuthService.registerUser({ person, user });
         return this.created(data);
     }
@@ -69,15 +72,33 @@ class AuthController extends ControllerBase {
 
     async logout() {
         const security = AppConfig.load().security;
+        const req = this.getRequest();
+        
+        const accessToken = req.token || null;
+        let refreshToken = null;
 
         if (security.authTransport === 'cookie') {
             const accessName = security.jwtCookieAccessName;
             const refreshName = security.jwtCookieRefreshName;
 
+            refreshToken = req.cookies?.[refreshName] || null;
+
             this.clearCookie(accessName);
             this.clearCookie(refreshName);
+        } else {
+            const authHeader = this.getHeaders().authorization;
+            if (authHeader?.startsWith('Bearer ')) refreshToken = authHeader.split(' ')[1];
         }
+
+        await AuthService.logoutUser(accessToken, refreshToken);
+
         return this.success(null, 'Sesión finalizada exitosamente');
+    }
+
+    async me() {
+        const session = this.getSession();
+
+        return this.success(session, 'Usuario obtenido exitosamente');
     }
 
     // --- Users ---

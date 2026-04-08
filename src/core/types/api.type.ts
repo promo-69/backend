@@ -61,6 +61,11 @@ declare global {
              * Usuario autenticado (si aplica)
              */
             session?: UserSession;
+
+            /**
+             * Token de acceso
+             */
+            token?: string;
         }
 
         // Extender la interfaz Response original

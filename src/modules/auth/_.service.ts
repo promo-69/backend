@@ -8,6 +8,7 @@ import { BcryptUtil } from '@utils/bcrypt.util.js';
 import { UserSession } from '@rules/api.type.js';
 import { REGEX } from '@constants/regex.constant.js';
 import { convertCase } from '@utils/string-formatters.util.js';
+import { tokenBlacklistService } from './services/token-blacklist.service.js';
 
 export class AuthService extends BaseService {
     constructor() {
@@ -177,6 +178,9 @@ export class AuthService extends BaseService {
         if (!foundUser || !(await BcryptUtil.compare(password, foundUser.password)))
             throw new AuthError('Las credenciales no son correctas', { code: 'INVALID_LOGIN' });
 
+        // REQUERIMIENTO 3: Single Active Session (Extermina sesiones activas previas en otros dispositivos)
+        await tokenBlacklistService.invalidateUserSessions(foundUser.id);
+
         return this._buildLoginResponse(foundUser);
     }
 
@@ -193,11 +197,32 @@ export class AuthService extends BaseService {
 
         if (!savedSession.userId) throw new AuthError('Falta identificación en el token.', { code: 'INVALID_TOKEN' });
 
+        // REQUERIMIENTO 2: Refresh Token Rotation & Token Reuse Detection
+        const isLockAcquired = await tokenBlacklistService.blacklistTokenAtRefresh(currentToken);
+        if (!isLockAcquired) {
+            // ¡Brecha detectada! Alguien usó el RefreshToken antes (Sea el user normal por error de Red o un Atacante que lo clonó)
+            await tokenBlacklistService.invalidateUserSessions(savedSession.userId);
+            throw new AuthError('Intento de reutilización de sesión detectado. Todas las sesiones protegidas han sido revocadas.', { code: 'BREACH_DETECTED' });
+        }
+
         const foundUser = await this.findUserById(savedSession.userId);
         if (!foundUser || foundUser.status !== 1)
             throw new AuthError('El usuario no existe o está inactivo.', { code: 'USER_INACTIVE' });
 
         return this._buildLoginResponse(foundUser);
+    }
+
+    /**
+     * REQUERIMIENTO 4: Destrucción explícita de credenciales
+     */
+    async logoutUser(accessToken: string | null, refreshToken: string | null): Promise<void> {
+        if (!accessToken && !refreshToken) throw new AuthError('No existen tokens vigentes a invalidar');
+        
+        // Ejecutamos ambas promesas en paralelo para mayor velocidad
+        const blacklistPromises = [];
+        if (accessToken) blacklistPromises.push(tokenBlacklistService.blacklistToken(accessToken));
+        if (refreshToken) blacklistPromises.push(tokenBlacklistService.blacklistToken(refreshToken));
+        await Promise.all(blacklistPromises);
     }
 
     // --- Users ---
