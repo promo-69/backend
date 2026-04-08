@@ -1,5 +1,6 @@
 import { BaseService } from '@bases/service.base.js';
 import { Database } from '@database/index.js';
+import { WhereOperators } from '@bases/repository.base.js';
 
 export class MoviesService extends BaseService {
     constructor() {
@@ -12,6 +13,17 @@ export class MoviesService extends BaseService {
 
     async findAllMovies(filters?: any) {
         return this._movies.getAll(filters || {});
+    }
+
+    async findMoviesInCartelera(filters?: any) {
+        const carteleraFilters = {
+            ...filters,
+            conditions: {
+                ...filters?.conditions,
+                lifecycle_state: { [WhereOperators.in]: [1, 2, 3] }
+            }
+        };
+        return this._movies.getAll(carteleraFilters);
     }
 
     async findMovieById(id: number) {
