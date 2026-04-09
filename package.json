@@ -18,16 +18,21 @@
         "format": "prettier --write \"src/**/*.{ts,cjs,js}\"",
         "type-check": "tsc --noEmit",
         "test": "cross-env NODE_OPTIONS=--experimental-vm-modules npx jest",
-        "db:setup": "npx sequelize-cli db:create && npx sequelize-cli db:migrate",
-        "db:setup:full": "npx sequelize-cli db:create && npx sequelize-cli db:migrate && yarn db:seed",
+        "db:setup": "npx sequelize-cli db:create && yarn db:migrate",
+        "db:setup:full": "npx sequelize-cli db:create && yarn db:migrate && yarn db:seed",
         "db:reset": "npx sequelize-cli db:drop && yarn db:setup",
         "db:reset:full": "npx sequelize-cli db:drop && yarn db:setup:full",
+        "db:migrate": "npx sequelize-cli db:migrate",
         "db:migrate:undo": "npx sequelize-cli db:migrate:undo",
         "db:migrate:undo:all": "npx sequelize-cli db:migrate:undo:all",
         "db:seed": "npx sequelize-cli db:seed:all",
         "db:seed:undo": "npx sequelize-cli db:seed:undo:all",
         "db:generate:seed": "npx sequelize-cli seed:generate",
-        "db:generate:migration": "npx sequelize-cli migration:generate"
+        "db:generate:migration": "npx sequelize-cli migration:generate",
+        "docker:migrate": "docker compose -f docker-compose.yml -f docker-compose.local.yml exec api npx sequelize-cli db:migrate",
+        "docker:migrate:undo": "docker compose -f docker-compose.yml -f docker-compose.local.yml exec api npx sequelize-cli db:migrate:undo",
+        "docker:seed": "docker compose -f docker-compose.yml -f docker-compose.local.yml exec api npx sequelize-cli db:seed",
+        "docker:seed:undo": "docker compose -f docker-compose.yml -f docker-compose.local.yml exec api npx sequelize-cli db:seed:undo"
     },
     "devDependencies": {
         "@types/bcryptjs": "^3.0.0",
@@ -48,7 +53,6 @@
         "eslint-config-prettier": "^10.0.2",
         "jest": "^30.3.0",
         "prettier": "^3.5.2",
-        "sequelize-cli": "^6.6.5",
         "supertest": "^7.2.2",
         "ts-jest": "^29.4.6",
         "ts-node": "^10.9.2",
@@ -68,6 +72,7 @@
         "dotenv": "^17.2.3",
         "express": "^5.2.1",
         "helmet": "^8.1.0",
+        "ioredis": "^5.10.1",
         "joi": "^18.0.2",
         "jsonwebtoken": "^9.0.3",
         "mime-types": "^3.0.2",
@@ -76,6 +81,7 @@
         "nanoid": "^5.1.6",
         "nodemailer": "^7.0.12",
         "pg": "^8.16.3",
-        "sequelize": "^6.37.7"
+        "sequelize": "^6.37.7",
+        "sequelize-cli": "^6.6.5"
     }
 }

@@ -35,6 +35,7 @@ export interface UserSession {
     roleCode?: string;
     roleDesc?: string;
     email?: string;
+    personalEmail?: string;
     phoneNumber?: string;
 }
 
@@ -61,6 +62,11 @@ declare global {
              * Usuario autenticado (si aplica)
              */
             session?: UserSession;
+
+            /**
+             * Token de acceso
+             */
+            token?: string;
         }
 
         // Extender la interfaz Response original

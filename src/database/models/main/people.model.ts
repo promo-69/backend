@@ -30,7 +30,7 @@ export default class PeopleModel extends SequelizeModelBase {
                 allowNull: true,
                 type: DataTypes.STRING(50),
             },
-            email: {
+            personal_email: {
                 allowNull: true,
                 type: DataTypes.STRING(100),
             },

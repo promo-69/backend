@@ -1,34 +1,43 @@
 meta {
-  name: Login
-  type: http
-  seq: 1
+    name: Login
+    type: https
+    seq: 1
 }
 
 post {
-  url: {{baseUrl}}/auth/login
-  body: json
-  auth: none
+    url: {{baseUrl}}/auth/login
+    body: json
+    auth: none
 }
 
 body:json {
-  {
-    "username": "{{username}}",
-    "password": "{{password}}"
-  }
+    {
+        "email": "{{loginEmail}}",
+        "password": "{{loginPassword}}"
+    }
 }
 
-vars:pre-request {
-  username: admin
-  baseUrl: http://127.0.0.1:4000/api/v1
-  password: admin123.
+script:pre-request {
+    // 1. Prioridad: el último correo registrado (email), luego el de prueba (testEmail), o un fallback.
+    const targetEmail = bru.getEnvVar("loginEmail") ||  bru.getEnvVar("email") || bru.getEnvVar("testEmail") || "fallback@example.example";
+    const targetPassword = bru.getEnvVar("loginPassword") || bru.getEnvVar("password") || bru.getEnvVar("testPassword") || "fallback12345678*";
+
+    // 2. Asignamos a variables temporales con nombres únicos para el JSON
+    bru.setVar("loginEmail", targetEmail);
+    bru.setVar("loginPassword", targetPassword);
 }
 
 script:post-response {
-  const data = res.getBody();
-  if (data.data && data.data.accessToken) {
-    bru.setEnvVar("accessToken", data.data.accessToken);
-  }
-  if (data.data && data.data.refreshToken) {
-    bru.setEnvVar("refreshToken", data.data.refreshToken);
-  }
+    const resBody = res.getBody();
+    const resStatus = res.getStatus();
+
+    // Solo guardamos los tokens si las credenciales fueron correctas (HTTP 2xx)
+    if (200 <= resStatus && resStatus <= 299 && resBody && resBody.data) {
+        
+        if (resBody.data.accessToken)
+            bru.setEnvVar("accessToken", resBody.data.accessToken);
+
+        if (resBody.data.refreshToken)
+            bru.setEnvVar("refreshToken", resBody.data.refreshToken);
+    }
 }

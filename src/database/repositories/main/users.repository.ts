@@ -7,7 +7,7 @@ export interface UsersAttributes {
     person: number;
     user_type: number;
     role?: number;
-    username: string;
+    email: string;
     password: string;
     last_login?: Date | string;
     created_at?: Date | string;
@@ -19,7 +19,7 @@ interface UsersWithPeople extends UsersAttributes {
     _People: {
         first_name: string;
         last_name: string;
-        email: string;
+        personal_email: string;
         phone_number: string;
     };
 }
@@ -33,7 +33,7 @@ class UsersRepository extends SequelizeRepositoryBase<UsersAttributes, number> {
         return [
             {
                 association: '_People',
-                attributes: ['first_name', 'last_name', 'email', 'phone_number'],
+                attributes: ['first_name', 'last_name', 'personal_email', 'phone_number'],
                 required: true,
             },
             {
@@ -59,8 +59,8 @@ class UsersRepository extends SequelizeRepositoryBase<UsersAttributes, number> {
         return this.getOne({ id }, { relations: this._relations }) as Promise<UsersWithPeople | null>;
     }
 
-    async getByUsername(username: string) {
-        return this.getOne({ username }, { relations: this._relations }) as Promise<UsersWithPeople | null>;
+    async getByEmail(email: string) {
+        return this.getOne({ email }, { relations: this._relations }) as Promise<UsersWithPeople | null>;
     }
 }
 

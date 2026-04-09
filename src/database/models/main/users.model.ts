@@ -22,7 +22,7 @@ export default class UsersModel extends SequelizeModelBase {
                 allowNull: true,
                 type: DataTypes.INTEGER,
             },
-            username: {
+            email: {
                 allowNull: false,
                 type: DataTypes.STRING(100),
             },

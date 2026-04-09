@@ -9,6 +9,12 @@ export interface JWTPayload {
     type?: string;
 }
 
+export interface RefreshTokenPayload {
+    userId: number;
+    iat: number;
+    exp: number;
+}
+
 export class JWTUtil {
     private static SECRET: string;
     private static REFRESH_SECRET: string;
@@ -158,6 +164,18 @@ export class JWTUtil {
 
         const now = Math.floor(Date.now() / 1000);
         return Math.max(0, decoded.exp - now);
+    }
+
+    static getPayload(token: string): JWTPayload {
+        const decoded = this.decodeToken(token);
+
+        if (!decoded) throw new Error('Invalid token');
+
+        delete decoded.iat;
+        delete decoded.exp;
+        delete decoded.type;
+
+        return decoded;
     }
 }
 

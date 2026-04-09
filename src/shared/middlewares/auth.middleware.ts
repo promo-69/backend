@@ -4,6 +4,7 @@ import { JWTPayload, JWTUtil } from '@utils/jwt.util.js';
 import { AuthError, ForbiddenError, ConflictError, ValidationError } from '@errors';
 import { SessionNotFoundError } from '@errors/auth.error.js';
 import { UserSession } from '@rules/api.type.js';
+import { tokenBlacklistService } from '@modules/auth/services/token-blacklist.service.js';
 
 // Configuración simple
 interface AuthConfig {
@@ -50,56 +51,92 @@ export class AuthMiddleware {
     }
 
     /**
-     * Extraer token de la request strictly obeying AUTH_TRANSPORT
+     * Extraer token de la request con Estrategia Omnicanal (Fallback: Cookie -> Header)
      */
-    private static extractToken(req: Request, tokenType?: 'access' | 'refresh'): string | null {
+    private static extractToken(req: Request, tokenType: 'access' | 'refresh' = 'access'): string | null {
         const security = AppConfig.load().security;
-        const transmissionMethod = security.authTransport;
 
-        if (transmissionMethod === 'bearer') {
-            const authHeader = req.header(this.config.headerName!);
-            if (authHeader?.startsWith('Bearer ')) return authHeader.slice(7);
+        // 1. Prioridad 1 (Web): Buscar en las Cookies
+        const cookieName = tokenType === 'refresh' ? security.jwtCookieRefreshName : security.jwtCookieAccessName;
+        const cookieToken = req.cookies ? req.cookies[cookieName] : null;
+
+        if (cookieToken) return cookieToken;
+
+        // 2. Prioridad 2 (Móvil - Fallback): Buscar en la cabecera Authorization
+        // El cliente móvil enviará el token adecuado (Access o Refresh) en este header según el endpoint
+        const authHeader = req.header(this.config.headerName!);
+
+        if (authHeader?.startsWith('Bearer ')) {
+            return authHeader.slice(7); // Retorna el token limpio
         }
 
-        if (transmissionMethod === 'cookie') {
-            const cookieName = tokenType === 'refresh' ? security.jwtCookieRefreshName : security.jwtCookieAccessName;
-            return req.cookies ? req.cookies[cookieName] : null;
-        }
-
+        // 3. No se encontró en ningún transporte
         return null;
     }
 
     /**
-     * 1. Verificar y obtener datos de la sesión
+     * Obtener sesión validada.
      */
-    static verifySession(req: Request, _res: Response, next: NextFunction): void {
-        try {
-            const token = this.extractToken(req);
+    private static async getValidatedSession(req: Request): Promise<{ session: UserSession; token: string }> {
+        const token = this.extractToken(req, 'access');
 
+        try {
             if (!token) throw new AuthError('Token de autenticación no encontrado', { code: 'TOKEN_NOT_FOUND' });
 
-            const session: JWTPayload & UserSession = JWTUtil.verifyToken(token);
+            const payload = JWTUtil.verifyToken(token) as JWTPayload & UserSession & { iat: number };
 
-            if (!session) throw new AuthError('Token inválido', { code: 'TOKEN_INVALID' });
+            if (!payload || !payload.userId || !payload.type)
+                throw new AuthError('Token inválido', { code: 'TOKEN_INVALID' });
 
-            // Validar estructura básica
-            if (!session.userId && !session.type)
-                throw new AuthError('Token no contiene identificador de usuario', { code: 'INVALID_TOKEN_PAYLOAD' });
+            const isBlacklisted = await tokenBlacklistService.isBlacklisted(token, payload);
+            if (isBlacklisted)
+                throw new AuthError('Sesión ha expirado o ha sido revocada por seguridad', { code: 'TOKEN_REVOKED' });
 
-            // Establecer sesión
-            req.session = session as UserSession;
+            return {
+                session: JWTUtil.getPayload(token) as UserSession,
+                token,
+            };
+        } catch (error: any) {
+            if (error instanceof AuthError) throw error;
+
+            if (error.message === 'Token has expired')
+                throw new AuthError('El token de sesión ha expirado', { code: 'TOKEN_EXPIRED' });
+
+            if (error.message === 'Invalid token type')
+                throw new AuthError('El tipo de token es inválido', { code: 'INVALID_TOKEN' });
+
+            throw new AuthError(`Error de autenticación: ${error.message}`, { code: 'AUTH_FAILED' });
+        }
+    }
+
+    /**
+     * 1. Verificar y obtener sesión (OBLIGATORIO)
+     */
+    static async verifySession(req: Request, _res: Response, next: NextFunction): Promise<void> {
+        try {
+            const result = await AuthMiddleware.getValidatedSession(req);
+
+            req.session = result.session;
+            req.token = result.token;
 
             next();
         } catch (error) {
-            if (error instanceof AuthError) next(error);
-            else if (error instanceof Error) {
-                if (error.message === 'Token has expired')
-                    next(new AuthError('El token de sesión ha expirado', { code: 'TOKEN_EXPIRED' }));
-                else if (error.message === 'Invalid token type')
-                    next(new AuthError('El tipo de token es inválido', { code: 'INVALID_TOKEN' }));
-                else next(new AuthError(`Error de autenticación: ${error.message}`, { code: 'AUTH_FAILED' }));
-            } else next(new AuthError('Error de autenticación desconocido', { code: 'UNKNOWN_AUTH_ERROR' }));
+            next(error);
         }
+    }
+
+    /**
+     * 1.2. Verificar y obtener sesión (opcional)
+     */
+    static async optionalAuth(req: Request, _res: Response, next: NextFunction): Promise<void> {
+        try {
+            const result = await AuthMiddleware.getValidatedSession(req);
+
+            req.session = result.session;
+            req.token = result.token;
+        } catch (error) {}
+
+        next();
     }
 
     /**
@@ -150,11 +187,10 @@ export class AuthMiddleware {
 
                 const hasRequiredRole = requiredRoles.some((r) => r.toUpperCase() === userRole);
 
-                if (!hasRequiredRole) {
+                if (!hasRequiredRole)
                     throw new ForbiddenError(`Usuario no tiene el rol necesario para realizar esta acción`, {
                         code: 'INSUFFICIENT_ROLE',
                     });
-                }
 
                 next();
             } catch (error) {
@@ -164,66 +200,39 @@ export class AuthMiddleware {
     }
 
     /**
-     * 4. Prevenir login doble
+     * 4. Prevenir que usuarios autenticados correctamente accedan a rutas.
      */
-    static preventDoubleLogin(req: Request, _res: Response, next: NextFunction): void {
+    static async preventAuthenticatedAccess(req: Request, _res: Response, next: NextFunction): Promise<void> {
         try {
-            const token = this.extractToken(req);
+            const token = this.extractToken(req, 'access');
 
-            if (token) {
-                // Verificar si el token es válido (no expirado)
-                try {
-                    JWTUtil.verifyToken(token);
-                    throw new ConflictError('Ya tienes una sesión activa', 'ACTIVE_SESSION_EXISTS');
-                } catch (error) {
-                    // Si el token está expirado o es inválido, permitir login
-                    if (error instanceof Error && error.message.includes('expired')) {
-                        next();
-                        return;
-                    }
-                    // Otros errores de token también permiten login
-                    next();
-                    return;
-                }
-            }
+            // Si no hay token, puede pasar
+            if (!token) return next();
 
+            // 1. Verificar validez del token de sesión
+            const session = JWTUtil.verifyToken(token) as JWTPayload & UserSession & { iat: number };
+
+            // 2. Verificar si el token fue revocado
+            const isBlacklisted = await tokenBlacklistService.isBlacklisted(token, session);
+
+            // Si el token es válido Y NO está revocado, entonces SÍ tiene una sesión activa
+            if (session && !isBlacklisted)
+                return next(new ConflictError('Ya tienes una sesión activa', 'ACTIVE_SESSION_EXISTS'));
+
+            // Si llegamos aquí, no hay una sesión correctamente iniciada.
             next();
         } catch (error) {
-            next(error);
-        }
-    }
-
-    /**
-     * Middleware opcional de autenticación (no falla si no hay token)
-     */
-    static optionalAuth(req: Request, _res: Response, next: NextFunction): void {
-        try {
-            const token = this.extractToken(req);
-
-            if (token) {
-                try {
-                    const session = JWTUtil.verifyToken(token);
-
-                    if (session) {
-                        req.session = session as UserSession;
-                    }
-                } catch {
-                    // Ignorar errores de token en autenticación opcional
-                }
-            }
-
+            // Cualquier error en la verificación significa que el usuario no está autenticado correctamente, por lo que puede pasar.
             next();
-        } catch {
-            next(); // Siempre continuar en optionalAuth
         }
     }
 }
 
 // Exportar funciones individuales para uso directo
 export const verifySession = AuthMiddleware.verifySession.bind(AuthMiddleware);
-export const verifyPermission = AuthMiddleware.verifyPermission;
-export const preventDoubleLogin = AuthMiddleware.preventDoubleLogin.bind(AuthMiddleware);
-export const verifyRole = AuthMiddleware.verifyRole;
 export const optionalAuth = AuthMiddleware.optionalAuth.bind(AuthMiddleware);
+export const verifyPermission = AuthMiddleware.verifyPermission;
+export const verifyRole = AuthMiddleware.verifyRole;
+export const preventAuthenticatedAccess = AuthMiddleware.preventAuthenticatedAccess.bind(AuthMiddleware);
 
 export default AuthMiddleware;

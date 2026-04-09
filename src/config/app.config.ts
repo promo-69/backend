@@ -38,6 +38,10 @@ export interface IAppConfig {
         rateLimitWindow: number;
         rateLimitMax: number;
     };
+    redis: {
+        host: string;
+        port: number;
+    };
 }
 
 export class AppConfig {
@@ -96,6 +100,10 @@ export class AppConfig {
                 requestSize: process.env.REQUEST_SIZE_LIMIT || '10mb',
                 rateLimitWindow: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10),
                 rateLimitMax: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100', 10),
+            },
+            redis: {
+                host: process.env.REDIS_HOST || 'redis', // Fallback for docker-compose network
+                port: parseInt(process.env.REDIS_PORT || '6379', 10),
             },
         };
         this._configCache = config;

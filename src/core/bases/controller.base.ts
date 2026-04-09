@@ -423,9 +423,9 @@ export abstract class ControllerBase {
     /**
      * Obtiene el usuario autenticado (si existe)
      */
-    protected getUser<T = any>(): T | null {
+    protected getSession<T = any>(): T | null {
         const req = this.getRequest();
-        return (req as any).user || null;
+        return (req as any).session || null;
     }
 
     /**
