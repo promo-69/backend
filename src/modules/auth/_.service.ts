@@ -1,6 +1,5 @@
 import { BaseService } from '@bases/service.base.js';
 import { Database } from '@database/index.js';
-import JWTUtil from '@utils/jwt.util.js';
 import { AuthError, ValidationError } from '@errors';
 import { Transaction } from 'sequelize';
 import { ExceptionPermissions } from '@rules/permission-exceptions.type.js';
@@ -9,6 +8,27 @@ import { UserSession } from '@rules/api.type.js';
 import { REGEX } from '@constants/regex.constant.js';
 import { convertCase } from '@utils/string-formatters.util.js';
 import { tokenBlacklistService } from './services/token-blacklist.service.js';
+import JWTUtil, { RefreshTokenPayload } from '@utils/jwt.util.js';
+
+interface LoginBody {
+    email: string;
+    password: string;
+}
+
+interface LoginResponse {
+    user: UserSession;
+    accessToken: string;
+    refreshToken: string;
+}
+
+interface CustomerSignupBody extends LoginBody {
+    documentNumber: string;
+    firstName: string;
+    lastName: string;
+    gender: string | number;
+    birthDate: string;
+    phoneNumber: string;
+}
 
 export class AuthService extends BaseService {
     constructor() {
@@ -22,8 +42,8 @@ export class AuthService extends BaseService {
         return Database.repository('main', 'people') as any;
     }
     private get _roles() {
-        return {} as any;
         //return Database.repository('main', 'roles') as any;
+        return {} as any;
     }
     private get _permisos() {
         return Database.repository('main', 'permissions') as any;
@@ -47,10 +67,11 @@ export class AuthService extends BaseService {
     private async _buildUserPayload(foundUser: any): Promise<UserSession> {
         const payload: UserSession = {
             userId: foundUser.id,
+            email: foundUser.email,
             documentNumber: foundUser.document_number,
             firstName: foundUser._People.first_name,
             lastName: foundUser._People.last_name,
-            email: foundUser._People?.email,
+            personalEmail: foundUser._People?.personal_email,
             phoneNumber: foundUser._People?.phone_number,
         };
 
@@ -77,7 +98,7 @@ export class AuthService extends BaseService {
         return payload;
     }
 
-    private async _buildLoginResponse(sessionData: any) {
+    private async _buildLoginResponse(sessionData: any): Promise<LoginResponse> {
         const payload = await this._buildUserPayload(sessionData);
         const accessToken = JWTUtil.generateToken(payload);
         const refreshToken = JWTUtil.generateRefreshToken({ userId: sessionData.id });
@@ -85,26 +106,12 @@ export class AuthService extends BaseService {
         return { user: payload, accessToken, refreshToken };
     }
 
-    async registerUser({
-        person: _person,
-        user: _user,
-    }: {
-        person: Record<string, string | null>;
-        user: Record<string, string>;
-    }) {
-        const { firstName, lastName, email, phoneNumber, documentNumber, gender, birthDate } = _person;
-        const { username, password } = _user;
-        if (
-            !username ||
-            !password ||
-            !documentNumber ||
-            !firstName ||
-            !lastName ||
-            !email ||
-            !phoneNumber ||
-            !gender ||
-            !birthDate
-        )
+    async registerUser(signupBody: CustomerSignupBody) {
+        const { firstName, lastName, email, phoneNumber, documentNumber, gender, birthDate, password } = signupBody;
+        const person = { firstName, lastName, email, phoneNumber, documentNumber, gender, birthDate };
+        const user = { email, password };
+
+        if (!password || !documentNumber || !firstName || !lastName || !email || !phoneNumber || !gender || !birthDate)
             throw new ValidationError('Los datos de registro están incompletos', []);
 
         const validations = [
@@ -115,7 +122,6 @@ export class AuthService extends BaseService {
                 message:
                     'La contraseña debe tener entre 8 y 20 caracteres y contener al menos un símbolo especial, una letra y un número',
             },
-            { value: username, regex: REGEX.USERNAME, message: 'El nombre de usuario no es válido' },
             { value: documentNumber, regex: REGEX.DOCUMENT_NUMBER, message: 'El número de documento no es válido' },
             { value: firstName, regex: REGEX.PERSON_NAME, message: 'El nombre no es válido' },
             { value: lastName, regex: REGEX.PERSON_NAME, message: 'El apellido no es válido' },
@@ -126,32 +132,27 @@ export class AuthService extends BaseService {
         const validated = { good: [] as string[], bad: [] as string[] };
 
         for (const validation of validations)
-            validated[!validation.regex.test(validation.value) ? 'bad' : 'good'].push(validation.message);
+            validated[!validation.regex.test(String(validation.value)) ? 'bad' : 'good'].push(validation.message);
         if (validated.bad.length > 0) throw new ValidationError(validated.bad.join('; '), []);
 
-        const foundUser = await this._users.getByUsername(username);
+        const foundUser = await this._users.getByEmail(email);
         if (foundUser) throw new AuthError('El usuario ya existe', { code: 'USER_ALREADY_EXISTS' });
 
-        Object.fromEntries(
-            Object.entries({ ..._person, ..._user }).map(([key, value]) => [
-                convertCase(key, 'pascal', 'snake'),
-                value,
-            ]),
-        );
         const created = await this._people.transaction(async (transaction: Transaction) => {
             const createdPerson = await this._people.create(
                 Object.fromEntries(
-                    Object.entries(_person).map(([key, value]) => [convertCase(key, 'pascal', 'snake'), value]),
+                    Object.entries(person).map(([key, value]) => [
+                        convertCase(key, 'pascal', 'snake'),
+                        key == 'gender' ? Number(value) : value,
+                    ]),
                 ),
                 { transaction },
             );
             const createdUser = await this._users.create(
                 {
-                    ...Object.fromEntries(
-                        Object.entries(_user).map(([key, value]) => [convertCase(key, 'pascal', 'snake'), value]),
-                    ),
+                    ...user,
                     user_type: 2, // Por defecto usuario de tipo "cliente"
-                    password: await BcryptUtil.hash(_user.password),
+                    password: await BcryptUtil.hash(user.password),
                     person: createdPerson.id,
                 },
                 { transaction },
@@ -160,21 +161,18 @@ export class AuthService extends BaseService {
             return createdUser;
         });
 
-        const user = await this.findUserById(created.id);
+        const newUser = await this.findUserById(created.id);
 
-        return this._buildLoginResponse(user);
+        return this._buildLoginResponse(newUser);
     }
 
-    async authenticateUser({
-        username,
-        password,
-    }: Record<string, any>): Promise<{ user: Record<string, any>; accessToken: string; refreshToken: string }> {
-        if (!username || !password) throw new ValidationError('Las credenciales están incompletas', []);
+    async authenticateUser({ email, password }: LoginBody): Promise<LoginResponse> {
+        if (!email || !password) throw new ValidationError('Las credenciales están incompletas', []);
 
-        if (!REGEX.USERNAME.test(username) || !REGEX.PASSWORD.test(password))
+        if (!REGEX.EMAIL.test(email) || !REGEX.PASSWORD.test(password))
             throw new ValidationError('Las credenciales no son válidas', []);
 
-        const foundUser = await this._users.getByUsername(username);
+        const foundUser = await this._users.getByEmail(email);
         if (!foundUser || !(await BcryptUtil.compare(password, foundUser.password)))
             throw new AuthError('Las credenciales no son correctas', { code: 'INVALID_LOGIN' });
 
@@ -187,10 +185,10 @@ export class AuthService extends BaseService {
     async refreshUserSession(currentToken: string | null) {
         if (!currentToken) throw new AuthError('No es posible reiniciar la sesión.');
 
-        let savedSession: any;
+        let savedSession: RefreshTokenPayload;
 
         try {
-            savedSession = JWTUtil.verifyRefreshToken<any>(currentToken);
+            savedSession = JWTUtil.verifyRefreshToken<RefreshTokenPayload>(currentToken);
         } catch (error: any) {
             throw new AuthError(error.message, { code: 'INVALID_TOKEN' });
         }
@@ -199,10 +197,14 @@ export class AuthService extends BaseService {
 
         // REQUERIMIENTO 2: Refresh Token Rotation & Token Reuse Detection
         const isLockAcquired = await tokenBlacklistService.blacklistTokenAtRefresh(currentToken);
+
         if (!isLockAcquired) {
             // ¡Brecha detectada! Alguien usó el RefreshToken antes (Sea el user normal por error de Red o un Atacante que lo clonó)
             await tokenBlacklistService.invalidateUserSessions(savedSession.userId);
-            throw new AuthError('Intento de reutilización de sesión detectado. Todas las sesiones protegidas han sido revocadas.', { code: 'BREACH_DETECTED' });
+            throw new AuthError(
+                'Intento de reutilización de sesión detectado. Todas las sesiones protegidas han sido revocadas.',
+                { code: 'BREACH_DETECTED' },
+            );
         }
 
         const foundUser = await this.findUserById(savedSession.userId);
@@ -217,7 +219,7 @@ export class AuthService extends BaseService {
      */
     async logoutUser(accessToken: string | null, refreshToken: string | null): Promise<void> {
         if (!accessToken && !refreshToken) throw new AuthError('No existen tokens vigentes a invalidar');
-        
+
         // Ejecutamos ambas promesas en paralelo para mayor velocidad
         const blacklistPromises = [];
         if (accessToken) blacklistPromises.push(tokenBlacklistService.blacklistToken(accessToken));

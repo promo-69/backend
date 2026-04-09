@@ -33,9 +33,11 @@ export class App {
             });
 
             this.httpServer.listen(this.appConfig.port, this.appConfig.host, () => {
-                Logger.natural(ANSI.info(`Server running on ${ANSI.link(this.appConfig.apiBaseUrl)}${ANSI.getCode('reset')}`));
+                Logger.natural(
+                    ANSI.info(`Server running on ${ANSI.link(this.appConfig.apiBaseUrl)}${ANSI.getCode('reset')}`),
+                );
                 Logger.natural(ANSI.info('Waiting for requests...\n'));
-                
+
                 resolve(this.httpServer as http.Server);
             });
 

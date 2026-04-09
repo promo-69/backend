@@ -51,52 +51,60 @@ export class AuthMiddleware {
     }
 
     /**
-     * Extraer token de la request
+     * Extraer token de la request con Estrategia Omnicanal (Fallback: Cookie -> Header)
      */
-    private static extractToken(req: Request, tokenType?: 'access' | 'refresh'): string | null {
+    private static extractToken(req: Request, tokenType: 'access' | 'refresh' = 'access'): string | null {
         const security = AppConfig.load().security;
-        const transmissionMethod = security.authTransport;
 
-        if (transmissionMethod === 'bearer') {
-            const authHeader = req.header(this.config.headerName!);
-            if (authHeader?.startsWith('Bearer ')) return authHeader.slice(7);
+        // 1. Prioridad 1 (Web): Buscar en las Cookies
+        const cookieName = tokenType === 'refresh' ? security.jwtCookieRefreshName : security.jwtCookieAccessName;
+        const cookieToken = req.cookies ? req.cookies[cookieName] : null;
+
+        if (cookieToken) return cookieToken;
+
+        // 2. Prioridad 2 (Móvil - Fallback): Buscar en la cabecera Authorization
+        // El cliente móvil enviará el token adecuado (Access o Refresh) en este header según el endpoint
+        const authHeader = req.header(this.config.headerName!);
+
+        if (authHeader?.startsWith('Bearer ')) {
+            return authHeader.slice(7); // Retorna el token limpio
         }
 
-        if (transmissionMethod === 'cookie') {
-            const cookieName = tokenType === 'refresh' ? security.jwtCookieRefreshName : security.jwtCookieAccessName;
-            return req.cookies ? req.cookies[cookieName] : null;
-        }
-
+        // 3. No se encontró en ningún transporte
         return null;
     }
 
     /**
      * Obtener sesión validada.
      */
-    private static async getValidatedSession(req: Request): Promise<{ session: UserSession, token: string }> {
-        const token = this.extractToken(req);
+    private static async getValidatedSession(req: Request): Promise<{ session: UserSession; token: string }> {
+        const token = this.extractToken(req, 'access');
 
         try {
             if (!token) throw new AuthError('Token de autenticación no encontrado', { code: 'TOKEN_NOT_FOUND' });
-        
+
             const payload = JWTUtil.verifyToken(token) as JWTPayload & UserSession & { iat: number };
-            
-            if (!payload || !payload.userId || !payload.type) throw new AuthError('Token inválido', { code: 'TOKEN_INVALID' });
+
+            if (!payload || !payload.userId || !payload.type)
+                throw new AuthError('Token inválido', { code: 'TOKEN_INVALID' });
 
             const isBlacklisted = await tokenBlacklistService.isBlacklisted(token, payload);
-            if (isBlacklisted) throw new AuthError('Sesión ha expirado o ha sido revocada por seguridad', { code: 'TOKEN_REVOKED' });
+            if (isBlacklisted)
+                throw new AuthError('Sesión ha expirado o ha sido revocada por seguridad', { code: 'TOKEN_REVOKED' });
 
             return {
                 session: JWTUtil.getPayload(token) as UserSession,
-                token
+                token,
             };
         } catch (error: any) {
             if (error instanceof AuthError) throw error;
 
-            if (error.message === 'Token has expired') throw new AuthError('El token de sesión ha expirado', { code: 'TOKEN_EXPIRED' });
+            if (error.message === 'Token has expired')
+                throw new AuthError('El token de sesión ha expirado', { code: 'TOKEN_EXPIRED' });
 
-            if (error.message === 'Invalid token type') throw new AuthError('El tipo de token es inválido', { code: 'INVALID_TOKEN' });
-            
+            if (error.message === 'Invalid token type')
+                throw new AuthError('El tipo de token es inválido', { code: 'INVALID_TOKEN' });
+
             throw new AuthError(`Error de autenticación: ${error.message}`, { code: 'AUTH_FAILED' });
         }
     }
@@ -126,12 +134,10 @@ export class AuthMiddleware {
 
             req.session = result.session;
             req.token = result.token;
-        } catch (error) {
-        }
+        } catch (error) {}
 
         next();
     }
-    
 
     /**
      * 2. Verificar permiso
@@ -198,8 +204,8 @@ export class AuthMiddleware {
      */
     static async preventAuthenticatedAccess(req: Request, _res: Response, next: NextFunction): Promise<void> {
         try {
-            const token = this.extractToken(req);
-            
+            const token = this.extractToken(req, 'access');
+
             // Si no hay token, puede pasar
             if (!token) return next();
 
@@ -208,7 +214,7 @@ export class AuthMiddleware {
 
             // 2. Verificar si el token fue revocado
             const isBlacklisted = await tokenBlacklistService.isBlacklisted(token, session);
-                
+
             // Si el token es válido Y NO está revocado, entonces SÍ tiene una sesión activa
             if (session && !isBlacklisted)
                 return next(new ConflictError('Ya tienes una sesión activa', 'ACTIVE_SESSION_EXISTS'));
@@ -216,7 +222,7 @@ export class AuthMiddleware {
             // Si llegamos aquí, no hay una sesión correctamente iniciada.
             next();
         } catch (error) {
-            // Cualquier error en la verificación significa que el usuario no está autenticado correctamente, por lo que puede pasar.   
+            // Cualquier error en la verificación significa que el usuario no está autenticado correctamente, por lo que puede pasar.
             next();
         }
     }

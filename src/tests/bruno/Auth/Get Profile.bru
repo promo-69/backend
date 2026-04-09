@@ -1,11 +1,11 @@
 meta {
-  name: Get Profile (Valid Token)
-  type: http
+  name: Get Profile
+  type: https
   seq: 3
 }
 
 get {
-  url: {{baseUrl}}/auth/profile
+  url: {{baseUrl}}/auth/me
   body: none
   auth: bearer
 }

@@ -35,6 +35,7 @@ export interface UserSession {
     roleCode?: string;
     roleDesc?: string;
     email?: string;
+    personalEmail?: string;
     phoneNumber?: string;
 }
 

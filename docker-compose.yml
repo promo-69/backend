@@ -1,29 +1,28 @@
-version: '3.9'
-
 services:
+    api:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        container_name: cineflix-api
+        restart: always
+        env_file:
+            - .env
+        networks:
+            - cineflix-network
+        environment:
+            - NPM_CONFIG_UPDATE_NOTIFIER=false
 
-  api:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: cineflix-api
-    restart: always
-    env_file:
-      - .env
-    networks:
-      - cineflix-network
-
-  nginx:
-    build:
-      context: ./docker/nginx
-      dockerfile: Dockerfile
-    container_name: cineflix-nginx
-    restart: always
-    depends_on:
-      - api
-    networks:
-      - cineflix-network
+    nginx:
+        build:
+            context: ./docker/nginx
+            dockerfile: Dockerfile
+        container_name: cineflix-nginx
+        restart: always
+        depends_on:
+            - api
+        networks:
+            - cineflix-network
 
 networks:
-  cineflix-network:
-    driver: bridge
+    cineflix-network:
+        driver: bridge

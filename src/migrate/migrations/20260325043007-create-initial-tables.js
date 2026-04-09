@@ -48,7 +48,7 @@ module.exports = {
             last_name: { type: Sequelize.STRING(255), allowNull: false },
             gender: { type: Sequelize.INTEGER, allowNull: true },
             phone_number: { type: Sequelize.STRING(50), allowNull: true },
-            email: { type: Sequelize.STRING(100), allowNull: true },
+            personal_email: { type: Sequelize.STRING(100), allowNull: true },
             birth_date: { type: Sequelize.DATEONLY, allowNull: true },
             created_at: {
                 type: Sequelize.DATE,
@@ -82,7 +82,7 @@ module.exports = {
             person: { type: Sequelize.INTEGER, allowNull: false },
             user_type: { type: Sequelize.INTEGER, allowNull: false },
             role: { type: Sequelize.INTEGER, allowNull: true },
-            username: { type: Sequelize.STRING(100), allowNull: false },
+            email: { type: Sequelize.STRING(100), allowNull: false },
             password: { type: Sequelize.STRING(255), allowNull: false },
             last_login: { type: Sequelize.DATE, allowNull: true },
             created_at: {
@@ -93,7 +93,7 @@ module.exports = {
             updated_at: { type: Sequelize.DATE, allowNull: true },
             status: { type: Sequelize.INTEGER, allowNull: false, defaultValue: 1 },
         });
-        await addUnique('users', ['username'], 'idx_users_username_uq');
+        await addUnique('users', ['email'], 'idx_users_email_uq');
 
         await createTable('job_positions', {
             id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true, allowNull: false },

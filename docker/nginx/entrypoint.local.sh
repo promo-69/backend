@@ -18,7 +18,7 @@ if [ ! -f "$CERT_FILE" ] || [ ! -f "$KEY_FILE" ]; then
     
     echo "Generando certificados con mkcert..."
     mkcert -install
-    mkcert -cert-file "$CERT_FILE" -key-file "$KEY_FILE" localhost 127.0.0.1 ::1 192.168.31.101 192.168.31.95
+    mkcert -cert-file "$CERT_FILE" -key-file "$KEY_FILE" localhost 127.0.0.1 ::1 172.17.32.30
     
     echo "Certificados locales generados exitosamente."
 else

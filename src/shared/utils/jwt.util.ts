@@ -9,6 +9,12 @@ export interface JWTPayload {
     type?: string;
 }
 
+export interface RefreshTokenPayload {
+    userId: number;
+    iat: number;
+    exp: number;
+}
+
 export class JWTUtil {
     private static SECRET: string;
     private static REFRESH_SECRET: string;
