@@ -29,10 +29,13 @@
         "db:seed:undo": "npx sequelize-cli db:seed:undo:all",
         "db:generate:seed": "npx sequelize-cli seed:generate",
         "db:generate:migration": "npx sequelize-cli migration:generate",
-        "docker:migrate": "docker compose -f docker-compose.yml -f docker-compose.local.yml exec api npx sequelize-cli db:migrate",
-        "docker:migrate:undo": "docker compose -f docker-compose.yml -f docker-compose.local.yml exec api npx sequelize-cli db:migrate:undo",
-        "docker:seed": "docker compose -f docker-compose.yml -f docker-compose.local.yml exec api npx sequelize-cli db:seed",
-        "docker:seed:undo": "docker compose -f docker-compose.yml -f docker-compose.local.yml exec api npx sequelize-cli db:seed:undo"
+        "docker:migration:migrate": "docker compose -f docker-compose.yml -f docker-compose.local.yml exec api npx sequelize-cli db:migrate",
+        "docker:migration:migrate:undo": "docker compose -f docker-compose.yml -f docker-compose.local.yml exec api npx sequelize-cli db:migrate:undo",
+        "docker:migration:migrate:undo:all": "docker compose -f docker-compose.yml -f docker-compose.local.yml exec api npx sequelize-cli db:migrate:undo:all",
+        "docker:migration:seed": "docker compose -f docker-compose.yml -f docker-compose.local.yml exec api npx sequelize-cli db:seed",
+        "docker:migration:seed:undo": "docker compose -f docker-compose.yml -f docker-compose.local.yml exec api npx sequelize-cli db:seed:undo",
+        "docker:migration:seed:undo:all": "docker compose -f docker-compose.yml -f docker-compose.local.yml exec api npx sequelize-cli db:seed:undo:all",
+        "docker:migration:reset:full": "docker compose -f docker-compose.yml -f docker-compose.local.yml exec api npx sequelize-cli db:drop && docker compose -f docker-compose.yml -f docker-compose.local.yml exec api npx sequelize-cli db:create && docker compose -f docker-compose.yml -f docker-compose.local.yml exec api npx sequelize-cli db:migrate && docker compose -f docker-compose.yml -f docker-compose.local.yml exec api npx sequelize-cli db:seed:all"
     },
     "devDependencies": {
         "@types/bcryptjs": "^3.0.0",

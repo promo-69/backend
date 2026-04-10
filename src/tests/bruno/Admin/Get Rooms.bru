@@ -1,7 +1,7 @@
 meta {
-  name: Get Rooms
-  type: http
-  seq: 1
+    name: Get Rooms
+    type: https
+    seq: 1
 }
 
 get {
@@ -11,9 +11,5 @@ get {
 }
 
 auth:bearer {
-  token: AT
-}
-
-vars:pre-request {
-  baseUrl: http://127.0.0.1:4000/api/v1
+  token: {{accessToken}}
 }

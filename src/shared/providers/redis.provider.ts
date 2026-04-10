@@ -11,7 +11,7 @@ const REDIS_CLIENT_SYMBOL = Symbol.for('global.redis.client');
 
 export class RedisProvider {
     private static _instance: RedisProvider;
-    
+
     // Usamos el tipo puro de TypeScript 'Redis'
     private _client: Redis;
     private _pubClient?: Redis;
@@ -19,11 +19,11 @@ export class RedisProvider {
 
     private constructor() {
         const config = AppConfig.load();
-        
+
         // Usamos el constructor seguro para instanciar
         this._client = new RedisConstructor({
-            host: config.redis.host,
-            port: config.redis.port,
+            host: config.cacheDatabase.host,
+            port: config.cacheDatabase.port,
             retryStrategy(times: number) {
                 const delay = Math.min(times * 50, 2000);
                 return delay;
@@ -33,7 +33,9 @@ export class RedisProvider {
         });
 
         this._client.on('connect', () => {
-            Logger.natural(ANSI.success(`[+] Connected to Redis at ${config.redis.host}:${config.redis.port}`));
+            Logger.natural(
+                ANSI.success(`[+] Connected to Redis at ${config.cacheDatabase.host}:${config.cacheDatabase.port}`),
+            );
         });
 
         this._client.on('error', (err: any) => {
@@ -43,9 +45,8 @@ export class RedisProvider {
 
     static getInstance(): RedisProvider {
         if (AppConfig.isProduction()) {
-            if (!this._instance) {
-                this._instance = new RedisProvider();
-            }
+            if (!this._instance) this._instance = new RedisProvider();
+
             return this._instance;
         } else {
             // Mitigación para Vite HMR

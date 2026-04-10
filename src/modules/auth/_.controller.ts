@@ -15,10 +15,6 @@ class AuthController extends ControllerBase {
     private _getExpectedTransport(): 'cookie' | 'bearer' {
         const req = this.getRequest();
 
-        console.log('req', req.headers);
-
-        console.log('xclient-channel', req.headers['x-client-channel']);
-
         // 1. Identificación explícita del cliente (Mejor práctica)
         // El frontend web debe enviar { 'x-client-channel': 'web' }
         // La app móvil debe enviar { 'x-client-channel': 'mobile' }
@@ -65,7 +61,10 @@ class AuthController extends ControllerBase {
             const refreshName = security.jwtCookieRefreshName || 'RT';
 
             this.setCookie(accessName, accessToken, { maxAge: JWTUtil.getAccessExpiresInMs() });
-            this.setCookie(refreshName, refreshToken, { maxAge: JWTUtil.getRefreshExpiresInMs() });
+            this.setCookie(refreshName, refreshToken, {
+                path: '/api/v1/auth/refresh',
+                maxAge: JWTUtil.getRefreshExpiresInMs(),
+            });
 
             // Retorna SOLO el usuario. Protege al frontend de malas prácticas.
             return this.success({ user }, 'Autenticación exitosa');
@@ -86,9 +85,7 @@ class AuthController extends ControllerBase {
             currentToken = req.cookies[refreshName];
         } else {
             const authHeader = this.getHeaders().authorization;
-            if (authHeader?.startsWith('Bearer ')) {
-                currentToken = authHeader.split(' ')[1];
-            }
+            if (authHeader?.startsWith('Bearer ')) currentToken = authHeader.split(' ')[1];
         }
 
         const { accessToken, refreshToken, user } = await AuthService.refreshUserSession(currentToken);
@@ -98,9 +95,7 @@ class AuthController extends ControllerBase {
         if (transport === 'cookie') {
             const accessName = security.jwtCookieAccessName || 'AT';
             this.setCookie(accessName, accessToken, { maxAge: JWTUtil.getAccessExpiresInMs() });
-            if (refreshToken) {
-                this.setCookie(refreshName, refreshToken, { maxAge: JWTUtil.getRefreshExpiresInMs() });
-            }
+            if (refreshToken) this.setCookie(refreshName, refreshToken, { maxAge: JWTUtil.getRefreshExpiresInMs() });
 
             // Retorna SOLO el usuario
             return this.success({ user }, 'Sesión renovada');
@@ -124,9 +119,7 @@ class AuthController extends ControllerBase {
             refreshToken = req.cookies[refreshName];
         } else {
             const authHeader = this.getHeaders().authorization;
-            if (authHeader?.startsWith('Bearer ')) {
-                refreshToken = authHeader.split(' ')[1];
-            }
+            if (authHeader?.startsWith('Bearer ')) refreshToken = authHeader.split(' ')[1];
         }
 
         // Ejecutar invalidación en Redis

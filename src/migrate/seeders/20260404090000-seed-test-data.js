@@ -1,6 +1,5 @@
 'use strict';
 
-require('dotenv').config();
 const bcrypt = require('bcryptjs');
 
 /** @type {import('sequelize-cli').Migration} */
@@ -69,11 +68,51 @@ module.exports = {
         await queryInterface.bulkInsert(
             'seats',
             [
-                { id: 1, room: 1, row_identifier: 'A', column_number: 1, seat_category: 1, seat_condition: 1, status: 1 },
-                { id: 2, room: 1, row_identifier: 'A', column_number: 2, seat_category: 1, seat_condition: 1, status: 1 },
-                { id: 3, room: 1, row_identifier: 'A', column_number: 3, seat_category: 2, seat_condition: 1, status: 1 },
-                { id: 4, room: 2, row_identifier: 'A', column_number: 1, seat_category: 1, seat_condition: 1, status: 1 },
-                { id: 5, room: 2, row_identifier: 'A', column_number: 2, seat_category: 2, seat_condition: 1, status: 1 },
+                {
+                    id: 1,
+                    room: 1,
+                    row_identifier: 'A',
+                    column_number: 1,
+                    seat_category: 1,
+                    seat_condition: 1,
+                    status: 1,
+                },
+                {
+                    id: 2,
+                    room: 1,
+                    row_identifier: 'A',
+                    column_number: 2,
+                    seat_category: 1,
+                    seat_condition: 1,
+                    status: 1,
+                },
+                {
+                    id: 3,
+                    room: 1,
+                    row_identifier: 'A',
+                    column_number: 3,
+                    seat_category: 2,
+                    seat_condition: 1,
+                    status: 1,
+                },
+                {
+                    id: 4,
+                    room: 2,
+                    row_identifier: 'A',
+                    column_number: 1,
+                    seat_category: 1,
+                    seat_condition: 1,
+                    status: 1,
+                },
+                {
+                    id: 5,
+                    room: 2,
+                    row_identifier: 'A',
+                    column_number: 2,
+                    seat_category: 2,
+                    seat_condition: 1,
+                    status: 1,
+                },
             ],
             {},
         );
@@ -216,7 +255,7 @@ module.exports = {
                     cinema: 1,
                     start_date: '2026-04-01',
                     end_date: null,
-                    salary_base: 5000.00,
+                    salary_base: 5000.0,
                     status: 1,
                 },
             ],
@@ -225,9 +264,7 @@ module.exports = {
 
         await queryInterface.bulkInsert(
             'movie_subscriptions',
-            [
-                { id: 1, customer: 1, movie: 1, is_notified: true, status: 1 },
-            ],
+            [{ id: 1, customer: 1, movie: 1, is_notified: true, status: 1 }],
             {},
         );
 
