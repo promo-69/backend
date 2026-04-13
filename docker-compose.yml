@@ -12,17 +12,6 @@ services:
         environment:
             - NPM_CONFIG_UPDATE_NOTIFIER=false
 
-    nginx:
-        build:
-            context: ./docker/nginx
-            dockerfile: Dockerfile
-        container_name: cineflix-nginx
-        restart: always
-        depends_on:
-            - api
-        networks:
-            - cineflix-network
-
 networks:
     cineflix-network:
         driver: bridge

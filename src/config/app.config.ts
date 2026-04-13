@@ -41,6 +41,8 @@ export interface IAppConfig {
     cacheDatabase: {
         host: string;
         port: number;
+        username: string;
+        password: string;
     };
 }
 
@@ -104,6 +106,8 @@ export class AppConfig {
             cacheDatabase: {
                 host: process.env.CACHE_DATABASE_HOST as string,
                 port: parseInt(process.env.CACHE_DATABASE_PORT as string, 10),
+                username: process.env.CACHE_DATABASE_USERNAME as string,
+                password: process.env.CACHE_DATABASE_PASSWORD as string,
             },
         };
         this._configCache = config;
