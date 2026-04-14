@@ -32,6 +32,13 @@ class DatabaseManager {
 
                 // Si esto falla, la promesa lanzará el error y Promise.all lo capturará
                 await connector.connect();
+                if (config.availableTestingEnv) {
+                    await this.createConnector({
+                        ...config,
+                        id: `${config.id}-test`,
+                        database: `${config.database}-test`,
+                    }).connect();
+                }
 
                 this.connectors.set(config.id, connector);
                 return null;

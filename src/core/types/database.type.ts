@@ -26,6 +26,7 @@ export interface IDatabaseConfig {
     };
     enabled: boolean;
     isDefault: boolean;
+    availableTestingEnv: boolean;
 }
 
 export interface IDatabaseHealth {
