@@ -187,6 +187,9 @@ export class AuthMiddleware {
 
                 const hasRequiredRole = requiredRoles.some((r) => r.toUpperCase() === userRole);
 
+                console.log('DEBUG - Rol del usuario en el token:', userRole);
+                console.log('DEBUG - Roles requeridos por la ruta:', requiredRoles);
+
                 if (!hasRequiredRole)
                     throw new ForbiddenError(`Usuario no tiene el rol necesario para realizar esta acción`, {
                         code: 'INSUFFICIENT_ROLE',

@@ -77,6 +77,10 @@ export class AuthService extends BaseService {
 
         // Encontrar permisos del rol cuando el usuario es de tipo "empleado"
         if (foundUser.user_type == 1) {
+            console.log('--- DEBUG LOGIN ---');
+            console.log('ID Rol en DB:', foundUser.role);
+            console.log('Objeto Rol cargado:', foundUser._Roles);
+            console.log('Código de Rol final:', foundUser._Roles?.code);
             const permissionsExceptions: ExceptionPermissions = foundUser._UserPermissions.reduce(
                 (acu: ExceptionPermissions, cur: any) => {
                     acu[cur.is_granted ? 'granted' : 'revoked'].push(cur.permission);
