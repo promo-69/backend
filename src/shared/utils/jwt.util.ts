@@ -1,15 +1,23 @@
 import jwt from 'jsonwebtoken';
 import { AppConfig } from '@config/app.config.js';
+import { UserSession } from '@rules/api.type.js';
 
 export interface JWTPayload {
-    [key: string]: any;
+    sub?: string;
     iat?: number;
     exp?: number;
     type?: string;
 }
 
+export interface RefreshTokenPayload {
+    userId: number;
+    iat: number;
+    exp: number;
+}
+
 export class JWTUtil {
     private static SECRET: string;
+    private static REFRESH_SECRET: string;
     private static EXPIRES_IN: jwt.SignOptions['expiresIn'] = '7d';
     private static REFRESH_EXPIRES_IN: jwt.SignOptions['expiresIn'] = '30d';
 
@@ -20,6 +28,7 @@ export class JWTUtil {
             throw new Error('JWT_SECRET environment variable is not defined for production');
 
         this.SECRET = security.jwtSecret;
+        this.REFRESH_SECRET = security.jwtRefreshSecret;
         if (security.jwtAccessExpiresIn) this.EXPIRES_IN = security.jwtAccessExpiresIn as jwt.SignOptions['expiresIn'];
         if (security.jwtRefreshExpiresIn)
             this.REFRESH_EXPIRES_IN = security.jwtRefreshExpiresIn as jwt.SignOptions['expiresIn'];
@@ -53,7 +62,7 @@ export class JWTUtil {
         }
     }
 
-    static generateToken(payload: Omit<JWTPayload, 'type'>): string {
+    static generateToken(payload: UserSession): string {
         return jwt.sign(
             {
                 ...payload,
@@ -86,21 +95,21 @@ export class JWTUtil {
         }
     }
 
-    static generateRefreshToken(payload: Omit<JWTPayload, 'type'>): string {
+    static generateRefreshToken(payload: { userId: string }): string {
         return jwt.sign(
             {
                 ...payload,
                 type: 'refresh',
                 iat: Math.floor(Date.now() / 1000),
             },
-            this.SECRET,
+            this.REFRESH_SECRET,
             { expiresIn: this.REFRESH_EXPIRES_IN },
         );
     }
 
     static verifyRefreshToken<T = JWTPayload>(token: string): T {
         try {
-            const decoded = jwt.verify(token, this.SECRET) as T;
+            const decoded = jwt.verify(token, this.REFRESH_SECRET) as T;
 
             if ((decoded as any).type !== 'refresh') throw new Error('Invalid token type');
 
@@ -155,6 +164,18 @@ export class JWTUtil {
 
         const now = Math.floor(Date.now() / 1000);
         return Math.max(0, decoded.exp - now);
+    }
+
+    static getPayload(token: string): JWTPayload {
+        const decoded = this.decodeToken(token);
+
+        if (!decoded) throw new Error('Invalid token');
+
+        delete decoded.iat;
+        delete decoded.exp;
+        delete decoded.type;
+
+        return decoded;
     }
 }
 

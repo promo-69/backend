@@ -1,17 +1,17 @@
 import { SequelizeRepositoryBase } from '@repositories/bases/sequelize.repository.js';
 import CinemasModel from '@database/models/main/cinemas.model.js';
 
-export interface CinemasAttributes {
+export interface CinemaAttributes {
     id?: number;
     name: string;
-    address?: string;
-    phone?: string;
+    address?: string | null;
+    phone?: string | null;
     opening_time: string;
     closing_time: string;
-    status: number;
+    status?: number;
 }
 
-class CinemasRepository extends SequelizeRepositoryBase<CinemasAttributes, number> {
+class CinemasRepository extends SequelizeRepositoryBase<CinemaAttributes, number> {
     constructor() {
         super(CinemasModel);
     }

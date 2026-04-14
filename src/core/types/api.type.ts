@@ -26,8 +26,17 @@ export interface ResponseOptions {
  * Tipos para el payload del token de sesión
  */
 
-export interface UserSession extends JWTPayload {
-    [key: string]: any;
+export interface UserSession {
+    userId: string;
+    documentNumber: string;
+    firstName: string;
+    lastName: string;
+    permissions?: string[];
+    roleCode?: string;
+    roleDesc?: string;
+    email?: string;
+    personalEmail?: string;
+    phoneNumber?: string;
 }
 
 /**
@@ -53,6 +62,11 @@ declare global {
              * Usuario autenticado (si aplica)
              */
             session?: UserSession;
+
+            /**
+             * Token de acceso
+             */
+            token?: string;
         }
 
         // Extender la interfaz Response original

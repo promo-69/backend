@@ -18,6 +18,7 @@ export class DatabaseConfig {
     private static _configCache: IDatabaseConfig[] | null = null;
     private static _defaultConfig: IDatabaseConfig | null = null;
     private static _enabledDatabases: string[] = [];
+    private static _availableTestingEnv: string[] = [];
 
     /**
      * Carga todas las configuraciones de base de datos desde las variables de entorno
@@ -27,9 +28,10 @@ export class DatabaseConfig {
 
         const enabledDatabases = this.getEnabledDatabases();
         const defaultDatabase = this.getDefaultDatabaseName();
+        const defaultDatabaseHost = this.getDefaultDatabaseHost();
 
         const configs = this.parseEnvGroups()
-            .map((group) => this.buildConfig(group, enabledDatabases, defaultDatabase))
+            .map((group) => this.buildConfig(group, { enabledDatabases, defaultDatabase, defaultDatabaseHost }))
             .filter((c): c is IDatabaseConfig => Boolean(c));
 
         this._configCache = configs;
@@ -70,11 +72,29 @@ export class DatabaseConfig {
         return this._enabledDatabases;
     }
 
+    static getAvailableTestingEnv(): string[] {
+        if (this._availableTestingEnv.length > 0) return this._availableTestingEnv;
+
+        this._availableTestingEnv = (process.env.AVAILABLE_TESTING_ENV_DATABASES ?? '')
+            .split(',')
+            .map((v) => v.trim().toLowerCase())
+            .filter(Boolean);
+
+        return this._availableTestingEnv;
+    }
+
     /**
      * Obtiene el nombre de la base de datos por defecto
      */
     static getDefaultDatabaseName(): string {
         return process.env.DEFAULT_DATABASE?.toLowerCase() || '';
+    }
+
+    /**
+     * Obtiene el host de la base de datos por defecto
+     */
+    static getDefaultDatabaseHost(): string {
+        return process.env.DEFAULT_DATABASE_HOST?.toLowerCase() || '';
     }
 
     /**
@@ -100,8 +120,7 @@ export class DatabaseConfig {
             if (!value) continue;
 
             const match = key.match(/^DB_(?<type>[A-Z]+)(?:_(?<id>[A-Z]+))?_(?<prop>.+)$/);
-            if (!match)
-                continue;
+            if (!match) continue;
 
             const { type, id, prop } = match.groups!;
 
@@ -128,8 +147,11 @@ export class DatabaseConfig {
 
     private static buildConfig(
         group: EnvGroup,
-        enabledDatabases: string[],
-        defaultDatabase: string,
+        {
+            enabledDatabases,
+            defaultDatabase,
+            defaultDatabaseHost,
+        }: { enabledDatabases: string[]; defaultDatabase: string; defaultDatabaseHost: string },
     ): IDatabaseConfig | null {
         // Verificar si el tipo está habilitado
         if (!enabledDatabases.includes(group.type)) return null;
@@ -142,13 +164,14 @@ export class DatabaseConfig {
             id: group.id,
             enabled,
             isDefault: group.id === defaultDatabase || (defaultDatabase === '' && group.type === group.id),
-            host: group.values.host,
+            host: group.values.host || defaultDatabaseHost,
             port: group.values.port ? Number(group.values.port) : undefined,
             database: group.values.database,
             username: group.values.username,
             password: group.values.password,
             uri: group.values.uri,
             dialect: group.values.dialect as any,
+            ssl: (group.values.ssl || 'false').toLowerCase() === 'true',
             timezone: group.values.timezone,
             logging: group.values.logging === 'true',
             pool: group.values.pool_max
@@ -163,6 +186,7 @@ export class DatabaseConfig {
                 force: group.values.sync_force === 'true',
                 alter: group.values.sync_alter === 'true',
             },
+            availableTestingEnv: this.getAvailableTestingEnv().includes(group.id),
         };
     }
 }

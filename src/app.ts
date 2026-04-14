@@ -5,14 +5,16 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import { AppConfig, type IAppConfig } from '@config/app.config.js';
-import { NotFoundError } from '@errors';
+import { AppError, NotFoundError } from '@errors';
 import { ANSI } from '@utils/ansi.util.js';
 import { Logger } from '@utils/logger.util.js';
 import { Database } from '@database/index.js';
+import { RequestContext } from '@utils/request-context.util.js';
 
 export class App {
     private app: Express;
     private appConfig: IAppConfig;
+    private httpServer?: http.Server;
 
     constructor(config: IAppConfig) {
         this.app = express();
@@ -22,17 +24,27 @@ export class App {
     }
 
     async start(): Promise<http.Server> {
-        const server = await this.initialize();
+        const serverApp = await this.initialize();
 
-        return new Promise((resolve) => {
-            const httpServer = http.createServer(server).listen(this.appConfig.port, this.appConfig.host, () => {
-                resolve(httpServer);
+        return new Promise((resolve, reject) => {
+            this.httpServer = http.createServer(serverApp);
+
+            this.httpServer.on('error', (err) => {
+                reject(err);
             });
 
-            // Configurar timeout del servidor
-            httpServer.setTimeout(30000);
-            httpServer.keepAliveTimeout = 65000;
-            httpServer.headersTimeout = 66000;
+            this.httpServer.listen(this.appConfig.port, this.appConfig.host, () => {
+                Logger.natural(
+                    ANSI.info(`Server running on ${ANSI.link(this.appConfig.apiBaseUrl)}${ANSI.getCode('reset')}`),
+                );
+                Logger.natural(ANSI.info('Waiting for requests...\n'));
+
+                resolve(this.httpServer as http.Server);
+            });
+
+            this.httpServer.setTimeout(30000);
+            this.httpServer.keepAliveTimeout = 65000;
+            this.httpServer.headersTimeout = 66000;
         });
     }
 
@@ -50,8 +62,6 @@ export class App {
         this.setupErrorHandling();
 
         Logger.natural(ANSI.success('[+] Application initialized successfully'), { sepStart: true, sepEnd: true });
-        Logger.natural(ANSI.info(`Server running on ${ANSI.link(this.appConfig.apiBaseUrl)}${ANSI.getCode('reset')}`));
-        Logger.natural(ANSI.info('Waiting for requests...\n'));
 
         return this.app;
     }
@@ -122,6 +132,10 @@ export class App {
         );
         Logger.natural(ANSI.success('[+] Static Files middleware loaded'));
 
+        // 10. Trust proxy
+        this.app.set('trust proxy', 1);
+        Logger.natural(ANSI.success('[+] Trust Proxy middleware loaded'));
+
         Logger.natural(ANSI.info(''.padEnd(44, '-')), { sepEnd: true });
     }
 
@@ -133,26 +147,32 @@ export class App {
 
         // Health check global
         routerEssentialApi.get('/health', (req: Request, res: Response) => {
-            const health = {
+            const health: Record<string, any> = {
                 status: 'healthy',
-                uptime: process.uptime(),
-                memory: process.memoryUsage(),
-                environment: this.appConfig.nodeEnv,
+                timestamp: new Date().toLocaleString('es-VE', { timeZone: 'America/Caracas' }),
             };
+
+            if (this.appConfig.nodeEnv == 'development') {
+                health.uptime = process.uptime();
+                health.memoryUsage = process.memoryUsage();
+                health.environment = this.appConfig.nodeEnv;
+            }
 
             res.json(health);
         });
 
         // Ruta raíz con información de la API
         routerEssentialApi.get('/', (req: Request, res: Response) => {
+            const interfaceIp = req.headers.host;
             const welcome = {
                 message: 'Welcome to the API',
-                documentation: 'See /./health for service status',
-                endpoints: {
-                    ready: `/ready: Check if the API is ready to receive requests (${this.appConfig.apiBaseUrl}/ready)`,
-                    health: `/health: Check the health of the API (${this.appConfig.apiBaseUrl}/health)`,
-                    api: `${this.appConfig.apiBaseUrl}/api/v[version-number]/[module]: API endpoints`,
-                },
+                health: `See ${this.appConfig.protocol}://${interfaceIp}/health for check the health of the API`,
+                ...(this.appConfig.nodeEnv == 'development'
+                    ? {
+                          mode: this.appConfig.nodeEnv,
+                          api: `${this.appConfig.protocol}://${interfaceIp}/api/v[version-number]/[module]: API endpoints`,
+                      }
+                    : {}),
             };
 
             res.json(welcome);
@@ -184,9 +204,8 @@ export class App {
                         const module = (await routeModules[pathRoute]()) as any;
                         const routeHandler = module.default;
 
-                        if (!routeHandler || typeof routeHandler !== 'function') {
+                        if (!routeHandler || typeof routeHandler !== 'function')
                             throw new Error(`Module ${moduleName} does not export a valid router`);
-                        }
 
                         router.use(`/${moduleName}`, routeHandler);
                         Logger.natural(
@@ -248,7 +267,13 @@ export class App {
             Logger.error(`Loading modules macro`, error);
         }
 
+        this.app.use((req: Request, res: Response, next: NextFunction) => {
+            const isTestingRequest = /^\/api\/v\d+\/test\//.test(req.originalUrl);
+            RequestContext.run({ isTestingRequest }, () => next());
+        });
+
         this.app.use(apiPrefix, router);
+        this.app.use(`${apiPrefix}/test`, router);
 
         Logger.natural(ANSI.success(`[+] All routes loaded`));
         Logger.natural(ANSI.info(''.padEnd(44, '-')));
@@ -263,7 +288,9 @@ export class App {
 
         // 3. Manejador de errores global
         this.app.use((err: any, req: Request, res: Response, next: NextFunction) => {
-            res.status(err.statusCode || 500).json(err.toJSON());
+            const error = err instanceof AppError ? err : new AppError({ statusCode: err.statusCode, cause: err });
+
+            res.status(error.statusCode || 500).json(error.toJSON());
         });
     }
 

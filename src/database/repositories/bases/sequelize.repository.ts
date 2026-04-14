@@ -30,6 +30,7 @@ export interface RelationConfig {
     nested?: RelationConfig | RelationConfig[] | null;
     required?: boolean;
     where?: WhereCondition;
+    separate?: boolean;
 }
 
 export interface OperationOptions {
@@ -632,12 +633,10 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
         }
 
         // 2. Si es array de configs
-        if (Array.isArray(config)) {
-            return config.flatMap((conf) => this.getFkRelation(conf, targetModel));
-        }
+        if (Array.isArray(config)) return config.flatMap((conf) => this.getFkRelation(conf, targetModel));
 
         // 3. Si no, es RelationConfig individual
-        const { association, attributes, nested, required, where } = config as RelationConfig;
+        const { association, attributes, nested, required, where, separate } = config as RelationConfig;
         const assocs = (targetModel || this._model).associations;
 
         if (!assocs?.[association]) return [];
@@ -649,6 +648,7 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
 
         if (attributes?.length) include.attributes = attributes;
         if (required !== undefined) include.required = required;
+        if (separate !== undefined) include.separate = separate;
 
         if (where) {
             include.where = this.translateWhereCondition(where as any);

@@ -14,13 +14,9 @@ export default class EmployeesModel extends SequelizeModelBase {
                 allowNull: false,
                 type: DataTypes.INTEGER,
             },
-            cinema: {
+            employee_code: {
                 allowNull: false,
-                type: DataTypes.INTEGER,
-            },
-            hire_date: {
-                allowNull: false,
-                type: DataTypes.DATEONLY,
+                type: DataTypes.STRING(50),
             },
             status: {
                 allowNull: false,
@@ -45,24 +41,13 @@ export default class EmployeesModel extends SequelizeModelBase {
             {
                 type: 'belongsTo',
                 target: 'People',
-                options: { foreignKey: 'person', targetKey: 'id', as: '_People' },
+                options: { foreignKey: 'person', targetKey: 'id', as: '_Person' },
             },
             {
                 inversed: true,
                 type: 'hasOne',
                 target: 'People',
-                options: { foreignKey: 'person', targetKey: 'id', as: '_Employee' },
-            },
-            {
-                type: 'belongsTo',
-                target: 'Cinemas',
-                options: { foreignKey: 'cinema', targetKey: 'id', as: '_Cinema' },
-            },
-            {
-                inversed: true,
-                type: 'hasMany',
-                target: 'Cinemas',
-                options: { foreignKey: 'cinema', targetKey: 'id', as: '_Employees' },
+                options: { foreignKey: 'person', targetKey: 'id', as: '_EmployeeRecord' },
             },
             {
                 type: 'belongsTo',

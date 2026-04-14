@@ -7,11 +7,11 @@ meta {
 post {
   url: {{baseUrl}}/auth/refresh
   body: json
-  auth: none
+  auth: bearer
 }
 
-headers {
-  Authorization: Bearer {{refreshToken}}
+auth:bearer {
+  token: {{refreshToken}}
 }
 
 script:post-response {

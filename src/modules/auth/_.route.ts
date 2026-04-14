@@ -1,13 +1,15 @@
 import { Router } from 'express';
 import authController from './_.controller.js';
-import { verifySession, preventDoubleLogin } from '@middlewares/auth.middleware.js';
+import { verifySession, preventAuthenticatedAccess } from '@middlewares/auth.middleware.js';
 
 const router = Router();
 
-// --- Authentication ---
-router.post('/login', preventDoubleLogin, authController.login);
+// --- Auth & Session ---
+router.post('/login', preventAuthenticatedAccess, authController.login);
+router.post('/signup', preventAuthenticatedAccess, authController.signup);
 router.post('/refresh', authController.refresh);
 router.post('/logout', authController.logout);
+router.get('/me', verifySession, authController.me);
 
 // --- Roles ---
 router.get('/roles', verifySession, authController.findAllRoles);

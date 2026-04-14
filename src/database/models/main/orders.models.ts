@@ -14,7 +14,7 @@ export default class OrdersModel extends SequelizeModelBase {
                 allowNull: false,
                 type: DataTypes.INTEGER,
             },
-            employee: {
+            employee_position: {
                 allowNull: true,
                 type: DataTypes.INTEGER,
             },
@@ -77,14 +77,14 @@ export default class OrdersModel extends SequelizeModelBase {
             },
             {
                 type: 'belongsTo',
-                target: 'Employees',
-                options: { foreignKey: 'employee', targetKey: 'id', as: '_Employee' },
+                target: 'EmployeePositions',
+                options: { foreignKey: 'employee_position', targetKey: 'id', as: '_EmployeePosition' },
             },
             {
                 inversed: true,
                 type: 'hasMany',
-                target: 'Employees',
-                options: { foreignKey: 'employee', targetKey: 'id', as: '_Orders' },
+                target: 'EmployeePositions',
+                options: { foreignKey: 'employee_position', targetKey: 'id', as: '_Orders' },
             },
             { type: 'belongsTo', target: 'Cinemas', options: { foreignKey: 'cinema', targetKey: 'id', as: '_Cinema' } },
             {

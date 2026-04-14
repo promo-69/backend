@@ -3,9 +3,7 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
     async up(queryInterface, Sequelize) {
-        // ==============================================================================
-        // MÓDULO 3: INFRAESTRUCTURA FÍSICA
-        // ==============================================================================
+        // --- MÓDULO 3: INFRAESTRUCTURA ---
         await queryInterface.bulkInsert(
             'projection_types',
             [
@@ -37,9 +35,7 @@ module.exports = {
             {},
         );
 
-        // ==============================================================================
-        // MÓDULO 4: ECONOMÍA
-        // ==============================================================================
+        // --- MÓDULO 4: ECONOMÍA ---
         await queryInterface.bulkInsert(
             'currencies',
             [
@@ -63,9 +59,7 @@ module.exports = {
             {},
         );
 
-        // ==============================================================================
-        // MÓDULO 5: CARTELERA Y MOTOR DE PRECIOS
-        // ==============================================================================
+        // --- MÓDULO 5: CARTELERA Y PRECIOS ---
         await queryInterface.bulkInsert(
             'genres',
             [
@@ -127,7 +121,6 @@ module.exports = {
             {},
         );
 
-        // Basado en el CHECK constraint de la tabla price_modifiers
         await queryInterface.bulkInsert(
             'modifier_scopes',
             [
@@ -138,9 +131,25 @@ module.exports = {
             {},
         );
 
-        // ==============================================================================
-        // MÓDULO 6: INVENTARIO Y COMBOS
-        // ==============================================================================
+        // --- GAMIFICACIÓN: Niveles Minerales ---
+        await queryInterface.bulkInsert(
+            'loyalty_levels',
+            [
+                { id: 1, name: 'Cuarzo', required_points: 300, status: 1 },
+                { id: 2, name: 'Ámbar', required_points: 900, status: 1 },
+                { id: 3, name: 'Jade', required_points: 2100, status: 1 },
+                { id: 4, name: 'Ópalo', required_points: 4500, status: 1 },
+                { id: 5, name: 'Topacio', required_points: 9300, status: 1 },
+                { id: 6, name: 'Zafiro', required_points: 18900, status: 1 },
+                { id: 7, name: 'Esmeralda', required_points: 38100, status: 1 },
+                { id: 8, name: 'Rubí', required_points: 76500, status: 1 },
+                { id: 9, name: 'Diamante', required_points: 153300, status: 1 },
+                { id: 10, name: 'Obsidiana', required_points: 306900, status: 1 },
+            ],
+            {},
+        );
+
+        // --- MÓDULO 6: INVENTARIO ---
         await queryInterface.bulkInsert(
             'product_categories',
             [
@@ -152,9 +161,7 @@ module.exports = {
             {},
         );
 
-        // ==============================================================================
-        // MÓDULO 7: TRANSACCIONES Y PAGOS
-        // ==============================================================================
+        // --- MÓDULO 7: TRANSACCIONES Y PAGOS ---
         await queryInterface.bulkInsert(
             'order_statuses',
             [
@@ -169,17 +176,16 @@ module.exports = {
         await queryInterface.bulkInsert(
             'payment_methods',
             [
-                { id: 1, description: 'Efectivo Dólares', requires_reference: false, status: 1 },
+                { id: 1, description: 'Efectivo Divisas', requires_reference: false, status: 1 },
                 { id: 2, description: 'Efectivo Bolívares', requires_reference: false, status: 1 },
                 { id: 3, description: 'Punto de Venta (Débito)', requires_reference: true, status: 1 },
                 { id: 4, description: 'Pago Móvil', requires_reference: true, status: 1 },
-                { id: 5, description: 'Zelle', requires_reference: true, status: 1 },
+                { id: 5, description: 'Transferencia Divisas', requires_reference: true, status: 1 },
                 { id: 6, description: 'Puntos de Fidelidad', requires_reference: false, status: 1 },
             ],
             {},
         );
 
-        // Basado en el CHECK constraint de la tabla order_lines (1 = producto, 2 = combo)
         await queryInterface.bulkInsert(
             'line_types',
             [
@@ -188,23 +194,31 @@ module.exports = {
             ],
             {},
         );
+
+        await queryInterface.sequelize.query(`CALL update_serial_sequence();`);
     },
 
     async down(queryInterface, Sequelize) {
-        // Reversión en orden inverso a la inserción del archivo
-        await queryInterface.bulkDelete('line_types', null, {});
-        await queryInterface.bulkDelete('payment_methods', null, {});
-        await queryInterface.bulkDelete('order_statuses', null, {});
-        await queryInterface.bulkDelete('product_categories', null, {});
-        await queryInterface.bulkDelete('modifier_scopes', null, {});
-        await queryInterface.bulkDelete('week_days', null, {});
-        await queryInterface.bulkDelete('audience_categories', null, {});
-        await queryInterface.bulkDelete('movie_lifecycle_states', null, {});
-        await queryInterface.bulkDelete('age_classifications', null, {});
-        await queryInterface.bulkDelete('genres', null, {});
-        await queryInterface.bulkDelete('currencies', null, {});
-        await queryInterface.bulkDelete('seat_conditions', null, {});
-        await queryInterface.bulkDelete('seat_categories', null, {});
-        await queryInterface.bulkDelete('projection_types', null, {});
+        const tablesToClean = [
+            'line_types',
+            'payment_methods',
+            'order_statuses',
+            'product_categories',
+            'loyalty_levels',
+            'modifier_scopes',
+            'week_days',
+            'audience_categories',
+            'movie_lifecycle_states',
+            'age_classifications',
+            'genres',
+            'currencies',
+            'seat_conditions',
+            'seat_categories',
+            'projection_types',
+        ];
+
+        for (const table of tablesToClean) {
+            await queryInterface.bulkDelete(table, null, {});
+        }
     },
 };

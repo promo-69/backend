@@ -14,6 +14,16 @@ export default class CustomersModel extends SequelizeModelBase {
                 allowNull: false,
                 type: DataTypes.INTEGER,
             },
+            loyalty_level: {
+                allowNull: false,
+                type: DataTypes.INTEGER,
+                defaultValue: 1,
+            },
+            level_progress_points: {
+                allowNull: false,
+                type: DataTypes.INTEGER,
+                defaultValue: 0,
+            },
             registration_date: {
                 allowNull: false,
                 type: DataTypes.DATE,
@@ -39,16 +49,23 @@ export default class CustomersModel extends SequelizeModelBase {
 
     static override relations(): RelationsReturn {
         return [
-            {
-                type: 'belongsTo',
-                target: 'People',
-                options: { foreignKey: 'person', targetKey: 'id', as: '_People' },
-            },
+            { type: 'belongsTo', target: 'People', options: { foreignKey: 'person', targetKey: 'id', as: '_People' } },
             {
                 inversed: true,
                 type: 'hasOne',
                 target: 'People',
                 options: { foreignKey: 'person', targetKey: 'id', as: '_Customer' },
+            },
+            {
+                type: 'belongsTo',
+                target: 'LoyaltyLevels',
+                options: { foreignKey: 'loyalty_level', targetKey: 'id', as: '_LoyaltyLevel' },
+            },
+            {
+                inversed: true,
+                type: 'hasMany',
+                target: 'LoyaltyLevels',
+                options: { foreignKey: 'loyalty_level', targetKey: 'id', as: '_Customers' },
             },
             {
                 type: 'belongsTo',

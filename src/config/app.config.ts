@@ -25,17 +25,24 @@ export interface IAppConfig {
     };
     security: {
         jwtSecret: string;
+        jwtRefreshSecret: string;
         jwtAccessExpiresIn: string;
         jwtRefreshExpiresIn: string;
         jwtCookieAccessName: string;
         jwtCookieRefreshName: string;
-        sessionTransmissionMethod: string;
+        authTransport: string;
         bcryptRounds: number;
     };
     limits: {
         requestSize: string;
         rateLimitWindow: number;
         rateLimitMax: number;
+    };
+    cacheDatabase: {
+        host: string;
+        port: number;
+        username?: string;
+        password?: string;
     };
 }
 
@@ -49,10 +56,10 @@ export class AppConfig {
     static load(): IAppConfig {
         if (this._configCache) return this._configCache;
 
-        const nodeEnv = process.env.NODE_ENV || 'development';
-        const protocol = process.env.SECURE_PROTOCOL === 'true' ? 'https' : 'http';
-        const host = process.env.DOMAIN || process.env.API_HOST || '127.0.0.1';
-        const port = parseInt(process.env.PORT || '3000', 10);
+        const nodeEnv = (process.env.NODE_ENV || 'development').toLocaleLowerCase();
+        const protocol = (process.env.SECURE_PROTOCOL === 'true' ? 'https' : 'http').toLocaleLowerCase();
+        const host = (process.env.DOMAIN || process.env.API_HOST || '127.0.0.1').toLocaleLowerCase();
+        const port = parseInt((process.env.PORT || '3000').toString(), 10);
         const apiBaseUrl = `${protocol}://${host}${port !== 80 && port !== 443 ? `:${port}` : ''}`;
 
         // Parsear bases de datos habilitadas
@@ -83,17 +90,27 @@ export class AppConfig {
             },
             security: {
                 jwtSecret: process.env.JWT_SECRET || 'your-secret-key-change-in-production',
+                jwtRefreshSecret: process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key-change-in-production',
                 jwtAccessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '1h',
                 jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
                 jwtCookieAccessName: process.env.JWT_COOKIE_ACCESS_NAME || 'AT',
                 jwtCookieRefreshName: process.env.JWT_COOKIE_REFRESH_NAME || 'RT',
-                sessionTransmissionMethod: process.env.SESSION_TRANSMISSION_METHOD || 'bearer',
+                authTransport: process.env.AUTH_TRANSPORT || 'bearer',
                 bcryptRounds: parseInt(process.env.BCRYPT_ROUNDS || '10', 10),
             },
             limits: {
                 requestSize: process.env.REQUEST_SIZE_LIMIT || '10mb',
                 rateLimitWindow: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10),
                 rateLimitMax: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100', 10),
+            },
+            cacheDatabase: {
+                host: process.env.CACHE_DATABASE_HOST as string,
+                port: parseInt(process.env.CACHE_DATABASE_PORT as string, 10),
+                ...(process.env.CACHE_DATABASE_USERNAME &&
+                    process.env.CACHE_DATABASE_PASSWORD && {
+                        username: process.env.CACHE_DATABASE_USERNAME as string,
+                        password: process.env.CACHE_DATABASE_PASSWORD as string,
+                    }),
             },
         };
         this._configCache = config;

@@ -1,12 +1,13 @@
 import { SequelizeRepositoryBase } from '@repositories/bases/sequelize.repository.js';
 import UsersModel from '@database/models/main/users.model.js';
+import { Sequelize } from 'sequelize';
 
 export interface UsersAttributes {
     id?: number;
     person: number;
     user_type: number;
     role?: number;
-    username: string;
+    email: string;
     password: string;
     last_login?: Date | string;
     created_at?: Date | string;
@@ -18,7 +19,7 @@ interface UsersWithPeople extends UsersAttributes {
     _People: {
         first_name: string;
         last_name: string;
-        email: string;
+        personal_email: string;
         phone_number: string;
     };
 }
@@ -28,19 +29,38 @@ class UsersRepository extends SequelizeRepositoryBase<UsersAttributes, number> {
         super(UsersModel);
     }
 
-    getByCredentials(credentials: { username: string; password: string }): Promise<UsersWithPeople | null> {
-        return this.getOne(
-            { username: credentials.username, password: credentials.password },
+    private get _relations() {
+        return [
             {
-                relations: [
-                    {
-                        association: '_People',
-                        attributes: ['first_name', 'last_name', 'email', 'phone_number'],
-                        required: true,
-                    },
-                ],
+                association: '_People',
+                attributes: ['first_name', 'last_name', 'personal_email', 'phone_number'],
+                required: true,
             },
-        ) as Promise<UsersWithPeople | null>;
+            {
+                association: '_Roles',
+                attributes: ['code'],
+                required: false,
+                nested: [{ association: '_RoleInheritancesChild' }],
+            },
+            {
+                association: '_UserType',
+                attributes: ['description'],
+                required: true,
+            },
+            {
+                association: '_UserPermissions',
+                attributes: ['permission', 'is_granted'],
+                required: false,
+            },
+        ];
+    }
+
+    async getFull(id: number) {
+        return this.getOne({ id }, { relations: this._relations }) as Promise<UsersWithPeople | null>;
+    }
+
+    async getByEmail(email: string) {
+        return this.getOne({ email }, { relations: this._relations }) as Promise<UsersWithPeople | null>;
     }
 }
 

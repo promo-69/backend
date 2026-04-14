@@ -1,0 +1,17 @@
+services:
+    api:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        container_name: cineflix-api
+        restart: always
+        env_file:
+            - .env
+        networks:
+            - cineflix-network
+        environment:
+            - NPM_CONFIG_UPDATE_NOTIFIER=false
+
+networks:
+    cineflix-network:
+        driver: bridge
