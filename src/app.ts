@@ -149,7 +149,7 @@ export class App {
         routerEssentialApi.get('/health', (req: Request, res: Response) => {
             const health: Record<string, any> = {
                 status: 'healthy',
-                timestamp: new Date().toLocaleString(),
+                timestamp: new Date().toLocaleString('es-VE', { timeZone: 'America/Caracas' }),
             };
 
             if (this.appConfig.nodeEnv == 'development') {
