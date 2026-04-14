@@ -18,6 +18,7 @@ export class DatabaseConfig {
     private static _configCache: IDatabaseConfig[] | null = null;
     private static _defaultConfig: IDatabaseConfig | null = null;
     private static _enabledDatabases: string[] = [];
+    private static _availableTestingEnv: string[] = [];
 
     /**
      * Carga todas las configuraciones de base de datos desde las variables de entorno
@@ -69,6 +70,17 @@ export class DatabaseConfig {
             .filter(Boolean);
 
         return this._enabledDatabases;
+    }
+
+    static getAvailableTestingEnv(): string[] {
+        if (this._availableTestingEnv.length > 0) return this._availableTestingEnv;
+
+        this._availableTestingEnv = (process.env.AVAILABLE_TESTING_ENV_DATABASES ?? '')
+            .split(',')
+            .map((v) => v.trim().toLowerCase())
+            .filter(Boolean);
+
+        return this._availableTestingEnv;
     }
 
     /**
@@ -159,6 +171,7 @@ export class DatabaseConfig {
             password: group.values.password,
             uri: group.values.uri,
             dialect: group.values.dialect as any,
+            ssl: (group.values.ssl || 'false').toLowerCase() === 'true',
             timezone: group.values.timezone,
             logging: group.values.logging === 'true',
             pool: group.values.pool_max
@@ -173,6 +186,7 @@ export class DatabaseConfig {
                 force: group.values.sync_force === 'true',
                 alter: group.values.sync_alter === 'true',
             },
+            availableTestingEnv: this.getAvailableTestingEnv().includes(group.id),
         };
     }
 }

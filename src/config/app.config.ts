@@ -38,9 +38,11 @@ export interface IAppConfig {
         rateLimitWindow: number;
         rateLimitMax: number;
     };
-    redis: {
+    cacheDatabase: {
         host: string;
         port: number;
+        username?: string;
+        password?: string;
     };
 }
 
@@ -54,10 +56,10 @@ export class AppConfig {
     static load(): IAppConfig {
         if (this._configCache) return this._configCache;
 
-        const nodeEnv = process.env.NODE_ENV || 'development';
-        const protocol = process.env.SECURE_PROTOCOL === 'true' ? 'https' : 'http';
-        const host = process.env.DOMAIN || process.env.API_HOST || '127.0.0.1';
-        const port = parseInt(process.env.PORT || '3000', 10);
+        const nodeEnv = (process.env.NODE_ENV || 'development').toLocaleLowerCase();
+        const protocol = (process.env.SECURE_PROTOCOL === 'true' ? 'https' : 'http').toLocaleLowerCase();
+        const host = (process.env.DOMAIN || process.env.API_HOST || '127.0.0.1').toLocaleLowerCase();
+        const port = parseInt((process.env.PORT || '3000').toString(), 10);
         const apiBaseUrl = `${protocol}://${host}${port !== 80 && port !== 443 ? `:${port}` : ''}`;
 
         // Parsear bases de datos habilitadas
@@ -101,9 +103,14 @@ export class AppConfig {
                 rateLimitWindow: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10),
                 rateLimitMax: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100', 10),
             },
-            redis: {
-                host: process.env.REDIS_HOST || 'redis', // Fallback for docker-compose network
-                port: parseInt(process.env.REDIS_PORT || '6379', 10),
+            cacheDatabase: {
+                host: process.env.CACHE_DATABASE_HOST as string,
+                port: parseInt(process.env.CACHE_DATABASE_PORT as string, 10),
+                ...(process.env.CACHE_DATABASE_USERNAME &&
+                    process.env.CACHE_DATABASE_PASSWORD && {
+                        username: process.env.CACHE_DATABASE_USERNAME as string,
+                        password: process.env.CACHE_DATABASE_PASSWORD as string,
+                    }),
             },
         };
         this._configCache = config;
