@@ -21,17 +21,14 @@ export class RedisProvider {
         const config = AppConfig.load();
 
         // Usamos el constructor seguro para instanciar
-        console.log('aaaaaaaaa11111', {
-            host: config.cacheDatabase.host,
-            port: config.cacheDatabase.port,
-            username: config.cacheDatabase.username,
-            password: config.cacheDatabase.password,})
-
         this._client = new RedisConstructor({
             host: config.cacheDatabase.host,
             port: config.cacheDatabase.port,
-            username: config.cacheDatabase.username,
-            password: config.cacheDatabase.password,
+            ...(config.cacheDatabase.username &&
+                config.cacheDatabase.password && {
+                    username: config.cacheDatabase.username,
+                    password: config.cacheDatabase.password,
+                }),
             retryStrategy(times: number) {
                 const delay = Math.min(times * 50, 2000);
                 return delay;

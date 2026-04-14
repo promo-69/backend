@@ -159,6 +159,7 @@ export class DatabaseConfig {
             password: group.values.password,
             uri: group.values.uri,
             dialect: group.values.dialect as any,
+            ssl: (group.values.ssl || 'false').toLowerCase() === 'true',
             timezone: group.values.timezone,
             logging: group.values.logging === 'true',
             pool: group.values.pool_max

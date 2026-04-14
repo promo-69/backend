@@ -138,6 +138,7 @@ class AuthController extends ControllerBase {
 
     async me() {
         const session = this.getSession();
+
         return this.success(session, 'Usuario obtenido exitosamente');
     }
 

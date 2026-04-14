@@ -26,13 +26,16 @@ export class SequelizeConnector extends BaseDatabaseConnector {
                 freezeTableName: true,
                 timestamps: false,
             },
-
-    dialectOptions: {
-        ssl: {
-            require: true,
-            rejectUnauthorized: false
-        }
-    }
+            ...(this.config.ssl
+                ? {
+                      dialectOptions: {
+                          ssl: {
+                              require: true,
+                              rejectUnauthorized: false,
+                          },
+                      },
+                  }
+                : {}),
         });
 
         // Ejecutar instrucciones post-conexión
