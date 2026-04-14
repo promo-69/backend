@@ -9,6 +9,7 @@ import { AppError, NotFoundError } from '@errors';
 import { ANSI } from '@utils/ansi.util.js';
 import { Logger } from '@utils/logger.util.js';
 import { Database } from '@database/index.js';
+import { RequestContext } from '@utils/request-context.util.js';
 
 export class App {
     private app: Express;
@@ -265,6 +266,11 @@ export class App {
         } catch (error: any) {
             Logger.error(`Loading modules macro`, error);
         }
+
+        this.app.use((req: Request, res: Response, next: NextFunction) => {
+            const isTestingRequest = /^\/api\/v\d+\/test\//.test(req.originalUrl);
+            RequestContext.run({ isTestingRequest }, () => next());
+        });
 
         this.app.use(apiPrefix, router);
         this.app.use(`${apiPrefix}/test`, router);
