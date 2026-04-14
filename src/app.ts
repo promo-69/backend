@@ -9,6 +9,7 @@ import { AppError, NotFoundError } from '@errors';
 import { ANSI } from '@utils/ansi.util.js';
 import { Logger } from '@utils/logger.util.js';
 import { Database } from '@database/index.js';
+import { RequestContext } from '@utils/request-context.util.js';
 
 export class App {
     private app: Express;
@@ -148,7 +149,7 @@ export class App {
         routerEssentialApi.get('/health', (req: Request, res: Response) => {
             const health: Record<string, any> = {
                 status: 'healthy',
-                timestamp: new Date().toLocaleString(),
+                timestamp: new Date().toLocaleString('es-VE', { timeZone: 'America/Caracas' }),
             };
 
             if (this.appConfig.nodeEnv == 'development') {
@@ -165,11 +166,13 @@ export class App {
             const interfaceIp = req.headers.host;
             const welcome = {
                 message: 'Welcome to the API',
-                documentation: 'See /./health for service status',
-                endpoints: {
-                    health: `/health: Check the health of the API (${this.appConfig.protocol}://${interfaceIp}/health)`,
-                    api: `${this.appConfig.protocol}://${interfaceIp}/api/v[version-number]/[module]: API endpoints`,
-                },
+                health: `See ${this.appConfig.protocol}://${interfaceIp}/health for check the health of the API`,
+                ...(this.appConfig.nodeEnv == 'development'
+                    ? {
+                          mode: this.appConfig.nodeEnv,
+                          api: `${this.appConfig.protocol}://${interfaceIp}/api/v[version-number]/[module]: API endpoints`,
+                      }
+                    : {}),
             };
 
             res.json(welcome);
@@ -201,9 +204,8 @@ export class App {
                         const module = (await routeModules[pathRoute]()) as any;
                         const routeHandler = module.default;
 
-                        if (!routeHandler || typeof routeHandler !== 'function') {
+                        if (!routeHandler || typeof routeHandler !== 'function')
                             throw new Error(`Module ${moduleName} does not export a valid router`);
-                        }
 
                         router.use(`/${moduleName}`, routeHandler);
                         Logger.natural(
@@ -265,7 +267,13 @@ export class App {
             Logger.error(`Loading modules macro`, error);
         }
 
+        this.app.use((req: Request, res: Response, next: NextFunction) => {
+            const isTestingRequest = /^\/api\/v\d+\/test\//.test(req.originalUrl);
+            RequestContext.run({ isTestingRequest }, () => next());
+        });
+
         this.app.use(apiPrefix, router);
+        this.app.use(`${apiPrefix}/test`, router);
 
         Logger.natural(ANSI.success(`[+] All routes loaded`));
         Logger.natural(ANSI.info(''.padEnd(44, '-')));

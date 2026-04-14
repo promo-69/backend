@@ -13,6 +13,7 @@ export interface IDatabaseConfig {
     dialect?: IDatabaseDialect;
     timezone?: string;
     logging?: boolean;
+    ssl?: boolean;
     pool?: {
         max: number;
         min: number;
@@ -25,6 +26,7 @@ export interface IDatabaseConfig {
     };
     enabled: boolean;
     isDefault: boolean;
+    availableTestingEnv: boolean;
 }
 
 export interface IDatabaseHealth {

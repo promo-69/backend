@@ -66,9 +66,7 @@ export class AuthMiddleware {
         // El cliente móvil enviará el token adecuado (Access o Refresh) en este header según el endpoint
         const authHeader = req.header(this.config.headerName!);
 
-        if (authHeader?.startsWith('Bearer ')) {
-            return authHeader.slice(7); // Retorna el token limpio
-        }
+        if (authHeader?.startsWith('Bearer ')) return authHeader.slice(7); // Retorna el token limpio
 
         // 3. No se encontró en ningún transporte
         return null;

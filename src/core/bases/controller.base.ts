@@ -428,6 +428,10 @@ export abstract class ControllerBase {
         return (req as any).session || null;
     }
 
+    protected isTestingRequest(): boolean {
+        return /^\/api\/v\d+\/test\//.test(this.getRequest().baseUrl);
+    }
+
     /**
      * Valida que exista un parámetro requerido
      */

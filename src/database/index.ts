@@ -9,6 +9,7 @@ import { ANSI } from '@utils/ansi.util.js';
 import { AppConfig } from '@config/app.config.js';
 
 export { WhereOperators as Ops } from '@bases/repository.base.js';
+import { RequestContext } from '@utils/request-context.util.js';
 
 class DatabaseManager {
     private connectors: Map<string, BaseDatabaseConnector> = new Map();
@@ -32,6 +33,13 @@ class DatabaseManager {
 
                 // Si esto falla, la promesa lanzará el error y Promise.all lo capturará
                 await connector.connect();
+                if (config.availableTestingEnv) {
+                    await this.createConnector({
+                        ...config,
+                        id: `${config.id}-test`,
+                        database: `${config.database}-test`,
+                    }).connect();
+                }
 
                 this.connectors.set(config.id, connector);
                 return null;
@@ -79,6 +87,9 @@ class DatabaseManager {
                         .replace('-repository', '');
 
                     this.repositories.set(`${config.id}.${repoRawName}`, repoDefinition);
+                    if (config.availableTestingEnv) {
+                        this.repositories.set(`${config.id}-test.${repoRawName}`, repoDefinition);
+                    }
                     loadedCount++;
                 }
 
@@ -139,6 +150,9 @@ class DatabaseManager {
                         .replace('-repository', '');
 
                     this.repositories.set(`${config.id}.${repoRawName}`, repoDefinition);
+                    if (config.availableTestingEnv) {
+                        this.repositories.set(`${config.id}-test.${repoRawName}`, repoDefinition);
+                    }
                     loadedCount++;
                 }
 
@@ -176,7 +190,11 @@ class DatabaseManager {
     }
 
     repository(connectorName: string, repoName: string): BaseRepository<any, any> {
-        const key = `${connectorName}.${repoName}`;
+        let key = `${connectorName}.${repoName}`;
+
+        const context = RequestContext.getStore();
+        if (context?.isTestingRequest && this.repositories.has(`${connectorName}-test.${repoName}`))
+            key = `${connectorName}-test.${repoName}`;
 
         if (!this.repositories.has(key)) throw new DatabaseRepositoryError('Not found', { connectorName, repoName });
 
