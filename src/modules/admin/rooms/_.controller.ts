@@ -19,6 +19,58 @@ class RoomsController extends ControllerBase {
         return data;
     }
 
+    async findProjectionTypes() {
+        const { id } = this.getParams();
+        const roomId = Number(id);
+
+        const existingRoom = await RoomsService.findRoomById(roomId);
+        if (!existingRoom) {
+            throw new NotFoundError('Room', id);
+        }
+
+        const data = await RoomsService.findRoomProjectionTypes(roomId, this.getQueryFilters());
+        return data;
+    }
+
+    async createProjectionType() {
+        const { id } = this.getParams();
+        const roomId = Number(id);
+
+        const existingRoom = await RoomsService.findRoomById(roomId);
+        if (!existingRoom) {
+            throw new NotFoundError('Room', id);
+        }
+
+        this.requireBodyField('projection_type');
+        const projectionType = this.getBody().projection_type;
+
+        if (typeof projectionType !== 'number' || projectionType <= 0) {
+            throw new ValidationError('projection_type must be a positive number');
+        }
+
+        const data = await RoomsService.createRoomProjectionType(roomId, { projection_type: projectionType });
+        this.created(data, 'Room projection type created successfully');
+    }
+
+    async deleteProjectionType() {
+        const { id, projectionTypeId } = this.getParams();
+        const roomPk = Number(id);
+        const projectionPk = Number(projectionTypeId);
+
+        const existingRoom = await RoomsService.findRoomById(roomPk);
+        if (!existingRoom) {
+            throw new NotFoundError('Room', id);
+        }
+
+        const existingProjection = await RoomsService.findRoomProjectionTypeById(projectionPk, roomPk);
+        if (!existingProjection) {
+            throw new NotFoundError('RoomProjectionType', projectionTypeId);
+        }
+
+        await RoomsService.deleteRoomProjectionType(projectionPk, roomPk);
+        this.noContent();
+    }
+
     async create() {
         const roomData = this.getBody();
 
