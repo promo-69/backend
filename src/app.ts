@@ -9,7 +9,11 @@ import { AppError, NotFoundError } from '@errors';
 import { ANSI } from '@utils/ansi.util.js';
 import { Logger } from '@utils/logger.util.js';
 import { Database } from '@database/index.js';
+<<<<<<< HEAD
+import cinemasRoomsRouter from './modules/cinemas/rooms.route.js';
+=======
 import { RequestContext } from '@utils/request-context.util.js';
+>>>>>>> dev
 
 export class App {
     private app: Express;
@@ -188,6 +192,8 @@ export class App {
                 endpoints: routes,
             });
         });
+
+        router.use('/cinemas/:cinemaId/rooms', cinemasRoomsRouter);
 
         // Cargar módulos dinámicamente mediante Vite glob import estático o FS híbrido
         try {
