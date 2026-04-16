@@ -3,6 +3,7 @@ import type { Redis } from 'ioredis'; // Importamos el tipo nativo
 import { AppConfig } from '@config/app.config.js';
 import { Logger } from '@utils/logger.util.js';
 import { ANSI } from '@utils/ansi.util.js';
+import { RequestContext } from '@utils/request-context.util.js';
 
 // Usamos un nombre diferente para el constructor en tiempo de ejecución
 const RedisConstructor = (IORedis as any).default || IORedis;
@@ -14,14 +15,14 @@ export class RedisProvider {
 
     // Usamos el tipo puro de TypeScript 'Redis'
     private _client: Redis;
+    private _testClient: Redis;
     private _pubClient?: Redis;
     private _subClient?: Redis;
 
     private constructor() {
         const config = AppConfig.load();
 
-        // Usamos el constructor seguro para instanciar
-        this._client = new RedisConstructor({
+        const redisConfig = {
             host: config.cacheDatabase.host,
             port: config.cacheDatabase.port,
             ...(config.cacheDatabase.username &&
@@ -35,7 +36,10 @@ export class RedisProvider {
             },
             maxRetriesPerRequest: null,
             enableReadyCheck: true,
-        });
+        };
+
+        this._client = new RedisConstructor(redisConfig);
+        this._testClient = new RedisConstructor({ ...redisConfig, keyPrefix: 'testenv.' });
 
         this._client.on('connect', () => {
             Logger.natural(
@@ -43,9 +47,8 @@ export class RedisProvider {
             );
         });
 
-        this._client.on('error', (err: any) => {
-            Logger.error('Redis Provider Error:', err);
-        });
+        this._client.on('error', (err: any) => Logger.error('Redis Provider Error:', err));
+        this._testClient.on('error', (err: any) => Logger.error('Redis Test Provider Error:', err));
     }
 
     static getInstance(): RedisProvider {
@@ -59,14 +62,16 @@ export class RedisProvider {
                 [REDIS_CLIENT_SYMBOL]: RedisProvider;
             };
 
-            if (!globalWithRedis[REDIS_CLIENT_SYMBOL]) {
-                globalWithRedis[REDIS_CLIENT_SYMBOL] = new RedisProvider();
-            }
+            if (!globalWithRedis[REDIS_CLIENT_SYMBOL]) globalWithRedis[REDIS_CLIENT_SYMBOL] = new RedisProvider();
+
             return globalWithRedis[REDIS_CLIENT_SYMBOL];
         }
     }
 
     get client(): Redis {
+        const context = RequestContext.getStore();
+        if (context?.isTestingRequest) return this._testClient;
+
         return this._client;
     }
 
@@ -88,5 +93,6 @@ export class RedisProvider {
 
     async disconnect(): Promise<void> {
         await this._client.quit();
+        await this._testClient.quit();
     }
 }

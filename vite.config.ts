@@ -35,6 +35,7 @@ export default defineConfig(({ mode }) => {
                 '@middlewares': path.resolve(__dirname, 'src/shared/middlewares'),
                 '@utils': path.resolve(__dirname, 'src/shared/utils'),
                 '@constants': path.resolve(__dirname, 'src/shared/constants'),
+                '@services': path.resolve(__dirname, 'src/shared/services'),
                 '@providers': path.resolve(__dirname, 'src/shared/providers'),
                 '@tests': path.resolve(__dirname, 'tests'),
             },

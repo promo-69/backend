@@ -95,6 +95,23 @@ module.exports = {
         });
         await addUnique('users', ['email'], 'idx_users_email_uq');
 
+        await createTable('users_logins', {
+            id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true, allowNull: false },
+            user: { type: Sequelize.INTEGER, allowNull: false },
+            device: { type: Sequelize.STRING(500), allowNull: true },
+            jti: { type: Sequelize.STRING(255), allowNull: false },
+            token_status: { type: Sequelize.INTEGER, allowNull: false, defaultValue: 1 },
+            expires_at: { type: Sequelize.DATE, allowNull: false },
+            created_at: {
+                type: Sequelize.DATE,
+                allowNull: false,
+                defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
+            },
+            updated_at: { type: Sequelize.DATE, allowNull: true },
+            status: { type: Sequelize.INTEGER, allowNull: false, defaultValue: 1 },
+        });
+        await addUnique('users_logins', ['jti'], 'idx_users_logins_jti_uq');
+
         await createTable('job_positions', {
             id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true, allowNull: false },
             title: { type: Sequelize.STRING(255), allowNull: false },
