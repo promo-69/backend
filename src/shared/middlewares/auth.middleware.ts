@@ -4,7 +4,7 @@ import { JWTPayload, JWTUtil } from '@utils/jwt.util.js';
 import { AuthError, ForbiddenError, ConflictError, ValidationError } from '@errors';
 import { SessionNotFoundError } from '@errors/auth.error.js';
 import { UserSession } from '@rules/api.type.js';
-import { tokenBlacklistService } from '@modules/auth/services/token-blacklist.service.js';
+import { tokenBlacklistService } from '@services/token-blacklist.service.js';
 
 // Configuración simple
 interface AuthConfig {
@@ -86,7 +86,7 @@ export class AuthMiddleware {
             if (!payload || !payload.userId || !payload.type)
                 throw new AuthError('Token inválido', { code: 'TOKEN_INVALID' });
 
-            const isBlacklisted = await tokenBlacklistService.isBlacklisted(token, payload);
+            const isBlacklisted = await tokenBlacklistService.isBlacklisted(token);
             if (isBlacklisted)
                 throw new AuthError('Sesión ha expirado o ha sido revocada por seguridad', { code: 'TOKEN_REVOKED' });
 
@@ -211,7 +211,7 @@ export class AuthMiddleware {
             const session = JWTUtil.verifyToken(token) as JWTPayload & UserSession & { iat: number };
 
             // 2. Verificar si el token fue revocado
-            const isBlacklisted = await tokenBlacklistService.isBlacklisted(token, session);
+            const isBlacklisted = await tokenBlacklistService.isBlacklisted(token);
 
             // Si el token es válido Y NO está revocado, entonces SÍ tiene una sesión activa
             if (session && !isBlacklisted)
