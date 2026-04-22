@@ -260,6 +260,30 @@ export class AuthService extends BaseService {
     async findPermissionById(id: number) {
         return this._permisos.getFull(id);
     }
+
+    // --- HU-APP-WEB-04 / HU-APP-MOVIL-04: Actualizar perfil del cliente ---
+    async updateProfile(userId: number, body: Record<string, any>) {
+        const { phone_number, birth_date, first_name, last_name } = body;
+
+        // Bloquear explícitamente cambios de email y password
+        if ('email' in body || 'password' in body || 'personal_email' in body)
+            throw new ValidationError('El email y la contraseña no se pueden modificar desde este endpoint', []);
+
+        const user = await this._users.getFull(userId);
+        if (!user || user.status !== 1) throw new AuthError('Usuario no encontrado o inactivo');
+
+        const updateData: Record<string, any> = {};
+        if (phone_number !== undefined) updateData.phone_number = phone_number;
+        if (birth_date !== undefined) updateData.birth_date = birth_date;
+        if (first_name !== undefined) updateData.first_name = first_name;
+        if (last_name !== undefined) updateData.last_name = last_name;
+
+        if (Object.keys(updateData).length === 0)
+            throw new ValidationError('No se proporcionaron datos para actualizar', []);
+
+        await this._people.update(user.person, updateData);
+        return null;
+    }
 }
 
 export default new AuthService();

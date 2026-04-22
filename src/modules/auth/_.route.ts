@@ -10,6 +10,7 @@ router.post('/signup', preventAuthenticatedAccess, authController.signup);
 router.post('/refresh', authController.refresh);
 router.post('/logout', authController.logout);
 router.get('/me', verifySession, authController.me);
+router.patch('/profile', verifySession, authController.updateProfile);
 
 // --- Roles ---
 router.get('/roles', verifySession, authController.findAllRoles);

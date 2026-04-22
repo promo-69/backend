@@ -188,6 +188,14 @@ class AuthController extends ControllerBase {
         const data = await AuthService.findPermissionById(Number(id));
         return data;
     }
+
+    // PATCH /api/v1/auth/profile
+    async updateProfile() {
+        const session = this.getSession<any>();
+        const body = this.getBody();
+        await AuthService.updateProfile(session.userId, body);
+        return this.success(null, 'Perfil actualizado.');
+    }
 }
 
 export default new AuthController();

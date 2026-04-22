@@ -24,22 +24,14 @@ class SeatsRepository extends SequelizeRepositoryBase<SeatsAttributes, number> {
 
     private get _relations() {
         return [
-            {
-                association: '_SeatCategory',
-                attributes: ['description'],
-                required: true,
-            },
-            {
-                association: '_SeatCondition',
-                attributes: ['description'],
-                required: true,
-            },
-            {
-                association: '_Status',
-                attributes: ['description'],
-                required: true,
-            },
+            { association: '_SeatCategory', attributes: ['description'], required: true },
+            { association: '_SeatCondition', attributes: ['description'], required: true },
+            { association: '_Status', attributes: ['description'], required: true },
         ];
+    }
+
+    async getById(id: number): Promise<SeatFull | null> {
+        return this.getOne({ id }, { relations: this._relations }) as Promise<SeatFull | null>;
     }
 
     async getAllByRoom(roomId: number, filters?: any): Promise<{ rows: SeatFull[]; count: number }> {

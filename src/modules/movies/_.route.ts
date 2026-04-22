@@ -1,16 +1,21 @@
 import { Router } from 'express';
 import moviesController from './_.controller.js';
-import { optionalAuth } from '@middlewares/auth.middleware.js';
+import { optionalAuth, verifySession, verifyRole } from '@middlewares/auth.middleware.js';
 
 const router = Router();
 
-/**
- * Endpoints públicos con auth opcional.
- * El optionalAuth permite que, cuando el usuario esté logueado,
- * la sesión quede disponible en req.session para futuras integraciones
- * con el motor de recomendaciones (RF-31, HU-APP-WEB-33).
- */
+const adminRoles = ['SUPER_ADMIN', 'CINEMA_MANAGER'];
+
+// Públicos (HU-APP-WEB-06, HU-APP-WEB-07)
 router.get('/', optionalAuth, moviesController.findAll);
 router.get('/:id', optionalAuth, moviesController.findById);
+
+// Admin (HU-OPERATIVA-12, HU-OPERATIVA-13)
+// router.post('/', verifySession, verifyRole(adminRoles), moviesController.create);
+router.post('/', verifySession, moviesController.create);
+// router.put('/:id', verifySession, verifyRole(adminRoles), moviesController.update);
+router.put('/:id', verifySession, moviesController.update);
+// router.delete('/:id', verifySession, verifyRole(['SUPER_ADMIN']), moviesController.remove);
+router.delete('/:id', verifySession, moviesController.remove);
 
 export default router;

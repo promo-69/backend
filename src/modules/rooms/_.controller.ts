@@ -26,58 +26,29 @@ class RoomsController extends ControllerBase {
         const body = { ...this.getBody(), cinemaId: Number(cinemaId) };
         const session = this.getSession<any>();
         const data = await RoomsService.createRoom(body, session?.userId);
-        return this.created(data, 'Sala registrada exitosamente');
+        return this.created(data, 'Sala registrada exitosamente. Pendiente por configurar asientos.');
     }
 
     // PUT /api/v1/rooms/:id
     async update() {
         const { id } = this.getParams();
         const body = this.getBody();
-        const session = this.getSession<any>();
-        const data = await RoomsService.updateRoom(Number(id), body, session?.userId);
-        return this.updated(data, 'Sala actualizada exitosamente');
+        await RoomsService.updateRoom(Number(id), body);
+        return this.success(null, 'Datos técnicos de la sala actualizados exitosamente.');
     }
 
     // DELETE /api/v1/rooms/:id
     async remove() {
         const { id } = this.getParams();
-        const session = this.getSession<any>();
-        const data = await RoomsService.deleteRoom(Number(id), session?.userId);
-        return this.success(data, 'Sala eliminada exitosamente');
-    }
-
-    // PUT /api/v1/rooms/:id/seat-grid
-    async configureSeatGrid() {
-        const { id } = this.getParams();
-        const body = this.getBody();
-        const session = this.getSession<any>();
-        const data = await RoomsService.configureSeatGrid(Number(id), body, session?.userId);
-        return this.updated(data, 'Distribución de asientos actualizada exitosamente');
+        await RoomsService.deleteRoom(Number(id));
+        return this.success(null, 'Sala clausurada exitosamente.');
     }
 
     // GET /api/v1/rooms/:id/seats
-    async findSeats() {
+    async getSeatMap() {
         const { id } = this.getParams();
-        const data = await RoomsService.findSeatsByRoom(Number(id), this.getQueryFilters());
-        return data;
-    }
-
-    // PATCH /api/v1/rooms/:id/seats/disable
-    async disableSeats() {
-        const { id } = this.getParams();
-        const { seatIds } = this.getBody();
-        const session = this.getSession<any>();
-        const data = await RoomsService.disableSeats(Number(id), seatIds, session?.userId);
-        return this.success(data, 'Asientos inhabilitados exitosamente');
-    }
-
-    // PATCH /api/v1/rooms/:id/seats/enable
-    async enableSeats() {
-        const { id } = this.getParams();
-        const { seatIds } = this.getBody();
-        const session = this.getSession<any>();
-        const data = await RoomsService.enableSeats(Number(id), seatIds, session?.userId);
-        return this.success(data, 'Asientos rehabilitados exitosamente');
+        const data = await RoomsService.getSeatMap(Number(id), this.getQueryFilters());
+        return this.success(data, 'Mapa de asientos obtenido exitosamente');
     }
 }
 
