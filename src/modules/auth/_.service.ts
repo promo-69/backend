@@ -43,8 +43,7 @@ export class AuthService extends BaseService {
 		return Database.repository('main', 'people') as any;
 	}
 	private get _roles() {
-		//return Database.repository('main', 'roles') as any;
-		return {} as any;
+		return Database.repository('main', 'roles') as any;
 	}
 	private get _permisos() {
 		return Database.repository('main', 'permissions') as any;
@@ -244,7 +243,7 @@ export class AuthService extends BaseService {
 	}
 
 	/**
-	 * REQUERIMIENTO 4: Destrucción explícita de credenciales
+	 * Destrucción explícita de credenciales
 	 */
 	async logoutUser(accessToken: string | null, refreshToken: string | null): Promise<void> {
 		if (!accessToken && !refreshToken) throw new AuthError('No existen tokens vigentes a invalidar');
