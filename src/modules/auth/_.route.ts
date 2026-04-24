@@ -11,6 +11,7 @@ router.post('/verify-signup', preventAuthenticatedAccess, authController.verifyS
 router.post('/refresh', authController.refresh);
 router.post('/logout', authController.logout);
 router.get('/me', verifySession, authController.me);
+router.patch('/profile', verifySession, authController.updateProfile);
 
 // --- Password Reset ---
 router.post('/forgot-password', preventAuthenticatedAccess, authController.forgotPassword);
