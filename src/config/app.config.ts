@@ -44,6 +44,13 @@ export interface IAppConfig {
         username?: string;
         password?: string;
     };
+    emailProvider: {
+        host: string;
+        port: number;
+        user: string;
+        pass: string;
+        from: string;
+    };
 }
 
 export class AppConfig {
@@ -111,6 +118,13 @@ export class AppConfig {
                         username: process.env.CACHE_DATABASE_USERNAME as string,
                         password: process.env.CACHE_DATABASE_PASSWORD as string,
                     }),
+            },
+            emailProvider: {
+                host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+                port: parseInt(process.env.EMAIL_PORT || '465', 10),
+                user: process.env.EMAIL_USER || '',
+                pass: process.env.EMAIL_PASS || '',
+                from: process.env.EMAIL_FROM || 'no-reply@cineflix.com',
             },
         };
         this._configCache = config;
