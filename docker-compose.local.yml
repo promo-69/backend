@@ -1,7 +1,11 @@
 services:
     api:
         build:
+            context: .
+            dockerfile: Dockerfile
             target: development
+        container_name: cineflix-api
+        restart: always
         volumes:
             - ./src:/app/src
         expose:
@@ -11,6 +15,14 @@ services:
         depends_on:
             - db
             - redis
+        env_file:
+            - .env
+        environment:
+            - DB_POSTGRESQL_MAIN_HOST=db
+            - DB_POSTGRESQL_MAIN_PORT=5432
+            - NPM_CONFIG_UPDATE_NOTIFIER:false
+        networks:
+            - cineflix-network
 
     nginx:
         build:
@@ -35,15 +47,15 @@ services:
         container_name: cineflix-main-db
         restart: always
         environment:
-            POSTGRES_USER: ${DB_POSTGRESQL_MAIN_USERNAME:-postgres}
-            POSTGRES_PASSWORD: ${DB_POSTGRESQL_MAIN_PASSWORD:-postgres}
-            POSTGRES_DB: ${DB_POSTGRESQL_MAIN_DATABASE:-cineflix}
+            - POSTGRES_USER=${DB_POSTGRESQL_MAIN_USERNAME}
+            - POSTGRES_PASSWORD=${DB_POSTGRESQL_MAIN_PASSWORD}
+            - POSTGRES_DB=${DB_POSTGRESQL_MAIN_DATABASE}
         env_file:
             - .env
         volumes:
             - pgdata:/var/lib/postgresql/data
         ports:
-            - '5432:5432'
+            - '${DB_POSTGRESQL_MAIN_PORT}:5432'
         networks:
             - cineflix-network
 
@@ -59,3 +71,7 @@ services:
 volumes:
     pgdata:
     nginx_certs:
+
+networks:
+    cineflix-network:
+        driver: bridge
