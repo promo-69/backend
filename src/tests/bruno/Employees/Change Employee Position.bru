@@ -1,0 +1,29 @@
+meta {
+  name: Change Employee Position
+  type: http
+  seq: 5
+}
+
+put {
+  url: {{baseUrl}}/employees/{{testEmployeeId}}/positions
+  body: json
+  auth: bearer
+}
+
+body:json {
+  {
+    "job_position": 2,
+    "cinema": 1,
+    "start_date": "2026-05-01",
+    "salary_base": 1400.0
+  }
+}
+
+auth:bearer {
+  token: AT
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  bru.setVar('baseUrl', baseUrl);
+}
