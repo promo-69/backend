@@ -1,0 +1,2 @@
+# Normaliza todos los archivos de texto a LF al subir al repo
+* text=auto eol=lf

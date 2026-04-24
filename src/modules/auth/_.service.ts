@@ -7,8 +7,9 @@ import { BcryptUtil } from '@utils/bcrypt.util.js';
 import { UserSession } from '@rules/api.type.js';
 import { REGEX } from '@constants/regex.constant.js';
 import { convertCase } from '@utils/string-formatters.util.js';
-import { tokenBlacklistService } from './services/token-blacklist.service.js';
+import { tokenBlacklistService } from '@services/token-blacklist.service.js';
 import JWTUtil, { RefreshTokenPayload } from '@utils/jwt.util.js';
+import jwt from 'jsonwebtoken';
 
 interface LoginBody {
     email: string;
@@ -42,11 +43,13 @@ export class AuthService extends BaseService {
         return Database.repository('main', 'people') as any;
     }
     private get _roles() {
-        //return Database.repository('main', 'roles') as any;
-        return {} as any;
+        return Database.repository('main', 'roles') as any;
     }
     private get _permisos() {
         return Database.repository('main', 'permissions') as any;
+    }
+    private get _usersLogins() {
+        return Database.repository('main', 'users-logins') as any;
     }
 
     private parsePermissions(permissions: any[]): string[] {
@@ -142,7 +145,7 @@ export class AuthService extends BaseService {
             const createdPerson = await this._people.create(
                 Object.fromEntries(
                     Object.entries(person).map(([key, value]) => [
-                        convertCase(key, 'pascal', 'snake'),
+                        convertCase(key == 'email' ? 'personal_email' : key, 'pascal', 'snake'),
                         key == 'gender' ? Number(value) : value,
                     ]),
                 ),
@@ -166,7 +169,7 @@ export class AuthService extends BaseService {
         return this._buildLoginResponse(newUser);
     }
 
-    async authenticateUser({ email, password }: LoginBody): Promise<LoginResponse> {
+    async authenticateUser({ email, password }: LoginBody, device?: string): Promise<LoginResponse> {
         if (!email || !password) throw new ValidationError('Las credenciales están incompletas', []);
 
         if (!REGEX.EMAIL.test(email) || !REGEX.PASSWORD.test(password))
@@ -176,58 +179,119 @@ export class AuthService extends BaseService {
         if (!foundUser || !(await BcryptUtil.compare(password, foundUser.password)))
             throw new AuthError('Las credenciales no son correctas', { code: 'INVALID_LOGIN' });
 
-        // REQUERIMIENTO 3: Single Active Session (Extermina sesiones activas previas en otros dispositivos)
-        await tokenBlacklistService.invalidateUserSessions(foundUser.id);
+        const loginResponse = await this._buildLoginResponse(foundUser);
+        const decodedToken = jwt.decode(loginResponse.refreshToken) as { jti?: string; exp?: number };
 
-        return this._buildLoginResponse(foundUser);
+        if (decodedToken && decodedToken.jti && decodedToken.exp) {
+            await this._usersLogins.create({
+                user: foundUser.id,
+                device: device || 'Unknown Device',
+                jti: decodedToken.jti,
+                expires_at: new Date(decodedToken.exp * 1000),
+                token_status: 1,
+                status: 1,
+            });
+        }
+
+        return loginResponse;
     }
 
-    async refreshUserSession(currentToken: string | null) {
+    async refreshUserSession(currentToken: string | null, device?: string) {
         if (!currentToken) throw new AuthError('No es posible reiniciar la sesión.');
 
-        let savedSession: RefreshTokenPayload;
+        let savedSession: RefreshTokenPayload & { jti?: string; exp?: number };
 
         try {
-            savedSession = JWTUtil.verifyRefreshToken<RefreshTokenPayload>(currentToken);
+            savedSession = JWTUtil.verifyRefreshToken<RefreshTokenPayload & { jti?: string; exp?: number }>(
+                currentToken,
+            );
         } catch (error: any) {
             throw new AuthError(error.message, { code: 'INVALID_TOKEN' });
         }
 
-        if (!savedSession.userId) throw new AuthError('Falta identificación en el token.', { code: 'INVALID_TOKEN' });
+        if (!savedSession.userId || !savedSession.jti)
+            throw new AuthError('Falta identificación en el token.', { code: 'INVALID_TOKEN' });
 
-        // REQUERIMIENTO 2: Refresh Token Rotation & Token Reuse Detection
         const isLockAcquired = await tokenBlacklistService.blacklistTokenAtRefresh(currentToken);
 
-        if (!isLockAcquired) {
-            // ¡Brecha detectada! Alguien usó el RefreshToken antes (Sea el user normal por error de Red o un Atacante que lo clonó)
-            await tokenBlacklistService.invalidateUserSessions(savedSession.userId);
-            throw new AuthError(
-                'Intento de reutilización de sesión detectado. Todas las sesiones protegidas han sido revocadas.',
-                { code: 'BREACH_DETECTED' },
-            );
-        }
+        if (!isLockAcquired) throw new AuthError('Sesión invalidada.', { code: 'INVALID_SESSION' });
+
+        const loginRecord = await this._usersLogins.getOne({ jti: savedSession.jti });
+        if (!loginRecord || loginRecord.token_status === 2 || loginRecord.status === 2)
+            throw new AuthError('Sesión invalidada.', { code: 'REVOKED_SESSION' });
 
         const foundUser = await this.findUserById(savedSession.userId);
         if (!foundUser || foundUser.status !== 1)
             throw new AuthError('El usuario no existe o está inactivo.', { code: 'USER_INACTIVE' });
 
-        return this._buildLoginResponse(foundUser);
+        const loginResponse = await this._buildLoginResponse(foundUser);
+        const decodedNew = jwt.decode(loginResponse.refreshToken) as { jti?: string; exp?: number };
+
+        if (decodedNew && decodedNew.jti && decodedNew.exp) {
+            await this._usersLogins.update(
+                { jti: savedSession.jti, user: foundUser.id },
+                {
+                    jti: decodedNew.jti,
+                    expires_at: new Date(decodedNew.exp * 1000),
+                    device: device || loginRecord.device || 'Unknown Device',
+                    updated_at: new Date(),
+                },
+            );
+        }
+
+        return loginResponse;
     }
 
     /**
-     * REQUERIMIENTO 4: Destrucción explícita de credenciales
+     * Destrucción explícita de credenciales
      */
     async logoutUser(accessToken: string | null, refreshToken: string | null): Promise<void> {
         if (!accessToken && !refreshToken) throw new AuthError('No existen tokens vigentes a invalidar');
 
-        // Ejecutamos ambas promesas en paralelo para mayor velocidad
         const blacklistPromises = [];
+
+        let decodedRefresh: any;
+        if (refreshToken) {
+            decodedRefresh = jwt.decode(refreshToken);
+            blacklistPromises.push(tokenBlacklistService.blacklistToken(refreshToken));
+        }
+
         if (accessToken) blacklistPromises.push(tokenBlacklistService.blacklistToken(accessToken));
-        if (refreshToken) blacklistPromises.push(tokenBlacklistService.blacklistToken(refreshToken));
+
         await Promise.all(blacklistPromises);
+
+        if (decodedRefresh?.jti) await this._usersLogins.update({ jti: decodedRefresh.jti }, { token_status: 2 });
     }
 
     // --- Users ---
+
+    async findPermissionById(id: number) {
+        return this._permisos.getFull(id);
+    }
+
+    // --- HU-APP-WEB-04 / HU-APP-MOVIL-04: Actualizar perfil del cliente ---
+    async updateProfile(userId: number, body: Record<string, any>) {
+        const { phone_number, birth_date, first_name, last_name } = body;
+
+        // Bloquear explícitamente cambios de email y password
+        if ('email' in body || 'password' in body || 'personal_email' in body)
+            throw new ValidationError('El email y la contraseña no se pueden modificar desde este endpoint', []);
+
+        const user = await this._users.getFull(userId);
+        if (!user || user.status !== 1) throw new AuthError('Usuario no encontrado o inactivo');
+
+        const updateData: Record<string, any> = {};
+        if (phone_number !== undefined) updateData.phone_number = phone_number;
+        if (birth_date !== undefined) updateData.birth_date = birth_date;
+        if (first_name !== undefined) updateData.first_name = first_name;
+        if (last_name !== undefined) updateData.last_name = last_name;
+
+        if (Object.keys(updateData).length === 0)
+            throw new ValidationError('No se proporcionaron datos para actualizar', []);
+
+        await this._people.update(user.person, updateData);
+        return null;
+    }
 
     async findAllUsers(filters?: any) {
         return this._users.getAllFull(filters);
@@ -259,30 +323,6 @@ export class AuthService extends BaseService {
 
     async findPermissionById(id: number) {
         return this._permisos.getFull(id);
-    }
-
-    // --- HU-APP-WEB-04 / HU-APP-MOVIL-04: Actualizar perfil del cliente ---
-    async updateProfile(userId: number, body: Record<string, any>) {
-        const { phone_number, birth_date, first_name, last_name } = body;
-
-        // Bloquear explícitamente cambios de email y password
-        if ('email' in body || 'password' in body || 'personal_email' in body)
-            throw new ValidationError('El email y la contraseña no se pueden modificar desde este endpoint', []);
-
-        const user = await this._users.getFull(userId);
-        if (!user || user.status !== 1) throw new AuthError('Usuario no encontrado o inactivo');
-
-        const updateData: Record<string, any> = {};
-        if (phone_number !== undefined) updateData.phone_number = phone_number;
-        if (birth_date !== undefined) updateData.birth_date = birth_date;
-        if (first_name !== undefined) updateData.first_name = first_name;
-        if (last_name !== undefined) updateData.last_name = last_name;
-
-        if (Object.keys(updateData).length === 0)
-            throw new ValidationError('No se proporcionaron datos para actualizar', []);
-
-        await this._people.update(user.person, updateData);
-        return null;
     }
 }
 

@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { AppConfig } from '@config/app.config.js';
 import { UserSession } from '@rules/api.type.js';
+import { nanoid } from 'nanoid';
 
 export interface JWTPayload {
     sub?: string;
@@ -68,6 +69,7 @@ export class JWTUtil {
                 ...payload,
                 type: 'access',
                 iat: Math.floor(Date.now() / 1000),
+                jti: nanoid(),
             },
             this.SECRET,
             { expiresIn: this.EXPIRES_IN },
@@ -101,6 +103,7 @@ export class JWTUtil {
                 ...payload,
                 type: 'refresh',
                 iat: Math.floor(Date.now() / 1000),
+                jti: nanoid(),
             },
             this.REFRESH_SECRET,
             { expiresIn: this.REFRESH_EXPIRES_IN },
@@ -138,6 +141,7 @@ export class JWTUtil {
             {
                 ...payload,
                 iat: Math.floor(Date.now() / 1000),
+                jti: nanoid(),
             },
             this.SECRET,
             { expiresIn },

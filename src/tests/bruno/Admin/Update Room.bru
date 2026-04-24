@@ -1,0 +1,29 @@
+meta {
+  name: Update Room
+  type: http
+  seq: 14
+}
+
+put {
+  url: {{baseUrl}}/admin/rooms/{{roomId}}
+  body: json
+  auth: bearer
+}
+
+body:json {
+  {
+    "name": "Test Room Bruno Updated",
+    "grid_rows": 9
+  }
+}
+
+auth:bearer {
+  token: AT
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  const roomId = bru.getEnvVar('testRoomId') || '1';
+  bru.setVar('baseUrl', baseUrl);
+  bru.setVar('roomId', roomId);
+}

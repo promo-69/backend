@@ -40,6 +40,8 @@ mi_entorno
 Thumbs.db*
 **/~$*
 
+**/*.local.bru*
+
 # Dot Env files
 .env
 .env.*
