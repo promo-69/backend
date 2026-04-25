@@ -2,6 +2,7 @@ import nodemailer from 'nodemailer';
 import { AppConfig } from '@config/app.config.js';
 import { Logger } from '@utils/logger.util.js';
 import { ANSI } from '@utils/ansi.util.js';
+import { nanoid } from 'nanoid';
 
 const EMAIL_PROVIDER_SYMBOL = Symbol.for('global.email.provider');
 
@@ -50,24 +51,28 @@ export class EmailProvider {
 			const globalWithEmail = globalThis as typeof globalThis & {
 				[EMAIL_PROVIDER_SYMBOL]: EmailProvider;
 			};
-			if (!globalWithEmail[EMAIL_PROVIDER_SYMBOL]) {
-				globalWithEmail[EMAIL_PROVIDER_SYMBOL] = new EmailProvider();
-			}
+
+			if (!globalWithEmail[EMAIL_PROVIDER_SYMBOL]) globalWithEmail[EMAIL_PROVIDER_SYMBOL] = new EmailProvider();
+
 			return globalWithEmail[EMAIL_PROVIDER_SYMBOL];
 		}
 	}
 
 	async sendMail(to: string, subject: string, html: string): Promise<boolean> {
+		const emailId = nanoid(5);
+
 		try {
-			await this.transporter.sendMail({
-				from: this.fromAddress,
+			Logger.natural(ANSI.success(`[+] Sending email ${emailId}`));
+			const response = await this.transporter.sendMail({
+				from: `"Cineflix" <${this.fromAddress}>`,
 				to,
 				subject,
 				html,
 			});
+			Logger.natural(ANSI.success(`[+] Email ${emailId} sent to ${to}`));
 			return true;
 		} catch (error) {
-			Logger.error(`Failed to send email to ${to}:`, error as Error);
+			Logger.error(`Failed to send email ${emailId} to ${to}:`, error as Error);
 			return false;
 		}
 	}
