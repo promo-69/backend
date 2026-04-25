@@ -1,6 +1,6 @@
 import { BaseService } from '@bases/service.base.js';
 import { Database } from '@database/index.js';
-import { AuthError, ValidationError } from '@errors';
+import { AuthError, DatabaseError, ValidationError } from '@errors';
 import { Transaction } from 'sequelize';
 import { ExceptionPermissions } from '@rules/permission-exceptions.type.js';
 import { BcryptUtil } from '@utils/bcrypt.util.js';
@@ -11,7 +11,10 @@ import { tokenBlacklistService } from '@services/token-blacklist.service.js';
 import { emailService } from '@services/email.service.js';
 import { CacheDatabaseProvider } from '@providers/cache-database.provider.js';
 import JWTUtil, { RefreshTokenPayload } from '@utils/jwt.util.js';
-import { nanoid } from 'nanoid';
+import { customAlphabet } from 'nanoid';
+
+const generateCode = customAlphabet('1234567890', 4);
+const generateToken = customAlphabet('1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', 64);
 
 interface LoginBody {
 	email: string;
@@ -143,30 +146,35 @@ export class AuthService extends BaseService {
 		const foundUser = await this._users.getByEmail(email);
 		if (foundUser) throw new AuthError('El usuario ya existe', { code: 'USER_ALREADY_EXISTS' });
 
-		const created = await this._people.transaction(async (transaction: Transaction) => {
-			const createdPerson = await this._people.create(
-				Object.fromEntries(
-					Object.entries(person).map(([key, value]) => [
-						convertCase(key == 'email' ? 'personal_email' : key, 'pascal', 'snake'),
-						key == 'gender' ? Number(value) : value,
-					]),
-				),
-				{ transaction },
-			);
-			const signupCode = Math.floor(100000 + Math.random() * 900000).toString();
-			const createdUser = await this._users.create(
-				{
-					...user,
-					user_type: 2, // Por defecto usuario de tipo "cliente"
-					password: await BcryptUtil.hash(user.password),
-					person: createdPerson.id,
-					signup_code: signupCode,
-				},
-				{ transaction },
-			);
+		let created;
+		try {
+			created = await this._people.transaction(async (transaction: Transaction) => {
+				const createdPerson = await this._people.create(
+					Object.fromEntries(
+						Object.entries(person).map(([key, value]) => [
+							convertCase(key == 'email' ? 'personal_email' : key, 'pascal', 'snake'),
+							key == 'gender' ? Number(value) : value,
+						]),
+					),
+					{ transaction },
+				);
+				const signupCode = generateCode();
+				const createdUser = await this._users.create(
+					{
+						...user,
+						user_type: 2, // Por defecto usuario de tipo "cliente"
+						password: await BcryptUtil.hash(user.password),
+						person: createdPerson.id,
+						signup_code: signupCode,
+					},
+					{ transaction },
+				);
 
-			return { createdUser, signupCode };
-		});
+				return { createdUser, signupCode };
+			});
+		} catch (error: any) {
+			throw new AuthError('No se pudo completar el registro del usuario', error?.getInheritanceInfo());
+		}
 
 		// Enviar correo de verificación de forma asíncrona (sin bloquear la respuesta)
 		emailService.sendVerificationCode(email, created.signupCode).catch((err) => {
@@ -195,6 +203,7 @@ export class AuthService extends BaseService {
 				// Solo loguear en caso de fallo, ya que el usuario se ha creado correctamente
 				console.error('Error al enviar el correo de verificación:', err);
 			});
+			console.log('cuenta sin verificar');
 
 			throw new AuthError(
 				'Cuenta no verificada. Por favor revisa tu correo electrónico y completa la verificación.',
@@ -219,7 +228,7 @@ export class AuthService extends BaseService {
 		return loginResponse;
 	}
 
-	async verifySignupCode(email: string, code: string, device?: string): Promise<LoginResponse> {
+	async verifySignupCode(email: string, code: string | number, device?: string): Promise<LoginResponse> {
 		if (!email || !code) throw new ValidationError('El email y código son requeridos', []);
 
 		const foundUser = await this._users.getByEmail(email);
@@ -228,7 +237,7 @@ export class AuthService extends BaseService {
 		if (foundUser.signup_verified_at)
 			throw new AuthError('La cuenta ya se encuentra verificada', { code: 'ACCOUNT_ALREADY_VERIFIED' });
 
-		if (foundUser.signup_code !== code)
+		if (foundUser.signup_code !== String(code))
 			throw new AuthError('El código de verificación es inválido', { code: 'INVALID_VERIFICATION_CODE' });
 
 		await this._users.update(
@@ -342,7 +351,7 @@ export class AuthService extends BaseService {
 		const foundUser = await this._users.getByEmail(email);
 
 		if (foundUser) {
-			const resetCode = nanoid(10);
+			const resetCode = generateCode();
 			const ttlSeconds = 10 * 60; // 10 minutos
 
 			// Almacenamos el código en caché
@@ -373,7 +382,7 @@ export class AuthService extends BaseService {
 		await this._cacheClient.del(keyCode);
 
 		// Generar un token más largo para el reset final
-		const resetToken = nanoid(64);
+		const resetToken = generateToken();
 		const ttlSeconds = 10 * 60; // 10 minutos
 
 		const keyToken = `auth:reset:token:${email}`;
