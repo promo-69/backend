@@ -4,190 +4,253 @@ import JWTUtil from '@utils/jwt.util.js';
 import AuthService from './_.service.js';
 
 class AuthController extends ControllerBase {
-    constructor() {
-        super();
-    }
+	constructor() {
+		super();
+	}
 
-    /**
-     * Determina el canal de respuesta adecuado (Cookie o Bearer JSON)
-     * basado en cabeceras explícitas o inferencia de la petición.
-     */
-    private _getExpectedTransport(): 'cookie' | 'bearer' {
-        const req = this.getRequest();
+	/**
+	 * Determina el canal de respuesta adecuado (Cookie o Bearer JSON)
+	 * basado en cabeceras explícitas o inferencia de la petición.
+	 */
+	private _getExpectedTransport(): 'cookie' | 'bearer' {
+		const req = this.getRequest();
 
-        // 1. Identificación explícita del cliente (Mejor práctica)
-        // El frontend web debe enviar { 'x-client-channel': 'web' }
-        // La app móvil debe enviar { 'x-client-channel': 'mobile' }
-        const clientChannel = req.headers['x-client-channel'];
-        if (clientChannel === 'web') return 'cookie';
-        if (clientChannel === 'mobile') return 'bearer';
+		// 1. Identificación explícita del cliente (Mejor práctica)
+		// El frontend web debe enviar { 'x-client-channel': 'web' }
+		// La app móvil debe enviar { 'x-client-channel': 'mobile' }
+		const clientChannel = req.headers['x-client-channel'];
+		if (clientChannel === 'web') return 'cookie';
+		if (clientChannel === 'mobile') return 'bearer';
 
-        // 2. Inferencia de canal (Útil para refresh/logout si omiten la cabecera)
-        const security = AppConfig.load().security;
-        const refreshName = security.jwtCookieRefreshName || 'RT';
+		// 2. Inferencia de canal (Útil para refresh/logout si omiten la cabecera)
+		const security = AppConfig.load().security;
+		const refreshName = security.jwtCookieRefreshName || 'RT';
 
-        // Si la petición trae nuestra cookie, asumimos que es un cliente Web
-        if (req.cookies && req.cookies[refreshName]) return 'cookie';
+		// Si la petición trae nuestra cookie, asumimos que es un cliente Web
+		if (req.cookies && req.cookies[refreshName]) return 'cookie';
 
-        // 3. Fallback por defecto (Comportamiento API estándar)
-        return 'bearer';
-    }
+		// 3. Fallback por defecto (Comportamiento API estándar)
+		return 'bearer';
+	}
 
-    // --- Auth & Session ---
+	// --- Auth & Session ---
 
-    async signup() {
-        const data = await AuthService.registerUser(this.getBody());
-        return this.created(data);
-    }
+	async signup() {
+		const result = await AuthService.registerUser(this.getBody());
+		return this.created(result);
+	}
 
-    async login() {
-        const body = this.getBody();
+	async verifySignup() {
+		const { email, code } = this.getBody();
 
-        const {
-            user,
-            accessToken,
-            refreshToken,
-        }: {
-            user: Record<string, any>;
-            accessToken: string;
-            refreshToken: string;
-        } = await AuthService.authenticateUser(body);
+		const {
+			user,
+			accessToken,
+			refreshToken,
+		}: {
+			user: Record<string, any>;
+			accessToken: string;
+			refreshToken: string;
+		} = await AuthService.verifySignupCode(email, code);
 
-        const transport = this._getExpectedTransport();
+		const transport = this._getExpectedTransport();
 
-        if (transport === 'cookie') {
-            const security = AppConfig.load().security;
-            const accessName = security.jwtCookieAccessName || 'AT';
-            const refreshName = security.jwtCookieRefreshName || 'RT';
+		if (transport === 'cookie') {
+			const security = AppConfig.load().security;
+			const accessName = security.jwtCookieAccessName || 'AT';
+			const refreshName = security.jwtCookieRefreshName || 'RT';
 
-            this.setCookie(accessName, accessToken, { maxAge: JWTUtil.getAccessExpiresInMs() });
-            this.setCookie(refreshName, refreshToken, {
-                path: '/api/v1/auth/refresh',
-                maxAge: JWTUtil.getRefreshExpiresInMs(),
-            });
+			this.setCookie(accessName, accessToken, { maxAge: JWTUtil.getAccessExpiresInMs() });
+			this.setCookie(refreshName, refreshToken, {
+				path: '/api/v1/auth/refresh',
+				maxAge: JWTUtil.getRefreshExpiresInMs(),
+			});
 
-            // Retorna SOLO el usuario. Protege al frontend de malas prácticas.
-            return this.success({ user }, 'Autenticación exitosa');
-        }
+			return this.success({ user }, 'Cuenta verificada y autenticada exitosamente');
+		}
 
-        // Canal Móvil (Bearer): Retorna los tokens en el payload. No setea cookies.
-        return this.success({ user, accessToken, refreshToken }, 'Autenticación exitosa');
-    }
+		return this.success(
+			{ user, tokens: { accessToken, refreshToken } },
+			'Cuenta verificada y autenticada exitosamente',
+		);
+	}
 
-    async refresh() {
-        const req = this.getRequest();
-        const security = AppConfig.load().security;
-        const refreshName = security.jwtCookieRefreshName || 'RT';
-        let currentToken: string | null = null;
+	async login() {
+		const body = this.getBody();
 
-        // Extraer token priorizando la cookie, luego el header
-        if (req.cookies && req.cookies[refreshName]) {
-            currentToken = req.cookies[refreshName];
-        } else {
-            const authHeader = this.getHeaders().authorization;
-            if (authHeader?.startsWith('Bearer ')) currentToken = authHeader.split(' ')[1];
-        }
+		const {
+			user,
+			accessToken,
+			refreshToken,
+		}: {
+			user: Record<string, any>;
+			accessToken: string;
+			refreshToken: string;
+		} = await AuthService.authenticateUser(body);
 
-        const { accessToken, refreshToken, user } = await AuthService.refreshUserSession(currentToken);
+		const transport = this._getExpectedTransport();
 
-        const transport = this._getExpectedTransport();
+		if (transport === 'cookie') {
+			const security = AppConfig.load().security;
+			const accessName = security.jwtCookieAccessName || 'AT';
+			const refreshName = security.jwtCookieRefreshName || 'RT';
 
-        if (transport === 'cookie') {
-            const accessName = security.jwtCookieAccessName || 'AT';
-            this.setCookie(accessName, accessToken, { maxAge: JWTUtil.getAccessExpiresInMs() });
-            if (refreshToken) this.setCookie(refreshName, refreshToken, { maxAge: JWTUtil.getRefreshExpiresInMs() });
+			this.setCookie(accessName, accessToken, { maxAge: JWTUtil.getAccessExpiresInMs() });
+			this.setCookie(refreshName, refreshToken, {
+				path: '/api/v1/auth/refresh',
+				maxAge: JWTUtil.getRefreshExpiresInMs(),
+			});
 
-            // Retorna SOLO el usuario
-            return this.success({ user }, 'Sesión renovada');
-        }
+			// Retorna SOLO el usuario. Protege al frontend de malas prácticas.
+			return this.success({ user }, 'Autenticación exitosa');
+		}
 
-        // Canal Móvil
-        return this.success({ user, accessToken, refreshToken }, 'Sesión renovada');
-    }
+		// Canal Móvil (Bearer): Retorna los tokens en el payload. No setea cookies.
+		return this.success({ user, tokens: { accessToken, refreshToken } }, 'Autenticación exitosa');
+	}
 
-    async logout() {
-        const req = this.getRequest();
-        const security = AppConfig.load().security;
-        const refreshName = security.jwtCookieRefreshName || 'RT';
-        const accessName = security.jwtCookieAccessName || 'AT';
+	async refresh() {
+		const req = this.getRequest();
+		const security = AppConfig.load().security;
+		const refreshName = security.jwtCookieRefreshName || 'RT';
+		let currentToken: string | null = null;
 
-        const accessToken = req.token || null; // Extraído por el middleware
-        let refreshToken: string | null = null;
+		// Extraer token priorizando la cookie, luego el header
+		if (req.cookies && req.cookies[refreshName]) {
+			currentToken = req.cookies[refreshName];
+		} else {
+			const authHeader = this.getHeaders().authorization;
+			if (authHeader?.startsWith('Bearer ')) currentToken = authHeader.split(' ')[1];
+		}
 
-        // Extraer refresh token a invalidar
-        if (req.cookies && req.cookies[refreshName]) {
-            refreshToken = req.cookies[refreshName];
-        } else {
-            const authHeader = this.getHeaders().authorization;
-            if (authHeader?.startsWith('Bearer ')) refreshToken = authHeader.split(' ')[1];
-        }
+		const { accessToken, refreshToken, user } = await AuthService.refreshUserSession(currentToken);
 
-        // Ejecutar invalidación en Redis
-        await AuthService.logoutUser(accessToken, refreshToken);
+		const transport = this._getExpectedTransport();
 
-        const transport = this._getExpectedTransport();
+		if (transport === 'cookie') {
+			const accessName = security.jwtCookieAccessName || 'AT';
+			this.setCookie(accessName, accessToken, { maxAge: JWTUtil.getAccessExpiresInMs() });
+			if (refreshToken) this.setCookie(refreshName, refreshToken, { maxAge: JWTUtil.getRefreshExpiresInMs() });
 
-        if (transport === 'cookie') {
-            // Limpiar cookies explícitamente en el navegador
-            this.clearCookie(accessName);
-            this.clearCookie(refreshName);
-        }
+			// Retorna SOLO el usuario
+			return this.success({ user }, 'Sesión renovada');
+		}
 
-        return this.success(null, 'Sesión finalizada exitosamente');
-    }
+		// Canal Móvil
+		return this.success({ user, tokens: { accessToken, refreshToken } }, 'Sesión renovada');
+	}
 
-    async me() {
-        const session = this.getSession();
+	async logout() {
+		const req = this.getRequest();
+		const security = AppConfig.load().security;
+		const refreshName = security.jwtCookieRefreshName || 'RT';
+		const accessName = security.jwtCookieAccessName || 'AT';
 
-        return this.success(session, 'Usuario obtenido exitosamente');
-    }
+		const accessToken = req.token || null; // Extraído por el middleware
+		let refreshToken: string | null = null;
 
-    // --- Users ---
+		// Extraer refresh token a invalidar
+		if (req.cookies && req.cookies[refreshName]) {
+			refreshToken = req.cookies[refreshName];
+		} else {
+			const authHeader = this.getHeaders().authorization;
+			if (authHeader?.startsWith('Bearer ')) refreshToken = authHeader.split(' ')[1];
+		}
 
-    async findAllUsers() {
-        const data = await AuthService.findAllUsers(this.getQueryFilters());
-        return data;
-    }
+		// Ejecutar invalidación en la base de datos de cache
+		await AuthService.logoutUser(accessToken, refreshToken);
 
-    async findUserById() {
-        const { id } = this.getParams();
-        const data = await AuthService.findUserById(Number(id));
+		const transport = this._getExpectedTransport();
 
-        return data;
-    }
+		if (transport === 'cookie') {
+			// Limpiar cookies explícitamente en el navegador
+			this.clearCookie(accessName);
+			this.clearCookie(refreshName);
+		}
 
-    async createUser() {
-        const userData = this.getBody();
-        const data = await AuthService.createUser(userData);
+		return this.success(null, 'Sesión finalizada exitosamente');
+	}
 
-        return data;
-    }
+	async me() {
+		const session = this.getSession();
 
-    // --- Roles ---
+		return this.success(session, 'Usuario obtenido exitosamente');
+	}
 
-    async findAllRoles() {
-        const data = await AuthService.findAllRoles(this.getQueryFilters());
-        return data;
-    }
+	// --- Password Reset ---
 
-    async findRoleById() {
-        const { id } = this.getParams();
-        const data = await AuthService.findRoleById(Number(id));
-        return data;
-    }
+	async forgotPassword() {
+		const { email } = this.getBody();
+		const result = await AuthService.forgotPassword(email);
+		return this.success(null, result.message);
+	}
 
-    // --- Permissions ---
+	async verifyResetCode() {
+		const { email, code } = this.getBody();
+		const result = await AuthService.verifyResetCode(email, code);
+		return this.success(result, 'Código verificado correctamente');
+	}
 
-    async findAllPermissions() {
-        const data = await AuthService.findAllPermissions(this.getQueryFilters());
-        return data;
-    }
+	async resetPassword() {
+		const { email, resetToken, newPassword } = this.getBody();
+		const result = await AuthService.resetPassword(email, resetToken, newPassword);
+		return this.success(null, result.message);
+	}
 
-    async findPermissionById() {
-        const { id } = this.getParams();
-        const data = await AuthService.findPermissionById(Number(id));
-        return data;
-    }
+	// --- Users ---
+
+	async findAllUsers() {
+		const data = await AuthService.findAllUsers(this.getQueryFilters());
+		return data;
+	}
+
+	async findUserById() {
+		const { id } = this.getParams();
+		const data = await AuthService.findUserById(Number(id));
+
+		return data;
+	}
+
+	async createUser() {
+		const userData = this.getBody();
+		const data = await AuthService.createUser(userData);
+
+		return data;
+	}
+
+	// --- Roles ---
+
+	async findAllRoles() {
+		const data = await AuthService.findAllRoles(this.getQueryFilters());
+		return data;
+	}
+
+	async findRoleById() {
+		const { id } = this.getParams();
+		const data = await AuthService.findRoleById(Number(id));
+		return data;
+	}
+
+	// --- Permissions ---
+
+	async findAllPermissions() {
+		const data = await AuthService.findAllPermissions(this.getQueryFilters());
+		return data;
+	}
+
+	async findPermissionById() {
+		const { id } = this.getParams();
+		const data = await AuthService.findPermissionById(Number(id));
+		return data;
+	}
+
+	// PATCH /api/v1/auth/profile
+	async updateProfile() {
+		const session = this.getSession<any>();
+		const body = this.getBody();
+		await AuthService.updateProfile(session.userId, body);
+		return this.success(null, 'Perfil actualizado.');
+	}
 }
 
 export default new AuthController();

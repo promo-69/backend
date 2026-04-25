@@ -85,6 +85,8 @@ module.exports = {
 			email: { type: Sequelize.STRING(100), allowNull: false },
 			password: { type: Sequelize.STRING(255), allowNull: false },
 			last_login: { type: Sequelize.DATE, allowNull: true },
+			signup_code: { type: Sequelize.STRING(20), allowNull: true },
+			signup_verified_at: { type: Sequelize.DATE, allowNull: true },
 			created_at: {
 				type: Sequelize.DATE,
 				allowNull: false,
