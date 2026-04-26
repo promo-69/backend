@@ -37,42 +37,17 @@ class AuthController extends ControllerBase {
 
 	async signup() {
 		const result = await AuthService.registerUser(this.getBody());
-		return this.created(result);
+		return this.created(
+			{},
+			'Usuario registrado exitosamente. Por favor verifica tu correo electrónico con el código enviado.',
+		);
 	}
 
 	async verifySignup() {
 		const { email, code } = this.getBody();
+		const result = await AuthService.verifySignupCode(email, code);
 
-		const {
-			user,
-			accessToken,
-			refreshToken,
-		}: {
-			user: Record<string, any>;
-			accessToken: string;
-			refreshToken: string;
-		} = await AuthService.verifySignupCode(email, code);
-
-		const transport = this._getExpectedTransport();
-
-		if (transport === 'cookie') {
-			const security = AppConfig.load().security;
-			const accessName = security.jwtCookieAccessName || 'AT';
-			const refreshName = security.jwtCookieRefreshName || 'RT';
-
-			this.setCookie(accessName, accessToken, { maxAge: JWTUtil.getAccessExpiresInMs() });
-			this.setCookie(refreshName, refreshToken, {
-				path: '/api/v1/auth/refresh',
-				maxAge: JWTUtil.getRefreshExpiresInMs(),
-			});
-
-			return this.success({ user }, 'Cuenta verificada y autenticada exitosamente');
-		}
-
-		return this.success(
-			{ user, tokens: { accessToken, refreshToken } },
-			'Cuenta verificada y autenticada exitosamente',
-		);
+		return this.success({}, 'Cuenta verificada y autenticada exitosamente');
 	}
 
 	async login() {
