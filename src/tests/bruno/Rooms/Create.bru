@@ -1,0 +1,21 @@
+meta {
+  name: Create Rooms
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/rooms
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "example_field": "example_value"
+  }
+}

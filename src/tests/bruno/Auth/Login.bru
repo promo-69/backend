@@ -1,43 +1,34 @@
 meta {
-    name: Login
-    type: https
-    seq: 1
+  name: Login
+  type: http
+  seq: 1
 }
 
 post {
-    url: {{baseUrl}}/auth/login
-    body: json
-    auth: none
+  url: {{baseUrl}}/auth/login
+  body: json
+  auth: none
 }
 
 body:json {
     {
-        "email": "{{loginEmail}}",
-        "password": "{{loginPassword}}"
+        "email": "",
+        "password": ""
     }
 }
 
-script:pre-request {
-    // 1. Prioridad: el último correo registrado (email), luego el de prueba (testEmail), o un fallback.
-    const targetEmail = bru.getEnvVar("loginEmail") ||  bru.getEnvVar("email") || bru.getEnvVar("testEmail") || "fallback@example.example";
-    const targetPassword = bru.getEnvVar("loginPassword") || bru.getEnvVar("password") || bru.getEnvVar("testPassword") || "fallback12345678*";
-
-    // 2. Asignamos a variables temporales con nombres únicos para el JSON
-    bru.setVar("loginEmail", targetEmail);
-    bru.setVar("loginPassword", targetPassword);
-}
-
 script:post-response {
+    // Obtener los datos de la respuesta (Response)
     const resBody = res.getBody();
     const resStatus = res.getStatus();
 
-    // Solo guardamos los tokens si las credenciales fueron correctas (HTTP 2xx)
+    // Solo guardamos variables si la petición fue exitosa (HTTP 2xx)
     if (200 <= resStatus && resStatus <= 299 && resBody && resBody.data) {
-        
-        if (resBody.data.accessToken)
-            bru.setEnvVar("accessToken", resBody.data.accessToken);
+        // Guardar tokens de la respuesta
+        if (resBody.data.tokens.accessToken)
+            bru.setEnvVar("accessToken", resBody.data.tokens.accessToken);
 
-        if (resBody.data.refreshToken)
-            bru.setEnvVar("refreshToken", resBody.data.refreshToken);
+        if (resBody.data.tokens.refreshToken)
+            bru.setEnvVar("refreshToken", resBody.data.tokens.refreshToken);
     }
 }

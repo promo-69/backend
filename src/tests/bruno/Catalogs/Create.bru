@@ -1,0 +1,22 @@
+meta {
+  name: Create Catalog Item
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/catalogs/status
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "name": "NEW_STATUS",
+    "description": "A new status"
+  }
+}

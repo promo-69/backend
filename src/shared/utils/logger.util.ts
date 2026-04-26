@@ -1,107 +1,114 @@
+import { AppError } from '@errors/app.error.js';
 import { ANSI } from '@utils/ansi.util.js';
 
 export interface ISeparatorOptions {
-    sepStart?: boolean;
-    sepEnd?: boolean;
+	sepStart?: boolean;
+	sepEnd?: boolean;
 }
 export interface ILoggerOptions extends ISeparatorOptions {
-    extension?: string[];
-    firm?: string;
+	extension?: string[];
+	firm?: string;
 }
 
 type LogTypes = 'info' | 'log' | 'error' | 'warn';
 
 export class Logger {
-    private static resetFormatCode: string = ANSI.getCode('reset');
-    private static prefix: string = '>> ';
+	private static resetFormatCode: string = ANSI.getCode('reset');
+	private static prefix: string = '>> ';
 
-    private static formatMessage(
-        type: LogTypes,
-        message: string,
-        { format, firm }: { format?: string; firm?: string } = {},
-    ): string {
-        const timestamp = new Date().toLocaleString();
-        const prefixFormat = format != null ? format : '';
-        const suffixFormat = ANSI.getCode('reset');
-        let logType: string = '';
+	private static formatMessage(
+		type: LogTypes,
+		message: string,
+		{ format, firm }: { format?: string; firm?: string } = {},
+	): string {
+		const timestamp = new Date().toLocaleString();
+		const prefixFormat = format != null ? format : '';
+		const suffixFormat = ANSI.getCode('reset');
+		let logType: string = '';
 
-        if (firm != null) logType = `(${firm}) `;
-        logType += `${ANSI.getCode('underline')}${type.toUpperCase()}${ANSI.getCode('resetUnderline')}`;
+		if (firm != null) logType = `(${firm}) `;
+		logType += `${ANSI.getCode('underline')}${type.toUpperCase()}${ANSI.getCode('resetUnderline')}`;
 
-        return `${this.prefix}${prefixFormat}[${timestamp}] ${logType}${this.resetFormatCode}: ${message}${suffixFormat}`.trim();
-    }
+		return `${this.prefix}${prefixFormat}[${timestamp}] ${logType}${this.resetFormatCode}: ${message}${suffixFormat}`.trim();
+	}
 
-    private static showLog(
-        type: LogTypes,
-        content: any[],
-        { sepStart = false, sepEnd = false }: ISeparatorOptions = {},
-        allPrefixed: boolean = false,
-    ) {
-        const uniqueSep = '[_!_]';
-        let _content: string | string[] = `${allPrefixed ? this.prefix : ''}${content
-            .flat()
-            .join(uniqueSep + `\n${this.prefix}` + uniqueSep)}`;
-        _content = _content.split(uniqueSep);
+	private static showLog(
+		type: LogTypes,
+		content: any[],
+		{ sepStart = false, sepEnd = false }: ISeparatorOptions = {},
+		allPrefixed: boolean = false,
+	) {
+		const uniqueSep = '[_!_]';
+		let _content: string | string[] = `${allPrefixed ? this.prefix : ''}${content
+			.flat()
+			.join(uniqueSep + `\n${this.prefix}` + uniqueSep)}`;
+		_content = _content.split(uniqueSep);
 
-        if (sepStart) console.log();
-        console[type as LogTypes](..._content);
-        if (sepEnd) console.log();
-    }
+		if (sepStart) console.log();
+		console[type as LogTypes](..._content);
+		if (sepEnd) console.log();
+	}
 
-    private static showPrefixedLog(type: LogTypes, content: any[], options: ISeparatorOptions = {}) {
-        Logger.showLog(type, content, options, true);
-    }
+	private static showPrefixedLog(type: LogTypes, content: any[], options: ISeparatorOptions = {}) {
+		Logger.showLog(type, content, options, true);
+	}
 
-    static logDefinition(message: string, type: any): void {
-        if (typeof message !== 'string' || (typeof message === 'string' && message.trim() == '')) return;
+	static logDefinition(message: string, type: any): void {
+		if (typeof message !== 'string' || (typeof message === 'string' && message.trim() == '')) return;
 
-        const color = ANSI.getCode('cyan');
-        const formatted = Logger.formatMessage('log', `(${type}) -> ${message}`, { format: color });
+		const color = ANSI.getCode('cyan');
+		const formatted = Logger.formatMessage('log', `(${type}) -> ${message}`, { format: color });
 
-        Logger.showLog('info', [formatted]);
-    }
+		Logger.showLog('info', [formatted]);
+	}
 
-    static info(message: string, { extension, firm, sepStart, sepEnd }: ILoggerOptions = {}): void {
-        const color = ANSI.getCode('cyan');
+	static info(message: string, { extension, firm, sepStart, sepEnd }: ILoggerOptions = {}): void {
+		const color = ANSI.getCode('cyan');
 
-        this.showLog(
-            'log',
-            [this.formatMessage('info', `${message}`, { format: color, firm }), (extension ?? []) as Array<string>],
-            { sepStart, sepEnd },
-        );
-    }
+		this.showLog(
+			'log',
+			[this.formatMessage('info', `${message}`, { format: color, firm }), (extension ?? []) as Array<string>],
+			{ sepStart, sepEnd },
+		);
+	}
 
-    static error(message: string | null, error: Error, { sepStart, sepEnd }: ISeparatorOptions = {}): void {
-        const stack: string = error && error.stack ? error.stack : error ? error.message : '';
-        const color = ANSI.getCode('error');
+	static error(message: string | null, error: Error, { sepStart, sepEnd }: ISeparatorOptions = {}): void {
+		const color = ANSI.getCode('error');
+		const stack: string = error && error.stack ? error.stack : error ? error.message : '';
+		const traceId = (error as any)?.traceId
+			? `[traceId: ${color}${(error as any).traceId}${this.resetFormatCode}]`
+			: '';
 
-        const logs: string[] = [];
+		const logs: string[] = [];
 
-        if (message) {
-            logs.push(this.formatMessage('error', message, { format: color }));
-            if (stack) logs.push(`  ${color + ANSI.getCode('underline')}STACK:${this.resetFormatCode}\n${stack}`);
-        } else {
-            logs.push(this.formatMessage('error', stack || 'Unknown Error', { format: color }));
-        }
+		if (message) {
+			logs.push(this.formatMessage('error', `${traceId} ${message}`, { format: color }));
+		} else {
+			logs.push(
+				this.formatMessage('error', `${traceId} ${stack || 'Unknown Error'}`, {
+					format: color,
+				}),
+			);
+		}
 
-        this.showLog('error', logs, { sepStart, sepEnd });
-    }
+		this.showLog('error', logs, { sepStart, sepEnd });
+	}
 
-    static warn(message: string, { extension, firm, sepStart, sepEnd }: ILoggerOptions = {}): void {
-        const color = ANSI.getCode('yellow');
+	static warn(message: string, { extension, firm, sepStart, sepEnd }: ILoggerOptions = {}): void {
+		const color = ANSI.getCode('yellow');
 
-        this.showLog(
-            'warn',
-            [this.formatMessage('warn', `${message}`, { format: color, firm }), (extension ?? []) as Array<string>],
-            { sepStart, sepEnd },
-        );
-    }
+		this.showLog(
+			'warn',
+			[this.formatMessage('warn', `${message}`, { format: color, firm }), (extension ?? []) as Array<string>],
+			{ sepStart, sepEnd },
+		);
+	}
 
-    static natural(message: string, { extension, sepStart, sepEnd }: ILoggerOptions = {}): void {
-        this.showPrefixedLog(
-            'log',
-            [message, (extension ?? []) as Array<string>].filter((e) => e),
-            { sepStart, sepEnd },
-        );
-    }
+	static natural(message: string, { extension, sepStart, sepEnd }: ILoggerOptions = {}): void {
+		this.showPrefixedLog(
+			'log',
+			[message, (extension ?? []) as Array<string>].filter((e) => e),
+			{ sepStart, sepEnd },
+		);
+	}
 }

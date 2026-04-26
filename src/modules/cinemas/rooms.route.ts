@@ -7,6 +7,6 @@ const router = Router({ mergeParams: true }); // hereda :cinemaId del router pad
 const adminRoles = ['SUPER_ADMIN', 'CINEMA_MANAGER'];
 
 router.get('/', verifySession, roomsController.findAll);
-router.post('/', verifySession, verifyRole(adminRoles), roomsController.create);
+router.post('/', verifySession, /* verifyRole(adminRoles), */ roomsController.create);
 
 export default router;

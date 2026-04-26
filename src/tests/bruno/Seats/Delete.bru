@@ -1,0 +1,15 @@
+meta {
+  name: Delete Seats
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{baseUrl}}/seats/1
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
