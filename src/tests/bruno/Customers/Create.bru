@@ -1,0 +1,21 @@
+meta {
+  name: Create Customers
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/customers
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "example_field": "example_value"
+  }
+}

@@ -47,6 +47,7 @@ RUN yarn install --production --frozen-lockfile && yarn cache clean
 
 # Copiamos la build generada
 COPY --from=builder /app/build ./build
+COPY --from=builder /app/.sequelizerc ./.sequelizerc
 
 EXPOSE ${PORT:-4000}
 CMD ["yarn", "start"]

@@ -1,0 +1,21 @@
+meta {
+  name: Update Catalog Item
+  type: http
+  seq: 5
+}
+
+put {
+  url: {{baseUrl}}/catalogs/status/1
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "name": "UPDATED_STATUS"
+  }
+}

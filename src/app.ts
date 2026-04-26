@@ -290,6 +290,13 @@ export class App {
 		this.app.use((err: any, req: Request, res: Response, next: NextFunction) => {
 			const error = err instanceof AppError ? err : new AppError({ statusCode: err.statusCode, cause: err });
 
+			Logger.natural(
+				`${ANSI.error('Error Devuelto:')} ${ANSI.getCode('error')}${error.traceId}${ANSI.getCode('reset')}`,
+				{
+					sepEnd: true,
+				},
+			);
+
 			res.status(error.statusCode || 500).json(error.toJSON());
 		});
 	}

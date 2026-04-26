@@ -1,5 +1,5 @@
 meta {
-  name: Refresh Session (Valid)
+  name: Refresh Session
   type: http
   seq: 5
 }
@@ -15,11 +15,17 @@ auth:bearer {
 }
 
 script:post-response {
-  const data = res.getBody();
-  if (data.data && data.data.accessToken) {
-    bru.setEnvVar("accessToken", data.data.accessToken);
-  }
-  if (data.data && data.data.refreshToken) {
-    bru.setEnvVar("refreshToken", data.data.refreshToken);
-  }
+    // Obtener los datos de la respuesta (Response)
+    const resBody = res.getBody();
+    const resStatus = res.getStatus();
+
+    // Solo guardamos variables si la petición fue exitosa (HTTP 2xx)
+    if (200 <= resStatus && resStatus <= 299 && resBody && resBody.data) {
+        // Guardar tokens de la respuesta
+        if (resBody.data.tokens.accessToken)
+            bru.setEnvVar("accessToken", resBody.data.tokens.accessToken);
+
+        if (resBody.data.tokens.refreshToken)
+            bru.setEnvVar("refreshToken", resBody.data.tokens.refreshToken);
+    }
 }

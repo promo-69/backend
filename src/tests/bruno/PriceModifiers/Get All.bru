@@ -1,0 +1,15 @@
+meta {
+  name: Get All PriceModifiers
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/price-modifiers
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

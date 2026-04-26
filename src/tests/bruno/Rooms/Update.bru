@@ -1,0 +1,21 @@
+meta {
+  name: Update Rooms
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/rooms/1
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "example_field": "updated_value"
+  }
+}
