@@ -1,21 +1,37 @@
 meta {
-  name: Create Rooms
+  name: Create Room
   type: http
-  seq: 3
+  seq: 1
 }
 
 post {
-  url: {{baseUrl}}/rooms
+  url: {{baseUrl}}/cinemas/{{testCinemaId}}/rooms
   body: json
   auth: bearer
+}
+
+body:json {
+  {
+    "name": "Test Room Bruno",
+    "projectionTypes": [1],
+    "gridRows": 8,
+    "gridColumns": 12,
+    "totalCapacity": 96
+  }
 }
 
 auth:bearer {
   token: {{accessToken}}
 }
 
-body:json {
-  {
-    "example_field": "example_value"
+script:post-response {
+  const resBody = res.getBody();
+  if (res.getStatus() === 201 && resBody && resBody.data && resBody.data.room_id) {
+    bru.setEnvVar('testRoomId', resBody.data.room_id);
   }
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  bru.setVar('baseUrl', baseUrl);
 }

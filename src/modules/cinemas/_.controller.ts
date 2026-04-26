@@ -1,4 +1,5 @@
 import { ControllerBase } from '@bases/controller.base.js';
+import { ValidationError } from '@errors';
 import CinemasService from './_.service.js';
 
 class CinemasController extends ControllerBase {
@@ -20,6 +21,15 @@ class CinemasController extends ControllerBase {
     async create() {
         const body = this.getBody();
         const session = this.getSession<any>();
+
+        this.requireBodyField('name');
+        this.requireBodyField('openingTime');
+        this.requireBodyField('closingTime');
+
+        if (!body.name || typeof body.name !== 'string' || body.name.trim().length === 0) {
+            throw new ValidationError('El nombre es obligatorio y debe ser una cadena no vacía');
+        }
+
         const data = await CinemasService.createCinema(body, session?.userId);
         return this.created(data, 'Sucursal registrada exitosamente');
     }
@@ -28,6 +38,11 @@ class CinemasController extends ControllerBase {
         const { id } = this.getParams();
         const body = this.getBody();
         const session = this.getSession<any>();
+
+        if (body.name !== undefined && (!body.name || typeof body.name !== 'string' || body.name.trim().length === 0)) {
+            throw new ValidationError('El nombre debe ser una cadena no vacía');
+        }
+
         const data = await CinemasService.updateCinema(Number(id), body, session?.userId);
         return this.updated(data, 'Sucursal actualizada exitosamente');
     }

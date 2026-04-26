@@ -1,34 +1,29 @@
 meta {
-  name: Create Room
+  name: Create Room Projection Type
   type: http
-  seq: 12
+  seq: 6
 }
 
 post {
-  url: {{baseUrl}}/admin/rooms
+  url: {{baseUrl}}/rooms/{{testRoomId}}/projection-types
   body: json
   auth: bearer
 }
 
 body:json {
   {
-    "cinema": 1,
-    "name": "Test Room Bruno",
-    "grid_rows": 8,
-    "grid_columns": 12,
-    "total_capacity": 96,
-    "status": 1
+    "projection_type": 1
   }
 }
 
 auth:bearer {
-  token: AT
+  token: {{accessToken}}
 }
 
 script:post-response {
   const resBody = res.getBody();
   if (res.getStatus() === 201 && resBody && resBody.data && resBody.data.id) {
-    bru.setEnvVar('testRoomId', resBody.data.id);
+    bru.setEnvVar('testRoomProjectionTypeId', resBody.data.id);
   }
 }
 
