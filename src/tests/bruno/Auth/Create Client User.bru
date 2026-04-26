@@ -1,61 +1,24 @@
 meta {
-    name: Create a customer account
-    type: https
-    seq: 1
+  name: Create a customer account
+  type: http
+  seq: 1
 }
 
 post {
-    url: {{baseUrl}}/auth/signup
-    body: json
-    auth: none
+  url: {{baseUrl}}/auth/signup
+  body: json
+  auth: none
 }
 
 body:json {
     {
-        "email": "{{signupEmail}}",
-        "password": "{{signupPassword}}",
+        "email": "",
+        "password": "",
         "documentNumber": "v-12315600",
         "firstName": "test firstname",
         "lastName": "test lastname",
         "gender": 1,
         "birthDate": "2001-01-01",
         "phoneNumber": "12345678900"
-    }
-}
-
-script:pre-request {
-    // 1. Extraemos los valores del entorno o usamos un fallback por defecto
-    const targetEmail = bru.getEnvVar("signupEmail") || bru.getEnvVar("testEmail") || "example@example.example"; 
-    const targetPassword = bru.getEnvVar("signupPassword") || bru.getEnvVar("testPassword") || "example12345678*";
-
-    // 2. Asignamos el resultado a las variables temporales que consumirá el JSON
-    bru.setVar("signupEmail", targetEmail);
-    bru.setVar("signupPassword", targetPassword);
-}
-
-script:post-response {
-    // 1. Obtener los datos de la respuesta (Response)
-    const resBody = res.getBody();
-    const resStatus = res.getStatus();
-
-    // 2. Obtener los datos de la solicitud enviada (Request)
-    const reqBody = req.getBody();
-
-    // Solo guardamos variables si la petición fue exitosa (HTTP 2xx)
-    if (200 <= resStatus && resStatus <= 299 && resBody && resBody.data) {
-        
-        // Guardar tokens de la respuesta
-        if (resBody.data.accessToken)
-            bru.setEnvVar("accessToken", resBody.data.accessToken);
-        
-        if (resBody.data.refreshToken)
-            bru.setEnvVar("refreshToken", resBody.data.refreshToken);
-
-        // Sustituir variables de prueba continua con los datos ingresados en el último registro.
-        if (reqBody && reqBody.email)
-            bru.setEnvVar("email", reqBody.email);
-            
-        if (reqBody && reqBody.password)
-            bru.setEnvVar("password", reqBody.password);
     }
 }

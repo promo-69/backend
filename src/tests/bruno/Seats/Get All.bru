@@ -1,0 +1,15 @@
+meta {
+  name: Get All Seats
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/seats
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

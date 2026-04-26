@@ -1,17 +1,17 @@
 meta {
-  name: Refresh Session
+  name: Logout
   type: http
-  seq: 5
+  seq: 7
 }
 
 post {
-  url: {{baseUrl}}/auth/refresh
-  body: json
+  url: {{baseUrl}}/auth/logout
+  body: none
   auth: bearer
 }
 
 auth:bearer {
-  token: {{refreshToken}}
+  token: {{accessToken}}
 }
 
 script:post-response {
@@ -19,13 +19,12 @@ script:post-response {
     const resBody = res.getBody();
     const resStatus = res.getStatus();
 
-    // Solo guardamos variables si la petición fue exitosa (HTTP 2xx)
+    // Solo eliminamos variables si la petición fue exitosa (HTTP 2xx)
     if (200 <= resStatus && resStatus <= 299 && resBody && resBody.data) {
-        // Guardar tokens de la respuesta
         if (resBody.data.accessToken)
-            bru.setEnvVar("accessToken", resBody.data.accessToken);
+            bru.setEnvVar("accessToken", "");
 
         if (resBody.data.refreshToken)
-            bru.setEnvVar("refreshToken", resBody.data.refreshToken);
+            bru.setEnvVar("refreshToken", "");
     }
 }
