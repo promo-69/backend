@@ -36,7 +36,7 @@ export default class UsersModel extends SequelizeModelBase {
 			},
 			signup_code: {
 				allowNull: true,
-				type: DataTypes.STRING(20),
+				type: DataTypes.STRING(60),
 			},
 			signup_verified_at: {
 				allowNull: true,

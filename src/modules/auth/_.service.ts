@@ -115,7 +115,7 @@ export class AuthService extends BaseService {
 		return { user: payload, accessToken, refreshToken };
 	}
 
-	async registerUser(signupBody: CustomerSignupBody) {
+	async registerUser(signupBody: CustomerSignupBody): Promise<void> {
 		const { firstName, lastName, email, phoneNumber, documentNumber, gender, birthDate, password } = signupBody;
 		const person = { firstName, lastName, email, phoneNumber, documentNumber, gender, birthDate };
 		const user = { email, password };
@@ -166,7 +166,7 @@ export class AuthService extends BaseService {
 						user_type: 2, // Por defecto usuario de tipo "cliente"
 						password: await BcryptUtil.hash(user.password),
 						person: createdPerson.id,
-						signup_code: signupCode,
+						signup_code: await BcryptUtil.hash(signupCode),
 					},
 					{ transaction },
 				);
@@ -182,10 +182,6 @@ export class AuthService extends BaseService {
 			// Solo loguear en caso de fallo, ya que el usuario se ha creado correctamente
 			Logger.error('Error al enviar el correo de verificación:', err);
 		});
-
-		return {
-			message: 'Usuario registrado exitosamente. Por favor verifica tu correo electrónico con el código enviado.',
-		};
 	}
 
 	async authenticateUser({ email, password }: LoginBody, device?: string): Promise<LoginResponse> {
@@ -199,8 +195,16 @@ export class AuthService extends BaseService {
 			throw new AuthError('Las credenciales no son correctas', { code: 'INVALID_LOGIN' });
 
 		if (!foundUser.signup_verified_at) {
+			const signupCode = nanoid(20);
+			await this._users.update(
+				{ id: foundUser.id },
+				{
+					signup_code: await BcryptUtil.hash(signupCode),
+				},
+			);
+
 			// Enviar correo de verificación de forma asíncrona
-			emailService.sendVerificationCode(email, foundUser.signup_code as string).catch((err) => {
+			emailService.sendVerificationCode(email, signupCode).catch((err) => {
 				// Solo loguear en caso de fallo, ya que el usuario se ha creado correctamente
 				Logger.error('Error al enviar el correo de verificación:', err);
 			});
@@ -228,7 +232,7 @@ export class AuthService extends BaseService {
 		return loginResponse;
 	}
 
-	async verifySignupCode(email: string, code: string | number, device?: string): Promise<LoginResponse> {
+	async verifySignupCode(email: string, code: string | number, device?: string): Promise<void> {
 		if (!email || !code) throw new ValidationError('El email y código son requeridos', []);
 
 		const foundUser = await this._users.getByEmail(email);
@@ -237,7 +241,7 @@ export class AuthService extends BaseService {
 		if (foundUser.signup_verified_at)
 			throw new AuthError('La cuenta ya se encuentra verificada', { code: 'ACCOUNT_ALREADY_VERIFIED' });
 
-		if (foundUser.signup_code !== String(code))
+		if (!(await BcryptUtil.compare(code as string, foundUser.signup_code)))
 			throw new AuthError('El código de verificación es inválido', { code: 'INVALID_VERIFICATION_CODE' });
 
 		await this._users.update(
@@ -253,23 +257,6 @@ export class AuthService extends BaseService {
 		emailService.sendWelcomeEmail(foundUser.email, foundUser._People.first_name).catch((err) => {
 			Logger.error('Error al enviar correo de bienvenida:', err);
 		});
-
-		// Una vez verificado, lo autenticamos y le devolvemos su sesión
-		const loginResponse = await this._buildLoginResponse(foundUser);
-		const decodedToken = JWTUtil.decodeToken(loginResponse.refreshToken) as { jti?: string; exp?: number };
-
-		if (decodedToken && decodedToken.jti && decodedToken.exp) {
-			await this._usersLogins.create({
-				user: foundUser.id,
-				device: device || 'Unknown Device',
-				jti: decodedToken.jti,
-				expires_at: new Date(decodedToken.exp * 1000),
-				token_status: 1,
-				status: 1,
-			});
-		}
-
-		return loginResponse;
 	}
 
 	async refreshUserSession(currentToken: string | null, device?: string) {
