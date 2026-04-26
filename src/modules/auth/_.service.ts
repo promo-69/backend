@@ -166,7 +166,7 @@ export class AuthService extends BaseService {
 						user_type: 2, // Por defecto usuario de tipo "cliente"
 						password: await BcryptUtil.hash(user.password),
 						person: createdPerson.id,
-						signup_code: signupCode,
+						signup_code: await BcryptUtil.hash(signupCode),
 					},
 					{ transaction },
 				);
@@ -237,7 +237,7 @@ export class AuthService extends BaseService {
 		if (foundUser.signup_verified_at)
 			throw new AuthError('La cuenta ya se encuentra verificada', { code: 'ACCOUNT_ALREADY_VERIFIED' });
 
-		if (foundUser.signup_code !== String(code))
+		if (!(await BcryptUtil.compare(code as string, foundUser.signup_code)))
 			throw new AuthError('El código de verificación es inválido', { code: 'INVALID_VERIFICATION_CODE' });
 
 		await this._users.update(
