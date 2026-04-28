@@ -1,22 +1,20 @@
 meta {
-  name: Delete Cinema
+  name: Get Cartelera Movies
   type: http
-  seq: 5
+  seq: 3
 }
 
-delete {
-  url: {{baseUrl}}/admin/cinemas/{{cinemaId}}
+get {
+  url: {{baseUrl}}/movies/cartelera
   body: none
   auth: bearer
 }
 
 auth:bearer {
-  token: AT
+  token: {{accessToken}}
 }
 
 script:pre-request {
   const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
-  const cinemaId = bru.getEnvVar('testCinemaId') || '1';
   bru.setVar('baseUrl', baseUrl);
-  bru.setVar('cinemaId', cinemaId);
 }

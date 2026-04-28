@@ -1,21 +1,27 @@
 meta {
-  name: Update Movies
+  name: Update Movie
   type: http
-  seq: 4
+  seq: 5
 }
 
 put {
-  url: {{baseUrl}}/movies/1
+  url: {{baseUrl}}/movies/{{testMovieId}}
   body: json
   auth: bearer
+}
+
+body:json {
+  {
+    "synopsis": "Updated Bruno movie synopsis.",
+    "lifecycle_state": 3
+  }
 }
 
 auth:bearer {
   token: {{accessToken}}
 }
 
-body:json {
-  {
-    "example_field": "updated_value"
-  }
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  bru.setVar('baseUrl', baseUrl);
 }

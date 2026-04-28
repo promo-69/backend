@@ -1,7 +1,7 @@
 meta {
-  name: Create Movies
+  name: Create Movie
   type: http
-  seq: 3
+  seq: 1
 }
 
 post {
@@ -10,12 +10,31 @@ post {
   auth: bearer
 }
 
+body:json {
+  {
+    "title": "Test Movie Bruno",
+    "duration_minutes": 120,
+    "age_classification": 1,
+    "lifecycle_state": 2,
+    "synopsis": "A movie created during Bruno test execution.",
+    "trailer_url": "https://example.com/trailer.mp4",
+    "release_date": "2026-04-09",
+    "genres": [1]
+  }
+}
+
 auth:bearer {
   token: {{accessToken}}
 }
 
-body:json {
-  {
-    "example_field": "example_value"
+script:post-response {
+  const resBody = res.getBody();
+  if (res.getStatus() === 201 && resBody && resBody.data && resBody.data.movie_id) {
+    bru.setEnvVar('testMovieId', resBody.data.movie_id);
   }
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  bru.setVar('baseUrl', baseUrl);
 }

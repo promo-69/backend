@@ -1,22 +1,20 @@
 meta {
-  name: Get Room By ID
+  name: Delete Room Projection Type
   type: http
-  seq: 13
+  seq: 8
 }
 
-get {
-  url: {{baseUrl}}/admin/rooms/{{roomId}}
+delete {
+  url: {{baseUrl}}/rooms/{{testRoomId}}/projection-types/{{testRoomProjectionTypeId}}
   body: none
   auth: bearer
 }
 
 auth:bearer {
-  token: AT
+  token: {{accessToken}}
 }
 
 script:pre-request {
   const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
-  const roomId = bru.getEnvVar('testRoomId') || '1';
   bru.setVar('baseUrl', baseUrl);
-  bru.setVar('roomId', roomId);
 }

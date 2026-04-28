@@ -1,17 +1,17 @@
 meta {
-  name: Get Cartelera Movies
+  name: Get Room Projection Types
   type: http
-  seq: 9
+  seq: 7
 }
 
 get {
-  url: {{baseUrl}}/admin/movies/cartelera
+  url: {{baseUrl}}/rooms/{{testRoomId}}/projection-types
   body: none
   auth: bearer
 }
 
 auth:bearer {
-  token: AT
+  token: {{accessToken}}
 }
 
 script:pre-request {
