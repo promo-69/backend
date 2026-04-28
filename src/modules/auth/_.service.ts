@@ -1,6 +1,6 @@
 import { BaseService } from '@bases/service.base.js';
 import { Database } from '@database/index.js';
-import { AuthError, DatabaseError, ValidationError } from '@errors';
+import { AuthError, ValidationError } from '@errors';
 import { Transaction } from 'sequelize';
 import { ExceptionPermissions } from '@rules/permission-exceptions.type.js';
 import { BcryptUtil } from '@utils/bcrypt.util.js';
@@ -48,14 +48,14 @@ export class AuthService extends BaseService {
 	private get _people() {
 		return Database.repository('main', 'people') as any;
 	}
-	private get _roles() {
-		return Database.repository('main', 'roles') as any;
-	}
 	private get _permisos() {
 		return Database.repository('main', 'permissions') as any;
 	}
 	private get _usersLogins() {
 		return Database.repository('main', 'users-logins') as any;
+	}
+	private get _cacheClient() {
+		return CacheDatabaseProvider.getInstance().client;
 	}
 
 	private parsePermissions(permissions: any[]): string[] {
@@ -282,7 +282,7 @@ export class AuthService extends BaseService {
 		if (!loginRecord || loginRecord.token_status === 2 || loginRecord.status === 2)
 			throw new AuthError('Sesión invalidada.', { code: 'REVOKED_SESSION' });
 
-		const foundUser = await this.findUserById(savedSession.userId);
+		const foundUser = await this._users.getFull(savedSession.userId);
 		if (!foundUser || foundUser.status !== 1)
 			throw new AuthError('El usuario no existe o está inactivo.', { code: 'USER_INACTIVE' });
 
@@ -326,10 +326,6 @@ export class AuthService extends BaseService {
 	}
 
 	// --- Password Reset ---
-
-	private get _cacheClient() {
-		return CacheDatabaseProvider.getInstance().client;
-	}
 
 	async forgotPassword(email: string): Promise<{ message: string }> {
 		if (!email) throw new ValidationError('El correo electrónico es requerido', []);
@@ -408,64 +404,6 @@ export class AuthService extends BaseService {
 		await this._usersLogins.update({ user: foundUser.id, status: 1 }, { status: 2, token_status: 2 });
 
 		return { message: 'Tu contraseña ha sido restablecida exitosamente. Ahora puedes iniciar sesión.' };
-	}
-
-	// --- Users ---
-
-	async findAllUsers(filters?: any) {
-		return this._users.getAllFull(filters);
-	}
-
-	async findUserById(id: number) {
-		return this._users.getFull(id);
-	}
-
-	async createUser(userData: any) {
-		return this._users.create(userData);
-	}
-
-	// --- Roles ---
-
-	async findAllRoles(filters?: any) {
-		return this._roles.getAllFull(filters);
-	}
-
-	async findRoleById(id: number) {
-		return this._roles.getFull(id);
-	}
-
-	// --- Permissions ---
-
-	async findAllPermissions(filters?: any) {
-		return this._permisos.getAllFull(filters);
-	}
-
-	async findPermissionById(id: number) {
-		return this._permisos.getFull(id);
-	}
-
-	async updateProfile(userId: number, body: Record<string, any>) {
-		const { phone_number, birth_date, first_name, last_name } = body;
-
-		// Bloquear explícitamente cambios de email y password
-		if ('email' in body || 'password' in body || 'personal_email' in body)
-			throw new ValidationError('El email y la contraseña no se pueden modificar desde este endpoint', []);
-
-		const user = await this._users.getFull(userId);
-		if (!user || user.status !== 1) throw new AuthError('Usuario no encontrado o inactivo');
-
-		const updateData: Record<string, any> = {};
-		if (phone_number !== undefined) updateData.phone_number = phone_number;
-		if (birth_date !== undefined) updateData.birth_date = birth_date;
-		if (first_name !== undefined) updateData.first_name = first_name;
-		if (last_name !== undefined) updateData.last_name = last_name;
-
-		if (Object.keys(updateData).length === 0)
-			throw new ValidationError('No se proporcionaron datos para actualizar', []);
-
-		await this._people.update(user.person, updateData);
-
-		return null;
 	}
 }
 

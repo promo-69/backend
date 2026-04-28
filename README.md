@@ -9,6 +9,7 @@ Este repositorio contiene la lógica de servidor, la arquitectura de base de dat
 ## Stack Tecnológico
 
 - **Entorno de ejecución:** Node.js
+- **Gestor de Paquetes:** Yarn
 - **Framework:** Express.js (Vanilla)
 - **Lenguaje:** Superset TypeScript
 - **Base de Datos:** PostgreSQL
