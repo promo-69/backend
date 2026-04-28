@@ -1,0 +1,301 @@
+/catalogs/{catalogName}/metadata:
+    get:
+        summary: Obtener metadatos del catálogo
+        description: |
+            Retorna el esquema (columnas, tipos, restricciones, etiquetas UI) de un catálogo específico.
+            Útil para Frontend para construir formularios dinámicos.
+        tags:
+            - Catalogs (Metadata)
+        parameters:
+            - name: catalogName
+              in: path
+              required: true
+              schema:
+                  type: string
+              description: Nombre del catálogo (ej. `genres`, `age-classifications`, `projection-types`)
+        responses:
+            '200':
+                description: Esquema del catálogo
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            additionalProperties:
+                                type: object
+                                properties:
+                                    uiLabel:
+                                        type: string
+                                    visible:
+                                        type: boolean
+                                    editable:
+                                        type: boolean
+                                    isRequired:
+                                        type: boolean
+                                    type:
+                                        type: string
+                                        enum: [string, integer, decimal, date, boolean]
+                                    reference:
+                                        type: string
+                                        description: Nombre de la tabla referenciada si es FK
+                            example:
+                                id:
+                                    {
+                                        uiLabel: 'ID',
+                                        visible: false,
+                                        editable: false,
+                                        isRequired: true,
+                                        type: 'integer',
+                                    }
+                                description:
+                                    {
+                                        uiLabel: 'Descripción',
+                                        visible: true,
+                                        editable: true,
+                                        isRequired: true,
+                                        type: 'string',
+                                    }
+                                status:
+                                    {
+                                        uiLabel: 'Estado',
+                                        visible: true,
+                                        editable: true,
+                                        isRequired: true,
+                                        type: 'integer',
+                                    }
+            '400':
+                description: Catálogo no encontrado
+            '500':
+                description: Error interno
+
+/catalogs/{catalogName}:
+    get:
+        summary: Listar registros de un catálogo
+        description: |
+            Retorna los registros activos (status=1) del catálogo, con paginación y posibilidad de incluir asociaciones (ej. _Status).
+            Se puede filtrar por los campos visibles del esquema.
+        tags:
+            - Catalogs (CRUD)
+        parameters:
+            - name: catalogName
+              in: path
+              required: true
+              schema:
+                  type: string
+            - name: page
+              in: query
+              schema:
+                  type: integer
+                  default: 1
+            - name: limit
+              in: query
+              schema:
+                  type: integer
+                  default: 10
+            - name: include
+              in: query
+              schema:
+                  type: boolean
+                  default: false
+              description: Si es `true`, incluye relaciones (ej. `_Status`, `_People` según el modelo)
+            - name: q
+              in: query
+              schema:
+                  type: string
+              description: Búsqueda global (si el repositorio la soporta)
+            - name: filters
+              in: query
+              description: Filtros por campo (ej. `?status=1&description=Acción`). Se aplican según la visibilidad del campo.
+              style: form
+              explode: true
+        responses:
+            '200':
+                description: Lista paginada de registros
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                rows:
+                                    type: array
+                                    items:
+                                        type: object
+                                        additionalProperties: true
+                                count:
+                                    type: integer
+                                totalPages:
+                                    type: integer
+                                currentPage:
+                                    type: integer
+            '400':
+                description: Catálogo no encontrado
+            '500':
+                description: Error interno
+
+    post:
+        summary: Crear un nuevo registro en el catálogo
+        description: |
+            Crea un registro en la tabla del catálogo. El cuerpo debe cumplir con el esquema (campos requeridos, tipos, etc.).
+            Requiere rol de administrador.
+        tags:
+            - Catalogs (CRUD)
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: catalogName
+              in: path
+              required: true
+              schema:
+                  type: string
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        additionalProperties: true
+                    example:
+                        description: 'Acción'
+                        status: 1
+        responses:
+            '201':
+                description: Registro creado
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            additionalProperties: true
+            '400':
+                description: Error de validación (campo faltante, tipo incorrecto, catálogo no existe)
+            '401':
+                description: No autorizado
+            '403':
+                description: Permisos insuficientes
+            '500':
+                description: Error interno
+
+/catalogs/{catalogName}/{id}:
+    get:
+        summary: Obtener un registro por ID
+        description: |
+            Retorna un registro específico del catálogo, con opción de incluir relaciones.
+        tags:
+            - Catalogs (CRUD)
+        parameters:
+            - name: catalogName
+              in: path
+              required: true
+              schema:
+                  type: string
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+            - name: include
+              in: query
+              schema:
+                  type: boolean
+                  default: false
+              description: Si es `true`, incluye relaciones
+        responses:
+            '200':
+                description: Registro encontrado
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            additionalProperties: true
+            '400':
+                description: Catálogo no existe
+            '404':
+                description: Registro no encontrado
+            '500':
+                description: Error interno
+
+    put:
+        summary: Actualizar un registro del catálogo
+        description: |
+            Modifica los campos editables del registro. Requiere rol de administrador.
+        tags:
+            - Catalogs (CRUD)
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: catalogName
+              in: path
+              required: true
+              schema:
+                  type: string
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        additionalProperties: true
+                    example:
+                        description: 'Nueva descripción'
+                        status: 1
+        responses:
+            '200':
+                description: Registro actualizado (retorna el objeto completo)
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            additionalProperties: true
+            '400':
+                description: Error de validación o catálogo inexistente
+            '401':
+                description: No autorizado
+            '403':
+                description: Permisos insuficientes
+            '404':
+                description: Registro no encontrado
+            '500':
+                description: Error interno
+
+    delete:
+        summary: Eliminar un registro (soft delete)
+        description: |
+            Marca el registro como eliminado lógicamente (status=4). Requiere rol de administrador.
+        tags:
+            - Catalogs (CRUD)
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: catalogName
+              in: path
+              required: true
+              schema:
+                  type: string
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '204':
+                description: Eliminado exitosamente (sin contenido)
+            '400':
+                description: Catálogo no existe
+            '401':
+                description: No autorizado
+            '403':
+                description: Permisos insuficientes
+            '404':
+                description: Registro no encontrado
+            '500':
+                description: Error interno
+
+components:
+    securitySchemes:
+        bearerAuth:
+            type: http
+            scheme: bearer
+            bearerFormat: JWT

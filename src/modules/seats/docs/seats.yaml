@@ -1,0 +1,112 @@
+/seats/{id}:
+    patch:
+        summary: Actualizar condición y/o categoría de un asiento
+        description: Permite modificar el estado (ej. poner en mantenimiento) o la categoría (ej. cambiar a VIP) de un asiento específico. Requiere rol de administrador. Verifica que no tenga boletos futuros antes de inhabilitar.
+        tags:
+            - Seats
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+              description: ID único del asiento
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            seat_condition:
+                                type: integer
+                                description: |
+                                    Condición del asiento:
+                                    - `1`: Operativo
+                                    - `2`: Dañado
+                                    - `3`: Mantenimiento
+                            seat_category:
+                                type: integer
+                                description: |
+                                    Categoría del asiento (según catálogo seat_categories):
+                                    - `1`: General
+                                    - `2`: VIP
+                                    - etc.
+                        minProperties: 1
+                        example:
+                            seat_condition: 3
+                            seat_category: 1
+        responses:
+            '200':
+                description: Asiento actualizado correctamente
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                message:
+                                    type: string
+                                data:
+                                    type: null
+            '400':
+                description: Error de validación (ningún campo enviado, o valores inválidos)
+            '401':
+                description: No autorizado
+            '403':
+                description: No tiene permisos (se requiere rol de administrador)
+            '404':
+                description: Asiento no encontrado
+            '409':
+                description: Conflicto - no se puede modificar porque tiene boletos vendidos en funciones futuras
+            '500':
+                description: Error interno del servidor
+
+    delete:
+        summary: Eliminar un asiento (soft delete)
+        description: Marca el asiento como eliminado (status=4). No se permite si tiene boletos vendidos en funciones futuras. Requiere rol SUPER_ADMIN.
+        tags:
+            - Seats
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+              description: ID único del asiento
+        responses:
+            '200':
+                description: Asiento eliminado de la sala
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                message:
+                                    type: string
+                                data:
+                                    type: null
+            '401':
+                description: No autorizado
+            '403':
+                description: Permisos insuficientes (se requiere SUPER_ADMIN)
+            '404':
+                description: Asiento no encontrado
+            '409':
+                description: Conflicto - no se puede eliminar porque tiene boletos vendidos en funciones futuras
+            '500':
+                description: Error interno
+
+components:
+    securitySchemes:
+        bearerAuth:
+            type: http
+            scheme: bearer
+            bearerFormat: JWT
