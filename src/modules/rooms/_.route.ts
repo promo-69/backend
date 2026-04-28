@@ -8,6 +8,10 @@ const router = Router();
 const adminRoles = ['SUPER_ADMIN', 'CINEMA_MANAGER'];
 
 // Salas
+router.get('/', verifySession, roomsController.findAll);
+router.get('/:id/projection-types', verifySession, roomsController.findProjectionTypes);
+router.post('/:id/projection-types', verifySession, roomsController.createProjectionType);
+router.delete('/:id/projection-types/:projectionTypeId', verifySession, roomsController.deleteProjectionType);
 router.get('/:id', verifySession, roomsController.findById);
 router.put('/:id', verifySession, /* verifyRole(adminRoles), */ roomsController.update);
 router.delete('/:id', verifySession, /* verifyRole(['SUPER_ADMIN']), */ roomsController.remove);

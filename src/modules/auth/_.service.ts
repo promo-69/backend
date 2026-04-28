@@ -8,322 +8,403 @@ import { UserSession } from '@rules/api.type.js';
 import { REGEX } from '@constants/regex.constant.js';
 import { convertCase } from '@utils/string-formatters.util.js';
 import { tokenBlacklistService } from '@services/token-blacklist.service.js';
+import { emailService } from '@services/email.service.js';
+import { CacheDatabaseProvider } from '@providers/cache-database.provider.js';
 import JWTUtil, { RefreshTokenPayload } from '@utils/jwt.util.js';
-import jwt from 'jsonwebtoken';
+import { customAlphabet, nanoid } from 'nanoid';
+import { Logger } from '@utils/logger.util.js';
+
+const generateCode = customAlphabet('1234567890', 4);
+const generateToken = customAlphabet('1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', 64);
 
 interface LoginBody {
-    email: string;
-    password: string;
+	email: string;
+	password: string;
 }
 
 interface LoginResponse {
-    user: UserSession;
-    accessToken: string;
-    refreshToken: string;
+	user: UserSession;
+	accessToken: string;
+	refreshToken: string;
 }
 
 interface CustomerSignupBody extends LoginBody {
-    documentNumber: string;
-    firstName: string;
-    lastName: string;
-    gender: string | number;
-    birthDate: string;
-    phoneNumber: string;
+	documentNumber: string;
+	firstName: string;
+	lastName: string;
+	gender: string | number;
+	birthDate: string;
+	phoneNumber: string;
 }
 
 export class AuthService extends BaseService {
-    constructor() {
-        super();
-    }
+	constructor() {
+		super();
+	}
 
-    private get _users() {
-        return Database.repository('main', 'users') as any;
-    }
-    private get _people() {
-        return Database.repository('main', 'people') as any;
-    }
-    private get _roles() {
-        return Database.repository('main', 'roles') as any;
-    }
-    private get _permisos() {
-        return Database.repository('main', 'permissions') as any;
-    }
-    private get _usersLogins() {
-        return Database.repository('main', 'users-logins') as any;
-    }
+	private get _users() {
+		return Database.repository('main', 'users') as any;
+	}
+	private get _people() {
+		return Database.repository('main', 'people') as any;
+	}
+	private get _permisos() {
+		return Database.repository('main', 'permissions') as any;
+	}
+	private get _usersLogins() {
+		return Database.repository('main', 'users-logins') as any;
+	}
+	private get _cacheClient() {
+		return CacheDatabaseProvider.getInstance().client;
+	}
 
-    private parsePermissions(permissions: any[]): string[] {
-        return Array.from(
-            new Set(
-                permissions.map((per) => {
-                    const resource = per._Resources?.code;
-                    const action = per._Actions?.code;
-                    const type = per._PermissionTypes?.code;
-                    return `${type}:${action}:${resource}`;
-                }),
-            ),
-        );
-    }
+	private parsePermissions(permissions: any[]): string[] {
+		return Array.from(
+			new Set(
+				permissions.map((per) => {
+					const resource = per._Resources?.code;
+					const action = per._Actions?.code;
+					const type = per._PermissionTypes?.code;
+					return `${type}:${action}:${resource}`;
+				}),
+			),
+		);
+	}
 
-    // --- Authentication & Sessions ---
+	// --- Authentication & Sessions ---
 
-    private async _buildUserPayload(foundUser: any): Promise<UserSession> {
-        const payload: UserSession = {
-            userId: foundUser.id,
-            email: foundUser.email,
-            documentNumber: foundUser.document_number,
-            firstName: foundUser._People.first_name,
-            lastName: foundUser._People.last_name,
-            personalEmail: foundUser._People?.personal_email,
-            phoneNumber: foundUser._People?.phone_number,
-        };
+	private async _buildUserPayload(foundUser: any): Promise<UserSession> {
+		const payload: UserSession = {
+			userId: foundUser.id,
+			email: foundUser.email,
+			documentNumber: foundUser.document_number,
+			firstName: foundUser._People.first_name,
+			lastName: foundUser._People.last_name,
+			personalEmail: foundUser._People?.personal_email,
+			phoneNumber: foundUser._People?.phone_number,
+		};
 
-        // Encontrar permisos del rol cuando el usuario es de tipo "empleado"
-        if (foundUser.user_type == 1) {
-            const permissionsExceptions: ExceptionPermissions = foundUser._UserPermissions.reduce(
-                (acu: ExceptionPermissions, cur: any) => {
-                    acu[cur.is_granted ? 'granted' : 'revoked'].push(cur.permission);
+		// Encontrar permisos del rol cuando el usuario es de tipo "empleado"
+		if (foundUser.user_type == 1) {
+			const permissionsExceptions: ExceptionPermissions = foundUser._UserPermissions.reduce(
+				(acu: ExceptionPermissions, cur: any) => {
+					acu[cur.is_granted ? 'granted' : 'revoked'].push(cur.permission);
 
-                    return acu;
-                },
-                { granted: [], revoked: [] },
-            );
-            const { rows: permissions } = await this._permisos.getByRolesWithExceptions({
-                roles: [foundUser.role, ...foundUser._Roles._RoleInheritancesChild.map((r: any) => r.parent_role)],
-                exceptions: permissionsExceptions,
-            });
+					return acu;
+				},
+				{ granted: [], revoked: [] },
+			);
+			const { rows: permissions } = await this._permisos.getByRolesWithExceptions({
+				roles: [foundUser.role, ...foundUser._Roles._RoleInheritancesChild.map((r: any) => r.parent_role)],
+				exceptions: permissionsExceptions,
+			});
 
-            payload.roleDesc = foundUser._Roles?.description;
-            payload.roleCode = foundUser._Roles?.code;
-            payload.permissions = this.parsePermissions(permissions);
-        }
+			payload.roleDesc = foundUser._Roles?.description;
+			payload.roleCode = foundUser._Roles?.code;
+			payload.permissions = this.parsePermissions(permissions);
+		}
 
-        return payload;
-    }
+		return payload;
+	}
 
-    private async _buildLoginResponse(sessionData: any): Promise<LoginResponse> {
-        const payload = await this._buildUserPayload(sessionData);
-        const accessToken = JWTUtil.generateToken(payload);
-        const refreshToken = JWTUtil.generateRefreshToken({ userId: sessionData.id });
+	private async _buildLoginResponse(sessionData: any): Promise<LoginResponse> {
+		const payload = await this._buildUserPayload(sessionData);
+		const accessToken = JWTUtil.generateToken(payload);
+		const refreshToken = JWTUtil.generateRefreshToken({ userId: sessionData.id });
 
-        return { user: payload, accessToken, refreshToken };
-    }
+		return { user: payload, accessToken, refreshToken };
+	}
 
-    async registerUser(signupBody: CustomerSignupBody) {
-        const { firstName, lastName, email, phoneNumber, documentNumber, gender, birthDate, password } = signupBody;
-        const person = { firstName, lastName, email, phoneNumber, documentNumber, gender, birthDate };
-        const user = { email, password };
+	async registerUser(signupBody: CustomerSignupBody): Promise<void> {
+		const { firstName, lastName, email, phoneNumber, documentNumber, gender, birthDate, password } = signupBody;
+		const person = { firstName, lastName, email, phoneNumber, documentNumber, gender, birthDate };
+		const user = { email, password };
 
-        if (!password || !documentNumber || !firstName || !lastName || !email || !phoneNumber || !gender || !birthDate)
-            throw new ValidationError('Los datos de registro están incompletos', []);
+		if (!password || !documentNumber || !firstName || !lastName || !email || !phoneNumber || !gender || !birthDate)
+			throw new ValidationError('Los datos de registro están incompletos', []);
 
-        const validations = [
-            { value: email, regex: REGEX.EMAIL, message: 'El correo electrónico no es válido' },
-            {
-                value: password,
-                regex: REGEX.PASSWORD,
-                message:
-                    'La contraseña debe tener entre 8 y 20 caracteres y contener al menos un símbolo especial, una letra y un número',
-            },
-            { value: documentNumber, regex: REGEX.DOCUMENT_NUMBER, message: 'El número de documento no es válido' },
-            { value: firstName, regex: REGEX.PERSON_NAME, message: 'El nombre no es válido' },
-            { value: lastName, regex: REGEX.PERSON_NAME, message: 'El apellido no es válido' },
-            { value: phoneNumber, regex: REGEX.PHONE_NUMBER, message: 'El número de teléfono no es válido' },
-            { value: gender, regex: REGEX.DATABASE_ID, message: 'El género no es válido' },
-            { value: birthDate, regex: REGEX.DATE, message: 'La fecha de nacimiento no es válida' },
-        ];
-        const validated = { good: [] as string[], bad: [] as string[] };
+		const validations = [
+			{ value: email, regex: REGEX.EMAIL, message: 'El correo electrónico no es válido' },
+			{
+				value: password,
+				regex: REGEX.PASSWORD,
+				message:
+					'La contraseña debe tener entre 8 y 20 caracteres y contener al menos un símbolo especial, una letra y un número',
+			},
+			{ value: documentNumber, regex: REGEX.DOCUMENT_NUMBER, message: 'El número de documento no es válido' },
+			{ value: firstName, regex: REGEX.PERSON_NAME, message: 'El nombre no es válido' },
+			{ value: lastName, regex: REGEX.PERSON_NAME, message: 'El apellido no es válido' },
+			{ value: phoneNumber, regex: REGEX.PHONE_NUMBER, message: 'El número de teléfono no es válido' },
+			{ value: gender, regex: REGEX.DATABASE_ID, message: 'El género no es válido' },
+			{ value: birthDate, regex: REGEX.DATE, message: 'La fecha de nacimiento no es válida' },
+		];
+		const validated = { good: [] as string[], bad: [] as string[] };
 
-        for (const validation of validations)
-            validated[!validation.regex.test(String(validation.value)) ? 'bad' : 'good'].push(validation.message);
-        if (validated.bad.length > 0) throw new ValidationError(validated.bad.join('; '), []);
+		for (const validation of validations)
+			validated[!validation.regex.test(String(validation.value)) ? 'bad' : 'good'].push(validation.message);
+		if (validated.bad.length > 0) throw new ValidationError(validated.bad.join('; '), []);
 
-        const foundUser = await this._users.getByEmail(email);
-        if (foundUser) throw new AuthError('El usuario ya existe', { code: 'USER_ALREADY_EXISTS' });
+		const foundUser = await this._users.getByEmail(email);
+		if (foundUser) throw new AuthError('El usuario ya existe', { code: 'USER_ALREADY_EXISTS' });
 
-        const created = await this._people.transaction(async (transaction: Transaction) => {
-            const createdPerson = await this._people.create(
-                Object.fromEntries(
-                    Object.entries(person).map(([key, value]) => [
-                        convertCase(key == 'email' ? 'personal_email' : key, 'pascal', 'snake'),
-                        key == 'gender' ? Number(value) : value,
-                    ]),
-                ),
-                { transaction },
-            );
-            const createdUser = await this._users.create(
-                {
-                    ...user,
-                    user_type: 2, // Por defecto usuario de tipo "cliente"
-                    password: await BcryptUtil.hash(user.password),
-                    person: createdPerson.id,
-                },
-                { transaction },
-            );
+		let created;
+		try {
+			created = await this._people.transaction(async (transaction: Transaction) => {
+				const createdPerson = await this._people.create(
+					Object.fromEntries(
+						Object.entries(person).map(([key, value]) => [
+							convertCase(key == 'email' ? 'personal_email' : key, 'pascal', 'snake'),
+							key == 'gender' ? Number(value) : value,
+						]),
+					),
+					{ transaction },
+				);
+				const signupCode = nanoid(20);
+				const createdUser = await this._users.create(
+					{
+						...user,
+						user_type: 2, // Por defecto usuario de tipo "cliente"
+						password: await BcryptUtil.hash(user.password),
+						person: createdPerson.id,
+						signup_code: await BcryptUtil.hash(signupCode),
+					},
+					{ transaction },
+				);
 
-            return createdUser;
-        });
+				return { createdUser, signupCode };
+			});
+		} catch (error: any) {
+			throw new AuthError('No se pudo completar el registro del usuario', error?.());
+		}
 
-        const newUser = await this.findUserById(created.id);
+		// Enviar correo de verificación de forma asíncrona (sin bloquear la respuesta)
+		emailService.sendVerificationCode(email, created.signupCode).catch((err) => {
+			// Solo loguear en caso de fallo, ya que el usuario se ha creado correctamente
+			Logger.error('Error al enviar el correo de verificación:', err);
+		});
+	}
 
-        return this._buildLoginResponse(newUser);
-    }
+	async authenticateUser({ email, password }: LoginBody, device?: string): Promise<LoginResponse> {
+		if (!email || !password) throw new ValidationError('Las credenciales están incompletas', []);
 
-    async authenticateUser({ email, password }: LoginBody, device?: string): Promise<LoginResponse> {
-        if (!email || !password) throw new ValidationError('Las credenciales están incompletas', []);
+		if (!REGEX.EMAIL.test(email) || !REGEX.PASSWORD.test(password))
+			throw new ValidationError('Las credenciales no son válidas', []);
 
-        if (!REGEX.EMAIL.test(email) || !REGEX.PASSWORD.test(password))
-            throw new ValidationError('Las credenciales no son válidas', []);
+		const foundUser = await this._users.getByEmail(email);
+		if (!foundUser || !(await BcryptUtil.compare(password, foundUser.password)))
+			throw new AuthError('Las credenciales no son correctas', { code: 'INVALID_LOGIN' });
 
-        const foundUser = await this._users.getByEmail(email);
-        if (!foundUser || !(await BcryptUtil.compare(password, foundUser.password)))
-            throw new AuthError('Las credenciales no son correctas', { code: 'INVALID_LOGIN' });
+		if (!foundUser.signup_verified_at) {
+			const signupCode = nanoid(20);
+			await this._users.update(
+				{ id: foundUser.id },
+				{
+					signup_code: await BcryptUtil.hash(signupCode),
+				},
+			);
 
-        const loginResponse = await this._buildLoginResponse(foundUser);
-        const decodedToken = jwt.decode(loginResponse.refreshToken) as { jti?: string; exp?: number };
+			// Enviar correo de verificación de forma asíncrona
+			emailService.sendVerificationCode(email, signupCode).catch((err) => {
+				// Solo loguear en caso de fallo, ya que el usuario se ha creado correctamente
+				Logger.error('Error al enviar el correo de verificación:', err);
+			});
 
-        if (decodedToken && decodedToken.jti && decodedToken.exp) {
-            await this._usersLogins.create({
-                user: foundUser.id,
-                device: device || 'Unknown Device',
-                jti: decodedToken.jti,
-                expires_at: new Date(decodedToken.exp * 1000),
-                token_status: 1,
-                status: 1,
-            });
-        }
+			throw new AuthError(
+				'Cuenta no verificada. Por favor revisa tu correo electrónico y completa la verificación.',
+				{ code: 'UNVERIFIED_ACCOUNT' },
+			);
+		}
 
-        return loginResponse;
-    }
+		const loginResponse = await this._buildLoginResponse(foundUser);
+		const decodedToken = JWTUtil.decodeToken(loginResponse.refreshToken) as { jti?: string; exp?: number };
 
-    async refreshUserSession(currentToken: string | null, device?: string) {
-        if (!currentToken) throw new AuthError('No es posible reiniciar la sesión.');
+		if (decodedToken && decodedToken.jti && decodedToken.exp) {
+			await this._usersLogins.create({
+				user: foundUser.id,
+				device: device || 'Unknown Device',
+				jti: decodedToken.jti,
+				expires_at: new Date(decodedToken.exp * 1000),
+				token_status: 1,
+				status: 1,
+			});
+		}
 
-        let savedSession: RefreshTokenPayload & { jti?: string; exp?: number };
+		return loginResponse;
+	}
 
-        try {
-            savedSession = JWTUtil.verifyRefreshToken<RefreshTokenPayload & { jti?: string; exp?: number }>(
-                currentToken,
-            );
-        } catch (error: any) {
-            throw new AuthError(error.message, { code: 'INVALID_TOKEN' });
-        }
+	async verifySignupCode(email: string, code: string | number, device?: string): Promise<void> {
+		if (!email || !code) throw new ValidationError('El email y código son requeridos', []);
 
-        if (!savedSession.userId || !savedSession.jti)
-            throw new AuthError('Falta identificación en el token.', { code: 'INVALID_TOKEN' });
+		const foundUser = await this._users.getByEmail(email);
+		if (!foundUser) throw new AuthError('Usuario no encontrado', { code: 'USER_NOT_FOUND' });
 
-        const isLockAcquired = await tokenBlacklistService.blacklistTokenAtRefresh(currentToken);
+		if (foundUser.signup_verified_at)
+			throw new AuthError('La cuenta ya se encuentra verificada', { code: 'ACCOUNT_ALREADY_VERIFIED' });
 
-        if (!isLockAcquired) throw new AuthError('Sesión invalidada.', { code: 'INVALID_SESSION' });
+		if (!(await BcryptUtil.compare(code as string, foundUser.signup_code)))
+			throw new AuthError('El código de verificación es inválido', { code: 'INVALID_VERIFICATION_CODE' });
 
-        const loginRecord = await this._usersLogins.getOne({ jti: savedSession.jti });
-        if (!loginRecord || loginRecord.token_status === 2 || loginRecord.status === 2)
-            throw new AuthError('Sesión invalidada.', { code: 'REVOKED_SESSION' });
+		await this._users.update(
+			{ id: foundUser.id },
+			{
+				signup_code: null,
+				signup_verified_at: new Date(),
+				status: 1, // Activado
+			},
+		);
 
-        const foundUser = await this.findUserById(savedSession.userId);
-        if (!foundUser || foundUser.status !== 1)
-            throw new AuthError('El usuario no existe o está inactivo.', { code: 'USER_INACTIVE' });
+		// Enviar correo de bienvenida al confirmar el registro
+		emailService.sendWelcomeEmail(foundUser.email, foundUser._People.first_name).catch((err) => {
+			Logger.error('Error al enviar correo de bienvenida:', err);
+		});
+	}
 
-        const loginResponse = await this._buildLoginResponse(foundUser);
-        const decodedNew = jwt.decode(loginResponse.refreshToken) as { jti?: string; exp?: number };
+	async refreshUserSession(currentToken: string | null, device?: string) {
+		if (!currentToken) throw new AuthError('No es posible reiniciar la sesión.');
 
-        if (decodedNew && decodedNew.jti && decodedNew.exp) {
-            await this._usersLogins.update(
-                { jti: savedSession.jti, user: foundUser.id },
-                {
-                    jti: decodedNew.jti,
-                    expires_at: new Date(decodedNew.exp * 1000),
-                    device: device || loginRecord.device || 'Unknown Device',
-                    updated_at: new Date(),
-                },
-            );
-        }
+		let savedSession: RefreshTokenPayload & { jti?: string; exp?: number };
 
-        return loginResponse;
-    }
+		try {
+			savedSession = JWTUtil.verifyRefreshToken<RefreshTokenPayload & { jti?: string; exp?: number }>(
+				currentToken,
+			);
+		} catch (error: any) {
+			throw new AuthError(error.message, { code: 'INVALID_TOKEN' });
+		}
 
-    /**
-     * Destrucción explícita de credenciales
-     */
-    async logoutUser(accessToken: string | null, refreshToken: string | null): Promise<void> {
-        if (!accessToken && !refreshToken) throw new AuthError('No existen tokens vigentes a invalidar');
+		if (!savedSession.userId || !savedSession.jti)
+			throw new AuthError('Falta identificación en el token.', { code: 'INVALID_TOKEN' });
+		const isLockAcquired = await tokenBlacklistService.blacklistTokenAtRefresh(currentToken);
 
-        const blacklistPromises = [];
+		if (!isLockAcquired) throw new AuthError('Sesión invalidada.', { code: 'INVALID_SESSION' });
+		const loginRecord = await this._usersLogins.getOne({ jti: savedSession.jti });
 
-        let decodedRefresh: any;
-        if (refreshToken) {
-            decodedRefresh = jwt.decode(refreshToken);
-            blacklistPromises.push(tokenBlacklistService.blacklistToken(refreshToken));
-        }
+		if (!loginRecord || loginRecord.token_status === 2 || loginRecord.status === 2)
+			throw new AuthError('Sesión invalidada.', { code: 'REVOKED_SESSION' });
 
-        if (accessToken) blacklistPromises.push(tokenBlacklistService.blacklistToken(accessToken));
+		const foundUser = await this._users.getFull(savedSession.userId);
+		if (!foundUser || foundUser.status !== 1)
+			throw new AuthError('El usuario no existe o está inactivo.', { code: 'USER_INACTIVE' });
 
-        await Promise.all(blacklistPromises);
+		const loginResponse = await this._buildLoginResponse(foundUser);
+		const decodedNew = JWTUtil.decodeToken(loginResponse.refreshToken) as { jti?: string; exp?: number };
 
-        if (decodedRefresh?.jti) await this._usersLogins.update({ jti: decodedRefresh.jti }, { token_status: 2 });
-    }
+		if (decodedNew && decodedNew.jti && decodedNew.exp) {
+			await this._usersLogins.update(
+				{ jti: savedSession.jti, user: foundUser.id },
+				{
+					jti: decodedNew.jti,
+					expires_at: new Date(decodedNew.exp * 1000),
+					device: device || loginRecord.device || 'Unknown Device',
+					updated_at: new Date(),
+				},
+			);
+		}
 
-    // --- Users ---
+		return loginResponse;
+	}
 
-    async findPermissionById(id: number) {
-        return this._permisos.getFull(id);
-    }
+	/**
+	 * Destrucción explícita de credenciales
+	 */
+	async logoutUser(accessToken: string | null, refreshToken: string | null): Promise<void> {
+		if (!accessToken && !refreshToken) throw new AuthError('No existen tokens vigentes a invalidar');
 
-    // --- HU-APP-WEB-04 / HU-APP-MOVIL-04: Actualizar perfil del cliente ---
-    async updateProfile(userId: number, body: Record<string, any>) {
-        const { phone_number, birth_date, first_name, last_name } = body;
+		const blacklistPromises = [];
 
-        // Bloquear explícitamente cambios de email y password
-        if ('email' in body || 'password' in body || 'personal_email' in body)
-            throw new ValidationError('El email y la contraseña no se pueden modificar desde este endpoint', []);
+		let decodedRefresh: any;
+		if (refreshToken) {
+			decodedRefresh = JWTUtil.decodeToken(refreshToken);
+			blacklistPromises.push(tokenBlacklistService.blacklistToken(refreshToken));
+		}
 
-        const user = await this._users.getFull(userId);
-        if (!user || user.status !== 1) throw new AuthError('Usuario no encontrado o inactivo');
+		if (accessToken) blacklistPromises.push(tokenBlacklistService.blacklistToken(accessToken));
 
-        const updateData: Record<string, any> = {};
-        if (phone_number !== undefined) updateData.phone_number = phone_number;
-        if (birth_date !== undefined) updateData.birth_date = birth_date;
-        if (first_name !== undefined) updateData.first_name = first_name;
-        if (last_name !== undefined) updateData.last_name = last_name;
+		await Promise.all(blacklistPromises);
 
-        if (Object.keys(updateData).length === 0)
-            throw new ValidationError('No se proporcionaron datos para actualizar', []);
+		if (decodedRefresh?.jti) await this._usersLogins.update({ jti: decodedRefresh.jti }, { token_status: 2 });
+	}
 
-        await this._people.update(user.person, updateData);
-        return null;
-    }
+	// --- Password Reset ---
 
-    async findAllUsers(filters?: any) {
-        return this._users.getAllFull(filters);
-    }
+	async forgotPassword(email: string): Promise<{ message: string }> {
+		if (!email) throw new ValidationError('El correo electrónico es requerido', []);
 
-    async findUserById(id: number) {
-        return this._users.getFull(id);
-    }
+		const foundUser = await this._users.getByEmail(email);
 
-    async createUser(userData: any) {
-        return this._users.create(userData);
-    }
+		if (foundUser) {
+			const resetCode = generateCode();
+			const ttlSeconds = 10 * 60; // 10 minutos
 
-    // --- Roles ---
+			// Almacenamos el código en caché
+			const key = `auth:reset:code:${email}`;
+			await this._cacheClient.set(key, resetCode, 'EX', ttlSeconds);
 
-    async findAllRoles(filters?: any) {
-        return this._roles.getAllFull(filters);
-    }
+			emailService.sendPasswordResetEmail(email, resetCode).catch((err) => {
+				Logger.error('Error al enviar correo de restablecimiento de contraseña:', err);
+			});
+		}
 
-    async findRoleById(id: number) {
-        return this._roles.getFull(id);
-    }
+		return { message: 'Si el correo está registrado, recibirás un código para restablecer tu contraseña.' };
+	}
 
-    // --- Permissions ---
+	async verifyResetCode(email: string, code: string): Promise<{ resetToken: string }> {
+		if (!email || !code) throw new ValidationError('El correo y el código son requeridos', []);
 
-    async findAllPermissions(filters?: any) {
-        return this._permisos.getAllFull(filters);
-    }
+		const foundUser = await this._users.getByEmail(email);
+		if (!foundUser) throw new AuthError('El código o correo son inválidos', { code: 'INVALID_RESET_CODE' });
 
-    async findPermissionById(id: number) {
-        return this._permisos.getFull(id);
-    }
+		const keyCode = `auth:reset:code:${email}`;
+		const savedCode = await this._cacheClient.get(keyCode);
+
+		if (!savedCode || savedCode !== code)
+			throw new AuthError('El código de verificación no es válido o ha expirado', { code: 'INVALID_RESET_CODE' });
+
+		// Invalidar código
+		await this._cacheClient.del(keyCode);
+
+		// Generar un token más largo para el reset final
+		const resetToken = generateToken();
+		const ttlSeconds = 10 * 60; // 10 minutos
+
+		const keyToken = `auth:reset:token:${email}`;
+		await this._cacheClient.set(keyToken, resetToken, 'EX', ttlSeconds);
+
+		return { resetToken };
+	}
+
+	async resetPassword(email: string, resetToken: string, newPassword: string): Promise<{ message: string }> {
+		if (!email || !resetToken || !newPassword) throw new ValidationError('Todos los campos son requeridos', []);
+
+		if (!REGEX.PASSWORD.test(newPassword))
+			throw new ValidationError(
+				'La contraseña debe tener entre 8 y 20 caracteres y contener al menos un símbolo especial, una letra y un número',
+				[],
+			);
+
+		const foundUser = await this._users.getByEmail(email);
+		if (!foundUser) throw new AuthError('El token o correo son inválidos', { code: 'INVALID_RESET_TOKEN' });
+
+		const keyToken = `auth:reset:token:${email}`;
+		const savedToken = await this._cacheClient.get(keyToken);
+
+		if (!savedToken || savedToken !== resetToken)
+			throw new AuthError('El token de restablecimiento no es válido o ha expirado', {
+				code: 'INVALID_RESET_TOKEN',
+			});
+
+		const hashedPassword = await BcryptUtil.hash(newPassword);
+
+		await this._users.update({ id: foundUser.id }, { password: hashedPassword });
+
+		// Invalidar el token
+		await this._cacheClient.del(keyToken);
+
+		// Opcional: Podríamos invalidar todas las sesiones activas (cerrar sesión en todos los dispositivos)
+		await this._usersLogins.update({ user: foundUser.id, status: 1 }, { status: 2, token_status: 2 });
+
+		return { message: 'Tu contraseña ha sido restablecida exitosamente. Ahora puedes iniciar sesión.' };
+	}
 }
 
 export default new AuthService();

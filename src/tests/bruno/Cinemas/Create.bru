@@ -1,0 +1,37 @@
+meta {
+  name: Create Cinema
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/cinemas
+  body: json
+  auth: bearer
+}
+
+body:json {
+  {
+    "name": "Test Cinema Bruno",
+    "address": "123 Test Ave",
+    "phone": "+1234567890",
+    "openingTime": "09:00",
+    "closingTime": "23:00"
+  }
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+script:post-response {
+  const resBody = res.getBody();
+  if (res.getStatus() === 201 && resBody && resBody.data && resBody.data.id) {
+    bru.setEnvVar('testCinemaId', resBody.data.id);
+  }
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  bru.setVar('baseUrl', baseUrl);
+}

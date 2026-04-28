@@ -19,9 +19,23 @@ class MoviesController extends ControllerBase {
         return this.success(data, 'Película obtenida exitosamente');
     }
 
+    async findInCartelera() {
+        const data = await MoviesService.getBillboard(this.getQueryFilters());
+        return this.success(data, 'Cartelera obtenida exitosamente');
+    }
+
     // POST /api/v1/movies  — HU-OPERATIVA-12/13 admin
     async create() {
         const body = this.getBody();
+
+        this.requireBodyField('title');
+        this.requireBodyField('duration_minutes');
+        this.requireBodyField('age_classification');
+        this.requireBodyField('lifecycle_state');
+        this.requireBodyField('synopsis');
+        this.requireBodyField('release_date');
+        this.requireBodyField('genres');
+
         const data = await MoviesService.createMovie(body);
         return this.created(data, 'Película registrada exitosamente en el catálogo.');
     }

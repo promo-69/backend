@@ -1,0 +1,15 @@
+meta {
+  name: Get Catalog Metadata
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/catalogs/status/metadata
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

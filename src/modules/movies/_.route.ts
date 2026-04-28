@@ -8,6 +8,7 @@ const adminRoles = ['SUPER_ADMIN', 'CINEMA_MANAGER'];
 
 // Públicos (HU-APP-WEB-06, HU-APP-WEB-07)
 router.get('/', optionalAuth, moviesController.findAll);
+router.get('/cartelera', optionalAuth, moviesController.findInCartelera);
 router.get('/:id', optionalAuth, moviesController.findById);
 
 // Admin (HU-OPERATIVA-12, HU-OPERATIVA-13)

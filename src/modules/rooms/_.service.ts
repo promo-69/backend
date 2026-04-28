@@ -170,10 +170,37 @@ export class RoomsService extends BaseService {
     }
 
     // --- Consultas generales ---
-    async findAll(cinemaId: number, filters?: ProcessedQueryFilters) {
+    async findAll(cinemaId?: number, filters?: ProcessedQueryFilters) {
+        if (cinemaId === undefined) {
+            return this._rooms.getAll(filters || {});
+        }
+
         const cinema = await this._cinemas.getFull(cinemaId);
         if (!cinema || cinema.status !== 1) throw new NotFoundError('Sucursal no encontrada');
         return this._rooms.getAllByCinema(cinemaId, filters);
+    }
+
+    async findRoomProjectionTypes(roomId: number, filters?: ProcessedQueryFilters) {
+        return this._roomProjectionTypes.getByRoom(roomId);
+    }
+
+    async findRoomProjectionTypeById(id: number, roomId: number) {
+        const projectionType = await this._roomProjectionTypes.getById(id);
+        return projectionType && projectionType.room === roomId ? projectionType : null;
+    }
+
+    async createRoomProjectionType(roomId: number, projectionTypeData: any) {
+        return this._roomProjectionTypes.create({
+            room: roomId,
+            projection_type: projectionTypeData.projection_type,
+            status: 1,
+        });
+    }
+
+    async deleteRoomProjectionType(id: number, roomId: number) {
+        const projectionType = await this.findRoomProjectionTypeById(id, roomId);
+        if (!projectionType) throw new NotFoundError('RoomProjectionType', id);
+        return this._roomProjectionTypes.update(id, { status: 0 });
     }
 
     async findById(id: number) {
