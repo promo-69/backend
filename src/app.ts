@@ -289,12 +289,18 @@ export class App {
 
 			// @ts-ignore
 			if (typeof import.meta.env !== 'undefined') {
+				// Importamos el base directamente como string
+				// @ts-ignore
+				const baseYamlRaw = (await import('./docs/swagger.yaml?raw')).default;
+				// @ts-ignore
 				const yamlRawModules = import.meta.glob('./modules/**/docs/*.yaml', {
 					query: '?raw',
 					import: 'default',
 					eager: true,
 				});
-				bundledDoc = await buildSwaggerDocs(Object.values(yamlRawModules) as string[]);
+
+				// Pasamos el base y luego los modulares
+				bundledDoc = await buildSwaggerDocs(baseYamlRaw, Object.values(yamlRawModules) as string[]);
 			} else {
 				bundledDoc = await buildSwaggerDocs();
 			}
