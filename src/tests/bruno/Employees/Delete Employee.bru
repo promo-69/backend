@@ -1,0 +1,19 @@
+meta {
+  name: Delete Employee
+  type: http
+  seq: 6
+}
+
+delete {
+  url: {{baseUrl}}/employees/{{testEmployeeId}}
+  auth: bearer
+}
+
+auth:bearer {
+  token: AT
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  bru.setVar('baseUrl', baseUrl);
+}

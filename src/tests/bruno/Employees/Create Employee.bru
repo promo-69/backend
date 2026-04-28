@@ -1,0 +1,41 @@
+meta {
+  name: Create Employee
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/employees
+  body: json
+  auth: bearer
+}
+
+body:json {
+  {
+    "document_number": "BRU123456",
+    "first_name": "Bruno",
+    "last_name": "Test",
+    "employee_code": "BRU-EMP-001",
+    "job_position": 1,
+    "cinema": 1,
+    "start_date": "2026-04-23",
+    "salary_base": 1200.0,
+    "status": 1
+  }
+}
+
+auth:bearer {
+  token: AT
+}
+
+script:post-response {
+  const resBody = res.getBody();
+  if (res.getStatus() === 201 && resBody && resBody.data && resBody.data.id) {
+    bru.setEnvVar('testEmployeeId', resBody.data.id);
+  }
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  bru.setVar('baseUrl', baseUrl);
+}
