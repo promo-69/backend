@@ -51,7 +51,7 @@ export default defineConfig(({ mode }) => {
 			target: 'node18',
 			rollupOptions: {
 				input: path.resolve(__dirname, 'src/index.ts'),
-				external: ['pg', 'sequelize', 'pg-hstore', 'pdfmake', 'pdfmake/src/printer.js'],
+				external: ['pg', 'sequelize', 'pg-hstore', 'pdfmake', 'pdfmake/src/printer.js', 'swagger-ui-express'],
 			},
 		},
 		// SSR Configuration (Force bundle for everything except natively compiled binaries)

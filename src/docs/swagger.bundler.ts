@@ -27,12 +27,13 @@ function findYamlFiles(dir: string, fileList: string[] = []) {
 	return fileList;
 }
 
-export async function buildSwaggerDocs(yamlRawModules?: string[]) {
+export async function buildSwaggerDocs(baseYamlRaw?: string, yamlRawModules?: string[]) {
 	const mainYamlPath = path.join(__dirnameApp, 'swagger.yaml');
 	let baseDoc: any = {};
 
 	try {
-		baseDoc = YAML.load(mainYamlPath) || {};
+		if (baseYamlRaw) baseDoc = YAML.parse(baseYamlRaw);
+		else baseDoc = YAML.load(mainYamlPath) || {};
 	} catch (e) {
 		console.warn('Could not load base swagger.yaml file, proceeding with empty base');
 	}
