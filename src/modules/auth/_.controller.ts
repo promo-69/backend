@@ -37,42 +37,17 @@ class AuthController extends ControllerBase {
 
 	async signup() {
 		const result = await AuthService.registerUser(this.getBody());
-		return this.created(result);
+		return this.created(
+			{},
+			'Usuario registrado exitosamente. Por favor verifica tu correo electrónico con el código enviado.',
+		);
 	}
 
 	async verifySignup() {
 		const { email, code } = this.getBody();
+		const result = await AuthService.verifySignupCode(email, code);
 
-		const {
-			user,
-			accessToken,
-			refreshToken,
-		}: {
-			user: Record<string, any>;
-			accessToken: string;
-			refreshToken: string;
-		} = await AuthService.verifySignupCode(email, code);
-
-		const transport = this._getExpectedTransport();
-
-		if (transport === 'cookie') {
-			const security = AppConfig.load().security;
-			const accessName = security.jwtCookieAccessName || 'AT';
-			const refreshName = security.jwtCookieRefreshName || 'RT';
-
-			this.setCookie(accessName, accessToken, { maxAge: JWTUtil.getAccessExpiresInMs() });
-			this.setCookie(refreshName, refreshToken, {
-				path: '/api/v1/auth/refresh',
-				maxAge: JWTUtil.getRefreshExpiresInMs(),
-			});
-
-			return this.success({ user }, 'Cuenta verificada y autenticada exitosamente');
-		}
-
-		return this.success(
-			{ user, tokens: { accessToken, refreshToken } },
-			'Cuenta verificada y autenticada exitosamente',
-		);
+		return this.success({}, 'Cuenta verificada y autenticada exitosamente');
 	}
 
 	async login() {
@@ -195,61 +170,6 @@ class AuthController extends ControllerBase {
 		const { email, resetToken, newPassword } = this.getBody();
 		const result = await AuthService.resetPassword(email, resetToken, newPassword);
 		return this.success(null, result.message);
-	}
-
-	// --- Users ---
-
-	async findAllUsers() {
-		const data = await AuthService.findAllUsers(this.getQueryFilters());
-		return data;
-	}
-
-	async findUserById() {
-		const { id } = this.getParams();
-		const data = await AuthService.findUserById(Number(id));
-
-		return data;
-	}
-
-	async createUser() {
-		const userData = this.getBody();
-		const data = await AuthService.createUser(userData);
-
-		return data;
-	}
-
-	// --- Roles ---
-
-	async findAllRoles() {
-		const data = await AuthService.findAllRoles(this.getQueryFilters());
-		return data;
-	}
-
-	async findRoleById() {
-		const { id } = this.getParams();
-		const data = await AuthService.findRoleById(Number(id));
-		return data;
-	}
-
-	// --- Permissions ---
-
-	async findAllPermissions() {
-		const data = await AuthService.findAllPermissions(this.getQueryFilters());
-		return data;
-	}
-
-	async findPermissionById() {
-		const { id } = this.getParams();
-		const data = await AuthService.findPermissionById(Number(id));
-		return data;
-	}
-
-	// PATCH /api/v1/auth/profile
-	async updateProfile() {
-		const session = this.getSession<any>();
-		const body = this.getBody();
-		await AuthService.updateProfile(session.userId, body);
-		return this.success(null, 'Perfil actualizado.');
 	}
 }
 
