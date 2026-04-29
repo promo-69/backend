@@ -3,7 +3,7 @@ import usersController from './_.controller.js';
 import { verifySession, verifyRole } from '@middlewares/auth.middleware.js';
 
 const router = Router();
-const adminMiddleware = [verifySession];
+const adminMiddleware = [verifySession, verifyRole(['SUPER_ADMIN'])];
 
 router.post('/admin', ...adminMiddleware, usersController.createAdministrativeAccount);
 router.post('/client', ...adminMiddleware, usersController.createClientAccount);
