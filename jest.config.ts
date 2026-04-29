@@ -23,7 +23,10 @@ const config: JestConfigWithTsJest = {
         '^@errors/(.*)\\.js$': '<rootDir>/src/shared/errors/$1',
         '^@middlewares/(.*)\\.js$': '<rootDir>/src/shared/middlewares/$1',
         '^@utils/(.*)\\.js$': '<rootDir>/src/shared/utils/$1',
+        '^@services/(.*)\\.js$': '<rootDir>/src/shared/services/$1',
+        '^@constants/(.*)\\.js$': '<rootDir>/src/shared/constants/$1',
         '^@providers/(.*)\\.js$': '<rootDir>/src/shared/providers/$1',
+        '^@templates/(.*)\\.js$': '<rootDir>/src/shared/templates/$1',
         '^@tests/(.*)\\.js$': '<rootDir>/tests/$1',
 
         // Modules that do NOT end in .js (just in case)
@@ -42,7 +45,10 @@ const config: JestConfigWithTsJest = {
         '^@errors$': '<rootDir>/src/shared/errors/index.ts',
         '^@middlewares/(.*)$': '<rootDir>/src/shared/middlewares/$1',
         '^@utils/(.*)$': '<rootDir>/src/shared/utils/$1',
+        '^@services/(.*)$': '<rootDir>/src/shared/services/$1',
+        '^@constants/(.*)$': '<rootDir>/src/shared/constants/$1',
         '^@providers/(.*)$': '<rootDir>/src/shared/providers/$1',
+        '^@templates/(.*)$': '<rootDir>/src/shared/templates/$1',
         '^@tests/(.*)$': '<rootDir>/tests/$1',
     },
     transform: {

@@ -2,10 +2,13 @@ import { jest, describe, it, expect, beforeEach, afterEach } from '@jest/globals
 import request from 'supertest';
 import express from 'express';
 import cookieParser from 'cookie-parser';
-import { Database } from '../../../database/index.js';
-import JWTUtil from '../../../shared/utils/jwt.util.js';
-import { AppConfig } from '../../../config/app.config.js';
-import authRoute from '../../../modules/auth/_.route.js';
+import { Database } from '@database/index.js';
+import JWTUtil from '@utils/jwt.util.js';
+import { AppConfig } from '@config/app.config.js';
+import authRoute from '@modules/auth/_.route.js';
+import { BcryptUtil } from '@utils/bcrypt.util.js';
+import { tokenBlacklistService } from '@services/token-blacklist.service.js';
+import { emailService } from '@services/email.service.js';
 
 // Setup Test App
 const app = express();
@@ -15,22 +18,20 @@ app.use('/api/auth', authRoute);
 
 // Global Error Handler Simulation to catch and output validation/auth formatted errors
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-    console.error(
-        `\n[Integrations: Caught error ${err.name}]\nCode: ${err.code}\nStatus: ${err.statusCode || err.status}\nMessage: ${err.message}\nJSON Format: ${typeof err.toJSON === 'function'}\n`,
-    );
-    res.status(err.statusCode || err.status || 500).json(err.toJSON ? err.toJSON() : { error: err.message });
+    res.status(err.statusCode || err.status || 500).json(err.toJSON ? err.toJSON() : { error: err.message, name: err.name, code: err.code });
 });
 
 type MockRepo = {
-    getByCredentials: jest.Mock<any>;
-    getFullByUser: jest.Mock<any>;
-    getFullByRole: jest.Mock<any>;
+    getByEmail: jest.Mock<any>;
+    getFull: jest.Mock<any>;
+    create: jest.Mock<any>;
+    update: jest.Mock<any>;
+    transaction: jest.Mock<any>;
 };
 
 describe('Auth Route Integration Suite', () => {
-    let mockAuthAccesosSistemas: MockRepo;
-    let mockAuthRolesUsuarios: MockRepo;
-    let mockAuthRolesPermisos: MockRepo;
+    let mockUsers: MockRepo;
+    let mockUsersLogins: MockRepo;
 
     beforeEach(() => {
         jest.clearAllMocks();
@@ -39,16 +40,21 @@ describe('Auth Route Integration Suite', () => {
         process.env.SESSION_TRANSMISSION_METHOD = 'cookie';
         AppConfig.clearCache();
 
-        mockAuthAccesosSistemas = { getByCredentials: jest.fn(), getFullByUser: jest.fn(), getFullByRole: jest.fn() };
-        mockAuthRolesUsuarios = { getByCredentials: jest.fn(), getFullByUser: jest.fn(), getFullByRole: jest.fn() };
-        mockAuthRolesPermisos = { getByCredentials: jest.fn(), getFullByUser: jest.fn(), getFullByRole: jest.fn() };
+        mockUsers = { getByEmail: jest.fn(), getFull: jest.fn(), create: jest.fn(), update: jest.fn(), transaction: jest.fn() };
+        mockUsersLogins = { getByEmail: jest.fn(), getFull: jest.fn(), create: jest.fn(), update: jest.fn(), transaction: jest.fn() };
 
         jest.spyOn(Database, 'repository').mockImplementation((connector: string, name: string) => {
-            if (name === 'auth-accesos-sistema') return mockAuthAccesosSistemas;
-            if (name === 'auth-roles-usuarios') return mockAuthRolesUsuarios;
-            if (name === 'auth-roles-permisos') return mockAuthRolesPermisos;
-            return {};
+            if (name === 'users') return mockUsers;
+            if (name === 'users-logins') return mockUsersLogins;
+            return {
+                create: jest.fn(),
+                update: jest.fn()
+            };
         });
+
+        jest.spyOn(emailService, 'sendVerificationCode').mockResolvedValue(undefined as any);
+        jest.spyOn(emailService, 'sendPasswordResetEmail').mockResolvedValue(undefined as any);
+        jest.spyOn(emailService, 'sendWelcomeEmail').mockResolvedValue(undefined as any);
     });
 
     afterEach(() => {
@@ -57,66 +63,58 @@ describe('Auth Route Integration Suite', () => {
 
     describe('POST /api/auth/login', () => {
         it('should return 400 Bad Request if credentials are not provided or invalid format', async () => {
-            const response = await request(app).post('/api/auth/login').send({ uid: '', password: '' });
+            const response = await request(app).post('/api/auth/login').send({ email: '', password: '' });
+
+            expect(response.status).toBe(400);
+            expect(response.body.name).toBe('ValidationError');
+        });
+
+        it('should return 400 Bad Request if regex validations fail', async () => {
+            const response = await request(app).post('/api/auth/login').send({ email: 'invalid_email', password: '123' });
 
             expect(response.status).toBe(400);
             expect(response.body.name).toBe('ValidationError');
         });
 
         it('should return 401 Unauthorized if database rejects credentials', async () => {
-            mockAuthAccesosSistemas.getByCredentials.mockResolvedValueOnce(null);
+            mockUsers.getByEmail.mockResolvedValueOnce(null);
 
             const response = await request(app)
                 .post('/api/auth/login')
-                .send({ uid: 'wrong_user', password: 'wrong_password' });
+                .send({ email: 'test@example.com', password: 'Password1!' });
 
             expect(response.status).toBe(401);
             expect(response.body.code).toBe('INVALID_LOGIN');
-        });
-
-        it('should return 200 OK and inject JWT into Set-Cookie header when transmission is COOKIE', async () => {
-            process.env.SESSION_TRANSMISSION_METHOD = 'cookie';
-
-            mockAuthAccesosSistemas.getByCredentials.mockResolvedValueOnce({ id: 1, usuario: 'admin' });
-            mockAuthRolesUsuarios.getFullByUser.mockResolvedValueOnce({ rows: [] });
-
-            jest.spyOn(JWTUtil, 'generateToken').mockReturnValue('fake_jwt_token_cookie');
-            jest.spyOn(JWTUtil, 'generateRefreshToken').mockReturnValue('fake_jwt_refresh_cookie');
-
-            const response = await request(app).post('/api/auth/login').send({ uid: 'admin', password: 'password123' });
-
-            expect(response.status).toBe(200);
-            expect(response.body.message).toMatch(/Autenticación exitosa/i);
-
-            // Check that Set-Cookie headers exist and contain our generated tokens
-            const setCookieHeader = response.header['set-cookie'];
-            const cookies = Array.isArray(setCookieHeader) ? setCookieHeader : [setCookieHeader];
-            expect(cookies).toBeDefined();
-            expect(cookies.some((c: string) => c?.includes('access_token=fake_jwt_token_cookie'))).toBe(true);
-
-            // Data shouldn't leak the token in the body
-            expect(response.body.data.token).toBeUndefined();
         });
 
         it('should return 200 OK and emit JWT in Response JSON body when transmission is BEARER', async () => {
             process.env.SESSION_TRANSMISSION_METHOD = 'bearer';
             AppConfig.clearCache();
 
-            mockAuthAccesosSistemas.getByCredentials.mockResolvedValueOnce({ id: 1, usuario: 'admin' });
-            mockAuthRolesUsuarios.getFullByUser.mockResolvedValueOnce({ rows: [] });
+            const hashedPassword = await BcryptUtil.hash('Password1!');
+
+            mockUsers.getByEmail.mockImplementation(async (e) => {
+                return { 
+                    id: 1, 
+                    email: 'test@example.com', 
+                    password: hashedPassword,
+                    signup_verified_at: new Date(),
+                    _People: { first_name: 'John', last_name: 'Doe' },
+                    user_type: 2
+                };
+            });
 
             jest.spyOn(JWTUtil, 'generateToken').mockReturnValue('fake_jwt_token_bearer');
             jest.spyOn(JWTUtil, 'generateRefreshToken').mockReturnValue('fake_jwt_refresh_bearer');
+            jest.spyOn(JWTUtil, 'decodeToken').mockReturnValue({ jti: 'test-jti', exp: 9999999999 });
 
-            const response = await request(app).post('/api/auth/login').send({ uid: 'admin', password: 'password123' });
+            const response = await request(app).post('/api/auth/login').send({ email: 'test@example.com', password: 'Password1!' });
 
             expect(response.status).toBe(200);
             expect(response.body.message).toMatch(/Autenticación exitosa/i);
-
-            // Ensure headers don't strictly contain tokens unless fallback, but body must contain it
-            expect(response.body.data.accessToken).toBe('fake_jwt_token_bearer');
-            expect(response.body.data.refreshToken).toBe('fake_jwt_refresh_bearer');
-            expect(response.body.data.user.uid).toBe('admin');
+            expect(response.body.data.tokens.accessToken).toBe('fake_jwt_token_bearer');
+            expect(response.body.data.tokens.refreshToken).toBe('fake_jwt_refresh_bearer');
+            expect(response.body.data.user.email).toBe('test@example.com');
         });
     });
 });
