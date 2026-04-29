@@ -10,6 +10,10 @@ post {
   auth: bearer
 }
 
+auth:bearer {
+  token: {{accessToken}}
+}
+
 body:json {
   {
     "document_number": "BRU123456",
@@ -24,8 +28,9 @@ body:json {
   }
 }
 
-auth:bearer {
-  token: AT
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  bru.setVar('baseUrl', baseUrl);
 }
 
 script:post-response {
@@ -33,9 +38,4 @@ script:post-response {
   if (res.getStatus() === 201 && resBody && resBody.data && resBody.data.id) {
     bru.setEnvVar('testEmployeeId', resBody.data.id);
   }
-}
-
-script:pre-request {
-  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
-  bru.setVar('baseUrl', baseUrl);
 }

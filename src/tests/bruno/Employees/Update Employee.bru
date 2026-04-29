@@ -10,14 +10,14 @@ put {
   auth: bearer
 }
 
+auth:bearer {
+  token: {{accessToken}}
+}
+
 body:json {
   {
     "employee_code": "BRU-EMP-001-UPDATED"
   }
-}
-
-auth:bearer {
-  token: AT
 }
 
 script:pre-request {
