@@ -3,56 +3,48 @@ import { Database } from '../../../database/index.js';
 import AuthService from '../../../modules/auth/_.service.js';
 import JWTUtil from '../../../shared/utils/jwt.util.js';
 import { AuthError, ValidationError } from '../../../shared/errors/index.js';
-import type { QueryResult } from '../../../core/bases/repository.base.js';
-
-// Removed jest.mock for ESM compatibility. Using jest.spyOn below instead.
+import { BcryptUtil } from '../../../shared/utils/bcrypt.util.js';
+import { emailService } from '../../../shared/services/email.service.js';
 
 type MockRepo = {
-    getByCredentials: jest.Mock<any>;
-    getFullByUser: jest.Mock<any>;
-    getAllActive: jest.Mock<any>;
-    getFullByRole: jest.Mock<any>;
-    getAllFull: jest.Mock<any>;
+    getByEmail: jest.Mock<any>;
+    getFull: jest.Mock<any>;
+    create: jest.Mock<any>;
+    update: jest.Mock<any>;
 };
 
 describe('AuthService Suite', () => {
-    let mockAuthAccesosSistemas: MockRepo;
-    let mockAuthRolesUsuarios: MockRepo;
-    let mockAuthRolesPermisos: MockRepo;
+    let mockUsers: MockRepo;
+    let mockUsersLogins: MockRepo;
 
     beforeEach(() => {
         jest.clearAllMocks();
 
-        mockAuthAccesosSistemas = {
-            getByCredentials: jest.fn(),
-            getFullByUser: jest.fn(),
-            getAllActive: jest.fn(),
-            getFullByRole: jest.fn(),
-            getAllFull: jest.fn(),
+        mockUsers = {
+            getByEmail: jest.fn(),
+            getFull: jest.fn(),
+            create: jest.fn(),
+            update: jest.fn()
         };
 
-        mockAuthRolesUsuarios = {
-            getByCredentials: jest.fn(),
-            getFullByUser: jest.fn(),
-            getAllActive: jest.fn(),
-            getFullByRole: jest.fn(),
-            getAllFull: jest.fn(),
-        };
-
-        mockAuthRolesPermisos = {
-            getByCredentials: jest.fn(),
-            getFullByUser: jest.fn(),
-            getAllActive: jest.fn(),
-            getFullByRole: jest.fn(),
-            getAllFull: jest.fn(),
+        mockUsersLogins = {
+            getByEmail: jest.fn(),
+            getFull: jest.fn(),
+            create: jest.fn(),
+            update: jest.fn()
         };
 
         jest.spyOn(Database, 'repository').mockImplementation((connector: string, name: string) => {
-            if (name === 'auth-accesos-sistema') return mockAuthAccesosSistemas;
-            if (name === 'auth-roles-usuarios') return mockAuthRolesUsuarios;
-            if (name === 'auth-roles-permisos') return mockAuthRolesPermisos;
-            return {};
+            if (name === 'users') return mockUsers;
+            if (name === 'users-logins') return mockUsersLogins;
+            return {
+                getByRolesWithExceptions: jest.fn().mockResolvedValue({ rows: [] })
+            };
         });
+
+        jest.spyOn(emailService, 'sendVerificationCode').mockResolvedValue(undefined as any);
+        jest.spyOn(emailService, 'sendPasswordResetEmail').mockResolvedValue(undefined as any);
+        jest.spyOn(emailService, 'sendWelcomeEmail').mockResolvedValue(undefined as any);
     });
 
     afterEach(() => {
@@ -60,81 +52,53 @@ describe('AuthService Suite', () => {
     });
 
     describe('authenticateUser', () => {
-        it('should throw ValidationError if no uid or password are provided', async () => {
-            await expect(AuthService.authenticateUser({ uid: '', password: '' })).rejects.toThrow(ValidationError);
+        it('should throw ValidationError if no email or password are provided', async () => {
+            await expect(AuthService.authenticateUser({ email: '', password: '' })).rejects.toThrow(ValidationError);
         });
 
-        it('should throw ValidationError if uid or password patterns are invalid', async () => {
-            await expect(AuthService.authenticateUser({ uid: 'usr', password: '123' })).rejects.toThrow(
+        it('should throw ValidationError if email or password patterns are invalid', async () => {
+            await expect(AuthService.authenticateUser({ email: 'usr', password: '123' })).rejects.toThrow(
                 ValidationError,
             );
         });
 
         it('should throw AuthError if credentials do not match any user', async () => {
-            mockAuthAccesosSistemas.getByCredentials.mockResolvedValueOnce(null);
+            mockUsers.getByEmail.mockResolvedValueOnce(null);
 
             await expect(
-                AuthService.authenticateUser({ uid: 'valid_user', password: 'valid_password' }),
+                AuthService.authenticateUser({ email: 'valid_user@example.com', password: 'ValidPassword1!' }),
             ).rejects.toThrow(AuthError);
 
-            expect(mockAuthAccesosSistemas.getByCredentials).toHaveBeenCalledWith({
-                usuario: 'valid_user',
-                clave: 'valid_password',
-            });
+            expect(mockUsers.getByEmail).toHaveBeenCalledWith('valid_user@example.com');
         });
 
-        it('should return valid session data dynamically pulling nested permissions via simulated Where clauses', async () => {
-            const fakeSessionObj = {
+        it('should return valid session data for a verified user', async () => {
+            const hashedPassword = await BcryptUtil.hash('ValidPassword1!');
+            const fakeUserObj = {
                 id: 1,
-                empleado_responsable: 10,
-                unidad_administradora: 20,
-                usuario: 'valid_user',
-                _UniAdm: { descripcion: 'Administration' },
-                _Empleados: { cedula: 'V-12345678', nombres: 'John', apellidos: 'Doe' },
+                email: 'valid_user@example.com',
+                document_number: '12345678',
+                password: hashedPassword,
+                signup_verified_at: new Date(),
+                user_type: 2,
+                _People: { first_name: 'John', last_name: 'Doe' },
             };
 
-            const fakeRolesData: QueryResult<{ rol: number; _Roles: { id: number; codigo: string } }> = {
-                rows: [{ rol: 101, _Roles: { id: 101, codigo: 'ADMIN_ROLE' } }],
-            };
-
-            const fakePermissionsData: QueryResult<{
-                _Permisos: {
-                    _Recursos: { codigo: string };
-                    _Acciones: { codigo: string };
-                    _TipPer: { codigo: string };
-                };
-            }> = {
-                rows: [
-                    {
-                        _Permisos: {
-                            _Recursos: { codigo: 'USERS' },
-                            _Acciones: { codigo: 'READ' },
-                            _TipPer: { codigo: 'GRANT' },
-                        },
-                    },
-                ],
-            };
-
-            mockAuthAccesosSistemas.getByCredentials.mockResolvedValueOnce(fakeSessionObj);
-            mockAuthRolesUsuarios.getFullByUser.mockResolvedValueOnce(fakeRolesData);
-            mockAuthRolesPermisos.getFullByRole.mockResolvedValueOnce(fakePermissionsData);
+            mockUsers.getByEmail.mockResolvedValueOnce(fakeUserObj);
 
             jest.spyOn(JWTUtil, 'generateToken').mockReturnValue('mocked_access_token');
             jest.spyOn(JWTUtil, 'generateRefreshToken').mockReturnValue('mocked_refresh_token');
+            jest.spyOn(JWTUtil, 'decodeToken').mockReturnValue({ jti: 'test-jti', exp: 9999999999 });
 
-            const result = await AuthService.authenticateUser({ uid: 'valid_user', password: 'valid_password' });
-
-            // Ensure our Mocks interacted nicely with relational strict interfaces
-            expect(mockAuthRolesUsuarios.getFullByUser).toHaveBeenCalledWith({ usuario: 1 });
-            expect(mockAuthRolesPermisos.getFullByRole).toHaveBeenCalledWith({ rol: 101 });
+            const result = await AuthService.authenticateUser({ email: 'valid_user@example.com', password: 'ValidPassword1!' });
 
             expect(result.accessToken).toBe('mocked_access_token');
             expect(result.refreshToken).toBe('mocked_refresh_token');
             expect(result.user).toMatchObject({
-                id: 1,
-                uid: 'valid_user',
-                roles: [{ id: 101, code: 'ADMIN_ROLE' }],
-                permissions: ['GRANT:READ:USERS'], // The parsed string representation
+                userId: 1,
+                email: 'valid_user@example.com',
+                firstName: 'John',
+                lastName: 'Doe'
             });
         });
     });
