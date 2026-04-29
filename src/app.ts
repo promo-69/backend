@@ -172,7 +172,7 @@ export class App {
 			const interfaceIp = req.headers.host;
 			const welcome = {
 				message: 'Welcome to the API',
-				docs: `See ${this.appConfig.protocol}://${interfaceIp}/api/docs for check the swagger of the API`,
+				docs: `See ${this.appConfig.protocol}://${interfaceIp}${this.appConfig.docs?.path} for check the swagger of the API`,
 				health: `See ${this.appConfig.protocol}://${interfaceIp}/health for check the health of the API`,
 				...(this.appConfig.nodeEnv == 'development'
 					? {
@@ -284,46 +284,52 @@ export class App {
 		this.app.use(`${apiPrefix}/test`, router);
 
 		// Swagger initialization
-		try {
-			let bundledDoc;
+		if (this.appConfig.enableDocs) {
+			try {
+				let bundledDoc;
 
-			// @ts-ignore
-			if (typeof import.meta.env !== 'undefined') {
-				// Importamos el base directamente como string
 				// @ts-ignore
-				const baseYamlRaw = (await import('./docs/swagger.yaml?raw')).default;
-				// @ts-ignore
-				const yamlRawModules = import.meta.glob('./modules/**/docs/*.yaml', {
-					query: '?raw',
-					import: 'default',
-					eager: true,
-				});
+				if (typeof import.meta.env !== 'undefined') {
+					// Importamos el base directamente como string
+					// @ts-ignore
+					const baseYamlRaw = (await import('./docs/swagger.yaml?raw')).default;
+					// @ts-ignore
+					const yamlRawModules = import.meta.glob('./modules/**/docs/*.yaml', {
+						query: '?raw',
+						import: 'default',
+						eager: true,
+					});
 
-				// Pasamos el base y luego los modulares
-				bundledDoc = await buildSwaggerDocs(baseYamlRaw, Object.values(yamlRawModules) as string[]);
-			} else {
-				bundledDoc = await buildSwaggerDocs();
-			}
+					// Pasamos el base y luego los modulares
+					bundledDoc = await buildSwaggerDocs(baseYamlRaw, Object.values(yamlRawModules) as string[]);
+				} else {
+					bundledDoc = await buildSwaggerDocs();
+				}
 
-			this.app.use('/api/docs', swaggerUi.serve, (req: Request, res: Response, next: NextFunction) => {
-				const interfaceIp = req.headers.host;
-				const dynamicSwaggerDoc = { ...bundledDoc };
-				dynamicSwaggerDoc.servers = [
-					{
-						url: `${this.appConfig.protocol}://${interfaceIp}/api/v1`,
-						description: `Servidor actual (${this.appConfig.nodeEnv})`,
+				this.app.use(
+					this.appConfig.docs?.path || '',
+					swaggerUi.serve,
+					(req: Request, res: Response, next: NextFunction) => {
+						const interfaceIp = req.headers.host;
+						const dynamicSwaggerDoc = { ...bundledDoc };
+						dynamicSwaggerDoc.servers = [
+							{
+								url: `${this.appConfig.protocol}://${interfaceIp}/api/v1`,
+								description: this.appConfig.docs?.description,
+							},
+						];
+						swaggerUi.setup(dynamicSwaggerDoc)(req, res, next);
 					},
-				];
-				swaggerUi.setup(dynamicSwaggerDoc)(req, res, next);
-			});
+				);
 
-			Logger.natural(
-				ANSI.success(
-					`[+] Swagger UI loaded at ${ANSI.link(`${this.appConfig.apiBaseUrl}/api/docs`)}${ANSI.getCode('reset')}`,
-				),
-			);
-		} catch (error: any) {
-			Logger.error('Failed to load Swagger UI:', error);
+				Logger.natural(
+					ANSI.success(
+						`[+] Swagger UI loaded at ${ANSI.link(`${this.appConfig.apiBaseUrl}${this.appConfig.docs?.path}`)}${ANSI.getCode('reset')}`,
+					),
+				);
+			} catch (error: any) {
+				new AppError({ ...error, message: `Failed to load Swagger UI: ${error.message}` });
+			}
 		}
 
 		Logger.natural(ANSI.success(`[+] All routes loaded`));
