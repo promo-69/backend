@@ -1,0 +1,354 @@
+/employees:
+    get:
+        summary: Listar empleados
+        description: Retorna una lista de todos los empleados (sin paginación explícita en el servicio, pero se podría añadir). Requiere rol de administrador (`SUPER_ADMIN` o `CINEMA_MANAGER`).
+        tags:
+            - Employees
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: page
+              in: query
+              schema:
+                  type: integer
+                  default: 1
+            - name: limit
+              in: query
+              schema:
+                  type: integer
+                  default: 10
+        responses:
+            '200':
+                description: Lista de empleados
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                rows:
+                                    type: array
+                                    items:
+                                        $ref: '#/components/schemas/Employee'
+                                count:
+                                    type: integer
+            '401':
+                description: No autorizado
+            '403':
+                description: Permisos insuficientes
+            '500':
+                description: Error interno
+
+    post:
+        summary: Crear un nuevo empleado
+        description: |
+            Registra un nuevo empleado. Crea o asocia una persona (por documento), un empleado (código) y un puesto inicial.
+            Requiere rol de administrador (`SUPER_ADMIN` o `CINEMA_MANAGER`).
+        tags:
+            - Employees
+        security:
+            - bearerAuth: []
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        required:
+                            - document_number
+                            - first_name
+                            - last_name
+                            - employee_code
+                            - job_position
+                            - cinema
+                            - start_date
+                        properties:
+                            document_number:
+                                type: string
+                            first_name:
+                                type: string
+                            last_name:
+                                type: string
+                            employee_code:
+                                type: string
+                            job_position:
+                                type: integer
+                                description: ID del puesto (tabla `job_positions`)
+                            cinema:
+                                type: integer
+                                description: ID de sucursal donde trabajará
+                            start_date:
+                                type: string
+                                format: date
+                            end_date:
+                                type: string
+                                format: date
+                                nullable: true
+                            salary_base:
+                                type: number
+                                format: float
+                                nullable: true
+                            gender:
+                                type: integer
+                                description: ID de género
+                            phone_number:
+                                type: string
+                            email:
+                                type: string
+                            birth_date:
+                                type: string
+                                format: date
+        responses:
+            '201':
+                description: Empleado creado exitosamente
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                id:
+                                    type: integer
+                                person:
+                                    type: integer
+                                employee_code:
+                                    type: string
+                                status:
+                                    type: integer
+            '400':
+                description: Error de validación (campos faltantes o inválidos)
+            '401':
+                description: No autorizado
+            '403':
+                description: Permisos insuficientes
+            '500':
+                description: Error interno
+
+/employees/{id}:
+    get:
+        summary: Obtener empleado por ID
+        description: Retorna los detalles de un empleado específico. Requiere rol de administrador.
+        tags:
+            - Employees
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Empleado encontrado
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Employee'
+            '401':
+                description: No autorizado
+            '403':
+                description: Permisos insuficientes
+            '404':
+                description: Empleado no encontrado
+            '500':
+                description: Error interno
+
+    put:
+        summary: Actualizar empleado (solo código)
+        description: |
+            Permite modificar el `employee_code` de un empleado. Otros campos se actualizan a través del cambio de puesto.
+            Requiere rol de administrador.
+        tags:
+            - Employees
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            employee_code:
+                                type: string
+                        minProperties: 1
+        responses:
+            '200':
+                description: Empleado actualizado
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                affectedRows:
+                                    type: integer
+            '400':
+                description: Error de validación (employee_code vacío)
+            '401':
+                description: No autorizado
+            '403':
+                description: Permisos insuficientes
+            '404':
+                description: Empleado no encontrado
+            '500':
+                description: Error interno
+
+    delete:
+        summary: Eliminar empleado (soft delete)
+        description: Marca al empleado como inactivo (status=0). Requiere rol `SUPER_ADMIN`.
+        tags:
+            - Employees
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '204':
+                description: Eliminado exitosamente (sin contenido)
+            '401':
+                description: No autorizado
+            '403':
+                description: Permisos insuficientes
+            '404':
+                description: Empleado no encontrado
+            '500':
+                description: Error interno
+
+/employees/{id}/positions:
+    put:
+        summary: Cambiar puesto de un empleado
+        description: |
+            Finaliza el puesto actual (fija `end_date`) y crea uno nuevo con los datos proporcionados.
+            Requiere rol de administrador (`SUPER_ADMIN` o `CINEMA_MANAGER`).
+        tags:
+            - Employees
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        required:
+                            - job_position
+                            - cinema
+                            - start_date
+                        properties:
+                            job_position:
+                                type: integer
+                                description: ID del nuevo puesto
+                            cinema:
+                                type: integer
+                                description: ID de la sucursal
+                            start_date:
+                                type: string
+                                format: date
+                            end_date:
+                                type: string
+                                format: date
+                                nullable: true
+                            salary_base:
+                                type: number
+                                format: float
+                                nullable: true
+        responses:
+            '201':
+                description: Puesto cambiado exitosamente
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/EmployeePosition'
+            '400':
+                description: Error de validación (campos faltantes o inválidos)
+            '401':
+                description: No autorizado
+            '403':
+                description: Permisos insuficientes
+            '404':
+                description: Empleado, puesto o sucursal no encontrados
+            '500':
+                description: Error interno
+
+components:
+    schemas:
+        Employee:
+            type: object
+            properties:
+                id:
+                    type: integer
+                person:
+                    type: integer
+                employee_code:
+                    type: string
+                status:
+                    type: integer
+                _People:
+                    type: object
+                    properties:
+                        first_name:
+                            type: string
+                        last_name:
+                            type: string
+                        document_number:
+                            type: string
+                        phone_number:
+                            type: string
+                        email:
+                            type: string
+        EmployeePosition:
+            type: object
+            properties:
+                id:
+                    type: integer
+                employee:
+                    type: integer
+                job_position:
+                    type: integer
+                cinema:
+                    type: integer
+                start_date:
+                    type: string
+                    format: date
+                end_date:
+                    type: string
+                    format: date
+                    nullable: true
+                salary_base:
+                    type: number
+                    nullable: true
+                status:
+                    type: integer
+                _JobPosition:
+                    type: object
+                    properties:
+                        name:
+                            type: string
+                        description:
+                            type: string
+                _Cinema:
+                    type: object
+                    properties:
+                        name:
+                            type: string
+
+    securitySchemes:
+        bearerAuth:
+            type: http
+            scheme: bearer
+            bearerFormat: JWT
