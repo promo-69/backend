@@ -6,11 +6,12 @@ meta {
 
 get {
   url: {{baseUrl}}/employees
+  body: none
   auth: bearer
 }
 
 auth:bearer {
-  token: AT
+  token: {{accessToken}}
 }
 
 script:pre-request {

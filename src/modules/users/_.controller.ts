@@ -6,11 +6,18 @@ class UsersController extends ControllerBase {
 		super();
 	}
 
-	async createAccount() {
+	async createAdministrativeAccount() {
 		const payload = this.getBody();
 		await UsersService.createAdministrativeAccount(payload);
 
-		return this.success(null, 'Cuenta de usuario generada exitosamente.');
+		return this.success(null, 'Cuenta administrativa generada exitosamente.');
+	}
+
+	async createClientAccount() {
+		const payload = this.getBody();
+		await UsersService.createClientAccount(payload);
+
+		return this.success(null, 'Cuenta de cliente generada exitosamente.');
 	}
 
 	async changeStatus() {

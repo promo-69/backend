@@ -3,9 +3,10 @@ import usersController from './_.controller.js';
 import { verifySession, verifyRole } from '@middlewares/auth.middleware.js';
 
 const router = Router();
-const adminMiddleware = [verifySession, verifyRole(['ADMINISTRATOR'])];
+const adminMiddleware = [verifySession];
 
-router.post('/', ...adminMiddleware, usersController.createAccount);
+router.post('/admin', ...adminMiddleware, usersController.createAdministrativeAccount);
+router.post('/client', ...adminMiddleware, usersController.createClientAccount);
 router.patch('/:id/status', ...adminMiddleware, usersController.changeStatus);
 
 // --- Roles ---
@@ -19,7 +20,6 @@ router.get('/permissions/:id', ...adminMiddleware, usersController.findPermissio
 // --- Users ---
 router.get('/users', verifySession, usersController.findAllUsers);
 router.get('/users/:id', verifySession, usersController.findUserById);
-router.post('/users', verifySession, usersController.createUser);
 router.patch('/profile', verifySession, usersController.updateProfile);
 
 export default router;

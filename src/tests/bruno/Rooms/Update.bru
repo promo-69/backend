@@ -10,6 +10,10 @@ put {
   auth: bearer
 }
 
+auth:bearer {
+  token: {{accessToken}}
+}
+
 body:json {
   {
     "name": "Test Room Bruno Updated",
@@ -17,8 +21,8 @@ body:json {
   }
 }
 
-auth:bearer {
-  token: {{accessToken}}
+vars:pre-request {
+  testRoomId: 1
 }
 
 script:pre-request {

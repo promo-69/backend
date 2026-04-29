@@ -37,10 +37,17 @@ export class UsersService extends BaseService {
 	}
 
 	async createAdministrativeAccount(payload: any) {
-		const { user_type, employee_id, role_id, email, password, personData } = payload;
+		const { employee_id, role_id, email, password } = payload;
 
-		if (!user_type || !email || !password) {
+		if (!email || !password) {
 			throw new ValidationError('Faltan campos obligatorios para la creación de la cuenta.', []);
+		}
+
+		if (!employee_id || !role_id) {
+			throw new ValidationError(
+				'El ID del empleado y el rol son obligatorios para crear una cuenta de empleado.',
+				[],
+			);
 		}
 
 		const existingUser = await this._users.getByEmail(email);
@@ -50,81 +57,83 @@ export class UsersService extends BaseService {
 
 		const hashedPassword = await BcryptUtil.hash(password);
 
-		if (user_type === 1) {
-			// Empleado
-			if (!employee_id || !role_id) {
-				throw new ValidationError(
-					'El ID del empleado y el rol son obligatorios para crear una cuenta de empleado.',
-					[],
-				);
-			}
+		const employee = await this._employees.getOne({ id: employee_id });
+		if (!employee) {
+			throw new NotFoundError('Empleado', employee_id.toString());
+		}
 
-			const employee = await this._employees.getOne({ id: employee_id });
-			if (!employee) {
-				throw new NotFoundError('Empleado', employee_id.toString());
-			}
+		const createdUser = await this._users.create({
+			user_type: 1,
+			role: role_id,
+			person: employee.person,
+			email,
+			password: hashedPassword,
+			status: 1,
+			signup_verified_at: new Date(),
+		});
 
-			const createdUser = await this._users.create({
-				user_type: 1,
-				role: role_id,
-				person: employee.person,
-				email,
-				password: hashedPassword,
-				status: 1,
-				signup_verified_at: new Date(),
-			});
+		return createdUser;
+	}
+
+	async createClientAccount(payload: any) {
+		const { email, password, personData } = payload;
+
+		if (!email || !password) {
+			throw new ValidationError('Faltan campos obligatorios para la creación de la cuenta.', []);
+		}
+
+		if (!personData || !personData.first_name || !personData.last_name || !personData.document_number) {
+			throw new ValidationError('Los datos de la persona son obligatorios para un cliente.', []);
+		}
+
+		const existingUser = await this._users.getByEmail(email);
+		if (existingUser) {
+			throw new AuthError('El usuario ya existe con este correo', { code: 'USER_ALREADY_EXISTS' });
+		}
+
+		const hashedPassword = await BcryptUtil.hash(password);
+
+		const created = await this._users.transaction(async (transaction: Transaction) => {
+			const createdPerson = await this._people.create(
+				{
+					document_number: personData.document_number,
+					first_name: personData.first_name,
+					last_name: personData.last_name,
+					gender: personData.gender,
+					phone_number: personData.phone_number,
+					personal_email: personData.email || email,
+					birth_date: personData.birth_date,
+					status: 1,
+				},
+				{ transaction },
+			);
+
+			await this._customers.create(
+				{
+					person: createdPerson.id,
+					loyalty_level: 1,
+					level_progress_points: 0,
+					status: 1,
+				},
+				{ transaction },
+			);
+
+			const createdUser = await this._users.create(
+				{
+					user_type: 2,
+					person: createdPerson.id,
+					email,
+					password: hashedPassword,
+					status: 1,
+					signup_verified_at: new Date(),
+				},
+				{ transaction },
+			);
 
 			return createdUser;
-		} else if (user_type === 2) {
-			// Cliente
-			if (!personData || !personData.first_name || !personData.last_name || !personData.document_number) {
-				throw new ValidationError('Los datos de la persona son obligatorios para un cliente.', []);
-			}
+		});
 
-			const created = await this._users.transaction(async (transaction: Transaction) => {
-				const createdPerson = await this._people.create(
-					{
-						document_number: personData.document_number,
-						first_name: personData.first_name,
-						last_name: personData.last_name,
-						gender: personData.gender,
-						phone_number: personData.phone_number,
-						personal_email: personData.email || email,
-						birth_date: personData.birth_date,
-						status: 1,
-					},
-					{ transaction },
-				);
-
-				await this._customers.create(
-					{
-						person: createdPerson.id,
-						loyalty_level: 1,
-						level_progress_points: 0,
-						status: 1,
-					},
-					{ transaction },
-				);
-
-				const createdUser = await this._users.create(
-					{
-						user_type: 2,
-						person: createdPerson.id,
-						email,
-						password: hashedPassword,
-						status: 1,
-						signup_verified_at: new Date(),
-					},
-					{ transaction },
-				);
-
-				return createdUser;
-			});
-
-			return created;
-		} else {
-			throw new ValidationError('Tipo de usuario inválido.', []);
-		}
+		return created;
 	}
 
 	async updateUserStatus(userId: number, status: number) {

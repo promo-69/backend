@@ -10,14 +10,23 @@ post {
   auth: bearer
 }
 
+auth:bearer {
+  token: {{accessToken}}
+}
+
 body:json {
   {
     "projection_type": 1
   }
 }
 
-auth:bearer {
-  token: {{accessToken}}
+vars:pre-request {
+  testRoomId: 1
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  bru.setVar('baseUrl', baseUrl);
 }
 
 script:post-response {
@@ -25,9 +34,4 @@ script:post-response {
   if (res.getStatus() === 201 && resBody && resBody.data && resBody.data.id) {
     bru.setEnvVar('testRoomProjectionTypeId', resBody.data.id);
   }
-}
-
-script:pre-request {
-  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
-  bru.setVar('baseUrl', baseUrl);
 }

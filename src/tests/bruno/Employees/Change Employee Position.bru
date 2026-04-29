@@ -10,6 +10,10 @@ put {
   auth: bearer
 }
 
+auth:bearer {
+  token: {{accessToken}}
+}
+
 body:json {
   {
     "job_position": 2,
@@ -17,10 +21,6 @@ body:json {
     "start_date": "2026-05-01",
     "salary_base": 1400.0
   }
-}
-
-auth:bearer {
-  token: AT
 }
 
 script:pre-request {
