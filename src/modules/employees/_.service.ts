@@ -32,7 +32,9 @@ export class EmployeesService extends BaseService {
     }
 
     async findEmployeeById(id: number) {
-        return this._employees.getById(id);
+        const employee = await this._employees.getById(id);
+        if (!employee) throw new NotFoundError('Employee', id);
+        return employee;
     }
 
     async createEmployee(employeeData: any) {
@@ -110,6 +112,9 @@ export class EmployeesService extends BaseService {
     }
 
     async updateEmployee(id: number, employeeData: any) {
+        const employee = await this._employees.getById(id);
+        if (!employee) throw new NotFoundError('Employee', id);
+
         // Validate fields if provided
         if (employeeData.employee_code !== undefined && !employeeData.employee_code) {
             throw new ValidationError('employee_code cannot be empty');
@@ -119,6 +124,8 @@ export class EmployeesService extends BaseService {
     }
 
     async deleteEmployee(id: number) {
+        const employee = await this._employees.getById(id);
+        if (!employee) throw new NotFoundError('Employee', id);
         return this._employees.update(id, { status: 0 });
     }
 
