@@ -164,10 +164,15 @@ export class EmployeesService extends BaseService {
         }
 
         // End current position if exists
-        const currentPositions = await this._employeePositions.getAll({
+        const currentPositionsResult = await this._employeePositions.getAll({ count: false }, {
             employee: employeeId,
             status: 1,
         });
+
+        const currentPositions = Array.isArray(currentPositionsResult)
+            ? currentPositionsResult
+            : currentPositionsResult?.rows ?? [];
+
         for (const pos of currentPositions) {
             await this._employeePositions.update(pos.id, { end_date: new Date(), status: 4 });
         }
