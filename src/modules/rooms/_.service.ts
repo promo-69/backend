@@ -193,9 +193,9 @@ export class RoomsService extends BaseService {
     async createRoomProjectionType(roomId: number, projectionTypeData: any) {
         await this.findById(roomId);
 
-        const projectionType = projectionTypeData.projection_type;
+        const projectionType = projectionTypeData.projectionType;
         if (!Number.isInteger(projectionType) || projectionType <= 0)
-            throw new ValidationError('projection_type must be a positive integer', ['projection_type']);
+            throw new ValidationError('projectionType must be a positive integer', ['projectionType']);
 
         return this._roomProjectionTypes.create({
             room: roomId,
@@ -208,7 +208,7 @@ export class RoomsService extends BaseService {
         await this.findById(roomId);
         const projectionType = await this.findRoomProjectionTypeById(id, roomId);
         if (!projectionType) throw new NotFoundError('RoomProjectionType', id);
-        return this._roomProjectionTypes.update(id, { status: 0 });
+        return this._roomProjectionTypes.update(id, { status: 4 });
     }
 
     async findById(id: number) {

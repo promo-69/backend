@@ -35,30 +35,30 @@ export class SeatsService extends BaseService {
     // --- HU-OPERATIVA-09 (Manual): Crear asiento individual ---
     async createSeat(
         roomId: number,
-        body: { row_identifier: string; column_number: number; seat_category: number; seat_condition: number },
+        body: { rowIdentifier: string; columnNumber: number; seatCategory: number; seatCondition: number },
     ) {
-        const { row_identifier, column_number, seat_category, seat_condition } = body;
+        const { rowIdentifier, columnNumber, seatCategory, seatCondition } = body;
 
-        this.validateRequired({ row_identifier, column_number, seat_category, seat_condition } as any, [
-            'row_identifier',
-            'column_number',
-            'seat_category',
-            'seat_condition',
+        this.validateRequired({ rowIdentifier, columnNumber, seatCategory, seatCondition } as any, [
+            'rowIdentifier',
+            'columnNumber',
+            'seatCategory',
+            'seatCondition',
         ]);
 
         const room = await this._rooms.getFull(roomId);
         if (!room || room.status !== 1) throw new NotFoundError('Sala no encontrada');
 
-        const existing = await this._seats.getOne({ room: roomId, row_identifier, column_number });
+        const existing = await this._seats.getOne({ room: roomId, row_identifier: rowIdentifier, column_number: columnNumber });
         if (existing)
             throw new ConflictError('Ya existe un asiento en esa posición de la sala', 'SEAT_POSITION_DUPLICATE');
 
         await this._seats.create({
             room: roomId,
-            row_identifier,
-            column_number,
-            seat_category,
-            seat_condition,
+            row_identifier: rowIdentifier,
+            column_number: columnNumber,
+            seat_category: seatCategory,
+            seat_condition: seatCondition,
             status: 1,
         });
 
@@ -66,16 +66,16 @@ export class SeatsService extends BaseService {
     }
 
     // --- HU-OPERATIVA-10 / HU-OPERATIVA-11: Actualizar condición y/o categoría ---
-    async updateSeat(seatId: number, body: { seat_condition?: number; seat_category?: number }) {
-        const { seat_condition, seat_category } = body;
+    async updateSeat(seatId: number, body: { seatCondition?: number; seatCategory?: number }) {
+        const { seatCondition, seatCategory } = body;
 
-        if (seat_condition === undefined && seat_category === undefined)
-            throw new ValidationError('Debe enviar al menos seat_condition o seat_category', []);
+        if (seatCondition === undefined && seatCategory === undefined)
+            throw new ValidationError('Debe enviar al menos seatCondition o seatCategory', []);
 
         await this._getActiveSeat(seatId);
 
         // Si se inhabilita (condición != 1 = activo), verificar tickets futuros
-        if (seat_condition !== undefined && seat_condition !== 1) {
+        if (seatCondition !== undefined && seatCondition !== 1) {
             const hasFuture = await this._hasFutureTickets(seatId);
             if (hasFuture)
                 throw new ConflictError(
@@ -85,8 +85,8 @@ export class SeatsService extends BaseService {
         }
 
         const updateData: any = {};
-        if (seat_condition !== undefined) updateData.seat_condition = seat_condition;
-        if (seat_category !== undefined) updateData.seat_category = seat_category;
+        if (seatCondition !== undefined) updateData.seat_condition = seatCondition;
+        if (seatCategory !== undefined) updateData.seat_category = seatCategory;
 
         await this._seats.update(seatId, updateData);
         return null;

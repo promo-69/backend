@@ -39,32 +39,32 @@ export class EmployeesService extends BaseService {
 
     async createEmployee(employeeData: any) {
         // Validate required fields
-        if (!employeeData.document_number) {
-            throw new ValidationError('document_number is required');
+        if (!employeeData.documentNumber) {
+            throw new ValidationError('documentNumber is required');
         }
-        if (!employeeData.first_name) {
-            throw new ValidationError('first_name is required');
+        if (!employeeData.firstName) {
+            throw new ValidationError('firstName is required');
         }
-        if (!employeeData.last_name) {
-            throw new ValidationError('last_name is required');
+        if (!employeeData.lastName) {
+            throw new ValidationError('lastName is required');
         }
-        if (!employeeData.employee_code) {
-            throw new ValidationError('employee_code is required');
+        if (!employeeData.employeeCode) {
+            throw new ValidationError('employeeCode is required');
         }
-        if (!employeeData.job_position) {
-            throw new ValidationError('job_position is required');
+        if (!employeeData.jobPosition) {
+            throw new ValidationError('jobPosition is required');
         }
         if (!employeeData.cinema) {
             throw new ValidationError('cinema is required');
         }
-        if (!employeeData.start_date) {
-            throw new ValidationError('start_date is required');
+        if (!employeeData.startDate) {
+            throw new ValidationError('startDate is required');
         }
 
         // Check if job_position exists
-        const jobPosition = await this._jobPositions.getById(employeeData.job_position);
+        const jobPosition = await this._jobPositions.getById(employeeData.jobPosition);
         if (!jobPosition) {
-            throw new ValidationError('Invalid job_position');
+            throw new ValidationError('Invalid jobPosition');
         }
 
         // Check if cinema exists
@@ -74,17 +74,17 @@ export class EmployeesService extends BaseService {
         }
 
         // Check if person exists by document_number
-        let person = await this._people.getOne({ document_number: employeeData.document_number });
+        let person = await this._people.getOne({ document_number: employeeData.documentNumber });
         if (!person) {
             // Create person
             const personData = {
-                document_number: employeeData.document_number,
-                first_name: employeeData.first_name,
-                last_name: employeeData.last_name,
+                document_number: employeeData.documentNumber,
+                first_name: employeeData.firstName,
+                last_name: employeeData.lastName,
                 gender: employeeData.gender,
-                phone_number: employeeData.phone_number,
-                email: employeeData.email,
-                birth_date: employeeData.birth_date,
+                phone_number: employeeData.phoneNumber,
+                personal_email: employeeData.email,
+                birth_date: employeeData.birthDate,
                 status: 1,
             };
             person = await this._people.create(personData);
@@ -93,18 +93,18 @@ export class EmployeesService extends BaseService {
         // Create employee
         const employee = await this._employees.create({
             person: person.id,
-            employee_code: employeeData.employee_code,
+            employee_code: employeeData.employeeCode,
             status: 1,
         });
 
         // Create employee position
         await this._employeePositions.create({
             employee: employee.id,
-            job_position: employeeData.job_position,
+            job_position: employeeData.jobPosition,
             cinema: employeeData.cinema,
-            start_date: employeeData.start_date,
-            end_date: employeeData.end_date,
-            salary_base: employeeData.salary_base,
+            start_date: employeeData.startDate,
+            end_date: employeeData.endDate,
+            salary_base: employeeData.salaryBase,
             status: 1,
         });
 
@@ -115,30 +115,34 @@ export class EmployeesService extends BaseService {
         const employee = await this._employees.getById(id);
         if (!employee) throw new NotFoundError('Employee', id);
 
-        // Validate fields if provided
-        if (employeeData.employee_code !== undefined && !employeeData.employee_code) {
-            throw new ValidationError('employee_code cannot be empty');
+        const updateData: Record<string, any> = {};
+
+        if (employeeData.employeeCode !== undefined) {
+            if (!employeeData.employeeCode) {
+                throw new ValidationError('employeeCode cannot be empty');
+            }
+            updateData.employee_code = employeeData.employeeCode;
         }
 
-        return this._employees.update(id, employeeData);
+        return this._employees.update(id, updateData);
     }
 
     async deleteEmployee(id: number) {
         const employee = await this._employees.getById(id);
         if (!employee) throw new NotFoundError('Employee', id);
-        return this._employees.update(id, { status: 0 });
+        return this._employees.update(id, { status: 4 });
     }
 
     async changeEmployeePosition(employeeId: number, positionData: any) {
         // Validate required fields
-        if (!positionData.job_position) {
-            throw new ValidationError('job_position is required');
+        if (!positionData.jobPosition) {
+            throw new ValidationError('jobPosition is required');
         }
         if (!positionData.cinema) {
             throw new ValidationError('cinema is required');
         }
-        if (!positionData.start_date) {
-            throw new ValidationError('start_date is required');
+        if (!positionData.startDate) {
+            throw new ValidationError('startDate is required');
         }
 
         // Check if employee exists
@@ -148,9 +152,9 @@ export class EmployeesService extends BaseService {
         }
 
         // Check if job_position exists
-        const jobPosition = await this._jobPositions.getById(positionData.job_position);
+        const jobPosition = await this._jobPositions.getById(positionData.jobPosition);
         if (!jobPosition) {
-            throw new ValidationError('Invalid job_position');
+            throw new ValidationError('Invalid jobPosition');
         }
 
         // Check if cinema exists
@@ -165,17 +169,17 @@ export class EmployeesService extends BaseService {
             status: 1,
         });
         for (const pos of currentPositions) {
-            await this._employeePositions.update(pos.id, { end_date: new Date(), status: 0 });
+            await this._employeePositions.update(pos.id, { end_date: new Date(), status: 4 });
         }
 
         // Create new position
         const newPosition = await this._employeePositions.create({
             employee: employeeId,
-            job_position: positionData.job_position,
+            job_position: positionData.jobPosition,
             cinema: positionData.cinema,
-            start_date: positionData.start_date,
-            end_date: positionData.end_date,
-            salary_base: positionData.salary_base,
+            start_date: positionData.startDate,
+            end_date: positionData.endDate,
+            salary_base: positionData.salaryBase,
             status: 1,
         });
 
