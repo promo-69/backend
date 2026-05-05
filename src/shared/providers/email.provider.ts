@@ -38,27 +38,36 @@ export class EmailProvider {
 			debug: true,
 		});
 
-		// Verify connection configuration if user and pass are provided
-		if (config.emailProvider.user && config.emailProvider.pass) {
-			this.transporter
-				.verify()
-				.then(() => {
-					Logger.natural(
-						ANSI.success(`[+] Connected to Email Provider (SMTP: ${config.emailProvider.host})`),
-					);
+		try {
+			// Verify connection configuration if user and pass are provided
+			if (config.emailProvider.user && config.emailProvider.pass) {
+				console.log('\nantes de probar el transportador');
+				this.transporter
+					.verify()
+					.then(() => {
+						Logger.natural(
+							ANSI.success(`[+] Connected to Email Provider (SMTP: ${config.emailProvider.host})`),
+						);
 
-					// Iniciar envío de prueba
-					this.sendMail(
-						'pastoralirio6589@gmail.com',
-						'Prueba de conexión',
-						`<h1>Prueba exitosa en entorno ${AppConfig.isProduction() ? 'produccion' : 'desarrollo'}</h1>`,
-					);
-				})
-				.catch((err) => {
-					Logger.error('Email Provider Connection Error:', err);
-				});
-		} else {
-			Logger.warn('Email Provider initialized without credentials. Emails may not send.');
+						// Iniciar envío de prueba
+						this.sendMail(
+							'pastoralirio6589@gmail.com',
+							'Prueba de conexión',
+							`<h1>Prueba exitosa en entorno ${AppConfig.isProduction() ? 'produccion' : 'desarrollo'}</h1>`,
+						);
+					})
+					.catch((err) => {
+						console.log('\nerror caputrado al intentar verificar el transportador');
+						Logger.error('Email Provider Connection Error:', err);
+					});
+				console.log('\ndespues de intentar probar el transportador');
+			} else {
+				console.log('\nSOY MAILERRRRR SIN CREDENCIALES');
+				Logger.warn('Email Provider initialized without credentials. Emails may not send.');
+			}
+		} catch (error) {
+			console.log('\nerror caputrado al inicializar el transportador');
+			Logger.error('Email Provider Initialization Error:', error as Error);
 		}
 	}
 
