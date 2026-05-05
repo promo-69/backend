@@ -1,8 +1,11 @@
 import nodemailer from 'nodemailer';
+import dns from 'dns';
 import { AppConfig } from '@config/app.config.js';
 import { Logger } from '@utils/logger.util.js';
 import { ANSI } from '@utils/ansi.util.js';
 import { nanoid } from 'nanoid';
+
+dns.setDefaultResultOrder('ipv4first');
 
 const EMAIL_PROVIDER_SYMBOL = Symbol.for('global.email.provider');
 
@@ -16,57 +19,39 @@ export class EmailProvider {
 
 		this.fromAddress = config.emailProvider.from;
 
-		console.log('SOY MAILERRRRR', config.emailProvider, ' | ', {
-			host: config.emailProvider.host,
-			port: config.emailProvider.port,
-			secure: config.emailProvider.port === 465, // true for 465, false for other ports
-			auth: {
-				user: config.emailProvider.user,
-				pass: config.emailProvider.pass,
-			},
-			debug: true,
-		});
-
 		this.transporter = nodemailer.createTransport({
 			host: config.emailProvider.host,
 			port: config.emailProvider.port,
-			secure: config.emailProvider.port === 465, // true for 465, false for other ports
+			secure: config.emailProvider.port === 465,
 			auth: {
 				user: config.emailProvider.user,
 				pass: config.emailProvider.pass,
 			},
+			connectionTimeout: 10000,
+			greetingTimeout: 10000,
+			socketTimeout: 10000,
+			logger: true,
 			debug: true,
 		});
 
 		try {
-			// Verify connection configuration if user and pass are provided
 			if (config.emailProvider.user && config.emailProvider.pass) {
-				console.log('\nantes de probar el transportador');
+				console.log('\nIniciando verificacion del transportador...');
+
 				this.transporter
 					.verify()
 					.then(() => {
 						Logger.natural(
 							ANSI.success(`[+] Connected to Email Provider (SMTP: ${config.emailProvider.host})`),
 						);
-
-						// Iniciar envío de prueba
-						this.sendMail(
-							'pastoralirio6589@gmail.com',
-							'Prueba de conexión',
-							`<h1>Prueba exitosa en entorno ${AppConfig.isProduction() ? 'produccion' : 'desarrollo'}</h1>`,
-						);
 					})
 					.catch((err) => {
-						console.log('\nerror caputrado al intentar verificar el transportador');
 						Logger.error('Email Provider Connection Error:', err);
 					});
-				console.log('\ndespues de intentar probar el transportador');
 			} else {
-				console.log('\nSOY MAILERRRRR SIN CREDENCIALES');
-				Logger.warn('Email Provider initialized without credentials. Emails may not send.');
+				Logger.warn('Email Provider initialized without credentials.');
 			}
 		} catch (error) {
-			console.log('\nerror caputrado al inicializar el transportador');
 			Logger.error('Email Provider Initialization Error:', error as Error);
 		}
 	}
