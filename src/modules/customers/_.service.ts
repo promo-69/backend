@@ -16,10 +16,10 @@ export class CustomersService extends BaseService {
     }
 
     // --- Soporte Operativo: Ajuste manual de puntos de lealtad ---
-    async adjustLoyaltyPoints(customerId: number, body: { operation_type: number; points: number }) {
-        const { operation_type, points } = body;
+    async adjustLoyaltyPoints(customerId: number, body: { operationType: number; points: number }) {
+        const { operationType, points } = body;
 
-        this.validateRequired({ operation_type, points } as any, ['operation_type', 'points']);
+        this.validateRequired({ operationType, points } as any, ['operationType', 'points']);
 
         if (!Number.isInteger(points) || points <= 0)
             throw new ValidationError('Los puntos deben ser un entero positivo', ['points']);
@@ -27,8 +27,8 @@ export class CustomersService extends BaseService {
         const customer = await this._customers.getOne({ id: customerId });
         if (!customer || customer.status !== 1) throw new NotFoundError('Cliente no encontrado');
 
-        // operation_type 1 = suma, 2 = resta (según seeder de operation_types)
-        const isIncrement = operation_type === 1;
+        // operationType 1 = suma, 2 = resta (según seeder de operation_types)
+        const isIncrement = operationType === 1;
         const delta = isIncrement ? points : -points;
         const newTotal = (customer.level_progress_points ?? 0) + delta;
 
@@ -38,7 +38,7 @@ export class CustomersService extends BaseService {
                 {
                     customer: customerId,
                     order: null,
-                    operation_type,
+                    operationType,
                     points,
                     status: 1,
                 },

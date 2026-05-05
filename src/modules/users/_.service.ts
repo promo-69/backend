@@ -37,13 +37,13 @@ export class UsersService extends BaseService {
 	}
 
 	async createAdministrativeAccount(payload: any) {
-		const { employee_id, role_id, email, password } = payload;
+		const { employeeId, roleId, email, password } = payload;
 
 		if (!email || !password) {
 			throw new ValidationError('Faltan campos obligatorios para la creación de la cuenta.', []);
 		}
 
-		if (!employee_id || !role_id) {
+		if (!employeeId || !roleId) {
 			throw new ValidationError(
 				'El ID del empleado y el rol son obligatorios para crear una cuenta de empleado.',
 				[],
@@ -57,14 +57,14 @@ export class UsersService extends BaseService {
 
 		const hashedPassword = await BcryptUtil.hash(password);
 
-		const employee = await this._employees.getOne({ id: employee_id });
+		const employee = await this._employees.getOne({ id: employeeId });
 		if (!employee) {
-			throw new NotFoundError('Empleado', employee_id.toString());
+			throw new NotFoundError('Empleado', employeeId.toString());
 		}
 
 		const createdUser = await this._users.create({
 			user_type: 1,
-			role: role_id,
+			role: roleId,
 			person: employee.person,
 			email,
 			password: hashedPassword,
@@ -82,7 +82,7 @@ export class UsersService extends BaseService {
 			throw new ValidationError('Faltan campos obligatorios para la creación de la cuenta.', []);
 		}
 
-		if (!personData || !personData.first_name || !personData.last_name || !personData.document_number) {
+		if (!personData || !personData.firstName || !personData.lastName || !personData.documentNumber) {
 			throw new ValidationError('Los datos de la persona son obligatorios para un cliente.', []);
 		}
 
@@ -96,13 +96,13 @@ export class UsersService extends BaseService {
 		const created = await this._users.transaction(async (transaction: Transaction) => {
 			const createdPerson = await this._people.create(
 				{
-					document_number: personData.document_number,
-					first_name: personData.first_name,
-					last_name: personData.last_name,
+					document_number: personData.documentNumber,
+					first_name: personData.firstName,
+					last_name: personData.lastName,
 					gender: personData.gender,
-					phone_number: personData.phone_number,
+					phone_number: personData.phoneNumber,
 					personal_email: personData.email || email,
-					birth_date: personData.birth_date,
+					birth_date: personData.birthDate,
 					status: 1,
 				},
 				{ transaction },
@@ -214,7 +214,7 @@ export class UsersService extends BaseService {
 	}
 
 	async updateProfile(userId: number, body: Record<string, any>) {
-		const { phone_number, birth_date, first_name, last_name, personal_email } = body;
+		const { phoneNumber, birthDate, firstName, lastName, personalEmail } = body;
 
 		// Bloquear explícitamente cambios de email y password
 		if ('email' in body || 'password' in body)
@@ -227,28 +227,28 @@ export class UsersService extends BaseService {
 		if (!user || user.status !== 1) throw new AuthError('Usuario no encontrado o inactivo');
 
 		const updateData: Record<string, any> = {};
-		if (phone_number !== undefined) {
-			if (!REGEX.PHONE_NUMBER.test(String(phone_number)))
+		if (phoneNumber !== undefined) {
+			if (!REGEX.PHONE_NUMBER.test(String(phoneNumber)))
 				throw new ValidationError('El número de teléfono no es válido', []);
-			updateData.phone_number = phone_number;
+			updateData.phone_number = phoneNumber;
 		}
-		if (birth_date !== undefined) {
-			if (!REGEX.DATE.test(String(birth_date)))
+		if (birthDate !== undefined) {
+			if (!REGEX.DATE.test(String(birthDate)))
 				throw new ValidationError('La fecha de nacimiento no es válida', []);
-			updateData.birth_date = birth_date;
+			updateData.birth_date = birthDate;
 		}
-		if (first_name !== undefined) {
-			if (!REGEX.PERSON_NAME.test(String(first_name))) throw new ValidationError('El nombre no es válido', []);
-			updateData.first_name = first_name;
+		if (firstName !== undefined) {
+			if (!REGEX.PERSON_NAME.test(String(firstName))) throw new ValidationError('El nombre no es válido', []);
+			updateData.first_name = firstName;
 		}
-		if (last_name !== undefined) {
-			if (!REGEX.PERSON_NAME.test(String(last_name))) throw new ValidationError('El apellido no es válido', []);
-			updateData.last_name = last_name;
+		if (lastName !== undefined) {
+			if (!REGEX.PERSON_NAME.test(String(lastName))) throw new ValidationError('El apellido no es válido', []);
+			updateData.last_name = lastName;
 		}
-		if (personal_email !== undefined) {
-			if (!REGEX.EMAIL.test(String(personal_email)))
+		if (personalEmail !== undefined) {
+			if (!REGEX.EMAIL.test(String(personalEmail)))
 				throw new ValidationError('El email personal no es válido', []);
-			updateData.personal_email = personal_email;
+			updateData.personal_email = personalEmail;
 		}
 
 		if (Object.keys(updateData).length === 0)

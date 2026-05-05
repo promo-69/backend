@@ -35,7 +35,7 @@ class CinemasRepository extends SequelizeRepositoryBase<CinemasAttributes, numbe
     }
 
     async getAllFull(filters?: any): Promise<{ rows: CinemaFull[]; count: number }> {
-        return this.getAll({ ...filters, count: true, relations: this._relations }) as Promise<{
+        return this.getAllActive({ ...filters, count: true, relations: this._relations }) as Promise<{
             rows: CinemaFull[];
             count: number;
         }>;
