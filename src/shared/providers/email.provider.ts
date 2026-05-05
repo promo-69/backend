@@ -16,6 +16,17 @@ export class EmailProvider {
 
 		this.fromAddress = config.emailProvider.from;
 
+		console.log('SOY MAILERRRRR', config.emailProvider, ' | ', {
+			host: config.emailProvider.host,
+			port: config.emailProvider.port,
+			secure: config.emailProvider.port === 465, // true for 465, false for other ports
+			auth: {
+				user: config.emailProvider.user,
+				pass: config.emailProvider.pass,
+			},
+			debug: true,
+		});
+
 		this.transporter = nodemailer.createTransport({
 			host: config.emailProvider.host,
 			port: config.emailProvider.port,
@@ -24,6 +35,7 @@ export class EmailProvider {
 				user: config.emailProvider.user,
 				pass: config.emailProvider.pass,
 			},
+			debug: true,
 		});
 
 		// Verify connection configuration if user and pass are provided
