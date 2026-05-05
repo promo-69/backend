@@ -34,6 +34,13 @@ export class EmailProvider {
 					Logger.natural(
 						ANSI.success(`[+] Connected to Email Provider (SMTP: ${config.emailProvider.host})`),
 					);
+
+					// Iniciar envío de prueba
+					this.sendMail(
+						'pastoralirio6589@gmail.com',
+						'Prueba de conexión',
+						`<h1>Prueba exitosa en entorno ${AppConfig.isProduction() ? 'produccion' : 'desarrollo'}</h1>`,
+					);
 				})
 				.catch((err) => {
 					Logger.error('Email Provider Connection Error:', err);

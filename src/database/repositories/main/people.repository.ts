@@ -17,6 +17,10 @@ class PeopleRepository extends SequelizeRepositoryBase<PeopleAttributes, number>
 	constructor() {
 		super(PeopleModel);
 	}
+
+	getByDocumentNumber(documentNumber: string) {
+		return this.getOne({ document_number: documentNumber });
+	}
 }
 
 export default new PeopleRepository();

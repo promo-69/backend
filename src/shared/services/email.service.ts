@@ -27,9 +27,9 @@ class EmailService {
 	/**
 	 * Envía un código de verificación para el registro (signup_code)
 	 */
-	async sendVerificationCode(to: string, token: string): Promise<boolean> {
+	async sendVerificationCode(to: string, userEmail: string, token: string): Promise<boolean> {
 		const subject = `Código de Verificación`;
-		const html = VerificationTokenEmailTemplate(token);
+		const html = VerificationTokenEmailTemplate(userEmail, token);
 		return this.provider.sendMail(to, subject, html);
 	}
 

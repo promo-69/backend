@@ -147,19 +147,26 @@ export class AuthService extends BaseService {
 		const foundUser = await this._users.getByEmail(email);
 		if (foundUser) throw new AuthError('El usuario ya existe', { code: 'USER_ALREADY_EXISTS' });
 
+		const foundUserByDocument = await this._users.getByDocumentNumber(documentNumber);
+		if (foundUserByDocument) throw new AuthError('El usuario ya existe', { code: 'USER_ALREADY_EXISTS' });
+
 		let created;
 		try {
 			created = await this._people.transaction(async (transaction: Transaction) => {
-				const createdPerson = await this._people.create(
-					Object.fromEntries(
-						Object.entries(person).map(([key, value]) => [
-							convertCase(key == 'email' ? 'personal_email' : key, 'pascal', 'snake'),
-							key == 'gender' ? Number(value) : value,
-						]),
-					),
-					{ transaction },
-				);
 				const signupCode = nanoid(20);
+				let createdPerson = await this._people.getByDocumentNumber(documentNumber);
+
+				if (!createdPerson) {
+					createdPerson = await this._people.create(
+						Object.fromEntries(
+							Object.entries(person).map(([key, value]) => [
+								convertCase(key == 'email' ? 'personal_email' : key, 'pascal', 'snake'),
+								key == 'gender' ? Number(value) : value,
+							]),
+						),
+						{ transaction },
+					);
+				}
 				const createdUser = await this._users.create(
 					{
 						...user,
@@ -178,7 +185,7 @@ export class AuthService extends BaseService {
 		}
 
 		// Enviar correo de verificación de forma asíncrona (sin bloquear la respuesta)
-		emailService.sendVerificationCode(email, created.signupCode).catch((err) => {
+		emailService.sendVerificationCode(email, email, created.signupCode).catch((err) => {
 			// Solo loguear en caso de fallo, ya que el usuario se ha creado correctamente
 			Logger.error('Error al enviar el correo de verificación:', err);
 		});
@@ -204,7 +211,7 @@ export class AuthService extends BaseService {
 			);
 
 			// Enviar correo de verificación de forma asíncrona
-			emailService.sendVerificationCode(email, signupCode).catch((err) => {
+			emailService.sendVerificationCode(email, email, signupCode).catch((err) => {
 				// Solo loguear en caso de fallo, ya que el usuario se ha creado correctamente
 				Logger.error('Error al enviar el correo de verificación:', err);
 			});

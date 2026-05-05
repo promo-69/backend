@@ -208,6 +208,8 @@ export class App {
 				for (const pathRoute in routeModules) {
 					const moduleName = pathRoute.split('/')[2]; // Extrae el id de carpeta ./modules/<moduleName>/_.route.ts
 
+					if (moduleName.startsWith('__')) continue;
+
 					try {
 						const module = (await routeModules[pathRoute]()) as any;
 						const routeHandler = module.default;
@@ -244,6 +246,8 @@ export class App {
 					.map((dirent) => dirent.name);
 
 				for (const moduleName of moduleNames) {
+					if (moduleName.startsWith('__')) continue;
+
 					const possibleRoutes = [
 						path.join(modulesPath, moduleName, '_.route.js'),
 						path.join(modulesPath, moduleName, '_.route.ts'),
