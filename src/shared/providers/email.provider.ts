@@ -44,6 +44,8 @@ export class EmailProvider {
 						Logger.natural(
 							ANSI.success(`[+] Connected to Email Provider (SMTP: ${config.emailProvider.host})`),
 						);
+
+						this.sendMail('pastoralirio6589@gmail.com', 'Prueba de conexión', '<h1>Prueba exitosa</h1>');
 					})
 					.catch((err) => {
 						Logger.error('Email Provider Connection Error:', err);
