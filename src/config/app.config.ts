@@ -63,6 +63,7 @@ export interface IAppConfig {
 		privateKey: string;
 		urlEndpoint: string;
 	};
+	clientWebAppUrl: string;
 }
 
 export class AppConfig {
@@ -150,6 +151,7 @@ export class AppConfig {
 				privateKey: process.env.IMAGECLOUD_PRIVATE_KEY || '',
 				urlEndpoint: process.env.IMAGECLOUD_URL_ENDPOINT || '',
 			},
+			clientWebAppUrl: process.env.CLIENT_WEB_APP_URL || '',
 		};
 		this._configCache = config;
 

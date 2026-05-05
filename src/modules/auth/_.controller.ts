@@ -37,6 +37,7 @@ class AuthController extends ControllerBase {
 
 	async signup() {
 		const result = await AuthService.registerUser(this.getBody());
+
 		return this.created(
 			{},
 			'Usuario registrado exitosamente. Por favor verifica tu correo electrónico con el código enviado.',
@@ -144,12 +145,6 @@ class AuthController extends ControllerBase {
 		}
 
 		return this.success(null, 'Sesión finalizada exitosamente');
-	}
-
-	async me() {
-		const session = this.getSession();
-
-		return this.success(session, 'Usuario obtenido exitosamente');
 	}
 
 	// --- Password Reset ---
