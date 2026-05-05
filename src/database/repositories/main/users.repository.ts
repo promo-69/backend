@@ -64,11 +64,14 @@ class UsersRepository extends SequelizeRepositoryBase<UsersAttributes, number> {
 	}
 
 	async getByDocumentNumber(documentNumber: string) {
-		return this.getOne({
-			relations: this._relations.map((r) =>
-				r.association === '_People' ? { ...r, where: { document_number: documentNumber } } : r,
-			),
-		}) as Promise<UsersWithPeople | null>;
+		return this.getOne(
+			{},
+			{
+				relations: this._relations.map((r) =>
+					r.association === '_People' ? { ...r, where: { document_number: documentNumber } } : r,
+				),
+			},
+		) as Promise<UsersWithPeople | null>;
 	}
 }
 
