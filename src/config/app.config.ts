@@ -52,6 +52,9 @@ export interface IAppConfig {
 		user: string;
 		pass: string;
 		from: string;
+		clientId: string;
+		clientSecret: string;
+		refreshToken: string;
 	};
 	docs?: {
 		path: string;
@@ -140,6 +143,9 @@ export class AppConfig {
 				user: process.env.EMAIL_USER || '',
 				pass: process.env.EMAIL_PASS || '',
 				from: process.env.EMAIL_FROM || 'no-reply@cineflix.com',
+				clientId: process.env.EMAIL_GOOGLE_CLIENT_ID || '',
+				clientSecret: process.env.EMAIL_GOOGLE_CLIENT_SECRET || '',
+				refreshToken: process.env.EMAIL_GOOGLE_REFRESH_TOKEN || '',
 			},
 			docs: {
 				path: process.env.DOCS_PATH || '/api-docs',
