@@ -181,6 +181,7 @@ export class RoomsService extends BaseService {
     }
 
     async findRoomProjectionTypes(roomId: number, filters?: ProcessedQueryFilters) {
+        await this.findById(roomId);
         return this._roomProjectionTypes.getByRoom(roomId);
     }
 
@@ -190,17 +191,24 @@ export class RoomsService extends BaseService {
     }
 
     async createRoomProjectionType(roomId: number, projectionTypeData: any) {
+        await this.findById(roomId);
+
+        const projectionType = projectionTypeData.projectionType;
+        if (!Number.isInteger(projectionType) || projectionType <= 0)
+            throw new ValidationError('projectionType must be a positive integer', ['projectionType']);
+
         return this._roomProjectionTypes.create({
             room: roomId,
-            projection_type: projectionTypeData.projection_type,
+            projection_type: projectionType,
             status: 1,
         });
     }
 
     async deleteRoomProjectionType(id: number, roomId: number) {
+        await this.findById(roomId);
         const projectionType = await this.findRoomProjectionTypeById(id, roomId);
         if (!projectionType) throw new NotFoundError('RoomProjectionType', id);
-        return this._roomProjectionTypes.update(id, { status: 0 });
+        return this._roomProjectionTypes.update(id, { status: 4 });
     }
 
     async findById(id: number) {

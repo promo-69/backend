@@ -6,23 +6,23 @@ import { type Transaction } from 'sequelize';
 
 interface CreateMovieBody {
     title: string;
-    duration_minutes: number;
-    age_classification: number;
-    lifecycle_state: number;
+    durationMinutes: number;
+    ageClassification: number;
+    lifecycleState: number;
     synopsis: string;
-    poster_url?: string;
-    banner_url?: string;
-    trailer_url?: string;
-    release_date: string;
+    posterUrl?: string;
+    bannerUrl?: string;
+    trailerUrl?: string;
+    releaseDate: string;
     genres: number[];
 }
 
 interface UpdateMovieBody {
-    lifecycle_state?: number;
+    lifecycleState?: number;
     synopsis?: string;
-    poster_url?: string;
-    banner_url?: string;
-    trailer_url?: string;
+    posterUrl?: string;
+    bannerUrl?: string;
+    trailerUrl?: string;
     genres?: number[];
 }
 
@@ -60,35 +60,35 @@ export class MoviesService extends BaseService {
     async createMovie(body: CreateMovieBody) {
         const {
             title,
-            duration_minutes,
-            age_classification,
-            lifecycle_state,
+            durationMinutes,
+            ageClassification,
+            lifecycleState,
             synopsis,
-            poster_url,
-            banner_url,
-            trailer_url,
-            release_date,
+            posterUrl,
+            bannerUrl,
+            trailerUrl,
+            releaseDate,
             genres,
         } = body;
 
         this.validateRequired(
-            { title, duration_minutes, age_classification, lifecycle_state, synopsis, release_date } as any,
-            ['title', 'duration_minutes', 'age_classification', 'lifecycle_state', 'synopsis', 'release_date'],
+            { title, durationMinutes, ageClassification, lifecycleState, synopsis, releaseDate } as any,
+            ['title', 'durationMinutes', 'ageClassification', 'lifecycleState', 'synopsis', 'releaseDate'],
         );
 
         if (!Array.isArray(genres) || genres.length === 0)
             throw new ValidationError('Debe especificar al menos un género', ['genres']);
 
-        if (!Number.isInteger(duration_minutes) || duration_minutes <= 0)
-            throw new ValidationError('La duración debe ser un entero mayor a 0', ['duration_minutes']);
+        if (!Number.isInteger(durationMinutes) || durationMinutes <= 0)
+            throw new ValidationError('La duración debe ser un entero mayor a 0', ['durationMinutes']);
 
         // Verificar título único
         const existing = await this._movies.getByTitle(title);
         if (existing) throw new ConflictError('Ya existe una película con ese título', 'MOVIE_TITLE_DUPLICATE');
 
-        // Verificar que age_classification exista
-        const ageClass = await this._ageClassifications.getById(age_classification);
-        if (!ageClass) throw new ValidationError('La clasificación de edad indicada no existe', ['age_classification']);
+        // Verificar que ageClassification exista
+        const ageClass = await this._ageClassifications.getById(ageClassification);
+        if (!ageClass) throw new ValidationError('La clasificación de edad indicada no existe', ['ageClassification']);
 
         // Verificar que todos los géneros existan
         for (const genreId of genres) {
@@ -100,14 +100,14 @@ export class MoviesService extends BaseService {
             const movie = await this._movies.create(
                 {
                     title,
-                    duration_minutes,
-                    age_classification,
-                    lifecycle_state,
+                    duration_minutes: durationMinutes,
+                    age_classification: ageClassification,
+                    lifecycle_state: lifecycleState,
                     synopsis,
-                    poster_url: poster_url ?? null,
-                    banner_url: banner_url ?? null,
-                    trailer_url: trailer_url ?? null,
-                    release_date,
+                    poster_url: posterUrl ?? null,
+                    banner_url: bannerUrl ?? null,
+                    trailer_url: trailerUrl ?? null,
+                    release_date: releaseDate,
                     status: 1,
                 },
                 { transaction },
@@ -131,13 +131,14 @@ export class MoviesService extends BaseService {
         const movie = await this._movies.getFull(id);
         if (!movie || movie.status !== 1) throw new NotFoundError('Película no encontrada');
 
-        const { genres, ...rest } = body;
+        const { genres, lifecycleState, synopsis, posterUrl, bannerUrl, trailerUrl } = body;
         const updateData: Record<string, any> = {};
 
-        const allowedFields = ['lifecycle_state', 'synopsis', 'poster_url', 'banner_url', 'trailer_url'];
-        for (const field of allowedFields) {
-            if ((rest as any)[field] !== undefined) updateData[field] = (rest as any)[field];
-        }
+        if (lifecycleState !== undefined) updateData.lifecycle_state = lifecycleState;
+        if (synopsis !== undefined) updateData.synopsis = synopsis;
+        if (posterUrl !== undefined) updateData.poster_url = posterUrl;
+        if (bannerUrl !== undefined) updateData.banner_url = bannerUrl;
+        if (trailerUrl !== undefined) updateData.trailer_url = trailerUrl;
 
         if (Object.keys(updateData).length === 0 && genres === undefined)
             throw new ValidationError('No se proporcionaron datos para actualizar', []);
