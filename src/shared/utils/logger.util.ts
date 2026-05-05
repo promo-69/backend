@@ -83,6 +83,7 @@ export class Logger {
 
 		if (message) {
 			logs.push(this.formatMessage('error', `${traceId} ${message}`, { format: color }));
+			if (stack) logs.push(stack);
 		} else {
 			logs.push(
 				this.formatMessage('error', `${traceId} ${stack || 'Unknown Error'}`, {

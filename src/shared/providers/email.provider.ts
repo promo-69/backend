@@ -1,4 +1,4 @@
-import nodemailer from 'nodemailer';
+import { google } from 'googleapis';
 import { AppConfig } from '@config/app.config.js';
 import { Logger } from '@utils/logger.util.js';
 import { ANSI } from '@utils/ansi.util.js';
@@ -8,45 +8,38 @@ const EMAIL_PROVIDER_SYMBOL = Symbol.for('global.email.provider');
 
 export class EmailProvider {
 	private static _instance: EmailProvider;
-	private transporter: nodemailer.Transporter;
+	private oauth2Client;
+	private gmail;
 	private fromAddress: string;
 
 	private constructor() {
 		const config = AppConfig.load();
 
+		console.log(config.emailProvider);
+
 		this.fromAddress = config.emailProvider.from;
 
-		this.transporter = nodemailer.createTransport({
-			host: config.emailProvider.host,
-			port: config.emailProvider.port,
-			secure: config.emailProvider.port === 465, // true for 465, false for other ports
-			auth: {
-				user: config.emailProvider.user,
-				pass: config.emailProvider.pass,
-			},
+		// Configuramos el cliente OAuth2 con las nuevas credenciales
+		const OAuth2 = google.auth.OAuth2;
+		this.oauth2Client = new OAuth2(
+			config.emailProvider.clientId,
+			config.emailProvider.clientSecret,
+			'https://developers.google.com/oauthplayground',
+		);
+
+		// Le entregamos el token de refresco para que Google no nos pida iniciar sesion de nuevo
+		this.oauth2Client.setCredentials({
+			refresh_token: config.emailProvider.refreshToken,
 		});
 
-		// Verify connection configuration if user and pass are provided
-		if (config.emailProvider.user && config.emailProvider.pass) {
-			this.transporter
-				.verify()
-				.then(() => {
-					Logger.natural(
-						ANSI.success(`[+] Connected to Email Provider (SMTP: ${config.emailProvider.host})`),
-					);
+		// Inicializamos el cliente de la API de Gmail
+		this.gmail = google.gmail({ version: 'v1', auth: this.oauth2Client });
 
-					// Iniciar envío de prueba
-					this.sendMail(
-						'pastoralirio6589@gmail.com',
-						'Prueba de conexión',
-						`<h1>Prueba exitosa en entorno ${AppConfig.isProduction() ? 'produccion' : 'desarrollo'}</h1>`,
-					);
-				})
-				.catch((err) => {
-					Logger.error('Email Provider Connection Error:', err);
-				});
-		} else {
-			Logger.warn('Email Provider initialized without credentials. Emails may not send.');
+		try {
+			Logger.natural(ANSI.success(`[+] Email Provider initialized via Google API for ${this.fromAddress}`));
+			this.sendMail('aliriofreytez1@gmail.com', 'Prueba de conexión', '<h1>Prueba exitosa</h1>');
+		} catch (error) {
+			Logger.error('Email Provider Initialization Error:', error as Error);
 		}
 	}
 
@@ -59,7 +52,9 @@ export class EmailProvider {
 				[EMAIL_PROVIDER_SYMBOL]: EmailProvider;
 			};
 
-			if (!globalWithEmail[EMAIL_PROVIDER_SYMBOL]) globalWithEmail[EMAIL_PROVIDER_SYMBOL] = new EmailProvider();
+			if (!globalWithEmail[EMAIL_PROVIDER_SYMBOL]) {
+				globalWithEmail[EMAIL_PROVIDER_SYMBOL] = new EmailProvider();
+			}
 
 			return globalWithEmail[EMAIL_PROVIDER_SYMBOL];
 		}
@@ -69,14 +64,40 @@ export class EmailProvider {
 		const emailId = nanoid(5);
 
 		try {
-			Logger.natural(ANSI.success(`[+] Sending email ${emailId}`));
-			const response = await this.transporter.sendMail({
-				from: `"Cineflix" <${this.fromAddress}>`,
-				to,
-				subject,
+			Logger.natural(ANSI.success(`[+] Sending email ${emailId} via HTTP Gmail API`));
+
+			// Codificamos el asunto en UTF-8 Base64 para evitar errores con tildes o caracteres especiales
+			const utf8Subject = `=?utf-8?B?${Buffer.from(subject).toString('base64')}?=`;
+
+			// Construimos el cuerpo del correo respetando el estandar MIME
+			const messageParts = [
+				`From: "Cineflix" <${this.fromAddress}>`,
+				`To: ${to}`,
+				'Content-Type: text/html; charset=utf-8',
+				'MIME-Version: 1.0',
+				`Subject: ${utf8Subject}`,
+				'',
 				html,
+			];
+
+			const message = messageParts.join('\n');
+
+			// Google exige que el mensaje este codificado en formato Base64 URL-safe
+			const encodedMessage = Buffer.from(message)
+				.toString('base64')
+				.replace(/\+/g, '-')
+				.replace(/\//g, '_')
+				.replace(/=+$/, '');
+
+			// Ejecutamos la peticion HTTP a la API de Gmail
+			await this.gmail.users.messages.send({
+				userId: 'me',
+				requestBody: {
+					raw: encodedMessage,
+				},
 			});
-			Logger.natural(ANSI.success(`[+] Email ${emailId} sent to ${to}`));
+
+			Logger.natural(ANSI.success(`[+] Email ${emailId} sent successfully to ${to}`));
 			return true;
 		} catch (error) {
 			Logger.error(`Failed to send email ${emailId} to ${to}:`, error as Error);
