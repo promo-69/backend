@@ -15,8 +15,6 @@ export class EmailProvider {
 	private constructor() {
 		const config = AppConfig.load();
 
-		console.log(config.emailProvider);
-
 		this.fromAddress = config.emailProvider.from;
 
 		// Configuramos el cliente OAuth2 con las nuevas credenciales
