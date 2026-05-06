@@ -1,0 +1,24 @@
+/auth/logout:
+    post:
+        summary: User Logout
+        description: Endpoint to logout the user and invalidate the session. Supports both cookie and bearer authentication.
+        tags:
+            - Auth
+        security:
+            - bearerAuth: []
+            - cookieAuth: []
+        responses:
+            '200':
+                description: Logout successful
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                message:
+                                    type: string
+                                    example: Sesión finalizada exitosamente
+            '401':
+                description: Unauthorized
+            '500':
+                description: Internal server error

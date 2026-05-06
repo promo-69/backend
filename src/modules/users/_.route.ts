@@ -21,5 +21,6 @@ router.get('/permissions/:id', ...adminMiddleware, usersController.findPermissio
 router.get('/users', verifySession, usersController.findAllUsers);
 router.get('/users/:id', verifySession, usersController.findUserById);
 router.patch('/profile', verifySession, usersController.updateProfile);
+router.patch('/security', verifySession, usersController.updateSecurity);
 
 export default router;

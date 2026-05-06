@@ -1,0 +1,30 @@
+/permissions/{id}:
+    get:
+        summary: Get Permission By Id
+        description: Retrieve a specific permission by its ID.
+        tags:
+            - Users
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                type: integer
+        responses:
+            '200':
+                description: Permission retrieved successfully
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                data:
+                                    type: object
+            '401':
+                description: Unauthorized
+            '404':
+                description: Permission not found
+            '500':
+                description: Internal server error

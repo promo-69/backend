@@ -1,0 +1,36 @@
+/auth/verify-signup:
+    post:
+        summary: Verify Signup Code
+        description: Endpoint to verify the signup code sent to the user's email.
+        tags:
+            - Auth
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            email:
+                                type: string
+                                format: email
+                            code:
+                                type: string
+                        required:
+                            - email
+                            - code
+        responses:
+            '200':
+                description: Account verified successfully
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                message:
+                                    type: string
+                                    example: Cuenta verificada y autenticada exitosamente
+            '400':
+                description: Bad request (validation errors)
+            '500':
+                description: Internal server error

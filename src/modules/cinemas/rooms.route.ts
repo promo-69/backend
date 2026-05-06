@@ -6,9 +6,9 @@ import { MiddlewareHandler } from '@rules/api.type.js';
 const router = Router({ mergeParams: true }); // hereda :cinemaId del router padre
 
 const adminRoles = ['SUPER_ADMIN', 'CINEMA_MANAGER'];
-const middlewares: MiddlewareHandler[] = []; //verifySession];
+const middlewares = [verifySession, verifyRole(adminRoles)];
 
-router.get('/', middlewares, roomsController.findAll);
-router.post('/', middlewares, /* verifyRole(adminRoles), */ roomsController.create);
+router.get('/', ...middlewares, roomsController.findAll);
+router.post('/', ...middlewares, roomsController.create);
 
 export default router;

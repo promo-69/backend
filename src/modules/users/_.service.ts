@@ -258,6 +258,52 @@ export class UsersService extends BaseService {
 
 		return null;
 	}
+
+	async updateSecurity(userId: number, body: Record<string, any>) {
+		const { currentPassword, newPassword, email } = body;
+
+		if (!currentPassword || typeof currentPassword !== 'string')
+			throw new ValidationError('La contraseña actual es obligatoria.', []);
+
+		const user = await this._users.getFull(userId);
+		if (!user || user.status !== 1) throw new AuthError('Usuario no encontrado o inactivo');
+
+		const isPasswordValid = await BcryptUtil.compare(currentPassword, user.password);
+		if (!isPasswordValid) throw new AuthError('La contraseña actual es incorrecta.', { code: 'INVALID_CURRENT_PASSWORD' });
+
+		const updateData: Record<string, any> = {};
+
+		if (email !== undefined) {
+			if (!REGEX.EMAIL.test(String(email)))
+				throw new ValidationError('El email proporcionado no es válido.', []);
+
+			const existingUser = await this._users.getByEmail(email);
+			if (existingUser && existingUser.id !== userId)
+				throw new AuthError('Ya existe otra cuenta con el email ingresado.', { code: 'EMAIL_ALREADY_IN_USE' });
+
+			updateData.email = email;
+		}
+
+		if (newPassword !== undefined) {
+			if (typeof newPassword !== 'string' || newPassword.trim().length === 0)
+				throw new ValidationError('La nueva contraseña no puede estar vacía.', []);
+
+			if (!BcryptUtil.validatePasswordStrength(newPassword))
+				throw new ValidationError(
+					'La nueva contraseña debe tener al menos 6 caracteres e incluir letras y números.',
+					[],
+				);
+
+			updateData.password = await BcryptUtil.hash(newPassword);
+		}
+
+		if (Object.keys(updateData).length === 0)
+			throw new ValidationError('Debe proporcionar email o nueva contraseña para actualizar.', []);
+
+		await this._users.update({ id: userId }, updateData);
+
+		return null;
+	}
 }
 
 export default new UsersService();
