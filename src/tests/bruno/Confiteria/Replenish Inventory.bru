@@ -1,0 +1,22 @@
+meta {
+  name: Replenish Inventory
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/confiteria/inventory/{{cinemaId}}/products/{{productId}}/replenish
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "quantity": 100,
+    "remarks": "Reposición mensual"
+  }
+}

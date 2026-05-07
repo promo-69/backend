@@ -1,0 +1,35 @@
+meta {
+  name: Create Showtime
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/showtimes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "movieId": 1,
+    "roomId": 1,
+    "projectionTypeId": 1,
+    "startTime": "2026-06-01T18:00:00Z",
+    "currencyId": 1,
+    "price": 12.50,
+    "earnedLoyaltyPoints": 10
+  }
+}
+
+script:post-response {
+  const resBody = res.getBody();
+  const resStatus = res.getStatus();
+  if (200 <= resStatus && resStatus <= 299 && resBody?.data?.id) {
+    bru.setEnvVar("showtimeId", resBody.data.id);
+  }
+}
