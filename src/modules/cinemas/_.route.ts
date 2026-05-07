@@ -7,13 +7,13 @@ import { MiddlewareHandler } from '@rules/api.type.js';
 const router = Router();
 
 const adminRoles = ['SUPER_ADMIN', 'CINEMA_MANAGER'];
-const middlewares: MiddlewareHandler[] = []; //verifySession];
+const middlewares = [verifySession, verifyRole(adminRoles)];
 
-router.get('/', middlewares, cinemasController.findAll);
-router.get('/:id', middlewares, cinemasController.findById);
-router.post('/', middlewares, /* verifyRole(adminRoles), */ cinemasController.create);
-router.put('/:id', middlewares, /* verifyRole(adminRoles), */ cinemasController.update);
-router.delete('/:id', middlewares, /* verifyRole(['SUPER_ADMIN']), */ cinemasController.remove);
+router.get('/', ...middlewares, cinemasController.findAll);
+router.get('/:id', ...middlewares, cinemasController.findById);
+router.post('/', ...middlewares, cinemasController.create);
+router.put('/:id', ...middlewares, cinemasController.update);
+router.delete('/:id', ...middlewares, cinemasController.remove);
 
 // Montar el subrouter de salas en la ruta /:cinemaId/rooms
 router.use('/:cinemaId/rooms', roomsRouter); // ← línea clave

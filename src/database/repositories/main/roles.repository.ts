@@ -17,6 +17,14 @@ class RolesRepository extends SequelizeRepositoryBase<Roles, number> {
 	constructor() {
 		super(RolesModel);
 	}
+
+	async getFull(id: number): Promise<Roles | null> {
+		return this.getById(id);
+	}
+
+	async getAllFull(filters?: any) {
+		return this.getAllActive({ ...filters, count: true });
+	}
 }
 
 export default new RolesRepository();

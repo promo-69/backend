@@ -18,8 +18,9 @@ router.get('/permissions', ...adminMiddleware, usersController.findAllPermission
 router.get('/permissions/:id', ...adminMiddleware, usersController.findPermissionById);
 
 // --- Users ---
-router.get('/users', verifySession, usersController.findAllUsers);
-router.get('/users/:id', verifySession, usersController.findUserById);
+router.get('/', verifySession, usersController.findAllUsers);
+router.get('/:id', verifySession, usersController.findUserById);
 router.patch('/profile', verifySession, usersController.updateProfile);
+router.patch('/security', verifySession, usersController.updateSecurity);
 
 export default router;
