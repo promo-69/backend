@@ -1,4 +1,4 @@
-/roles:
+/users/roles:
     get:
         summary: List Roles
         description: Retrieve all available roles in the system.
@@ -18,6 +18,17 @@
                                     type: array
                                     items:
                                         type: object
+                                        properties:
+                                            id:
+                                                type: integer
+                                            code:
+                                                type: string
+                                            name:
+                                                type: string
+                                            description:
+                                                type: string
+                                            status:
+                                                type: integer
             '401':
                 description: Unauthorized
             '500':

@@ -56,7 +56,24 @@ class UsersRepository extends SequelizeRepositoryBase<UsersAttributes, number> {
 	}
 
 	async getFull(id: number) {
-		return this.getOne({ id }, { relations: this._relations }) as Promise<UsersWithPeople | null>;
+		return this.getOne(
+			{ id },
+			{
+				attributes: [
+					'id',
+					'person',
+					'user_type',
+					'role',
+					'email',
+					'last_login',
+					'signup_verified_at',
+					'created_at',
+					'updated_at',
+					'status',
+				],
+				relations: this._relations,
+			},
+		) as Promise<UsersWithPeople | null>;
 	}
 
 	async getByEmail(email: string) {
@@ -72,6 +89,31 @@ class UsersRepository extends SequelizeRepositoryBase<UsersAttributes, number> {
 				),
 			},
 		) as Promise<UsersWithPeople | null>;
+	}
+
+	async getAllFull(filters?: any): Promise<{ rows: UsersWithPeople[]; count: number }> {
+		return this.getAllActive(
+			{
+				...filters,
+				count: true,
+				attributes: [
+					'id',
+					'person',
+					'user_type',
+					'role',
+					'email',
+					'last_login',
+					'signup_verified_at',
+					'created_at',
+					'updated_at',
+					'status',
+				],
+				relations: this._relations,
+			},
+		) as Promise<{
+			rows: UsersWithPeople[];
+			count: number;
+		}>;
 	}
 }
 
