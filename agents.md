@@ -17,11 +17,12 @@
 ## 3. Arquitectura y Patrones de Diseño
 
 - **Aislamiento de Dominios y Separación de Responsabilidades (Flujo Estricto)**:
-    - **Middlewares (Validación Estructural)**: Toda la validación de la estructura y forma de los datos (librerías como Zod o Joi) ocurre aquí, **antes** de que la petición toque los controladores.
     - **Controladores (Orquestadores Delgados)**: Su única función es actuar como punto de entrada y salida. Reciben la petición HTTP, llaman al Servicio correspondiente y devuelven la respuesta al cliente. **Bajo ninguna circunstancia** deben contener reglas de negocio ni lógica de validación.
-    - **Servicios (Capa Lógica)**: Son el corazón de la aplicación. Validan la integridad de los datos en sus métodos, ejecutan las reglas de negocio y coordinan repositorios y proveedores.
+    - **Servicios (Capa Lógica)**: Son el corazón de la aplicación. Validan la existencia e integridad de los datos en sus métodos, ejecutan las reglas de negocio y coordinan repositorios y proveedores.
         - _Regla de transversalidad_: Los servicios de un módulo no deben acoplarse a los de otros módulos. Si una lógica debe reutilizarse, se extrae como un Caso de Uso a `shared/services`.
-    - **Repositorios (Capa de Datos)**: Únicos autorizados para interactuar con la base de datos. Deben generalizar las consultas (Principio DRY) para mantener a los servicios limpios de la complejidad SQL. No repitas consultas en los servicios; usa o crea métodos en el repositorio.
+    - **Repositorios (Capa de Datos)**: Únicos autorizados para interactuar con la base de datos. Deben generalizar las consultas (Principio DRY) para mantener a los servicios limpios de la complejidad SQL. No repitas consultas en los servicios; usa o crea métodos en el repositorio. _Muy importante_:
+        - Cuando sea prudente y adecuado, al modificar o crear queries en los repositorios, debes utilizar las capacidades de transacción de Sequelize (transacciones distribuidas) para asegurar la integridad referencial y la atomicidad de las operaciones.
+        - Al querer incluir datos de modelos relacionados en las consultas (ya sea lectura, escritura, actualización o eliminación), debes hacerlo respetando la manera establecida en los métodos de la clase base del repositorio para trabajar con datos de modelos relacionados. Algunos métodos de la clase base requieren argumentos donde involucran el tipo EspecificQueryOptions el cual tiene propiedades como relations, attributes, entre otras. Debes usar estas propiedades para incluir datos de modelos relacionados en las consultas respetando su formato, nesting, etc. y no debes crear consultas crudas.
     - **Proveedores (Adaptadores Externos)**: Puentes hacia recursos de terceros. Exponen una interfaz simple y **agnóstica** (ej. un proveedor de correo no expone si usa Google API o Nodemailer). Cero lógica de negocio.
 
 - **Diferencia Estricta entre Utilidades y Servicios Compartidos**:
