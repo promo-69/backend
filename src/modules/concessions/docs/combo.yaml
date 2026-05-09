@@ -1,0 +1,113 @@
+/concessions/combos/{id}:
+    get:
+        summary: Get Combo By ID
+        description: Retrieve a single combo by its ID, including its associated products.
+        tags:
+            - Concessions
+        parameters:
+            - in: path
+              name: id
+              required: true
+              schema:
+                  type: integer
+              description: Combo ID
+        responses:
+            '200':
+                description: Combo found
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                data:
+                                    type: object
+                                    properties:
+                                        id:
+                                            type: integer
+                                        name:
+                                            type: string
+                                        sku:
+                                            type: string
+                                        description:
+                                            type: string
+                                        price:
+                                            type: number
+                                        earned_loyalty_points:
+                                            type: integer
+                                            nullable: true
+                                        products:
+                                            type: array
+                                            items:
+                                                type: object
+                                                properties:
+                                                    productId:
+                                                        type: integer
+                                                    quantity:
+                                                        type: integer
+            '404':
+                description: Combo not found
+            '500':
+                description: Internal server error
+    put:
+        summary: Update Combo
+        description: Update the details or product composition of an existing combo.
+        tags:
+            - Concessions
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: path
+              name: id
+              required: true
+              schema:
+                  type: integer
+              description: Combo ID
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            name:
+                                type: string
+                                example: Family Combo Plus
+                            price:
+                                type: number
+                                example: 11.50
+                            currencyId:
+                                type: integer
+                                example: 1
+                            earnedLoyaltyPoints:
+                                type: integer
+                                example: 30
+                            products:
+                                type: array
+                                items:
+                                    type: object
+                                    properties:
+                                        productId:
+                                            type: integer
+                                            example: 1
+                                        quantity:
+                                            type: integer
+                                            example: 3
+        responses:
+            '200':
+                description: Combo updated successfully
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                message:
+                                    type: string
+                                    example: Combo actualizado exitosamente
+            '400':
+                description: Bad request (validation errors)
+            '401':
+                description: Unauthorized
+            '404':
+                description: Combo not found
+            '500':
+                description: Internal server error

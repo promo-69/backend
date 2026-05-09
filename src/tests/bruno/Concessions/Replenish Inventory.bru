@@ -1,0 +1,27 @@
+meta {
+  name: Replenish Inventory
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/concessions/inventory/{{testCinemaId}}/products/{{testProductId}}/replenish
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "quantity": 100,
+    "remarks": "Stock replenishment during Bruno test execution."
+  }
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  bru.setVar('baseUrl', baseUrl);
+}

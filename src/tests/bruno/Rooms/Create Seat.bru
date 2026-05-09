@@ -1,0 +1,36 @@
+meta {
+  name: Create Room Seat
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/rooms/{{testRoomId}}/seats
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "rowIdentifier": "A",
+    "columnNumber": 1,
+    "seatCategory": 1,
+    "seatCondition": 1
+  }
+}
+
+script:post-response {
+  const resBody = res.getBody();
+  if (res.getStatus() === 201 && resBody && resBody.data && resBody.data.id) {
+    bru.setEnvVar('testSeatId', resBody.data.id);
+  }
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  bru.setVar('baseUrl', baseUrl);
+}
