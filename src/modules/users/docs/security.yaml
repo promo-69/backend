@@ -1,0 +1,46 @@
+/users/security:
+    patch:
+        summary: Update Account Security
+        description: Change user email and/or password after verifying the current password.
+        tags:
+            - Users
+        security:
+            - bearerAuth: []
+            - cookieAuth: []
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            currentPassword:
+                                type: string
+                                format: password
+                            email:
+                                type: string
+                                format: email
+                            newPassword:
+                                type: string
+                                format: password
+                        required:
+                            - currentPassword
+        responses:
+            '200':
+                description: Account security updated successfully
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                message:
+                                    type: string
+                                    example: Seguridad de la cuenta actualizada correctamente.
+            '400':
+                description: Bad request
+            '401':
+                description: Unauthorized
+            '409':
+                description: Email already in use
+            '500':
+                description: Internal server error

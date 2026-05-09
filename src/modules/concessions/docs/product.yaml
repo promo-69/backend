@@ -1,0 +1,97 @@
+/concessions/products/{id}:
+    get:
+        summary: Get Product By ID
+        description: Retrieve a single concession product by its ID.
+        tags:
+            - Concessions
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: path
+              name: id
+              required: true
+              schema:
+                  type: integer
+              description: Product ID
+        responses:
+            '200':
+                description: Product found
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                data:
+                                    type: object
+                                    properties:
+                                        id:
+                                            type: integer
+                                        name:
+                                            type: string
+                                        sku:
+                                            type: string
+                                        price:
+                                            type: number
+                                        earned_loyalty_points:
+                                            type: integer
+                                            nullable: true
+                                        status:
+                                            type: integer
+            '401':
+                description: Unauthorized
+            '404':
+                description: Product not found
+            '500':
+                description: Internal server error
+    put:
+        summary: Update Product
+        description: Update the details of an existing concession product.
+        tags:
+            - Concessions
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: path
+              name: id
+              required: true
+              schema:
+                  type: integer
+              description: Product ID
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            name:
+                                type: string
+                                example: Pepsi 500ml (Summer Edition)
+                            price:
+                                type: number
+                                example: 2.75
+                            currencyId:
+                                type: integer
+                                example: 1
+                            earnedLoyaltyPoints:
+                                type: integer
+                                example: 7
+        responses:
+            '200':
+                description: Product updated successfully
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                message:
+                                    type: string
+                                    example: Producto actualizado exitosamente
+            '400':
+                description: Bad request (validation errors)
+            '401':
+                description: Unauthorized
+            '404':
+                description: Product not found
+            '500':
+                description: Internal server error

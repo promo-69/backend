@@ -1,0 +1,45 @@
+/auth/refresh:
+    post:
+        summary: Refresh Session
+        description: Endpoint to refresh the access token using the refresh token. Supports both cookie and bearer authentication.
+        tags:
+            - Auth
+        security:
+            - bearerAuth: []
+            - cookieAuth: []
+        responses:
+            '200':
+                description: Session refreshed successfully
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                message:
+                                    type: string
+                                    example: Sesión renovada
+                                data:
+                                    type: object
+                                    properties:
+                                        user:
+                                            type: object
+                                            properties:
+                                                userId:
+                                                    type: string
+                                                email:
+                                                    type: string
+                                                firstName:
+                                                    type: string
+                                                lastName:
+                                                    type: string
+                                        tokens:
+                                            type: object
+                                            properties:
+                                                accessToken:
+                                                    type: string
+                                                refreshToken:
+                                                    type: string
+            '401':
+                description: Unauthorized
+            '500':
+                description: Internal server error

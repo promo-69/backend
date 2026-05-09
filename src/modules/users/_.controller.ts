@@ -90,6 +90,15 @@ class UsersController extends ControllerBase {
 
 		return this.success(null, 'Perfil actualizado.');
 	}
+
+	async updateSecurity() {
+		const session = this.getSession<any>();
+		const body = this.getBody();
+
+		await UsersService.updateSecurity(session.userId, body);
+
+		return this.success(null, 'Seguridad de la cuenta actualizada correctamente.');
+	}
 }
 
 export default new UsersController();

@@ -91,6 +91,17 @@ class PermissionsRepository extends SequelizeRepositoryBase<PermissionsAttribute
             },
         ) as Promise<PermissionsWithActionsResourcesTypes[]>;
     }
+
+    async getFull(id: number): Promise<PermissionsWithActionsResourcesTypes | null> {
+        return this.getById(id, { relations: this._relations }) as Promise<PermissionsWithActionsResourcesTypes | null>;
+    }
+
+    async getAllFull(filters?: any): Promise<{ rows: PermissionsWithActionsResourcesTypes[]; count: number }> {
+        return this.getAllActive({ ...filters, count: true, relations: this._relations }) as Promise<{
+            rows: PermissionsWithActionsResourcesTypes[];
+            count: number;
+        }>;
+    }
 }
 
 export default new PermissionsRepository();

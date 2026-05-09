@@ -1,15 +1,21 @@
 meta {
-  name: Delete Users
+  name: Change User Status
   type: http
   seq: 5
 }
 
-delete {
-  url: {{baseUrl}}/users/1
-  body: none
+patch {
+  url: {{baseUrl}}/users/{{testUserId}}/status
+  body: json
   auth: bearer
 }
 
 auth:bearer {
   token: {{accessToken}}
+}
+
+body:json {
+  {
+    "status": 0
+  }
 }

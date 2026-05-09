@@ -1,0 +1,45 @@
+/concessions/inventory/{cinemaId}:
+    get:
+        summary: Get Inventory By Cinema
+        description: Retrieve the current stock of all concession products at a specific cinema location.
+        tags:
+            - Concessions
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: path
+              name: cinemaId
+              required: true
+              schema:
+                  type: integer
+              description: Cinema (branch) ID
+        responses:
+            '200':
+                description: Inventory list for the cinema
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                data:
+                                    type: array
+                                    items:
+                                        type: object
+                                        properties:
+                                            product_id:
+                                                type: integer
+                                            name:
+                                                type: string
+                                            sku:
+                                                type: string
+                                            stock:
+                                                type: integer
+                                            updated_at:
+                                                type: string
+                                                format: date-time
+            '401':
+                description: Unauthorized
+            '404':
+                description: Cinema not found
+            '500':
+                description: Internal server error
