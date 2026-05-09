@@ -293,7 +293,7 @@ export class App {
                 let bundledDoc;
 
                 // @ts-ignore
-                if (typeof import.meta.env !== 'undefined') {
+                if (typeof import.meta.env !== 'undefined' && !process.env.VITE_NODE_SIMPLE) {
                     // Importamos el base directamente como string
                     // @ts-ignore
                     const baseYamlRaw = (await import('./docs/swagger.yaml?raw')).default;

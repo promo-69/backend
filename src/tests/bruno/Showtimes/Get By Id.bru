@@ -1,0 +1,16 @@
+meta {
+  name: Get Showtime By ID
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/showtimes/{{testShowtimeId}}
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  bru.setVar('baseUrl', baseUrl);
+}

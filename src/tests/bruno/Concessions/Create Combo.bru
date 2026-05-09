@@ -1,11 +1,11 @@
 meta {
-  name: Create Showtime
+  name: Create Combo
   type: http
-  seq: 1
+  seq: 5
 }
 
 post {
-  url: {{baseUrl}}/showtimes
+  url: {{baseUrl}}/concessions/combos
   body: json
   auth: bearer
 }
@@ -16,20 +16,22 @@ auth:bearer {
 
 body:json {
   {
-    "movieId": {{testMovieId}},
-    "roomId": {{testRoomId}},
-    "projectionTypeId": 1,
-    "startTime": "2026-06-01T18:00:00Z",
+    "name": "Test Combo Bruno",
+    "sku": "TST-CMB-001",
+    "description": "A combo created during Bruno test execution.",
     "currencyId": 1,
-    "price": 12.50,
-    "earnedLoyaltyPoints": 10
+    "price": 15.00,
+    "earnedLoyaltyPoints": 20,
+    "products": [
+      { "productId": {{testProductId}}, "quantity": 2 }
+    ]
   }
 }
 
 script:post-response {
   const resBody = res.getBody();
   if (res.getStatus() === 201 && resBody && resBody.data && resBody.data.id) {
-    bru.setEnvVar('testShowtimeId', resBody.data.id);
+    bru.setEnvVar('testComboId', resBody.data.id);
   }
 }
 
