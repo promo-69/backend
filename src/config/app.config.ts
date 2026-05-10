@@ -100,7 +100,9 @@ export class AppConfig {
 			corsOptions: {
 				methods: ['GET', 'PUT', 'POST', 'DELETE', 'PATCH', 'OPTIONS'],
 				credentials: true,
-				origin: process.env.CORS_ORIGIN?.split(',') || '*',
+				origin: process.env.CORS_ORIGIN?.split(',')
+					.map((r: string) => String(r).trim())
+					.filter((r: string) => r !== ''),
 				allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
 			},
 			enableCors: process.env.ENABLE_CORS === 'true',
