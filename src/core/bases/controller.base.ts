@@ -322,7 +322,7 @@ export abstract class ControllerBase {
 		const defaultOptions: CookieOptions = {
 			httpOnly: true,
 			secure: true,
-			sameSite: 'strict',
+			sameSite: 'none',
 			path: '/',
 		};
 
@@ -336,7 +336,7 @@ export abstract class ControllerBase {
 		const defaultOptions: CookieOptions = {
 			httpOnly: true,
 			secure: true,
-			sameSite: 'strict',
+			sameSite: 'none',
 			path: '/',
 		};
 
