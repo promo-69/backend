@@ -27,11 +27,15 @@ export default class RoomProjectionTypesModel extends SequelizeModelBase {
 
 	static config() {
 		return {
+			timestamps: true,
+			paranoid: true,
+			createdAt: false,
+			updatedAt: false,
+			deletedAt: 'deleted_at',
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'room_projection_types',
 			appRawName: 'room_projection_types',
-			timestamps: false,
 		};
 	}
 

@@ -37,11 +37,15 @@ export default class MovieSubscriptionsModel extends SequelizeModelBase {
 
 	static config() {
 		return {
+			timestamps: true,
+			paranoid: true,
+			createdAt: 'created_at',
+			updatedAt: false,
+			deletedAt: 'deleted_at',
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'movie_subscriptions',
 			appRawName: 'movie_subscriptions',
-			timestamps: false,
 		};
 	}
 

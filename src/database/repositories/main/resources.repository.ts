@@ -2,16 +2,16 @@ import { SequelizeRepositoryBase } from '@repositories/bases/sequelize.repositor
 import ResourcesModel from '@database/models/main/resources.model.js';
 
 export interface ResourcesAttributes {
-    id?: number;
-    code: string;
-    description: string;
-    deleted_at?: Date;
+	id?: number;
+	code: string;
+	description: string;
+	deleted_at?: Date;
 }
 
 class ResourcesRepository extends SequelizeRepositoryBase<ResourcesAttributes, number> {
-    constructor() {
-        super(ResourcesModel);
-    }
+	constructor() {
+		super(ResourcesModel);
+	}
 }
 
 export default new ResourcesRepository();

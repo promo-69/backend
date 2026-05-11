@@ -2,15 +2,15 @@ import { SequelizeRepositoryBase } from '@repositories/bases/sequelize.repositor
 import ProjectionTypesModel from '@database/models/main/projection-types.model.js';
 
 export interface ProjectionTypesAttributes {
-    id?: number;
-    description: string;
-    deleted_at?: Date;
+	id?: number;
+	description: string;
+	deleted_at?: Date;
 }
 
 class ProjectionTypesRepository extends SequelizeRepositoryBase<ProjectionTypesAttributes, number> {
-    constructor() {
-        super(ProjectionTypesModel);
-    }
+	constructor() {
+		super(ProjectionTypesModel);
+	}
 }
 
 export default new ProjectionTypesRepository();

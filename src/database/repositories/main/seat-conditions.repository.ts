@@ -2,15 +2,15 @@ import { SequelizeRepositoryBase } from '@repositories/bases/sequelize.repositor
 import SeatConditionsModel from '@database/models/main/seat-conditions.model.js';
 
 export interface SeatConditionsAttributes {
-    id?: number;
-    description: string;
-    deleted_at?: Date;
+	id?: number;
+	description: string;
+	deleted_at?: Date;
 }
 
 class SeatConditionsRepository extends SequelizeRepositoryBase<SeatConditionsAttributes, number> {
-    constructor() {
-        super(SeatConditionsModel);
-    }
+	constructor() {
+		super(SeatConditionsModel);
+	}
 }
 
 export default new SeatConditionsRepository();

@@ -2,16 +2,16 @@ import { SequelizeRepositoryBase } from '@repositories/bases/sequelize.repositor
 import PaymentMethodsModel from '@database/models/main/payment-methods.model.js';
 
 export interface PaymentMethodsAttributes {
-    id?: number;
-    description: string;
-    requires_reference: boolean;
-    deleted_at?: Date;
+	id?: number;
+	description: string;
+	requires_reference: boolean;
+	deleted_at?: Date;
 }
 
 class PaymentMethodsRepository extends SequelizeRepositoryBase<PaymentMethodsAttributes, number> {
-    constructor() {
-        super(PaymentMethodsModel);
-    }
+	constructor() {
+		super(PaymentMethodsModel);
+	}
 }
 
 export default new PaymentMethodsRepository();

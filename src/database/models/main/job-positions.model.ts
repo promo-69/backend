@@ -32,11 +32,15 @@ export default class JobPositionsModel extends SequelizeModelBase {
 
 	static config() {
 		return {
+			timestamps: true,
+			paranoid: true,
+			createdAt: false,
+			updatedAt: false,
+			deletedAt: 'deleted_at',
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'job_positions',
 			appRawName: 'job_positions',
-			timestamps: false,
 		};
 	}
 

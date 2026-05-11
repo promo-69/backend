@@ -23,11 +23,15 @@ export default class AudienceCategoriesModel extends SequelizeModelBase {
 
 	static config() {
 		return {
+			timestamps: true,
+			paranoid: true,
+			createdAt: false,
+			updatedAt: false,
+			deletedAt: 'deleted_at',
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'audience_categories',
 			appRawName: 'audience_categories',
-			timestamps: false,
 		};
 	}
 

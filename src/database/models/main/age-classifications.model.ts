@@ -23,11 +23,15 @@ export default class AgeClassificationsModel extends SequelizeModelBase {
 
 	static config() {
 		return {
+			timestamps: true,
+			paranoid: true,
+			createdAt: false,
+			updatedAt: false,
+			deletedAt: 'deleted_at',
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'age_classifications',
 			appRawName: 'age_classifications',
-			timestamps: false,
 		};
 	}
 

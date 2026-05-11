@@ -2,16 +2,16 @@ import { SequelizeRepositoryBase } from '@repositories/bases/sequelize.repositor
 import ActionsModel from '@database/models/main/actions.model.js';
 
 export interface ActionsAttributes {
-    id?: number;
-    code: string;
-    description: string;
-    deleted_at?: Date;
+	id?: number;
+	code: string;
+	description: string;
+	deleted_at?: Date;
 }
 
 class ActionsRepository extends SequelizeRepositoryBase<ActionsAttributes, number> {
-    constructor() {
-        super(ActionsModel);
-    }
+	constructor() {
+		super(ActionsModel);
+	}
 }
 
 export default new ActionsRepository();

@@ -2,15 +2,15 @@ import { SequelizeRepositoryBase } from '@repositories/bases/sequelize.repositor
 import ProductCategoriesModel from '@database/models/main/product-categories.model.js';
 
 export interface ProductCategoriesAttributes {
-    id?: number;
-    description: string;
-    deleted_at?: Date;
+	id?: number;
+	description: string;
+	deleted_at?: Date;
 }
 
 class ProductCategoriesRepository extends SequelizeRepositoryBase<ProductCategoriesAttributes, number> {
-    constructor() {
-        super(ProductCategoriesModel);
-    }
+	constructor() {
+		super(ProductCategoriesModel);
+	}
 }
 
 export default new ProductCategoriesRepository();

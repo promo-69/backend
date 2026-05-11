@@ -269,13 +269,13 @@ export class UsersService extends BaseService {
 		if (!user || user.status !== 1) throw new AuthError('Usuario no encontrado o inactivo');
 
 		const isPasswordValid = await BcryptUtil.compare(currentPassword, user.password);
-		if (!isPasswordValid) throw new AuthError('La contraseña actual es incorrecta.', { code: 'INVALID_CURRENT_PASSWORD' });
+		if (!isPasswordValid)
+			throw new AuthError('La contraseña actual es incorrecta.', { code: 'INVALID_CURRENT_PASSWORD' });
 
 		const updateData: Record<string, any> = {};
 
 		if (email !== undefined) {
-			if (!REGEX.EMAIL.test(String(email)))
-				throw new ValidationError('El email proporcionado no es válido.', []);
+			if (!REGEX.EMAIL.test(String(email))) throw new ValidationError('El email proporcionado no es válido.', []);
 
 			const existingUser = await this._users.getByEmail(email);
 			if (existingUser && existingUser.id !== userId)

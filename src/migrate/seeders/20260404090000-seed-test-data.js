@@ -53,9 +53,9 @@ module.exports = {
 		await queryInterface.bulkInsert(
 			'room_projection_types',
 			[
-				{ id: 1, room: 1, projection_type: 1},
-				{ id: 2, room: 1, projection_type: 2},
-				{ id: 3, room: 2, projection_type: 1},
+				{ id: 1, room: 1, projection_type: 1 },
+				{ id: 2, room: 1, projection_type: 2 },
+				{ id: 3, room: 2, projection_type: 1 },
 			],
 			{},
 		);
@@ -137,10 +137,10 @@ module.exports = {
 		await queryInterface.bulkInsert(
 			'movie_genres',
 			[
-				{ id: 1, movie: 1, genre: 1},
-				{ id: 2, movie: 1, genre: 6},
-				{ id: 3, movie: 2, genre: 4},
-				{ id: 4, movie: 2, genre: 3},
+				{ id: 1, movie: 1, genre: 1 },
+				{ id: 2, movie: 1, genre: 6 },
+				{ id: 3, movie: 2, genre: 4 },
+				{ id: 4, movie: 2, genre: 3 },
 			],
 			{},
 		);
@@ -245,7 +245,7 @@ module.exports = {
 
 		await queryInterface.bulkInsert(
 			'movie_subscriptions',
-			[{ id: 1, customer: 1, movie: 1, is_notified: true}],
+			[{ id: 1, customer: 1, movie: 1, is_notified: true }],
 			{},
 		);
 

@@ -23,11 +23,15 @@ export default class GenresModel extends SequelizeModelBase {
 
 	static config() {
 		return {
+			timestamps: true,
+			paranoid: true,
+			createdAt: false,
+			updatedAt: false,
+			deletedAt: 'deleted_at',
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'genres',
 			appRawName: 'genres',
-			timestamps: false,
 		};
 	}
 

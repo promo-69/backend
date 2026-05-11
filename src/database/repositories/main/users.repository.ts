@@ -70,7 +70,6 @@ class UsersRepository extends SequelizeRepositoryBase<UsersAttributes, number> {
 					'signup_verified_at',
 					'created_at',
 					'updated_at',
-					'status',
 				],
 				relations: this._relations,
 			},
@@ -93,7 +92,7 @@ class UsersRepository extends SequelizeRepositoryBase<UsersAttributes, number> {
 	}
 
 	async getAllFull(filters?: any): Promise<{ rows: UsersWithPeople[]; count: number }> {
-		return this.getAllActive({
+		return this.getAll({
 			...filters,
 			count: true,
 			attributes: [
@@ -106,7 +105,6 @@ class UsersRepository extends SequelizeRepositoryBase<UsersAttributes, number> {
 				'signup_verified_at',
 				'created_at',
 				'updated_at',
-				'status',
 			],
 			relations: this._relations,
 		}) as Promise<{

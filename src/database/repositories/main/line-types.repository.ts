@@ -2,15 +2,15 @@ import { SequelizeRepositoryBase } from '@repositories/bases/sequelize.repositor
 import LineTypesModel from '@database/models/main/line-types.model.js';
 
 export interface LineTypesAttributes {
-    id?: number;
-    description: string;
-    deleted_at?: Date;
+	id?: number;
+	description: string;
+	deleted_at?: Date;
 }
 
 class LineTypesRepository extends SequelizeRepositoryBase<LineTypesAttributes, number> {
-    constructor() {
-        super(LineTypesModel);
-    }
+	constructor() {
+		super(LineTypesModel);
+	}
 }
 
 export default new LineTypesRepository();

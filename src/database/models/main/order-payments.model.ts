@@ -48,11 +48,15 @@ export default class OrderPaymentsModel extends SequelizeModelBase {
 
 	static config() {
 		return {
+			timestamps: true,
+			paranoid: true,
+			createdAt: 'created_at',
+			updatedAt: false,
+			deletedAt: 'deleted_at',
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'order_payments',
 			appRawName: 'order_payments',
-			timestamps: false,
 		};
 	}
 

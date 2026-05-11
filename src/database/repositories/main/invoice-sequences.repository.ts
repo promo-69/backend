@@ -2,17 +2,17 @@ import { SequelizeRepositoryBase } from '@repositories/bases/sequelize.repositor
 import InvoiceSequencesModel from '@database/models/main/invoice-sequences.model.js';
 
 export interface InvoiceSequencesAttributes {
-    id?: number;
-    cinema: number;
-    prefix: string;
-    current_value?: number;
-    deleted_at?: Date;
+	id?: number;
+	cinema: number;
+	prefix: string;
+	current_value?: number;
+	deleted_at?: Date;
 }
 
 class InvoiceSequencesRepository extends SequelizeRepositoryBase<InvoiceSequencesAttributes, number> {
-    constructor() {
-        super(InvoiceSequencesModel);
-    }
+	constructor() {
+		super(InvoiceSequencesModel);
+	}
 }
 
 export default new InvoiceSequencesRepository();

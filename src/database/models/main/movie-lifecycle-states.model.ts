@@ -23,11 +23,15 @@ export default class MovieLifecycleStatesModel extends SequelizeModelBase {
 
 	static config() {
 		return {
+			timestamps: true,
+			paranoid: true,
+			createdAt: false,
+			updatedAt: false,
+			deletedAt: 'deleted_at',
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'movie_lifecycle_states',
 			appRawName: 'movie_lifecycle_states',
-			timestamps: false,
 		};
 	}
 

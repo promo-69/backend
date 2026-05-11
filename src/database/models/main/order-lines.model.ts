@@ -55,11 +55,15 @@ export default class OrderLinesModel extends SequelizeModelBase {
 
 	static config() {
 		return {
+			timestamps: true,
+			paranoid: true,
+			createdAt: false,
+			updatedAt: false,
+			deletedAt: 'deleted_at',
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'order_lines',
 			appRawName: 'order_lines',
-			timestamps: false,
 		};
 	}
 

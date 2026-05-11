@@ -35,11 +35,15 @@ export default class OrderTaxesModel extends SequelizeModelBase {
 
 	static config() {
 		return {
+			timestamps: true,
+			paranoid: true,
+			createdAt: false,
+			updatedAt: false,
+			deletedAt: 'deleted_at',
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'order_taxes',
 			appRawName: 'order_taxes',
-			timestamps: false,
 		};
 	}
 

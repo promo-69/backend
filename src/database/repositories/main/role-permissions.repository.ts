@@ -2,16 +2,16 @@ import { SequelizeRepositoryBase } from '@repositories/bases/sequelize.repositor
 import RolePermissionsModel from '@database/models/main/role-permissions.model.js';
 
 export interface RolePermissionsAttributes {
-    id?: number;
-    role: number;
-    permission: number;
-    deleted_at?: Date;
+	id?: number;
+	role: number;
+	permission: number;
+	deleted_at?: Date;
 }
 
 class RolePermissionsRepository extends SequelizeRepositoryBase<RolePermissionsAttributes, number> {
-    constructor() {
-        super(RolePermissionsModel);
-    }
+	constructor() {
+		super(RolePermissionsModel);
+	}
 }
 
 export default new RolePermissionsRepository();

@@ -23,11 +23,15 @@ export default class EventTypesModel extends SequelizeModelBase {
 
 	static config() {
 		return {
+			timestamps: true,
+			paranoid: true,
+			createdAt: false,
+			updatedAt: false,
+			deletedAt: 'deleted_at',
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'event_types',
 			appRawName: 'event_types',
-			timestamps: false,
 		};
 	}
 

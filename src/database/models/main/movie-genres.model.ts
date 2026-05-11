@@ -27,11 +27,15 @@ export default class MovieGenresModel extends SequelizeModelBase {
 
 	static config() {
 		return {
+			timestamps: true,
+			paranoid: true,
+			createdAt: false,
+			updatedAt: false,
+			deletedAt: 'deleted_at',
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'movie_genres',
 			appRawName: 'movie_genres',
-			timestamps: false,
 		};
 	}
 

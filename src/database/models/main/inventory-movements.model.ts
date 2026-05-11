@@ -54,11 +54,15 @@ export default class InventoryMovementsModel extends SequelizeModelBase {
 
 	static config() {
 		return {
+			timestamps: true,
+			paranoid: true,
+			createdAt: 'created_at',
+			updatedAt: false,
+			deletedAt: 'deleted_at',
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'inventory_movements',
 			appRawName: 'inventory_movements',
-			timestamps: false,
 		};
 	}
 

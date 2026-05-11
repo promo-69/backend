@@ -2,17 +2,17 @@ import { SequelizeRepositoryBase } from '@repositories/bases/sequelize.repositor
 import PeopleModel from '@database/models/main/people.model.js';
 
 export interface PeopleAttributes {
-    id?: number;
-    document_number: string;
-    first_name: string;
-    last_name: string;
-    gender?: number;
-    phone_number?: string;
-    personal_email?: string;
-    birth_date?: Date;
-    created_at?: Date;
-    updated_at?: Date;
-    deleted_at?: Date;
+	id?: number;
+	document_number: string;
+	first_name: string;
+	last_name: string;
+	gender?: number;
+	phone_number?: string;
+	personal_email?: string;
+	birth_date?: Date;
+	created_at?: Date;
+	updated_at?: Date;
+	deleted_at?: Date;
 }
 
 class PeopleRepository extends SequelizeRepositoryBase<PeopleAttributes, number> {

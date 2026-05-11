@@ -9,184 +9,184 @@ const __dirname = dirname(__filename);
 dotenv.config({ path: resolve(__dirname, '..', '..', '.env'), quiet: true });
 
 type EnvGroup = {
-    type: IDatabaseType;
-    id: string;
-    values: Record<string, string>;
+	type: IDatabaseType;
+	id: string;
+	values: Record<string, string>;
 };
 
 export class DatabaseConfig {
-    private static _configCache: IDatabaseConfig[] | null = null;
-    private static _defaultConfig: IDatabaseConfig | null = null;
-    private static _enabledDatabases: string[] = [];
-    private static _availableTestingEnv: string[] = [];
+	private static _configCache: IDatabaseConfig[] | null = null;
+	private static _defaultConfig: IDatabaseConfig | null = null;
+	private static _enabledDatabases: string[] = [];
+	private static _availableTestingEnv: string[] = [];
 
-    /**
-     * Carga todas las configuraciones de base de datos desde las variables de entorno
-     */
-    static loadAll(): IDatabaseConfig[] {
-        if (this._configCache) return this._configCache;
+	/**
+	 * Carga todas las configuraciones de base de datos desde las variables de entorno
+	 */
+	static loadAll(): IDatabaseConfig[] {
+		if (this._configCache) return this._configCache;
 
-        const enabledDatabases = this.getEnabledDatabases();
-        const defaultDatabase = this.getDefaultDatabaseName();
-        const defaultDatabaseHost = this.getDefaultDatabaseHost();
+		const enabledDatabases = this.getEnabledDatabases();
+		const defaultDatabase = this.getDefaultDatabaseName();
+		const defaultDatabaseHost = this.getDefaultDatabaseHost();
 
-        const configs = this.parseEnvGroups()
-            .map((group) => this.buildConfig(group, { enabledDatabases, defaultDatabase, defaultDatabaseHost }))
-            .filter((c): c is IDatabaseConfig => Boolean(c));
+		const configs = this.parseEnvGroups()
+			.map((group) => this.buildConfig(group, { enabledDatabases, defaultDatabase, defaultDatabaseHost }))
+			.filter((c): c is IDatabaseConfig => Boolean(c));
 
-        this._configCache = configs;
-        return configs;
-    }
+		this._configCache = configs;
+		return configs;
+	}
 
-    /**
-     * Carga la configuración de la base de datos por defecto
-     */
-    static loadDefault(): IDatabaseConfig | null {
-        if (this._defaultConfig) return this._defaultConfig;
+	/**
+	 * Carga la configuración de la base de datos por defecto
+	 */
+	static loadDefault(): IDatabaseConfig | null {
+		if (this._defaultConfig) return this._defaultConfig;
 
-        const allConfigs = this.loadAll();
-        this._defaultConfig = allConfigs.find((config) => config.isDefault) || allConfigs[0] || null;
+		const allConfigs = this.loadAll();
+		this._defaultConfig = allConfigs.find((config) => config.isDefault) || allConfigs[0] || null;
 
-        return this._defaultConfig;
-    }
+		return this._defaultConfig;
+	}
 
-    /**
-     * Carga la configuración de una base de datos específica por nombre
-     */
-    static load(name: string): IDatabaseConfig | null {
-        const allConfigs = this.loadAll();
-        return allConfigs.find((config) => config.id === name) || null;
-    }
+	/**
+	 * Carga la configuración de una base de datos específica por nombre
+	 */
+	static load(name: string): IDatabaseConfig | null {
+		const allConfigs = this.loadAll();
+		return allConfigs.find((config) => config.id === name) || null;
+	}
 
-    /**
-     * Obtiene los tipos de bases de datos habilitadas
-     */
-    static getEnabledDatabases(): string[] {
-        if (this._enabledDatabases.length > 0) return this._enabledDatabases;
+	/**
+	 * Obtiene los tipos de bases de datos habilitadas
+	 */
+	static getEnabledDatabases(): string[] {
+		if (this._enabledDatabases.length > 0) return this._enabledDatabases;
 
-        this._enabledDatabases = (process.env.ENABLED_DATABASES ?? '')
-            .split(',')
-            .map((v) => v.trim().toLowerCase())
-            .filter(Boolean);
+		this._enabledDatabases = (process.env.ENABLED_DATABASES ?? '')
+			.split(',')
+			.map((v) => v.trim().toLowerCase())
+			.filter(Boolean);
 
-        return this._enabledDatabases;
-    }
+		return this._enabledDatabases;
+	}
 
-    static getAvailableTestingEnv(): string[] {
-        if (this._availableTestingEnv.length > 0) return this._availableTestingEnv;
+	static getAvailableTestingEnv(): string[] {
+		if (this._availableTestingEnv.length > 0) return this._availableTestingEnv;
 
-        this._availableTestingEnv = (process.env.AVAILABLE_TESTING_ENV_DATABASES ?? '')
-            .split(',')
-            .map((v) => v.trim().toLowerCase())
-            .filter(Boolean);
+		this._availableTestingEnv = (process.env.AVAILABLE_TESTING_ENV_DATABASES ?? '')
+			.split(',')
+			.map((v) => v.trim().toLowerCase())
+			.filter(Boolean);
 
-        return this._availableTestingEnv;
-    }
+		return this._availableTestingEnv;
+	}
 
-    /**
-     * Obtiene el nombre de la base de datos por defecto
-     */
-    static getDefaultDatabaseName(): string {
-        return process.env.DEFAULT_DATABASE?.toLowerCase() || '';
-    }
+	/**
+	 * Obtiene el nombre de la base de datos por defecto
+	 */
+	static getDefaultDatabaseName(): string {
+		return process.env.DEFAULT_DATABASE?.toLowerCase() || '';
+	}
 
-    /**
-     * Obtiene el host de la base de datos por defecto
-     */
-    static getDefaultDatabaseHost(): string {
-        return process.env.DEFAULT_DATABASE_HOST?.toLowerCase() || '';
-    }
+	/**
+	 * Obtiene el host de la base de datos por defecto
+	 */
+	static getDefaultDatabaseHost(): string {
+		return process.env.DEFAULT_DATABASE_HOST?.toLowerCase() || '';
+	}
 
-    /**
-     * Verifica si una base de datos está habilitada
-     */
-    static isDatabaseEnabled(dbType: string): boolean {
-        return this.getEnabledDatabases().includes(dbType.toLowerCase());
-    }
+	/**
+	 * Verifica si una base de datos está habilitada
+	 */
+	static isDatabaseEnabled(dbType: string): boolean {
+		return this.getEnabledDatabases().includes(dbType.toLowerCase());
+	}
 
-    /**
-     * Limpia la caché de configuraciones (útil para testing)
-     */
-    static clearCache(): void {
-        this._configCache = null;
-        this._defaultConfig = null;
-        this._enabledDatabases = [];
-    }
+	/**
+	 * Limpia la caché de configuraciones (útil para testing)
+	 */
+	static clearCache(): void {
+		this._configCache = null;
+		this._defaultConfig = null;
+		this._enabledDatabases = [];
+	}
 
-    private static parseEnvGroups(): EnvGroup[] {
-        const groups = new Map<string, EnvGroup>();
+	private static parseEnvGroups(): EnvGroup[] {
+		const groups = new Map<string, EnvGroup>();
 
-        for (const [key, value] of Object.entries(process.env)) {
-            if (!value) continue;
+		for (const [key, value] of Object.entries(process.env)) {
+			if (!value) continue;
 
-            const match = key.match(/^DB_(?<type>[A-Z]+)(?:_(?<id>[A-Z]+))?_(?<prop>.+)$/);
-            if (!match) continue;
+			const match = key.match(/^DB_(?<type>[A-Z]+)(?:_(?<id>[A-Z]+))?_(?<prop>.+)$/);
+			if (!match) continue;
 
-            const { type, id, prop } = match.groups!;
+			const { type, id, prop } = match.groups!;
 
-            if (!type || !prop || !prop) continue;
+			if (!type || !prop || !prop) continue;
 
-            const _type = type.toLowerCase() as IDatabaseType;
+			const _type = type.toLowerCase() as IDatabaseType;
 
-            const _id = id ? id.toLowerCase() : _type;
-            const groupKey = `${_type}:${_id}`;
+			const _id = id ? id.toLowerCase() : _type;
+			const groupKey = `${_type}:${_id}`;
 
-            if (!groups.has(groupKey)) {
-                groups.set(groupKey, {
-                    type: _type,
-                    id: _id,
-                    values: {},
-                });
-            }
+			if (!groups.has(groupKey)) {
+				groups.set(groupKey, {
+					type: _type,
+					id: _id,
+					values: {},
+				});
+			}
 
-            groups.get(groupKey)!.values[prop.toLowerCase()] = value;
-        }
+			groups.get(groupKey)!.values[prop.toLowerCase()] = value;
+		}
 
-        return Array.from(groups.values());
-    }
+		return Array.from(groups.values());
+	}
 
-    private static buildConfig(
-        group: EnvGroup,
-        {
-            enabledDatabases,
-            defaultDatabase,
-            defaultDatabaseHost,
-        }: { enabledDatabases: string[]; defaultDatabase: string; defaultDatabaseHost: string },
-    ): IDatabaseConfig | null {
-        // Verificar si el tipo está habilitado
-        if (!enabledDatabases.includes(group.type)) return null;
+	private static buildConfig(
+		group: EnvGroup,
+		{
+			enabledDatabases,
+			defaultDatabase,
+			defaultDatabaseHost,
+		}: { enabledDatabases: string[]; defaultDatabase: string; defaultDatabaseHost: string },
+	): IDatabaseConfig | null {
+		// Verificar si el tipo está habilitado
+		if (!enabledDatabases.includes(group.type)) return null;
 
-        const enabled = group.values.enabled !== 'false';
-        if (!enabled) return null;
+		const enabled = group.values.enabled !== 'false';
+		if (!enabled) return null;
 
-        return {
-            type: group.type,
-            id: group.id,
-            enabled,
-            isDefault: group.id === defaultDatabase || (defaultDatabase === '' && group.type === group.id),
-            host: group.values.host || defaultDatabaseHost,
-            port: group.values.port ? Number(group.values.port) : undefined,
-            database: group.values.database,
-            username: group.values.username,
-            password: group.values.password,
-            uri: group.values.uri,
-            dialect: group.values.dialect as any,
-            ssl: (group.values.ssl || 'false').toLowerCase() === 'true',
-            timezone: group.values.timezone,
-            logging: group.values.logging === 'true',
-            pool: group.values.pool_max
-                ? {
-                      max: Number(group.values.pool_max),
-                      min: Number(group.values.pool_min ?? 0),
-                      acquire: Number(group.values.pool_acquire ?? 30000),
-                      idle: Number(group.values.pool_idle ?? 10000),
-                  }
-                : undefined,
-            syncOptions: {
-                force: group.values.sync_force === 'true',
-                alter: group.values.sync_alter === 'true',
-            },
-            availableTestingEnv: this.getAvailableTestingEnv().includes(group.id),
-        };
-    }
+		return {
+			type: group.type,
+			id: group.id,
+			enabled,
+			isDefault: group.id === defaultDatabase || (defaultDatabase === '' && group.type === group.id),
+			host: group.values.host || defaultDatabaseHost,
+			port: group.values.port ? Number(group.values.port) : undefined,
+			database: group.values.database,
+			username: group.values.username,
+			password: group.values.password,
+			uri: group.values.uri,
+			dialect: group.values.dialect as any,
+			ssl: (group.values.ssl || 'false').toLowerCase() === 'true',
+			timezone: group.values.timezone,
+			logging: group.values.logging === 'true',
+			pool: group.values.pool_max
+				? {
+						max: Number(group.values.pool_max),
+						min: Number(group.values.pool_min ?? 0),
+						acquire: Number(group.values.pool_acquire ?? 30000),
+						idle: Number(group.values.pool_idle ?? 10000),
+					}
+				: undefined,
+			syncOptions: {
+				force: group.values.sync_force === 'true',
+				alter: group.values.sync_alter === 'true',
+			},
+			availableTestingEnv: this.getAvailableTestingEnv().includes(group.id),
+		};
+	}
 }

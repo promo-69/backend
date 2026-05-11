@@ -23,11 +23,15 @@ export default class ProjectionTypesModel extends SequelizeModelBase {
 
 	static config() {
 		return {
+			timestamps: true,
+			paranoid: true,
+			createdAt: false,
+			updatedAt: false,
+			deletedAt: 'deleted_at',
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'projection_types',
 			appRawName: 'projection_types',
-			timestamps: false,
 		};
 	}
 

@@ -36,11 +36,15 @@ export default class ExchangeRatesModel extends SequelizeModelBase {
 
 	static config() {
 		return {
+			timestamps: true,
+			paranoid: true,
+			createdAt: 'created_at',
+			updatedAt: false,
+			deletedAt: 'deleted_at',
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'exchange_rates',
 			appRawName: 'exchange_rates',
-			timestamps: false,
 		};
 	}
 

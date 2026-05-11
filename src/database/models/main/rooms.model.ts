@@ -35,11 +35,15 @@ export default class RoomsModel extends SequelizeModelBase {
 
 	static config() {
 		return {
+			timestamps: true,
+			paranoid: true,
+			createdAt: false,
+			updatedAt: false,
+			deletedAt: 'deleted_at',
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'rooms',
 			appRawName: 'rooms',
-			timestamps: false,
 		};
 	}
 

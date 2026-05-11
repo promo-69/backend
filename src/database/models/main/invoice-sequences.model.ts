@@ -32,11 +32,15 @@ export default class InvoiceSequencesModel extends SequelizeModelBase {
 
 	static config() {
 		return {
+			timestamps: true,
+			paranoid: true,
+			createdAt: false,
+			updatedAt: false,
+			deletedAt: 'deleted_at',
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'invoice_sequences',
 			appRawName: 'invoice_sequences',
-			timestamps: false,
 		};
 	}
 

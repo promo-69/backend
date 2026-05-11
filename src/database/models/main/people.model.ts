@@ -56,11 +56,15 @@ export default class PeopleModel extends SequelizeModelBase {
 
 	static config() {
 		return {
+			timestamps: true,
+			paranoid: true,
+			createdAt: 'created_at',
+			updatedAt: 'updated_at',
+			deletedAt: 'deleted_at',
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'people',
 			appRawName: 'people',
-			timestamps: false,
 		};
 	}
 

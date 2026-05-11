@@ -2,16 +2,16 @@ import { SequelizeRepositoryBase } from '@repositories/bases/sequelize.repositor
 import OperationTypesModel from '@database/models/main/operation-types.model.js';
 
 export interface OperationTypesAttributes {
-    id?: number;
-    description: string;
-    is_increment: boolean;
-    deleted_at?: Date;
+	id?: number;
+	description: string;
+	is_increment: boolean;
+	deleted_at?: Date;
 }
 
 class OperationTypesRepository extends SequelizeRepositoryBase<OperationTypesAttributes, number> {
-    constructor() {
-        super(OperationTypesModel);
-    }
+	constructor() {
+		super(OperationTypesModel);
+	}
 }
 
 export default new OperationTypesRepository();

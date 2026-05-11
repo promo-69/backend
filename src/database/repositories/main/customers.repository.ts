@@ -2,13 +2,13 @@ import { SequelizeRepositoryBase } from '@repositories/bases/sequelize.repositor
 import CustomersModel from '@database/models/main/customers.model.js';
 
 export interface CustomersAttributes {
-    id?: number;
-    person: number;
-    loyalty_level?: number;
-    level_progress_points?: number;
-    current_points_balance?: number;
-    registration_date?: Date;
-    deleted_at?: Date;
+	id?: number;
+	person: number;
+	loyalty_level?: number;
+	level_progress_points?: number;
+	current_points_balance?: number;
+	registration_date?: Date;
+	deleted_at?: Date;
 }
 
 export interface CustomerFull extends CustomersAttributes {
