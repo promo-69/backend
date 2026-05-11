@@ -8,7 +8,7 @@ export interface PermissionsAttributes {
     action: number;
     resource: number;
     permission_type: number;
-    status: number;
+    deleted_at?: Date;
 }
 
 interface PermissionsWithActionsResourcesTypes extends PermissionsAttributes {

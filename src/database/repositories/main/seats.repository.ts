@@ -8,7 +8,7 @@ export interface SeatsAttributes {
     column_number: number;
     seat_category: number;
     seat_condition: number;
-    status: number;
+    deleted_at?: Date;
 }
 
 export interface SeatFull extends SeatsAttributes {

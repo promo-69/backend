@@ -5,7 +5,7 @@ export interface RoomProjectionTypesAttributes {
     id?: number;
     room: number;
     projection_type: number;
-    status: number;
+    deleted_at?: Date;
 }
 
 class RoomProjectionTypesRepository extends SequelizeRepositoryBase<RoomProjectionTypesAttributes, number> {

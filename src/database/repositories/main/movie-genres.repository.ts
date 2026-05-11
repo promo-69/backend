@@ -5,7 +5,7 @@ export interface MovieGenresAttributes {
     id?: number;
     movie: number;
     genre: number;
-    status: number;
+    deleted_at?: Date;
 }
 
 class MovieGenresRepository extends SequelizeRepositoryBase<MovieGenresAttributes, number> {

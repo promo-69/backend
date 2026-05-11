@@ -4,11 +4,11 @@ import LoyaltyLedgersModel from '@database/models/main/loyalty-ledgers.model.js'
 export interface LoyaltyLedgersAttributes {
     id?: number;
     customer: number;
-    order?: number | null;
+    order?: number;
     operation_type: number;
     points: number;
-    created_at?: Date | string;
-    status: number;
+    created_at?: Date;
+    deleted_at?: Date;
 }
 
 class LoyaltyLedgersRepository extends SequelizeRepositoryBase<LoyaltyLedgersAttributes, number> {

@@ -3,9 +3,8 @@ import AgeClassificationsModel from '@database/models/main/age-classifications.m
 
 export interface AgeClassificationsAttributes {
     id?: number;
-    code: string;
     description: string;
-    status: number;
+    deleted_at?: Date;
 }
 
 class AgeClassificationsRepository extends SequelizeRepositoryBase<AgeClassificationsAttributes, number> {

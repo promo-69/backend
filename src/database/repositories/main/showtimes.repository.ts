@@ -7,12 +7,12 @@ export interface ShowtimesAttributes {
     movie: number;
     room: number;
     projection_type: number;
-    start_time: Date | string;
-    end_time: Date | string;
+    start_time: Date;
+    end_time: Date;
     currency: number;
     price: number;
-    earned_loyalty_points?: number | null;
-    status: number;
+    earned_loyalty_points?: number;
+    deleted_at?: Date;
 }
 
 class ShowtimesRepository extends SequelizeRepositoryBase<ShowtimesAttributes, number> {

@@ -5,7 +5,7 @@ export interface EmployeesAttributes {
     id?: number;
     person: number;
     employee_code: string;
-    status: number;
+    deleted_at?: Date;
 }
 
 class EmployeesRepository extends SequelizeRepositoryBase<EmployeesAttributes, number> {

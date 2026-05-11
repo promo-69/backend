@@ -4,7 +4,7 @@ import GendersModel from '@database/models/main/genders.model.js';
 export interface GendersAttributes {
     id?: number;
     description: string;
-    status: number;
+    deleted_at?: Date;
 }
 
 class GendersRepository extends SequelizeRepositoryBase<GendersAttributes, number> {

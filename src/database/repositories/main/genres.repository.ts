@@ -4,7 +4,7 @@ import GenresModel from '@database/models/main/genres.model.js';
 export interface GenresAttributes {
     id?: number;
     description: string;
-    status: number;
+    deleted_at?: Date;
 }
 
 class GenresRepository extends SequelizeRepositoryBase<GenresAttributes, number> {

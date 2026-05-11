@@ -6,9 +6,9 @@ export interface CinemasAttributes {
     name: string;
     address?: string;
     phone?: string;
-    opening_time: string;
-    closing_time: string;
-    status: number;
+    opening_time: any;
+    closing_time: any;
+    deleted_at?: Date;
 }
 
 export interface CinemaFull extends CinemasAttributes {

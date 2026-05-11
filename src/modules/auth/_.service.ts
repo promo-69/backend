@@ -221,6 +221,7 @@ export class AuthService extends BaseService {
 				{ code: 'UNVERIFIED_ACCOUNT' },
 			);
 		}
+		console.log(foundUser);
 
 		const loginResponse = await this._buildLoginResponse(foundUser);
 		const decodedToken = JWTUtil.decodeToken(loginResponse.refreshToken) as { jti?: string; exp?: number };

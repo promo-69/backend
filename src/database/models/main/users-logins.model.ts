@@ -6,9 +6,9 @@ export default class UsersLoginsModel extends SequelizeModelBase {
         return {
             id: {
                 primaryKey: true,
+                autoIncrement: true,
                 allowNull: true,
                 type: DataTypes.INTEGER,
-                autoIncrement: true,
             },
             user: {
                 allowNull: false,
@@ -21,12 +21,6 @@ export default class UsersLoginsModel extends SequelizeModelBase {
             jti: {
                 allowNull: false,
                 type: DataTypes.STRING(255),
-                unique: true,
-            },
-            token_status: {
-                allowNull: false,
-                type: DataTypes.INTEGER,
-                defaultValue: 1,
             },
             expires_at: {
                 allowNull: false,
@@ -41,20 +35,19 @@ export default class UsersLoginsModel extends SequelizeModelBase {
                 allowNull: true,
                 type: DataTypes.DATE,
             },
-            status: {
-                allowNull: false,
-                type: DataTypes.INTEGER,
-                defaultValue: 1,
+            deleted_at: {
+                allowNull: true,
+                type: DataTypes.DATE,
             },
         };
     }
 
     static config() {
         return {
-            isBasicTable: false,
+            isBasicTable: true,
             schema: 'public',
             tableName: 'users_logins',
-            appRawName: 'users-logins',
+            appRawName: 'users_logins',
             timestamps: false,
         };
     }
@@ -64,7 +57,7 @@ export default class UsersLoginsModel extends SequelizeModelBase {
             {
                 type: 'belongsTo',
                 target: 'Users',
-                options: { foreignKey: 'user', targetKey: 'id', as: '_User' },
+                options: { foreignKey: 'user', targetKey: 'id', as: '_Users' },
             },
             {
                 inversed: true,

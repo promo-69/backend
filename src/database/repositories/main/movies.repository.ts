@@ -9,8 +9,10 @@ export interface MoviesAttributes {
     lifecycle_state: number;
     synopsis: string;
     trailer_url?: string;
-    release_date: Date | string;
-    status: number;
+    poster_url?: string;
+    banner_url?: string;
+    release_date: Date;
+    deleted_at?: Date;
 }
 
 export interface MovieFull extends MoviesAttributes {

@@ -1,5 +1,13 @@
 import { SequelizeRepositoryBase } from '@repositories/bases/sequelize.repository.js';
 import RolesModel from '@database/models/main/roles.model.js';
+export interface RolesAttributes {
+    id?: number;
+    code: string;
+    name: string;
+    description: string;
+    deleted_at?: Date;
+}
+
 
 export interface Roles {
 	id: number;

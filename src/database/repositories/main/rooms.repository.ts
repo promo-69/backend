@@ -7,8 +7,7 @@ export interface RoomsAttributes {
     name: string;
     grid_rows: number;
     grid_columns: number;
-    total_capacity: number;
-    status: number;
+    deleted_at?: Date;
 }
 
 export interface RoomFull extends RoomsAttributes {
