@@ -16,7 +16,6 @@ module.exports = {
 					phone: '+58 212-555-0101',
 					opening_time: '10:00:00',
 					closing_time: '23:30:00',
-					status: 1,
 				},
 				{
 					id: 2,
@@ -25,7 +24,6 @@ module.exports = {
 					phone: '+58 212-555-0202',
 					opening_time: '11:00:00',
 					closing_time: '22:30:00',
-					status: 1,
 				},
 			],
 			{},
@@ -40,8 +38,6 @@ module.exports = {
 					name: 'Sala 1',
 					grid_rows: 5,
 					grid_columns: 8,
-					total_capacity: 40,
-					status: 1,
 				},
 				{
 					id: 2,
@@ -49,8 +45,6 @@ module.exports = {
 					name: 'Sala 2',
 					grid_rows: 4,
 					grid_columns: 6,
-					total_capacity: 24,
-					status: 1,
 				},
 			],
 			{},
@@ -59,9 +53,9 @@ module.exports = {
 		await queryInterface.bulkInsert(
 			'room_projection_types',
 			[
-				{ id: 1, room: 1, projection_type: 1, status: 1 },
-				{ id: 2, room: 1, projection_type: 2, status: 1 },
-				{ id: 3, room: 2, projection_type: 1, status: 1 },
+				{ id: 1, room: 1, projection_type: 1},
+				{ id: 2, room: 1, projection_type: 2},
+				{ id: 3, room: 2, projection_type: 1},
 			],
 			{},
 		);
@@ -76,7 +70,6 @@ module.exports = {
 					column_number: 1,
 					seat_category: 1,
 					seat_condition: 1,
-					status: 1,
 				},
 				{
 					id: 2,
@@ -85,7 +78,6 @@ module.exports = {
 					column_number: 2,
 					seat_category: 1,
 					seat_condition: 1,
-					status: 1,
 				},
 				{
 					id: 3,
@@ -94,7 +86,6 @@ module.exports = {
 					column_number: 3,
 					seat_category: 2,
 					seat_condition: 1,
-					status: 1,
 				},
 				{
 					id: 4,
@@ -103,7 +94,6 @@ module.exports = {
 					column_number: 1,
 					seat_category: 1,
 					seat_condition: 1,
-					status: 1,
 				},
 				{
 					id: 5,
@@ -112,7 +102,6 @@ module.exports = {
 					column_number: 2,
 					seat_category: 2,
 					seat_condition: 1,
-					status: 1,
 				},
 			],
 			{},
@@ -130,7 +119,6 @@ module.exports = {
 					synopsis: 'Una historia sobre el amor por las salas de cine y la magia de la pantalla grande.',
 					trailer_url: 'https://example.com/trailer/la-aventura-del-cine',
 					release_date: '2026-05-01',
-					status: 1,
 				},
 				{
 					id: 2,
@@ -141,7 +129,6 @@ module.exports = {
 					synopsis: 'Aventuras fantásticas en el corazón de la ciudad, con mucho humor y corazón.',
 					trailer_url: 'https://example.com/trailer/fantasia-urbana',
 					release_date: '2026-04-15',
-					status: 1,
 				},
 			],
 			{},
@@ -150,10 +137,10 @@ module.exports = {
 		await queryInterface.bulkInsert(
 			'movie_genres',
 			[
-				{ id: 1, movie: 1, genre: 1, status: 1 },
-				{ id: 2, movie: 1, genre: 6, status: 1 },
-				{ id: 3, movie: 2, genre: 4, status: 1 },
-				{ id: 4, movie: 2, genre: 3, status: 1 },
+				{ id: 1, movie: 1, genre: 1},
+				{ id: 2, movie: 1, genre: 6},
+				{ id: 3, movie: 2, genre: 4},
+				{ id: 4, movie: 2, genre: 3},
 			],
 			{},
 		);
@@ -171,7 +158,6 @@ module.exports = {
 					currency: 1,
 					price: 12.5,
 					earned_loyalty_points: 25,
-					status: 1,
 				},
 				{
 					id: 2,
@@ -183,7 +169,6 @@ module.exports = {
 					currency: 1,
 					price: 10.0,
 					earned_loyalty_points: 20,
-					status: 1,
 				},
 			],
 			{},
@@ -201,7 +186,6 @@ module.exports = {
 					phone_number: '+58 424-123-4567',
 					personal_email: 'maria.perez@example.com',
 					birth_date: '1992-08-10',
-					status: 1,
 				},
 				{
 					id: 2,
@@ -212,7 +196,6 @@ module.exports = {
 					phone_number: '+58 212-555-0000',
 					personal_email: 'admin.super@cineflix.com',
 					birth_date: '1985-01-01',
-					status: 1,
 				},
 			],
 			{},
@@ -227,7 +210,6 @@ module.exports = {
 					loyalty_level: 1,
 					level_progress_points: 80,
 					registration_date: '2026-04-01 12:00:00',
-					status: 1,
 				},
 			],
 			{},
@@ -240,7 +222,6 @@ module.exports = {
 					id: 1,
 					person: 2,
 					employee_code: 'ADM001',
-					status: 1,
 				},
 			],
 			{},
@@ -257,7 +238,6 @@ module.exports = {
 					start_date: '2026-04-01',
 					end_date: null,
 					salary_base: 5000.0,
-					status: 1,
 				},
 			],
 			{},
@@ -265,7 +245,7 @@ module.exports = {
 
 		await queryInterface.bulkInsert(
 			'movie_subscriptions',
-			[{ id: 1, customer: 1, movie: 1, is_notified: true, status: 1 }],
+			[{ id: 1, customer: 1, movie: 1, is_notified: true}],
 			{},
 		);
 
@@ -282,10 +262,8 @@ module.exports = {
 					role: null,
 					email: 'maria.perez@example.com',
 					password: mariaPassword,
-					last_login: null,
 					signup_code: await bcrypt.hash(nanoid(20), 10),
 					signup_verified_at: new Date(),
-					status: 1,
 				},
 				{
 					id: 2,
@@ -294,10 +272,8 @@ module.exports = {
 					role: 1,
 					email: process.env.SUPER_ADMIN_EMAIL,
 					password: adminPassword,
-					last_login: null,
 					signup_code: await bcrypt.hash(nanoid(20), 10),
 					signup_verified_at: new Date(),
-					status: 1,
 				},
 			],
 			{},
