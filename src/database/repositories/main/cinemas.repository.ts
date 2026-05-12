@@ -11,32 +11,22 @@ export interface CinemasAttributes {
 	deleted_at?: Date;
 }
 
-export interface CinemaFull extends CinemasAttributes {
-	_Status: { description: string };
-}
-
 class CinemasRepository extends SequelizeRepositoryBase<CinemasAttributes, number> {
 	constructor() {
 		super(CinemasModel);
 	}
 
 	private get _relations() {
-		return [
-			{
-				association: '_Status',
-				attributes: ['description'],
-				required: true,
-			},
-		];
+		return [];
 	}
 
-	async getFull(id: number): Promise<CinemaFull | null> {
-		return this.getOne({ id }, { relations: this._relations }) as Promise<CinemaFull | null>;
+	async getFull(id: number): Promise<CinemasAttributes | null> {
+		return this.getOne({ id }, { relations: this._relations }) as Promise<CinemasAttributes | null>;
 	}
 
-	async getAllFull(filters?: any): Promise<{ rows: CinemaFull[]; count: number }> {
+	async getAllFull(filters?: any): Promise<{ rows: CinemasAttributes[]; count: number }> {
 		return this.getAll({ ...filters, count: true, relations: this._relations }) as Promise<{
-			rows: CinemaFull[];
+			rows: CinemasAttributes[];
 			count: number;
 		}>;
 	}

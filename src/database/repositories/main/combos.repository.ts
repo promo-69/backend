@@ -19,7 +19,6 @@ class CombosRepository extends SequelizeRepositoryBase<any, number> {
 	private get _relations() {
 		return [
 			{ association: '_Currency', attributes: ['code', 'symbol'], required: true },
-			{ association: '_Status', attributes: ['description'], required: true },
 			{
 				association: '_ComboProducts',
 				attributes: ['id', 'product', 'quantity'],
@@ -34,7 +33,7 @@ class CombosRepository extends SequelizeRepositoryBase<any, number> {
 	}
 
 	async getAllFull(filters?: any) {
-		return this.getAll({ ...filters, count: true, relations: this._relations }, { status: 1 });
+		return this.getAll({ ...filters, count: true, relations: this._relations });
 	}
 }
 

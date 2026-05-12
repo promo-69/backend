@@ -36,8 +36,6 @@
                                             earned_loyalty_points:
                                                 type: integer
                                                 nullable: true
-                                            status:
-                                                type: integer
             '500':
                 description: Internal server error
     post:

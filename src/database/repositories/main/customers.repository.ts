@@ -19,7 +19,6 @@ export interface CustomerFull extends CustomersAttributes {
 		phone_number: string;
 	};
 	_LoyaltyLevel: { description: string };
-	_Status: { description: string };
 }
 
 class CustomersRepository extends SequelizeRepositoryBase<CustomersAttributes, number> {
@@ -38,11 +37,6 @@ class CustomersRepository extends SequelizeRepositoryBase<CustomersAttributes, n
 				association: '_LoyaltyLevel',
 				attributes: ['description'],
 				required: false,
-			},
-			{
-				association: '_Status',
-				attributes: ['description'],
-				required: true,
 			},
 		];
 	}

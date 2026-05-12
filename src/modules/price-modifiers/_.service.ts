@@ -88,7 +88,6 @@ export class PriceModifiersService extends BaseService {
 			product_category: body.productCategory ?? null,
 			product: body.product ?? null,
 			combo: body.combo ?? null,
-			status: 1,
 		});
 
 		return null;
@@ -97,7 +96,7 @@ export class PriceModifiersService extends BaseService {
 	// --- HU-OPERATIVA-15 (Edición): Actualizar regla ---
 	async updatePriceModifier(id: number, body: UpdatePriceModifierBody) {
 		const modifier = await this._priceModifiers.getOne({ id });
-		if (!modifier || modifier.status !== 1) throw new NotFoundError('Regla de precio no encontrada');
+		if (!modifier) throw new NotFoundError('Regla de precio no encontrada');
 
 		const { description, value, isPercentage, operationType } = body;
 		const updateData: Record<string, any> = {};
@@ -130,9 +129,9 @@ export class PriceModifiersService extends BaseService {
 	// --- HU-OPERATIVA-14/15 (Desactivación): Soft delete ---
 	async deletePriceModifier(id: number) {
 		const modifier = await this._priceModifiers.getOne({ id });
-		if (!modifier || modifier.status !== 1) throw new NotFoundError('Regla de precio no encontrada');
+		if (!modifier) throw new NotFoundError('Regla de precio no encontrada');
 
-		await this._priceModifiers.update(id, { status: 4 });
+		await this._priceModifiers.delete(id);
 		return null;
 	}
 }

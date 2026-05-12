@@ -27,8 +27,6 @@
                                                 type: integer
                                             permission_type:
                                                 type: integer
-                                            status:
-                                                type: integer
                                             _Actions:
                                                 type: object
                                                 properties:

@@ -11,7 +11,7 @@
               in: path
               required: true
               schema:
-                type: integer
+                  type: integer
         responses:
             '200':
                 description: Permission retrieved successfully
@@ -30,8 +30,6 @@
                                         resource:
                                             type: integer
                                         permission_type:
-                                            type: integer
-                                        status:
                                             type: integer
                                         _Actions:
                                             type: object

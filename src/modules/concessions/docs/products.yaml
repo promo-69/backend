@@ -31,8 +31,6 @@
                                             created_at:
                                                 type: string
                                                 format: date-time
-                                            status:
-                                                type: integer
             '500':
                 description: Internal server error
     post:

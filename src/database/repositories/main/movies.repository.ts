@@ -18,7 +18,6 @@ export interface MoviesAttributes {
 export interface MovieFull extends MoviesAttributes {
 	_AgeClassification: { description: string };
 	_LifecycleState: { description: string };
-	_Status: { description: string };
 	_MovieGenres?: Array<{
 		id: number;
 		genre: number;
@@ -44,11 +43,6 @@ class MoviesRepository extends SequelizeRepositoryBase<MoviesAttributes, number>
 				required: true,
 			},
 			{
-				association: '_Status',
-				attributes: ['description'],
-				required: true,
-			},
-			{
 				association: '_MovieGenres',
 				attributes: ['id', 'genre'],
 				required: false,
@@ -68,7 +62,7 @@ class MoviesRepository extends SequelizeRepositoryBase<MoviesAttributes, number>
 	}
 
 	async getAllOnBillboard(filters?: any): Promise<{ rows: MovieFull[]; count: number }> {
-		return this.getAll({ ...filters, count: true, relations: this._relations }, { status: 1 }) as Promise<{
+		return this.getAll({ ...filters, count: true, relations: this._relations }) as Promise<{
 			rows: MovieFull[];
 			count: number;
 		}>;

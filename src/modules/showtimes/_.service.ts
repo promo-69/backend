@@ -49,7 +49,7 @@ export class ShowtimesService extends BaseService {
 
 	private async _getActiveShowtime(id: number) {
 		const st = await this._showtimes.getFull(id);
-		if (!st || st.status !== 1) throw new NotFoundError('Función no encontrada');
+		if (!st) throw new NotFoundError('Función no encontrada');
 		return st;
 	}
 
@@ -78,16 +78,15 @@ export class ShowtimesService extends BaseService {
 			throw new ValidationError('La función debe programarse en el futuro', ['startTime']);
 
 		const movie = await this._movies.getFull(movieId);
-		if (!movie || movie.status !== 1) throw new NotFoundError('Película no encontrada');
+		if (!movie) throw new NotFoundError('Película no encontrada');
 
 		const room = await this._rooms.getFull(roomId);
-		if (!room || room.status !== 1) throw new NotFoundError('Sala no encontrada');
+		if (!room) throw new NotFoundError('Sala no encontrada');
 
 		// Verificar que la sala soporte ese tipo de proyección
 		const roomPT = await this._roomProjectionTypes.getOne({
 			room: roomId,
 			projection_type: projectionTypeId,
-			status: 1,
 		});
 		if (!roomPT)
 			throw new ConflictError(
@@ -113,7 +112,6 @@ export class ShowtimesService extends BaseService {
 					currency: currencyId,
 					price,
 					earned_loyalty_points: earnedLoyaltyPoints ?? null,
-					status: 1,
 				},
 				{ transaction },
 			);
@@ -170,8 +168,7 @@ export class ShowtimesService extends BaseService {
 	// --- HU-OPERATIVA-19: Cancelar función ---
 	async cancelShowtime(id: number) {
 		await this._getActiveShowtime(id);
-		// status 3 = Cancelado (según el patrón del proyecto)
-		await this._showtimes.update(id, { status: 3 });
+		await this._showtimes.delete(id);
 		return null;
 	}
 

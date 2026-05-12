@@ -19,13 +19,13 @@ export class SeatsService extends BaseService {
 
 	private async _getActiveSeat(seatId: number) {
 		const seat = await this._seats.getById(seatId);
-		if (!seat || seat.status !== 1) throw new NotFoundError('Asiento no encontrado');
+		if (!seat) throw new NotFoundError('Asiento no encontrado');
 		return seat;
 	}
 
 	private async _hasFutureTickets(seatId: number): Promise<boolean> {
 		try {
-			const count = await this._tickets.count({ seat: seatId, status: 1 });
+			const count = await this._tickets.count({ seat: seatId });
 			return count > 0;
 		} catch {
 			return false;
@@ -47,7 +47,7 @@ export class SeatsService extends BaseService {
 		]);
 
 		const room = await this._rooms.getFull(roomId);
-		if (!room || room.status !== 1) throw new NotFoundError('Sala no encontrada');
+		if (!room) throw new NotFoundError('Sala no encontrada');
 
 		const existing = await this._seats.getOne({
 			room: roomId,
@@ -63,7 +63,6 @@ export class SeatsService extends BaseService {
 			column_number: columnNumber,
 			seat_category: seatCategory,
 			seat_condition: seatCondition,
-			status: 1,
 		});
 
 		return null;
@@ -107,7 +106,7 @@ export class SeatsService extends BaseService {
 				'SEAT_HAS_FUTURE_TICKETS',
 			);
 
-		await this._seats.update(seatId, { status: 4 });
+		await this._seats.delete(seatId);
 		return null;
 	}
 }

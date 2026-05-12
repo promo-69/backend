@@ -17,7 +17,6 @@ export interface Roles {
 	expires_at: Date;
 	created_at: Date;
 	updated_at: Date;
-	status: number;
 }
 
 class RolesRepository extends SequelizeRepositoryBase<Roles, number> {

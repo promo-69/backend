@@ -20,7 +20,6 @@ class ProductsRepository extends SequelizeRepositoryBase<any, number> {
 		return [
 			{ association: '_ProductCategory', attributes: ['description'], required: true },
 			{ association: '_Currency', attributes: ['code', 'symbol'], required: true },
-			{ association: '_Status', attributes: ['description'], required: true },
 		];
 	}
 
@@ -29,7 +28,7 @@ class ProductsRepository extends SequelizeRepositoryBase<any, number> {
 	}
 
 	async getAllFull(filters?: any) {
-		return this.getAll({ ...filters, count: true, relations: this._relations }, { status: 1 });
+		return this.getAll({ ...filters, count: true, relations: this._relations });
 	}
 }
 

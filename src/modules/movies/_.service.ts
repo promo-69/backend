@@ -52,7 +52,7 @@ export class MoviesService extends BaseService {
 	// --- HU-APP-WEB-07: Detalle público de película ---
 	async getMovieDetail(id: number) {
 		const movie = await this._movies.getFull(id);
-		if (!movie || movie.status !== 1) throw new NotFoundError('Película no encontrada');
+		if (!movie) throw new NotFoundError('Película no encontrada');
 		return movie;
 	}
 
@@ -108,7 +108,6 @@ export class MoviesService extends BaseService {
 					banner_url: bannerUrl ?? null,
 					trailer_url: trailerUrl ?? null,
 					release_date: releaseDate,
-					status: 1,
 				},
 				{ transaction },
 			);
@@ -116,7 +115,6 @@ export class MoviesService extends BaseService {
 			const genreRecords = genres.map((gId: number) => ({
 				movie: movie.id,
 				genre: gId,
-				status: 1,
 			}));
 			await this._movieGenres.bulkCreate(genreRecords, { transaction });
 
@@ -129,7 +127,7 @@ export class MoviesService extends BaseService {
 	// --- HU-OPERATIVA-13 (Edición): Editar película ---
 	async updateMovie(id: number, body: UpdateMovieBody) {
 		const movie = await this._movies.getFull(id);
-		if (!movie || movie.status !== 1) throw new NotFoundError('Película no encontrada');
+		if (!movie) throw new NotFoundError('Película no encontrada');
 
 		const { genres, lifecycleState, synopsis, posterUrl, bannerUrl, trailerUrl } = body;
 		const updateData: Record<string, any> = {};
@@ -152,7 +150,6 @@ export class MoviesService extends BaseService {
 					const records = genres.map((gId: number) => ({
 						movie: id,
 						genre: gId,
-						status: 1,
 					}));
 					await this._movieGenres.bulkCreate(records, { transaction });
 				}
@@ -165,11 +162,11 @@ export class MoviesService extends BaseService {
 	// --- HU-OPERATIVA-13 (Desactivación): Soft delete ---
 	async deleteMovie(id: number) {
 		const movie = await this._movies.getFull(id);
-		if (!movie || movie.status !== 1) throw new NotFoundError('Película no encontrada');
+		if (!movie) throw new NotFoundError('Película no encontrada');
 
 		let activeShowtimes = 0;
 		try {
-			activeShowtimes = await Database.repository('main', 'showtimes').count({ movie: id, status: 1 } as any);
+			activeShowtimes = await Database.repository('main', 'showtimes').count({ movie: id } as any);
 		} catch {
 			/* módulo showtimes aún no implementado */
 		}
@@ -180,7 +177,7 @@ export class MoviesService extends BaseService {
 				'MOVIE_HAS_ACTIVE_SHOWTIMES',
 			);
 
-		await this._movies.update(id, { status: 4 });
+		await this._movies.delete(id);
 		return null;
 	}
 }

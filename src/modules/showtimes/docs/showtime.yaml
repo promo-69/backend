@@ -41,8 +41,6 @@
                                         earned_loyalty_points:
                                             type: integer
                                             nullable: true
-                                        status:
-                                            type: integer
             '404':
                 description: Showtime not found
             '500':

@@ -79,7 +79,6 @@ export class ConfiteriaService extends BaseService {
 			currency: currencyId,
 			price,
 			earned_loyalty_points: earnedLoyaltyPoints ?? null,
-			status: 1,
 		});
 
 		return this._products.getFull(created.id);
@@ -115,7 +114,6 @@ export class ConfiteriaService extends BaseService {
 					currency: currencyId,
 					price,
 					earned_loyalty_points: earnedLoyaltyPoints ?? null,
-					status: 1,
 				},
 				{ transaction },
 			);
@@ -124,7 +122,6 @@ export class ConfiteriaService extends BaseService {
 				combo: combo.id,
 				product: productId,
 				quantity,
-				status: 1,
 			}));
 			await this._comboProducts.bulkCreate(comboProductRecords, { transaction });
 
@@ -137,7 +134,7 @@ export class ConfiteriaService extends BaseService {
 	// --- HU-OPERATIVA-31: Editar producto o combo ---
 	async updateProduct(id: number, body: UpdateProductBody) {
 		const product = await this._products.getFull(id);
-		if (!product || product.status !== 1) throw new NotFoundError('Producto no encontrado');
+		if (!product) throw new NotFoundError('Producto no encontrado');
 
 		const updateData: Record<string, any> = {};
 		if (body.name !== undefined) updateData.name = body.name;
@@ -161,7 +158,7 @@ export class ConfiteriaService extends BaseService {
 		body: UpdateProductBody & { products?: Array<{ productId: number; quantity: number }> },
 	) {
 		const combo = await this._combos.getFull(id);
-		if (!combo || combo.status !== 1) throw new NotFoundError('Combo no encontrado');
+		if (!combo) throw new NotFoundError('Combo no encontrado');
 
 		const { products, ...rest } = body;
 		const updateData: Record<string, any> = {};
@@ -188,7 +185,6 @@ export class ConfiteriaService extends BaseService {
 						combo: id,
 						product: productId,
 						quantity,
-						status: 1,
 					}));
 					await this._comboProducts.bulkCreate(records, { transaction });
 				}
@@ -204,10 +200,10 @@ export class ConfiteriaService extends BaseService {
 			throw new ValidationError('La cantidad debe ser un entero positivo', ['quantity']);
 
 		const cinema = await this._cinemas.getFull(cinemaId);
-		if (!cinema || cinema.status !== 1) throw new NotFoundError('Sucursal no encontrada');
+		if (!cinema) throw new NotFoundError('Sucursal no encontrada');
 
 		const product = await this._products.getFull(productId);
-		if (!product || product.status !== 1) throw new NotFoundError('Producto no encontrado');
+		if (!product) throw new NotFoundError('Producto no encontrado');
 
 		await this._inventories.transaction(async (transaction: Transaction) => {
 			// Buscar o crear registro de inventario para esta sucursal+producto
@@ -215,7 +211,7 @@ export class ConfiteriaService extends BaseService {
 
 			if (!inventory) {
 				inventory = await this._inventories.create(
-					{ cinema: cinemaId, product: productId, stock: 0, status: 1 },
+					{ cinema: cinemaId, product: productId, stock: 0 },
 					{ transaction },
 				);
 			}
@@ -231,7 +227,6 @@ export class ConfiteriaService extends BaseService {
 					quantity,
 					user: userId,
 					remarks: remarks ?? null,
-					status: 1,
 				},
 				{ transaction },
 			);
@@ -250,13 +245,13 @@ export class ConfiteriaService extends BaseService {
 
 	async findProductById(id: number) {
 		const p = await this._products.getFull(id);
-		if (!p || p.status !== 1) throw new NotFoundError('Producto no encontrado');
+		if (!p) throw new NotFoundError('Producto no encontrado');
 		return p;
 	}
 
 	async findComboById(id: number) {
 		const c = await this._combos.getFull(id);
-		if (!c || c.status !== 1) throw new NotFoundError('Combo no encontrado');
+		if (!c) throw new NotFoundError('Combo no encontrado');
 		return c;
 	}
 

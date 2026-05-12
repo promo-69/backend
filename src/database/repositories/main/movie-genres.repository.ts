@@ -18,7 +18,7 @@ class MovieGenresRepository extends SequelizeRepositoryBase<MovieGenresAttribute
 	}
 
 	async getByMovie(movieId: number): Promise<MovieGenresAttributes[]> {
-		return this.getAll({ count: false }, { movie: movieId, status: 1 }) as Promise<MovieGenresAttributes[]>;
+		return this.getAll({ count: false }, { movie: movieId }) as Promise<MovieGenresAttributes[]>;
 	}
 }
 

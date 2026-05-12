@@ -63,10 +63,10 @@ export class RoomsService extends BaseService {
 			throw new ValidationError('La capacidad total no puede ser negativa', ['totalCapacity']);
 
 		const cinema = await this._cinemas.getFull(cinemaId);
-		if (!cinema || cinema.status !== 1) throw new NotFoundError('Sucursal no encontrada o inactiva');
+		if (!cinema) throw new NotFoundError('Sucursal no encontrada o inactiva');
 
 		const existing = await this._rooms.getByNameAndCinema(name, cinemaId);
-		if (existing && existing.status === 1)
+		if (existing)
 			throw new ConflictError('Ya existe una sala con ese nombre en la sucursal', 'ROOM_NAME_DUPLICATE');
 
 		const createdRoom = await this._rooms.transaction(async (transaction: Transaction) => {
@@ -77,7 +77,6 @@ export class RoomsService extends BaseService {
 					grid_rows: gridRows,
 					grid_columns: gridColumns,
 					total_capacity: totalCapacity,
-					status: 1,
 				},
 				{ transaction },
 			);
@@ -85,7 +84,6 @@ export class RoomsService extends BaseService {
 			const projectionRecords = projectionTypes.map((ptId: number) => ({
 				room: room.id,
 				projection_type: ptId,
-				status: 1,
 			}));
 			await this._roomProjectionTypes.bulkCreate(projectionRecords, { transaction });
 
@@ -98,7 +96,7 @@ export class RoomsService extends BaseService {
 	// --- HU-OPERATIVA-08: Modificar sala ---
 	async updateRoom(id: number, body: UpdateRoomBody) {
 		const room = await this._rooms.getFull(id);
-		if (!room || room.status !== 1) throw new NotFoundError('Sala no encontrada');
+		if (!room) throw new NotFoundError('Sala no encontrada');
 
 		const { name, totalCapacity, projectionTypes } = body;
 		const updateData: Record<string, any> = {};
@@ -107,7 +105,7 @@ export class RoomsService extends BaseService {
 			if (typeof name !== 'string' || name.trim().length === 0)
 				throw new ValidationError('El nombre no puede estar vacío', ['name']);
 			const existing = await this._rooms.getByNameAndCinema(name, room.cinema);
-			if (existing && existing.id !== id && existing.status === 1)
+			if (existing && existing.id !== id)
 				throw new ConflictError('Ya existe una sala con ese nombre en la sucursal', 'ROOM_NAME_DUPLICATE');
 			updateData.name = name.trim();
 		}
@@ -130,7 +128,6 @@ export class RoomsService extends BaseService {
 					const records = projectionTypes.map((ptId: number) => ({
 						room: id,
 						projection_type: ptId,
-						status: 1,
 					}));
 					await this._roomProjectionTypes.bulkCreate(records, { transaction });
 				}
@@ -143,11 +140,11 @@ export class RoomsService extends BaseService {
 	// --- HU-OPERATIVA-08 (Adición): Eliminar sala (Soft Delete) ---
 	async deleteRoom(id: number) {
 		const room = await this._rooms.getFull(id);
-		if (!room || room.status !== 1) throw new NotFoundError('Sala no encontrada');
+		if (!room) throw new NotFoundError('Sala no encontrada');
 
 		let activeShowtimes = 0;
 		try {
-			activeShowtimes = await Database.repository('main', 'showtimes').count({ room: id, status: 1 } as any);
+			activeShowtimes = await Database.repository('main', 'showtimes').count({ room: id } as any);
 		} catch {
 			/* módulo showtimes aún no implementado, se ignora */
 		}
@@ -158,14 +155,14 @@ export class RoomsService extends BaseService {
 				'ROOM_HAS_ACTIVE_SHOWTIMES',
 			);
 
-		await this._rooms.update(id, { status: 4 });
+		await this._rooms.delete(id);
 		return null;
 	}
 
 	// --- Soporte Visual Frontend: Mapa de asientos ---
 	async getSeatMap(roomId: number, filters?: ProcessedQueryFilters) {
 		const room = await this._rooms.getFull(roomId);
-		if (!room || room.status !== 1) throw new NotFoundError('Sala no encontrada');
+		if (!room) throw new NotFoundError('Sala no encontrada');
 		return this._seats.getAllByRoom(roomId, filters);
 	}
 
@@ -176,7 +173,7 @@ export class RoomsService extends BaseService {
 		}
 
 		const cinema = await this._cinemas.getFull(cinemaId);
-		if (!cinema || cinema.status !== 1) throw new NotFoundError('Sucursal no encontrada');
+		if (!cinema) throw new NotFoundError('Sucursal no encontrada');
 		return this._rooms.getAllByCinema(cinemaId, filters);
 	}
 
@@ -200,7 +197,6 @@ export class RoomsService extends BaseService {
 		return this._roomProjectionTypes.create({
 			room: roomId,
 			projection_type: projectionType,
-			status: 1,
 		});
 	}
 
@@ -208,12 +204,12 @@ export class RoomsService extends BaseService {
 		await this.findById(roomId);
 		const projectionType = await this.findRoomProjectionTypeById(id, roomId);
 		if (!projectionType) throw new NotFoundError('RoomProjectionType', id);
-		return this._roomProjectionTypes.update(id, { status: 4 });
+		return this._roomProjectionTypes.delete(id);
 	}
 
 	async findById(id: number) {
 		const room = await this._rooms.getFull(id);
-		if (!room || room.status !== 1) throw new NotFoundError('Sala no encontrada');
+		if (!room) throw new NotFoundError('Sala no encontrada');
 		return room;
 	}
 }

@@ -25,7 +25,7 @@ export class CustomersService extends BaseService {
 			throw new ValidationError('Los puntos deben ser un entero positivo', ['points']);
 
 		const customer = await this._customers.getOne({ id: customerId });
-		if (!customer || customer.status !== 1) throw new NotFoundError('Cliente no encontrado');
+		if (!customer) throw new NotFoundError('Cliente no encontrado');
 
 		// operationType 1 = suma, 2 = resta (según seeder de operation_types)
 		const isIncrement = operationType === 1;
@@ -40,7 +40,6 @@ export class CustomersService extends BaseService {
 					order: null,
 					operationType,
 					points,
-					status: 1,
 				},
 				{ transaction },
 			);

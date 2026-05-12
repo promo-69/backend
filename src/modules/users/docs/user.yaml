@@ -11,7 +11,7 @@
               in: path
               required: true
               schema:
-                type: integer
+                  type: integer
         responses:
             '200':
                 description: User retrieved successfully
@@ -46,8 +46,6 @@
                                             type: string
                                             format: date-time
                                             nullable: true
-                                        status:
-                                            type: integer
                                         _People:
                                             type: object
                                             properties:

@@ -21,7 +21,6 @@ export interface UsersLogin {
 	expires_at: Date;
 	created_at: Date;
 	updated_at: Date;
-	status: number;
 }
 
 class UsersLoginsRepository extends SequelizeRepositoryBase<UsersLogin, number> {

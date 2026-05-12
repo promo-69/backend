@@ -26,7 +26,6 @@ class ShowtimesRepository extends SequelizeRepositoryBase<ShowtimesAttributes, n
 			{ association: '_Room', attributes: ['name'], required: true },
 			{ association: '_ProjectionType', attributes: ['description'], required: true },
 			{ association: '_Currency', attributes: ['code', 'symbol'], required: true },
-			{ association: '_Status', attributes: ['description'], required: true },
 		];
 	}
 
@@ -35,22 +34,21 @@ class ShowtimesRepository extends SequelizeRepositoryBase<ShowtimesAttributes, n
 	}
 
 	async getAllFull(filters?: any) {
-		return this.getAll({ ...filters, count: true, relations: this._relations }, { status: 1 });
+		return this.getAll({ ...filters, count: true, relations: this._relations });
 	}
 
 	async getAllByMovie(movieId: number, filters?: any) {
-		return this.getAll({ ...filters, count: true, relations: this._relations }, { movie: movieId, status: 1 });
+		return this.getAll({ ...filters, count: true, relations: this._relations }, { movie: movieId });
 	}
 
 	async getAllByRoom(roomId: number, filters?: any) {
-		return this.getAll({ ...filters, count: true, relations: this._relations }, { room: roomId, status: 1 });
+		return this.getAll({ ...filters, count: true, relations: this._relations }, { room: roomId });
 	}
 
 	// Detectar solapamiento de horarios en la misma sala
 	async hasConflict(roomId: number, startTime: Date, endTime: Date, excludeId?: number): Promise<boolean> {
 		const where: any = {
 			room: roomId,
-			status: 1,
 			start_time: { [Op.lt]: endTime },
 			end_time: { [Op.gt]: startTime },
 		};

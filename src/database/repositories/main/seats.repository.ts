@@ -14,7 +14,6 @@ export interface SeatsAttributes {
 export interface SeatFull extends SeatsAttributes {
 	_SeatCategory: { description: string };
 	_SeatCondition: { description: string };
-	_Status: { description: string };
 }
 
 class SeatsRepository extends SequelizeRepositoryBase<SeatsAttributes, number> {
@@ -26,7 +25,6 @@ class SeatsRepository extends SequelizeRepositoryBase<SeatsAttributes, number> {
 		return [
 			{ association: '_SeatCategory', attributes: ['description'], required: true },
 			{ association: '_SeatCondition', attributes: ['description'], required: true },
-			{ association: '_Status', attributes: ['description'], required: true },
 		];
 	}
 
@@ -42,9 +40,7 @@ class SeatsRepository extends SequelizeRepositoryBase<SeatsAttributes, number> {
 	}
 
 	async getActiveByRoom(roomId: number): Promise<SeatFull[]> {
-		return this.getAll({ count: false, relations: this._relations }, { room: roomId, status: 1 }) as Promise<
-			SeatFull[]
-		>;
+		return this.getAll({ count: false, relations: this._relations }, { room: roomId }) as Promise<SeatFull[]>;
 	}
 
 	async deleteByRoom(roomId: number, operationOptions?: any): Promise<number> {
@@ -52,7 +48,7 @@ class SeatsRepository extends SequelizeRepositoryBase<SeatsAttributes, number> {
 	}
 
 	async countByRoom(roomId: number): Promise<number> {
-		return this.count({ room: roomId, status: 1 });
+		return this.count({ room: roomId });
 	}
 }
 

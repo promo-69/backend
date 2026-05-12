@@ -85,7 +85,6 @@ export class EmployeesService extends BaseService {
 				phone_number: employeeData.phoneNumber,
 				personal_email: employeeData.email,
 				birth_date: employeeData.birthDate,
-				status: 1,
 			};
 			person = await this._people.create(personData);
 		}
@@ -94,7 +93,6 @@ export class EmployeesService extends BaseService {
 		const employee = await this._employees.create({
 			person: person.id,
 			employee_code: employeeData.employeeCode,
-			status: 1,
 		});
 
 		// Create employee position
@@ -105,7 +103,6 @@ export class EmployeesService extends BaseService {
 			start_date: employeeData.startDate,
 			end_date: employeeData.endDate,
 			salary_base: employeeData.salaryBase,
-			status: 1,
 		});
 
 		return employee;
@@ -130,7 +127,7 @@ export class EmployeesService extends BaseService {
 	async deleteEmployee(id: number) {
 		const employee = await this._employees.getById(id);
 		if (!employee) throw new NotFoundError('Employee', id);
-		return this._employees.update(id, { status: 4 });
+		return this._employees.delete(id);
 	}
 
 	async changeEmployeePosition(employeeId: number, positionData: any) {
@@ -168,7 +165,6 @@ export class EmployeesService extends BaseService {
 			{ count: false },
 			{
 				employee: employeeId,
-				status: 1,
 			},
 		);
 
@@ -177,7 +173,7 @@ export class EmployeesService extends BaseService {
 			: (currentPositionsResult?.rows ?? []);
 
 		for (const pos of currentPositions) {
-			await this._employeePositions.update(pos.id, { end_date: new Date(), status: 4 });
+			await this._employeePositions.update(pos.id, { end_date: new Date() });
 		}
 
 		// Create new position
@@ -188,7 +184,6 @@ export class EmployeesService extends BaseService {
 			start_date: positionData.startDate,
 			end_date: positionData.endDate,
 			salary_base: positionData.salaryBase,
-			status: 1,
 		});
 
 		return newPosition;

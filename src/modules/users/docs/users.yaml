@@ -42,8 +42,6 @@
                                                 type: string
                                                 format: date-time
                                                 nullable: true
-                                            status:
-                                                type: integer
                                             _People:
                                                 type: object
                                                 properties:

@@ -12,7 +12,6 @@ export interface RoomsAttributes {
 
 export interface RoomFull extends RoomsAttributes {
 	_Cinema: { name: string };
-	_Status: { description: string };
 	_RoomProjectionTypes?: Array<{
 		id: number;
 		projection_type: number;
@@ -30,11 +29,6 @@ class RoomsRepository extends SequelizeRepositoryBase<RoomsAttributes, number> {
 			{
 				association: '_Cinema',
 				attributes: ['name'],
-				required: true,
-			},
-			{
-				association: '_Status',
-				attributes: ['description'],
 				required: true,
 			},
 			{
@@ -57,10 +51,10 @@ class RoomsRepository extends SequelizeRepositoryBase<RoomsAttributes, number> {
 	}
 
 	async getAllByCinema(cinemaId: number, filters?: any): Promise<{ rows: RoomFull[]; count: number }> {
-		return this.getAll(
-			{ ...filters, count: true, relations: this._relations },
-			{ cinema: cinemaId, status: 1 },
-		) as Promise<{ rows: RoomFull[]; count: number }>;
+		return this.getAll({ ...filters, count: true, relations: this._relations }, { cinema: cinemaId }) as Promise<{
+			rows: RoomFull[];
+			count: number;
+		}>;
 	}
 
 	async getByNameAndCinema(name: string, cinemaId: number): Promise<RoomsAttributes | null> {

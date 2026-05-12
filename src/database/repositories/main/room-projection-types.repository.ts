@@ -18,7 +18,7 @@ class RoomProjectionTypesRepository extends SequelizeRepositoryBase<RoomProjecti
 	}
 
 	async getByRoom(roomId: number): Promise<RoomProjectionTypesAttributes[]> {
-		return this.getAll({ count: false }, { room: roomId, status: 1 }) as Promise<RoomProjectionTypesAttributes[]>;
+		return this.getAll({ count: false }, { room: roomId }) as Promise<RoomProjectionTypesAttributes[]>;
 	}
 }
 

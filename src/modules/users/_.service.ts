@@ -68,7 +68,6 @@ export class UsersService extends BaseService {
 			person: employee.person,
 			email,
 			password: hashedPassword,
-			status: 1,
 			signup_verified_at: new Date(),
 		});
 
@@ -103,7 +102,6 @@ export class UsersService extends BaseService {
 					phone_number: personData.phoneNumber,
 					personal_email: personData.email || email,
 					birth_date: personData.birthDate,
-					status: 1,
 				},
 				{ transaction },
 			);
@@ -113,7 +111,6 @@ export class UsersService extends BaseService {
 					person: createdPerson.id,
 					loyalty_level: 1,
 					level_progress_points: 0,
-					status: 1,
 				},
 				{ transaction },
 			);
@@ -124,7 +121,6 @@ export class UsersService extends BaseService {
 					person: createdPerson.id,
 					email,
 					password: hashedPassword,
-					status: 1,
 					signup_verified_at: new Date(),
 				},
 				{ transaction },
@@ -137,17 +133,15 @@ export class UsersService extends BaseService {
 	}
 
 	async updateUserStatus(userId: number, status: number) {
-		if (status !== 0 && status !== 1)
-			throw new ValidationError('El estado debe ser 0 (inactivo) o 1 (activo).', []);
+		if (status !== 0) throw new ValidationError('El estado debe ser 0 (inactivo) o 1 (activo).', []);
 
 		const user = await this._users.getOne({ id: userId });
 		if (!user) throw new NotFoundError('Usuario', userId.toString());
 
-		await this._users.update({ id: userId }, { status });
+		await this._users.delete(userId);
 
 		if (status === 0) {
-			// Revocar sesiones activas
-			const activeSessions = await this._usersLogins.getAll({ user: userId, status: 1 });
+			const activeSessions = await this._usersLogins.getAll({ user: userId });
 
 			if (activeSessions && activeSessions.rows && activeSessions.rows.length > 0) {
 				const blacklistPromises = [];
@@ -165,8 +159,7 @@ export class UsersService extends BaseService {
 
 				await Promise.all(blacklistPromises);
 
-				// Actualizar estado en DB
-				await this._usersLogins.update({ user: userId }, { status: 2, token_status: 2 });
+				await this._usersLogins.update({ user: userId }, { token_status: 2 });
 			}
 		}
 
