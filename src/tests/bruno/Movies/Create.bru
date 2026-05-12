@@ -6,21 +6,21 @@ meta {
 
 post {
   url: {{baseUrl}}/movies
-  body: json
+  body: multipartForm
   auth: bearer
 }
 
-body:json {
-  {
-    "title": "Test Movie Bruno",
-    "durationMinutes": 120,
-    "ageClassification": 1,
-    "lifecycleState": 2,
-    "synopsis": "A movie created during Bruno test execution.",
-    "trailerUrl": "https://example.com/trailer.mp4",
-    "releaseDate": "2026-04-09",
-    "genres": [1]
-  }
+body:multipart-form {
+  title: Test Movie Bruno
+  durationMinutes: 120
+  ageClassification: 1
+  lifecycleState: 2
+  synopsis: A movie created during Bruno test execution.
+  trailerUrl: https://www.youtube.com/watch?v=example
+  releaseDate: 2026-04-09
+  genres: [1]
+  poster: @file(/path/to/poster.jpg)
+  banner: @file(/path/to/banner.jpg)
 }
 
 auth:bearer {

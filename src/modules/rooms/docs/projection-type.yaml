@@ -1,0 +1,28 @@
+/rooms/{id}/projection-types/{projectionTypeId}:
+    delete:
+        summary: Remove Projection Type From Room
+        description: Remove a projection type assignment from a room (soft delete).
+        tags:
+            - Rooms
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+            - name: projectionTypeId
+              in: path
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Projection type removed successfully
+            '401':
+                description: Unauthorized
+            '404':
+                description: Room or projection type assignment not found
+            '500':
+                description: Internal server error

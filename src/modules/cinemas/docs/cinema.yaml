@@ -1,0 +1,138 @@
+/cinemas/{id}:
+    get:
+        summary: Get Cinema By ID
+        description: Retrieve a single active cinema location by its ID.
+        tags:
+            - Cinemas
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Cinema retrieved successfully
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                data:
+                                    type: object
+                                    properties:
+                                        id:
+                                            type: integer
+                                        name:
+                                            type: string
+                                        address:
+                                            type: string
+                                            nullable: true
+                                        phone:
+                                            type: string
+                                            nullable: true
+                                        opening_time:
+                                            type: string
+                                            example: '10:00'
+                                        closing_time:
+                                            type: string
+                                            example: '22:00'
+                                        status:
+                                            type: integer
+                                        created_at:
+                                            type: string
+                                            format: date-time
+            '401':
+                description: Unauthorized
+            '404':
+                description: Cinema not found
+            '500':
+                description: Internal server error
+    put:
+        summary: Update Cinema
+        description: Update the details of an existing cinema location. At least one field must be provided.
+        tags:
+            - Cinemas
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            name:
+                                type: string
+                                example: Cineflix Barquisimeto Premium
+                            address:
+                                type: string
+                                nullable: true
+                            phone:
+                                type: string
+                                nullable: true
+                            openingTime:
+                                type: string
+                                pattern: '^([01]\d|2[0-3]):[0-5]\d$'
+                                example: '09:00'
+                            closingTime:
+                                type: string
+                                pattern: '^([01]\d|2[0-3]):[0-5]\d$'
+                                example: '23:00'
+        responses:
+            '200':
+                description: Cinema updated successfully
+            '400':
+                description: Bad request (validation errors or no data provided)
+            '401':
+                description: Unauthorized
+            '404':
+                description: Cinema not found
+            '409':
+                description: Conflict — duplicate cinema name
+            '500':
+                description: Internal server error
+    delete:
+        summary: Delete Cinema
+        description: Soft-delete a cinema location. Fails if the cinema has active rooms.
+        tags:
+            - Cinemas
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Cinema deleted successfully
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                data:
+                                    type: object
+                                    properties:
+                                        id:
+                                            type: integer
+                                        deleted:
+                                            type: boolean
+            '401':
+                description: Unauthorized
+            '404':
+                description: Cinema not found
+            '409':
+                description: Conflict — cinema has active rooms
+            '500':
+                description: Internal server error

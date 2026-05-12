@@ -1,0 +1,99 @@
+/rooms/{id}/seats:
+    get:
+        summary: Get Seat Map
+        description: Retrieve the complete seat layout of a room, including each seat's position, category and condition.
+        tags:
+            - Rooms
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Seat map retrieved successfully
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                data:
+                                    type: array
+                                    items:
+                                        type: object
+                                        properties:
+                                            id:
+                                                type: integer
+                                            room:
+                                                type: integer
+                                            row_identifier:
+                                                type: string
+                                                example: A
+                                            column_number:
+                                                type: integer
+                                                example: 1
+                                            seat_category:
+                                                type: integer
+                                            seat_condition:
+                                                type: integer
+                                            status:
+                                                type: integer
+            '401':
+                description: Unauthorized
+            '404':
+                description: Room not found
+            '500':
+                description: Internal server error
+    post:
+        summary: Create Seat
+        description: Manually add a single seat to a room's layout. Position (row + column) must be unique within the room.
+        tags:
+            - Rooms
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        required:
+                            - rowIdentifier
+                            - columnNumber
+                            - seatCategory
+                            - seatCondition
+                        properties:
+                            rowIdentifier:
+                                type: string
+                                example: A
+                            columnNumber:
+                                type: integer
+                                example: 1
+                            seatCategory:
+                                type: integer
+                                example: 1
+                            seatCondition:
+                                type: integer
+                                example: 1
+        responses:
+            '201':
+                description: Seat created successfully
+            '400':
+                description: Bad request (validation errors)
+            '401':
+                description: Unauthorized
+            '404':
+                description: Room not found
+            '409':
+                description: Conflict — seat position already exists in room
+            '500':
+                description: Internal server error
