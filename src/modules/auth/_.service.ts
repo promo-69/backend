@@ -221,7 +221,6 @@ export class AuthService extends BaseService {
 				{ code: 'UNVERIFIED_ACCOUNT' },
 			);
 		}
-		console.log(foundUser);
 
 		const loginResponse = await this._buildLoginResponse(foundUser);
 		const decodedToken = JWTUtil.decodeToken(loginResponse.refreshToken) as { jti?: string; exp?: number };
@@ -289,8 +288,7 @@ export class AuthService extends BaseService {
 			throw new AuthError('Sesión invalidada.', { code: 'REVOKED_SESSION' });
 
 		const foundUser = await this._users.getFull(savedSession.userId);
-		if (!foundUser)
-			throw new AuthError('El usuario no existe o está inactivo.', { code: 'USER_INACTIVE' });
+		if (!foundUser) throw new AuthError('El usuario no existe o está inactivo.', { code: 'USER_INACTIVE' });
 
 		const loginResponse = await this._buildLoginResponse(foundUser);
 		const decodedNew = JWTUtil.decodeToken(loginResponse.refreshToken) as { jti?: string; exp?: number };
