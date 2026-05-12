@@ -4,8 +4,8 @@ meta {
   seq: 5
 }
 
-put {
-  url: {{baseUrl}}/catalogs/status/1
+patch {
+  url: {{baseUrl}}/catalogs/{{catalog}}/1
   body: json
   auth: bearer
 }
@@ -16,6 +16,13 @@ auth:bearer {
 
 body:json {
   {
-    "name": "UPDATED_STATUS"
+    "code": "12323123",
+    "description": "jeje",
+    "symbol": "%",
+    "is_base_currency": false
   }
+}
+
+vars:pre-request {
+  catalog: currencies
 }
