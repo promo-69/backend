@@ -1,0 +1,22 @@
+{
+    "buffer_font_size": 16,
+    "tab_size": 4,
+    "hard_tabs": false,
+    "format_on_save": "on",
+    "formatter": "prettier",
+    "code_actions_on_save": {
+        "source.fixAll.eslint": true,
+    },
+    "languages": {
+        "TypeScript": {
+            "tab_size": 4,
+            "format_on_save": "on",
+            "formatter": "prettier",
+        },
+        "TSX": {
+            "tab_size": 4,
+            "format_on_save": "on",
+            "formatter": "prettier",
+        },
+    },
+}
