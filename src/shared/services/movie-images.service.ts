@@ -1,14 +1,17 @@
 import { imageStorageService } from './image-storage.service.js';
 import { ValidationError } from '@errors/index.js';
+import { Logger } from '@utils/logger.util.js';
 
 export interface MovieImageFiles {
     poster?: Express.Multer.File;
     banner?: Express.Multer.File;
 }
 
-export interface MovieImageUrls {
+export interface MovieImageUploadResult {
     posterUrl: string | null;
     bannerUrl: string | null;
+    posterFileId: string | null;
+    bannerFileId: string | null;
 }
 
 export class MovieImagesService {
@@ -18,15 +21,14 @@ export class MovieImagesService {
 
     /**
      * Sube las imágenes (poster y/o banner) a ImageKit.
-     * Cualquiera de los dos puede ser undefined si no se envió en el request.
-     *
-     * @param files Objeto con los buffers de multer (req.files como objeto de campos)
-     * @returns Objeto con las URLs resultantes (null si no se subió el archivo)
+     * Devuelve tanto las URLs como los IDs de archivo, necesarios para un posterior rollback.
      */
-    async uploadMovieImages(files: MovieImageFiles): Promise<MovieImageUrls> {
-        const results: MovieImageUrls = {
+    async uploadMovieImages(files: MovieImageFiles): Promise<MovieImageUploadResult> {
+        const result: MovieImageUploadResult = {
             posterUrl: null,
             bannerUrl: null,
+            posterFileId: null,
+            bannerFileId: null,
         };
 
         const uploads: Promise<void>[] = [];
@@ -36,8 +38,9 @@ export class MovieImagesService {
             uploads.push(
                 imageStorageService
                     .uploadImage(posterFile.buffer, posterFile.originalname, MovieImagesService.POSTER_FOLDER)
-                    .then(({ url }) => {
-                        results.posterUrl = url;
+                    .then(({ url, fileId }) => {
+                        result.posterUrl = url;
+                        result.posterFileId = fileId;
                     }),
             );
         }
@@ -47,25 +50,38 @@ export class MovieImagesService {
             uploads.push(
                 imageStorageService
                     .uploadImage(bannerFile.buffer, bannerFile.originalname, MovieImagesService.BANNER_FOLDER)
-                    .then(({ url }) => {
-                        results.bannerUrl = url;
+                    .then(({ url, fileId }) => {
+                        result.bannerUrl = url;
+                        result.bannerFileId = fileId;
                     }),
             );
         }
 
-        // Subir ambas imágenes en paralelo para reducir latencia
         await Promise.all(uploads);
 
-        return results;
+        return result;
+    }
+
+    /**
+     * Elimina de ImageKit los archivos cuyos IDs se proporcionen.
+     * Útil para revertir subidas si la transacción de BD falla.
+     * Ignora valores nulos y captura errores sin detener el proceso.
+     */
+    async rollbackUploadedImages(fileIds: (string | null)[]): Promise<void> {
+        const deletions = fileIds
+            .filter((id): id is string => id !== null)
+            .map((id) =>
+                imageStorageService.deleteImage(id).catch((err) => {
+                    Logger.error('Rollback delete failed:', err);
+                }),
+            );
+
+        await Promise.all(deletions);
     }
 
     /**
      * Extrae los archivos del objeto req.files que genera multer
      * cuando se usa uploadFields (multer.fields).
-     * req.files tiene la forma: { poster: [File], banner: [File] }
-     *
-     * @param rawFiles El req.files del request Express
-     * @returns MovieImageFiles normalizado (primer archivo de cada campo)
      */
     extractFromRequest(
         rawFiles: Express.Multer.File[] | { [fieldname: string]: Express.Multer.File[] } | undefined,
@@ -82,7 +98,6 @@ export class MovieImagesService {
 
     /**
      * Valida que la URL del trailer tenga un formato aceptable.
-     * El trailer es una URL externa (YouTube, Vimeo, etc.), no un archivo subido.
      */
     validateTrailerUrl(url: string | undefined): void {
         if (!url) return;
