@@ -22,6 +22,10 @@ export default class CombosModel extends SequelizeModelBase {
 				allowNull: false,
 				type: DataTypes.STRING(255),
 			},
+			image_url: {
+				allowNull: true,
+				type: DataTypes.STRING(500),
+			},
 			currency: {
 				allowNull: false,
 				type: DataTypes.INTEGER,
