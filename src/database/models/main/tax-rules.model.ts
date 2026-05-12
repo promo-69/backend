@@ -55,7 +55,7 @@ export default class TaxRulesModel extends SequelizeModelBase {
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'tax_rules',
-			appRawName: 'tax_rules',
+			appRawName: 'tax-rules',
 		};
 	}
 

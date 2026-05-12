@@ -31,7 +31,7 @@ export default class ProjectionTypesModel extends SequelizeModelBase {
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'projection_types',
-			appRawName: 'projection_types',
+			appRawName: 'projection-types',
 		};
 	}
 

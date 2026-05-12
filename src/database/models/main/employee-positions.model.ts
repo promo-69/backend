@@ -51,7 +51,7 @@ export default class EmployeePositionsModel extends SequelizeModelBase {
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'employee_positions',
-			appRawName: 'employee_positions',
+			appRawName: 'employee-positions',
 		};
 	}
 

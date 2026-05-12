@@ -62,7 +62,7 @@ export default class InventoryMovementsModel extends SequelizeModelBase {
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'inventory_movements',
-			appRawName: 'inventory_movements',
+			appRawName: 'inventory-movements',
 		};
 	}
 

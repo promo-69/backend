@@ -40,7 +40,7 @@ export default class InvoiceSequencesModel extends SequelizeModelBase {
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'invoice_sequences',
-			appRawName: 'invoice_sequences',
+			appRawName: 'invoice-sequences',
 		};
 	}
 

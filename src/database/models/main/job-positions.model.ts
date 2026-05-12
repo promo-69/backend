@@ -40,7 +40,7 @@ export default class JobPositionsModel extends SequelizeModelBase {
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'job_positions',
-			appRawName: 'job_positions',
+			appRawName: 'job-positions',
 		};
 	}
 

@@ -39,7 +39,7 @@ export default class UserPermissionsModel extends SequelizeModelBase {
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'user_permissions',
-			appRawName: 'user_permissions',
+			appRawName: 'user-permissions',
 		};
 	}
 

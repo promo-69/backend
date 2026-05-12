@@ -35,7 +35,7 @@ export default class LoyaltyLevelsModel extends SequelizeModelBase {
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'loyalty_levels',
-			appRawName: 'loyalty_levels',
+			appRawName: 'loyalty-levels',
 		};
 	}
 

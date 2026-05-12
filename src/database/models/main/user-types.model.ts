@@ -31,7 +31,7 @@ export default class UserTypesModel extends SequelizeModelBase {
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'user_types',
-			appRawName: 'user_types',
+			appRawName: 'user-types',
 		};
 	}
 

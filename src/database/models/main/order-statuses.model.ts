@@ -31,7 +31,7 @@ export default class OrderStatusesModel extends SequelizeModelBase {
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'order_statuses',
-			appRawName: 'order_statuses',
+			appRawName: 'order-statuses',
 		};
 	}
 

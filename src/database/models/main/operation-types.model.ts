@@ -35,7 +35,7 @@ export default class OperationTypesModel extends SequelizeModelBase {
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'operation_types',
-			appRawName: 'operation_types',
+			appRawName: 'operation-types',
 		};
 	}
 

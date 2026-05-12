@@ -31,7 +31,7 @@ export default class AudienceCategoriesModel extends SequelizeModelBase {
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'audience_categories',
-			appRawName: 'audience_categories',
+			appRawName: 'audience-categories',
 		};
 	}
 

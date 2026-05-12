@@ -44,7 +44,7 @@ export default class ExchangeRatesModel extends SequelizeModelBase {
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'exchange_rates',
-			appRawName: 'exchange_rates',
+			appRawName: 'exchange-rates',
 		};
 	}
 

@@ -64,7 +64,7 @@ export default class RentalRequestsModel extends SequelizeModelBase {
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'rental_requests',
-			appRawName: 'rental_requests',
+			appRawName: 'rental-requests',
 		};
 	}
 

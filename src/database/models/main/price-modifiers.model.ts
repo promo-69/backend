@@ -112,7 +112,7 @@ export default class PriceModifiersModel extends SequelizeModelBase {
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'price_modifiers',
-			appRawName: 'price_modifiers',
+			appRawName: 'price-modifiers',
 		};
 	}
 

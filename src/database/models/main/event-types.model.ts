@@ -31,7 +31,7 @@ export default class EventTypesModel extends SequelizeModelBase {
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'event_types',
-			appRawName: 'event_types',
+			appRawName: 'event-types',
 		};
 	}
 

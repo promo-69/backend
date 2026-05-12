@@ -39,7 +39,7 @@ export default class ComboProductsModel extends SequelizeModelBase {
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'combo_products',
-			appRawName: 'combo_products',
+			appRawName: 'combo-products',
 		};
 	}
 

@@ -35,7 +35,7 @@ export default class PermissionTypesModel extends SequelizeModelBase {
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'permission_types',
-			appRawName: 'permission_types',
+			appRawName: 'permission-types',
 		};
 	}
 
