@@ -1,0 +1,52 @@
+/customers/{id}/loyalty-points:
+    patch:
+        summary: Adjust Loyalty Points
+        description: Manually increment or decrement a customer's loyalty points balance. Operates as a ledger entry — each adjustment is recorded individually. Balance cannot go below zero.
+        tags:
+            - Customers
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+              description: Customer ID
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        required:
+                            - operationType
+                            - points
+                        properties:
+                            operationType:
+                                type: integer
+                                enum: [1, 2]
+                                description: '1 = increment, 2 = decrement'
+                                example: 1
+                            points:
+                                type: integer
+                                minimum: 1
+                                example: 100
+        responses:
+            '200':
+                description: Loyalty points adjusted successfully
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                message:
+                                    type: string
+            '400':
+                description: Bad request (points must be a positive integer)
+            '401':
+                description: Unauthorized
+            '404':
+                description: Customer not found
+            '500':
+                description: Internal server error

@@ -1,0 +1,66 @@
+/price-modifiers/{id}:
+    put:
+        summary: Update Price Modifier
+        description: Update the description, value, percentage flag or operation type of an existing price modifier. Scope and qualifier fields cannot be changed after creation.
+        tags:
+            - Price Modifiers
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            description:
+                                type: string
+                                example: Updated Tuesday discount
+                            value:
+                                type: number
+                                example: 25
+                            isPercentage:
+                                type: boolean
+                                example: true
+                            operationType:
+                                type: integer
+                                example: 2
+        responses:
+            '200':
+                description: Price modifier updated successfully
+            '400':
+                description: Bad request (validation errors)
+            '401':
+                description: Unauthorized
+            '404':
+                description: Price modifier not found
+            '500':
+                description: Internal server error
+    delete:
+        summary: Delete Price Modifier
+        description: Soft-delete a price modifier rule (status set to 4).
+        tags:
+            - Price Modifiers
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Price modifier deleted successfully
+            '401':
+                description: Unauthorized
+            '404':
+                description: Price modifier not found
+            '500':
+                description: Internal server error

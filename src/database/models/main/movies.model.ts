@@ -32,15 +32,15 @@ export default class MoviesModel extends SequelizeModelBase {
 			},
 			trailer_url: {
 				allowNull: true,
-				type: DataTypes.STRING(255),
+				type: DataTypes.STRING(500),
 			},
 			poster_url: {
 				allowNull: true,
-				type: DataTypes.STRING(255),
+				type: DataTypes.STRING(500),
 			},
 			banner_url: {
 				allowNull: true,
-				type: DataTypes.STRING(255),
+				type: DataTypes.STRING(500),
 			},
 			release_date: {
 				allowNull: false,
