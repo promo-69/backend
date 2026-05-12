@@ -1,0 +1,45 @@
+/movies/cartelera:
+    get:
+        summary: Get Billboard
+        description: Retrieve movies currently on the billboard (public cartelera). Same data as the main list but dedicated to public display.
+        tags:
+            - Movies
+        parameters:
+            - in: query
+              name: page
+              schema:
+                  type: integer
+                  default: 1
+              description: Page number
+            - in: query
+              name: per_page
+              schema:
+                  type: integer
+                  default: 10
+              description: Items per page
+        responses:
+            '200':
+                description: Billboard list
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                    example: true
+                                message:
+                                    type: string
+                                    example: Cartelera obtenida exitosamente
+                                data:
+                                    type: object
+                                    properties:
+                                        rows:
+                                            type: array
+                                            items:
+                                                $ref: '#/components/schemas/Movie'
+                                        count:
+                                            type: integer
+                                            example: 3
+            '500':
+                description: Internal server error
