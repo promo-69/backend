@@ -1,66 +1,66 @@
 interface SortConfigItem {
-    field: string;
-    order?: 'asc' | 'desc';
+	field: string;
+	order?: 'asc' | 'desc';
 }
 
 type SortByOption<T> = string | ((item: T) => any) | SortConfigItem[];
 
 const arraySort = <T = any>(
-    options: {
-        array?: T[];
-        order?: 'asc' | 'desc';
-        sortBy?: SortByOption<T> | null;
-    } = {},
+	options: {
+		array?: T[];
+		order?: 'asc' | 'desc';
+		sortBy?: SortByOption<T> | null;
+	} = {},
 ): T[] => {
-    const { array = [], order = 'asc', sortBy = null } = options;
+	const { array = [], order = 'asc', sortBy = null } = options;
 
-    const getValue = (obj: any, path: string | string[]): any => {
-        if (typeof path === 'string') {
-            path = path.split('.');
-        }
-        return path.reduce((acc, part) => acc && acc[part], obj);
-    };
+	const getValue = (obj: any, path: string | string[]): any => {
+		if (typeof path === 'string') {
+			path = path.split('.');
+		}
+		return path.reduce((acc, part) => acc && acc[part], obj);
+	};
 
-    return array.sort((a: T, b: T) => {
-        if (Array.isArray(sortBy)) {
-            return sortBy.reduce((result: number, current: SortConfigItem) => {
-                const { field, order = 'asc' } = current;
-                let comparison = 0;
+	return array.sort((a: T, b: T) => {
+		if (Array.isArray(sortBy)) {
+			return sortBy.reduce((result: number, current: SortConfigItem) => {
+				const { field, order = 'asc' } = current;
+				let comparison = 0;
 
-                if (result !== 0) return result;
+				if (result !== 0) return result;
 
-                const valueA = getValue(a, field);
-                const valueB = getValue(b, field);
+				const valueA = getValue(a, field);
+				const valueB = getValue(b, field);
 
-                if (valueA > valueB) comparison = 1;
-                else if (valueA < valueB) comparison = -1;
+				if (valueA > valueB) comparison = 1;
+				else if (valueA < valueB) comparison = -1;
 
-                if (order === 'desc') comparison *= -1;
+				if (order === 'desc') comparison *= -1;
 
-                return comparison;
-            }, 0);
-        }
+				return comparison;
+			}, 0);
+		}
 
-        let valueA: any, valueB: any;
+		let valueA: any, valueB: any;
 
-        if (typeof sortBy === 'string') {
-            valueA = getValue(a, sortBy);
-            valueB = getValue(b, sortBy);
-        } else if (typeof sortBy === 'function') {
-            valueA = sortBy(a);
-            valueB = sortBy(b);
-        } else {
-            valueA = a;
-            valueB = b;
-        }
+		if (typeof sortBy === 'string') {
+			valueA = getValue(a, sortBy);
+			valueB = getValue(b, sortBy);
+		} else if (typeof sortBy === 'function') {
+			valueA = sortBy(a);
+			valueB = sortBy(b);
+		} else {
+			valueA = a;
+			valueB = b;
+		}
 
-        // Mantener la lógica original de comparación
-        if (order === 'desc') {
-            return valueA < valueB ? -1 : valueA > valueB ? 1 : 0;
-        }
+		// Mantener la lógica original de comparación
+		if (order === 'desc') {
+			return valueA < valueB ? -1 : valueA > valueB ? 1 : 0;
+		}
 
-        return valueA > valueB ? 1 : valueA < valueB ? -1 : 0;
-    });
+		return valueA > valueB ? 1 : valueA < valueB ? -1 : 0;
+	});
 };
 
 export default arraySort;

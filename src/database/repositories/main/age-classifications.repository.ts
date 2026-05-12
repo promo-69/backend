@@ -2,16 +2,15 @@ import { SequelizeRepositoryBase } from '@repositories/bases/sequelize.repositor
 import AgeClassificationsModel from '@database/models/main/age-classifications.model.js';
 
 export interface AgeClassificationsAttributes {
-    id?: number;
-    code: string;
-    description: string;
-    status: number;
+	id?: number;
+	description: string;
+	deleted_at?: Date;
 }
 
 class AgeClassificationsRepository extends SequelizeRepositoryBase<AgeClassificationsAttributes, number> {
-    constructor() {
-        super(AgeClassificationsModel);
-    }
+	constructor() {
+		super(AgeClassificationsModel);
+	}
 }
 
 export default new AgeClassificationsRepository();

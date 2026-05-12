@@ -20,10 +20,10 @@ router.put('/combos/:id', verifySession, verifyRole(adminRoles), concessionsCont
 // Inventario por sucursal
 router.get('/inventory/:cinemaId', verifySession, concessionsController.findInventoryByCinema);
 router.post(
-    '/inventory/:cinemaId/products/:productId/replenish',
-    verifySession,
-    verifyRole(adminRoles),
-    concessionsController.replenishInventory,
+	'/inventory/:cinemaId/products/:productId/replenish',
+	verifySession,
+	verifyRole(adminRoles),
+	concessionsController.replenishInventory,
 );
 
 export default router;

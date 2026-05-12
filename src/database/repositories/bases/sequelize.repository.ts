@@ -412,13 +412,12 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
 		});
 	}
 
-	async getAllActive(options: SequelizeGetAllOptions, filter?: WhereCondition): Promise<QueryResult<T>> {
-		const activeFilter = {
-			...filter,
-			...(this._model.tableName == 'status' ? {} : { status: 1 }),
-		} as WhereCondition;
+	async getAllIncludingDeleted(options: SequelizeGetAllOptions, filter?: WhereCondition): Promise<QueryResult<T>> {
+		return this.getAll({ ...options, operation: { ...options.operation, paranoid: false } }, filter);
+	}
 
-		return this.getAll(options, activeFilter);
+	async getByIdIncludingDeleted(id: ID, operationOptions?: SequelizeOperationOptions): Promise<T | null> {
+		return this.getById(id, { ...operationOptions, paranoid: false });
 	}
 
 	async getById(id: ID, operationOptions?: SequelizeOperationOptions): Promise<T | null> {
@@ -530,6 +529,34 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
 				throw new DatabaseError(
 					`Sequelize 'delete' operation failed`,
 					'delete',
+					{
+						criteria,
+						database: this._model.dbInstanceName,
+						model: this._model.name,
+						error: error.message,
+					},
+					{ cause: error },
+				);
+			}
+		});
+	}
+
+	async restore(criteria: ID | ID[] | WhereCondition, operationOptions?: OperationOptions): Promise<number> {
+		return this.executeWithLogging('restore', async () => {
+			try {
+				const where = this.translateWhereCondition(criteria);
+				const options: any = {
+					where: where || {},
+				};
+
+				this.applyOperationOptions(options, operationOptions);
+
+				await this._model.restore(options);
+				return 1;
+			} catch (error: any) {
+				throw new DatabaseError(
+					`Sequelize 'restore' operation failed`,
+					'restore',
 					{
 						criteria,
 						database: this._model.dbInstanceName,

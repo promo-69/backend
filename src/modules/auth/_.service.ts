@@ -221,6 +221,7 @@ export class AuthService extends BaseService {
 				{ code: 'UNVERIFIED_ACCOUNT' },
 			);
 		}
+		console.log(foundUser);
 
 		const loginResponse = await this._buildLoginResponse(foundUser);
 		const decodedToken = JWTUtil.decodeToken(loginResponse.refreshToken) as { jti?: string; exp?: number };
@@ -232,7 +233,6 @@ export class AuthService extends BaseService {
 				jti: decodedToken.jti,
 				expires_at: new Date(decodedToken.exp * 1000),
 				token_status: 1,
-				status: 1,
 			});
 		}
 
@@ -256,7 +256,6 @@ export class AuthService extends BaseService {
 			{
 				signup_code: null,
 				signup_verified_at: new Date(),
-				status: 1, // Activado
 			},
 		);
 
@@ -286,11 +285,11 @@ export class AuthService extends BaseService {
 		if (!isLockAcquired) throw new AuthError('Sesión invalidada.', { code: 'INVALID_SESSION' });
 		const loginRecord = await this._usersLogins.getOne({ jti: savedSession.jti });
 
-		if (!loginRecord || loginRecord.token_status === 2 || loginRecord.status === 2)
+		if (!loginRecord || loginRecord.token_status === 2)
 			throw new AuthError('Sesión invalidada.', { code: 'REVOKED_SESSION' });
 
 		const foundUser = await this._users.getFull(savedSession.userId);
-		if (!foundUser || foundUser.status !== 1)
+		if (!foundUser)
 			throw new AuthError('El usuario no existe o está inactivo.', { code: 'USER_INACTIVE' });
 
 		const loginResponse = await this._buildLoginResponse(foundUser);
@@ -408,7 +407,7 @@ export class AuthService extends BaseService {
 		await this._cacheClient.del(keyToken);
 
 		// Opcional: Podríamos invalidar todas las sesiones activas (cerrar sesión en todos los dispositivos)
-		await this._usersLogins.update({ user: foundUser.id, status: 1 }, { status: 2, token_status: 2 });
+		await this._usersLogins.update({ user: foundUser.id }, { token_status: 2 });
 
 		return { message: 'Tu contraseña ha sido restablecida exitosamente. Ahora puedes iniciar sesión.' };
 	}

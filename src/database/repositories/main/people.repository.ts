@@ -9,8 +9,10 @@ export interface PeopleAttributes {
 	gender?: number;
 	phone_number?: string;
 	personal_email?: string;
-	birth_date?: Date | string;
-	status: number;
+	birth_date?: Date;
+	created_at?: Date;
+	updated_at?: Date;
+	deleted_at?: Date;
 }
 
 class PeopleRepository extends SequelizeRepositoryBase<PeopleAttributes, number> {

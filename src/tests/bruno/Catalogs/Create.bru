@@ -5,7 +5,7 @@ meta {
 }
 
 post {
-  url: {{baseUrl}}/catalogs/status
+  url: {{baseUrl}}/catalogs/{{catalog}}
   body: json
   auth: bearer
 }
@@ -16,7 +16,13 @@ auth:bearer {
 
 body:json {
   {
-    "name": "NEW_STATUS",
-    "description": "A new status"
+    "code": "1234",
+    "description": "jeje",
+    "symbol": "%",
+    "is_base_currency": false
   }
+}
+
+vars:pre-request {
+  catalog: currencies
 }

@@ -5,11 +5,15 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/catalogs/status
+  url: {{baseUrl}}/catalogs/{{catalog}}
   body: none
   auth: bearer
 }
 
 auth:bearer {
   token: {{accessToken}}
+}
+
+vars:pre-request {
+  catalog: currencies
 }

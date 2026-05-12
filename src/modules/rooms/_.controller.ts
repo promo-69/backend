@@ -2,85 +2,85 @@ import { ControllerBase } from '@bases/controller.base.js';
 import RoomsService from './_.service.js';
 
 class RoomsController extends ControllerBase {
-    constructor() {
-        super();
-    }
+	constructor() {
+		super();
+	}
 
-    // GET /api/v1/cinemas/:cinemaId/rooms
-    async findAll() {
-        const { cinemaId } = this.getParams();
+	// GET /api/v1/cinemas/:cinemaId/rooms
+	async findAll() {
+		const { cinemaId } = this.getParams();
 
-        if (cinemaId !== undefined) {
-            const data = await RoomsService.findAll(Number(cinemaId), this.getQueryFilters());
-            return data;
-        }
+		if (cinemaId !== undefined) {
+			const data = await RoomsService.findAll(Number(cinemaId), this.getQueryFilters());
+			return data;
+		}
 
-        const data = await RoomsService.findAll(undefined, this.getQueryFilters());
-        return data;
-    }
+		const data = await RoomsService.findAll(undefined, this.getQueryFilters());
+		return data;
+	}
 
-    async findProjectionTypes() {
-        const { id } = this.getParams();
-        const roomId = Number(id);
-        return RoomsService.findRoomProjectionTypes(roomId, this.getQueryFilters());
-    }
+	async findProjectionTypes() {
+		const { id } = this.getParams();
+		const roomId = Number(id);
+		return RoomsService.findRoomProjectionTypes(roomId, this.getQueryFilters());
+	}
 
-    async createProjectionType() {
-        const { id } = this.getParams();
-        const roomId = Number(id);
-        const projectionType = this.getBody().projection_type;
+	async createProjectionType() {
+		const { id } = this.getParams();
+		const roomId = Number(id);
+		const projectionType = this.getBody().projection_type;
 
-        const data = await RoomsService.createRoomProjectionType(roomId, { projection_type: projectionType });
-        this.created(data, 'Room projection type created successfully');
-    }
+		const data = await RoomsService.createRoomProjectionType(roomId, { projection_type: projectionType });
+		this.created(data, 'Room projection type created successfully');
+	}
 
-    async deleteProjectionType() {
-        const { id, projectionTypeId } = this.getParams();
-        const roomPk = Number(id);
-        const projectionPk = Number(projectionTypeId);
+	async deleteProjectionType() {
+		const { id, projectionTypeId } = this.getParams();
+		const roomPk = Number(id);
+		const projectionPk = Number(projectionTypeId);
 
-        await RoomsService.deleteRoomProjectionType(projectionPk, roomPk);
-        this.noContent();
-    }
+		await RoomsService.deleteRoomProjectionType(projectionPk, roomPk);
+		this.noContent();
+	}
 
-    // GET /api/v1/rooms/:id
-    async findById() {
-        const { id } = this.getParams();
-        const data = await RoomsService.findById(Number(id));
-        return this.success(data, 'Sala obtenida exitosamente');
-    }
+	// GET /api/v1/rooms/:id
+	async findById() {
+		const { id } = this.getParams();
+		const data = await RoomsService.findById(Number(id));
+		return this.success(data, 'Sala obtenida exitosamente');
+	}
 
-    // POST /api/v1/cinemas/:cinemaId/rooms
-    async create() {
-        const { cinemaId } = this.getParams();
-        const body = { ...this.getBody(), cinemaId: Number(cinemaId) };
-        const session = this.getSession<any>();
+	// POST /api/v1/cinemas/:cinemaId/rooms
+	async create() {
+		const { cinemaId } = this.getParams();
+		const body = { ...this.getBody(), cinemaId: Number(cinemaId) };
+		const session = this.getSession<any>();
 
-        const data = await RoomsService.createRoom(body, session?.userId);
-        return this.created(data, 'Sala registrada exitosamente. Pendiente por configurar asientos.');
-    }
+		const data = await RoomsService.createRoom(body, session?.userId);
+		return this.created(data, 'Sala registrada exitosamente. Pendiente por configurar asientos.');
+	}
 
-    // PUT /api/v1/rooms/:id
-    async update() {
-        const { id } = this.getParams();
-        const body = this.getBody();
-        await RoomsService.updateRoom(Number(id), body);
-        return this.success(null, 'Datos técnicos de la sala actualizados exitosamente.');
-    }
+	// PUT /api/v1/rooms/:id
+	async update() {
+		const { id } = this.getParams();
+		const body = this.getBody();
+		await RoomsService.updateRoom(Number(id), body);
+		return this.success(null, 'Datos técnicos de la sala actualizados exitosamente.');
+	}
 
-    // DELETE /api/v1/rooms/:id
-    async remove() {
-        const { id } = this.getParams();
-        await RoomsService.deleteRoom(Number(id));
-        return this.success(null, 'Sala clausurada exitosamente.');
-    }
+	// DELETE /api/v1/rooms/:id
+	async remove() {
+		const { id } = this.getParams();
+		await RoomsService.deleteRoom(Number(id));
+		return this.success(null, 'Sala clausurada exitosamente.');
+	}
 
-    // GET /api/v1/rooms/:id/seats
-    async getSeatMap() {
-        const { id } = this.getParams();
-        const data = await RoomsService.getSeatMap(Number(id), this.getQueryFilters());
-        return this.success(data, 'Mapa de asientos obtenido exitosamente');
-    }
+	// GET /api/v1/rooms/:id/seats
+	async getSeatMap() {
+		const { id } = this.getParams();
+		const data = await RoomsService.getSeatMap(Number(id), this.getQueryFilters());
+		return this.success(data, 'Mapa de asientos obtenido exitosamente');
+	}
 }
 
 export default new RoomsController();

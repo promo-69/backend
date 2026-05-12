@@ -35,8 +35,6 @@
                                         earned_loyalty_points:
                                             type: integer
                                             nullable: true
-                                        status:
-                                            type: integer
             '401':
                 description: Unauthorized
             '404':

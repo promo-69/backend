@@ -9,10 +9,11 @@ export interface UsersAttributes {
 	role?: number;
 	email: string;
 	password: string;
-	last_login?: Date | string;
-	created_at?: Date | string;
-	updated_at?: Date | string;
-	status: number;
+	signup_code?: string;
+	signup_verified_at?: Date;
+	created_at?: Date;
+	updated_at?: Date;
+	deleted_at?: Date;
 }
 
 interface UsersWithPeople extends UsersAttributes {
@@ -65,11 +66,9 @@ class UsersRepository extends SequelizeRepositoryBase<UsersAttributes, number> {
 					'user_type',
 					'role',
 					'email',
-					'last_login',
 					'signup_verified_at',
 					'created_at',
 					'updated_at',
-					'status',
 				],
 				relations: this._relations,
 			},
@@ -92,25 +91,21 @@ class UsersRepository extends SequelizeRepositoryBase<UsersAttributes, number> {
 	}
 
 	async getAllFull(filters?: any): Promise<{ rows: UsersWithPeople[]; count: number }> {
-		return this.getAllActive(
-			{
-				...filters,
-				count: true,
-				attributes: [
-					'id',
-					'person',
-					'user_type',
-					'role',
-					'email',
-					'last_login',
-					'signup_verified_at',
-					'created_at',
-					'updated_at',
-					'status',
-				],
-				relations: this._relations,
-			},
-		) as Promise<{
+		return this.getAll({
+			...filters,
+			count: true,
+			attributes: [
+				'id',
+				'person',
+				'user_type',
+				'role',
+				'email',
+				'signup_verified_at',
+				'created_at',
+				'updated_at',
+			],
+			relations: this._relations,
+		}) as Promise<{
 			rows: UsersWithPeople[];
 			count: number;
 		}>;

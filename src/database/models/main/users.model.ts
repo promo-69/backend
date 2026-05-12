@@ -6,9 +6,9 @@ export default class UsersModel extends SequelizeModelBase {
 		return {
 			id: {
 				primaryKey: true,
+				autoIncrement: true,
 				allowNull: true,
 				type: DataTypes.INTEGER,
-				autoIncrement: true,
 			},
 			person: {
 				allowNull: false,
@@ -30,10 +30,6 @@ export default class UsersModel extends SequelizeModelBase {
 				allowNull: false,
 				type: DataTypes.STRING(255),
 			},
-			last_login: {
-				allowNull: true,
-				type: DataTypes.DATE,
-			},
 			signup_code: {
 				allowNull: true,
 				type: DataTypes.STRING(60),
@@ -51,21 +47,24 @@ export default class UsersModel extends SequelizeModelBase {
 				allowNull: true,
 				type: DataTypes.DATE,
 			},
-			status: {
-				allowNull: false,
-				type: DataTypes.INTEGER,
-				defaultValue: 1,
+			deleted_at: {
+				allowNull: true,
+				type: DataTypes.DATE,
 			},
 		};
 	}
 
 	static config() {
 		return {
-			isBasicTable: false,
+			timestamps: true,
+			paranoid: true,
+			createdAt: 'created_at',
+			updatedAt: 'updated_at',
+			deletedAt: 'deleted_at',
+			isBasicTable: true,
 			schema: 'public',
 			tableName: 'users',
 			appRawName: 'users',
-			timestamps: false,
 		};
 	}
 
@@ -103,17 +102,6 @@ export default class UsersModel extends SequelizeModelBase {
 				type: 'hasMany',
 				target: 'Roles',
 				options: { foreignKey: 'role', targetKey: 'id', as: '_Users' },
-			},
-			{
-				type: 'belongsTo',
-				target: 'Statuses',
-				options: { foreignKey: 'status', targetKey: 'id', as: '_Status' },
-			},
-			{
-				inversed: true,
-				type: 'hasMany',
-				target: 'Statuses',
-				options: { foreignKey: 'status', targetKey: 'id', as: '_Users' },
 			},
 		];
 	}

@@ -8,9 +8,9 @@ const adminRoles = ['SUPER_ADMIN', 'CINEMA_MANAGER'];
 
 // PATCH /api/v1/customers/:id/loyalty-points
 router.patch(
-    '/:id/loyalty-points',
-    verifySession,
-    /* verifyRole(adminRoles), */ customersController.adjustLoyaltyPoints,
+	'/:id/loyalty-points',
+	verifySession,
+	/* verifyRole(adminRoles), */ customersController.adjustLoyaltyPoints,
 );
 
 export default router;

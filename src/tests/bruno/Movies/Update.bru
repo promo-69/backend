@@ -6,15 +6,15 @@ meta {
 
 put {
   url: {{baseUrl}}/movies/{{testMovieId}}
-  body: json
+  body: multipartForm
   auth: bearer
 }
 
-body:json {
-  {
-    "synopsis": "Updated Bruno movie synopsis.",
-    "lifecycleState": 3
-  }
+body:multipart-form {
+  synopsis: Updated Bruno movie synopsis.
+  lifecycleState: 3
+  ~poster: @file(/path/to/optional_poster.jpg)
+  ~banner: @file(/path/to/optional_banner.jpg)
 }
 
 auth:bearer {

@@ -2,11 +2,11 @@
 
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
-    async up(queryInterface, Sequelize) {
-        // ==============================================================================
-        // PROCEDIMIENTO: UPDATE SERIAL SEQUENCE
-        // ==============================================================================
-        await queryInterface.sequelize.query(`
+	async up(queryInterface, Sequelize) {
+		// ==============================================================================
+		// PROCEDIMIENTO: UPDATE SERIAL SEQUENCE
+		// ==============================================================================
+		await queryInterface.sequelize.query(`
             CREATE PROCEDURE public.update_serial_sequence(IN p_esquema text DEFAULT NULL::text, IN p_tabla text DEFAULT NULL::text)
                 LANGUAGE plpgsql
                 AS $$
@@ -110,11 +110,11 @@ module.exports = {
             END;
             $$;
         `);
-    },
+	},
 
-    async down(queryInterface, Sequelize) {
-        await queryInterface.sequelize
-            .query(`DROP PROCEDURE IF EXISTS public.update_serial_sequence(text, text);`)
-            .catch(() => {});
-    },
+	async down(queryInterface, Sequelize) {
+		await queryInterface.sequelize
+			.query(`DROP PROCEDURE IF EXISTS public.update_serial_sequence(text, text);`)
+			.catch(() => {});
+	},
 };

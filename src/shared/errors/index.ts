@@ -7,8 +7,8 @@ export { ProblematicResponseError } from '@errors/problematic-response.error.js'
 export { DatabaseError, DatabaseConnectionError, DatabaseQueryError } from '@errors/database.error.js';
 export { EmailConfigurationError, EmailValidationError, EmailSendError } from '@errors/email.error.js';
 export {
-    ConflictError,
-    ResourceConflictError,
-    DuplicateEntryError,
-    ActiveSessionError,
+	ConflictError,
+	ResourceConflictError,
+	DuplicateEntryError,
+	ActiveSessionError,
 } from '@errors/conflict.error.js';

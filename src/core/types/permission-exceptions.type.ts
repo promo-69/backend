@@ -1,4 +1,4 @@
 export interface ExceptionPermissions {
-    granted: number[];
-    revoked: number[];
+	granted: number[];
+	revoked: number[];
 }

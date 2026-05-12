@@ -1,23 +1,23 @@
 export interface Instance {
-    dbInstanceName?: unknown;
+	dbInstanceName?: unknown;
 }
 
 export abstract class BaseModel {
-    protected instance?: Instance;
+	protected instance?: Instance;
 
-    static get modelName(): string {
-        return this.name;
-    }
+	static get modelName(): string {
+		return this.name;
+	}
 
-    static get supportedDatabases(): string[] {
-        return [];
-    }
+	static get supportedDatabases(): string[] {
+		return [];
+	}
 
-    static definition(): Record<string, any> {
-        throw new Error('definition() must be implemented');
-    }
+	static definition(): Record<string, any> {
+		throw new Error('definition() must be implemented');
+	}
 
-    static init(_dbInstance: unknown, _dbInstanceName: string): unknown {
-        throw new Error('Must implement init');
-    }
+	static init(_dbInstance: unknown, _dbInstanceName: string): unknown {
+		throw new Error('Must implement init');
+	}
 }

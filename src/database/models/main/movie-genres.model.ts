@@ -6,9 +6,9 @@ export default class MovieGenresModel extends SequelizeModelBase {
         return {
             id: {
                 primaryKey: true,
+                autoIncrement: true,
                 allowNull: true,
                 type: DataTypes.INTEGER,
-                autoIncrement: true,
             },
             movie: {
                 allowNull: false,
@@ -21,18 +21,26 @@ export default class MovieGenresModel extends SequelizeModelBase {
             status: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
-                defaultValue: 1,
+                defaultValue: 1, // <-- igual que en movies
+            },
+            deleted_at: {
+                allowNull: true,
+                type: DataTypes.DATE,
             },
         };
     }
 
     static config() {
         return {
-            isBasicTable: false,
+            timestamps: true,
+            paranoid: true,
+            createdAt: false,
+            updatedAt: false,
+            deletedAt: 'deleted_at',
+            isBasicTable: true,
             schema: 'public',
             tableName: 'movie_genres',
             appRawName: 'movie_genres',
-            timestamps: false,
         };
     }
 
@@ -41,7 +49,7 @@ export default class MovieGenresModel extends SequelizeModelBase {
             {
                 type: 'belongsTo',
                 target: 'Movies',
-                options: { foreignKey: 'movie', targetKey: 'id', as: '_Movie' },
+                options: { foreignKey: 'movie', targetKey: 'id', as: '_Movies' },
             },
             {
                 inversed: true,
@@ -52,24 +60,13 @@ export default class MovieGenresModel extends SequelizeModelBase {
             {
                 type: 'belongsTo',
                 target: 'Genres',
-                options: { foreignKey: 'genre', targetKey: 'id', as: '_Genre' },
+                options: { foreignKey: 'genre', targetKey: 'id', as: '_Genres' },
             },
             {
                 inversed: true,
                 type: 'hasMany',
                 target: 'Genres',
                 options: { foreignKey: 'genre', targetKey: 'id', as: '_MovieGenres' },
-            },
-            {
-                type: 'belongsTo',
-                target: 'Statuses',
-                options: { foreignKey: 'status', targetKey: 'id', as: '_Status' },
-            },
-            {
-                inversed: true,
-                type: 'hasMany',
-                target: 'Statuses',
-                options: { foreignKey: 'status', targetKey: 'id', as: '_MovieGenres' },
             },
         ];
     }

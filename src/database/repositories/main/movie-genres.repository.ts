@@ -5,7 +5,7 @@ export interface MovieGenresAttributes {
     id?: number;
     movie: number;
     genre: number;
-    status: number;
+    deleted_at?: Date;
 }
 
 class MovieGenresRepository extends SequelizeRepositoryBase<MovieGenresAttributes, number> {
@@ -14,11 +14,11 @@ class MovieGenresRepository extends SequelizeRepositoryBase<MovieGenresAttribute
     }
 
     async deleteByMovie(movieId: number, operationOptions?: any): Promise<number> {
-        return this.delete({ movie: movieId }, operationOptions) as Promise<number>;
+        return this.delete({ movie: movieId }, { ...operationOptions, force: true }) as Promise<number>;
     }
 
     async getByMovie(movieId: number): Promise<MovieGenresAttributes[]> {
-        return this.getAll({ count: false }, { movie: movieId, status: 1 }) as Promise<MovieGenresAttributes[]>;
+        return this.getAll({ count: false }, { movie: movieId }) as Promise<MovieGenresAttributes[]>;
     }
 }
 

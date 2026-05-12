@@ -82,8 +82,7 @@ export class CinemasService extends BaseService {
 			throw new ValidationError('El horario de cierre debe ser posterior al de apertura', ['closingTime']);
 
 		const existing = await this._cinemas.getByName(name);
-		if (existing && existing.status === 1)
-			throw new ConflictError('Ya existe una sucursal con ese nombre', 'CINEMA_NAME_DUPLICATE');
+		if (existing) throw new ConflictError('Ya existe una sucursal con ese nombre', 'CINEMA_NAME_DUPLICATE');
 
 		const created = await this._cinemas.create({
 			name,
@@ -91,7 +90,6 @@ export class CinemasService extends BaseService {
 			phone: phone ?? null,
 			opening_time: openingTime,
 			closing_time: closingTime,
-			status: 1,
 		});
 
 		//await this._writeAudit('cinemas', created.id, 'CREATE', null, created, actorUserId);
@@ -102,14 +100,14 @@ export class CinemasService extends BaseService {
 	// --- HU-OPERATIVA-05: Modificar sucursal ---
 	async updateCinema(id: number, body: UpdateCinemaBody, actorUserId?: number) {
 		const cinema = await this._cinemas.getFull(id);
-		if (!cinema || cinema.status !== 1) throw new NotFoundError('Sucursal no encontrada');
+		if (!cinema) throw new NotFoundError('Sucursal no encontrada');
 
 		const { name, address, phone, openingTime, closingTime } = body;
 		const updateData: Record<string, any> = {};
 
 		if (name !== undefined && name !== cinema.name) {
 			const existing = await this._cinemas.getByName(name);
-			if (existing && existing.id !== id && existing.status === 1)
+			if (existing && existing.id !== id)
 				throw new ConflictError('Ya existe una sucursal con ese nombre', 'CINEMA_NAME_DUPLICATE');
 			updateData.name = name;
 		}
@@ -144,7 +142,7 @@ export class CinemasService extends BaseService {
 	// --- HU-OPERATIVA-06: Eliminar sucursal ---
 	async deleteCinema(id: number, actorUserId?: number) {
 		const cinema = await this._cinemas.getFull(id);
-		if (!cinema || cinema.status !== 1) throw new NotFoundError('Sucursal no encontrada');
+		if (!cinema) throw new NotFoundError('Sucursal no encontrada');
 
 		const activeRooms = await this._rooms.getAllByCinema(id);
 		if (activeRooms?.rows?.length > 0)
@@ -154,7 +152,7 @@ export class CinemasService extends BaseService {
 			);
 
 		await this._writeAudit('cinemas', id, 'DELETE', cinema, null, actorUserId);
-		await this._cinemas.update(id, { status: 4 }); // 4 = Eliminado (seeder)
+		await this._cinemas.delete(id);
 
 		return { id, deleted: true };
 	}
@@ -166,7 +164,7 @@ export class CinemasService extends BaseService {
 
 	async findById(id: number) {
 		const cinema = await this._cinemas.getFull(id);
-		if (!cinema || cinema.status !== 1) throw new NotFoundError('Sucursal no encontrada');
+		if (!cinema) throw new NotFoundError('Sucursal no encontrada');
 		return cinema;
 	}
 }

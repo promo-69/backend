@@ -68,7 +68,6 @@ export class UsersService extends BaseService {
 			person: employee.person,
 			email,
 			password: hashedPassword,
-			status: 1,
 			signup_verified_at: new Date(),
 		});
 
@@ -103,7 +102,6 @@ export class UsersService extends BaseService {
 					phone_number: personData.phoneNumber,
 					personal_email: personData.email || email,
 					birth_date: personData.birthDate,
-					status: 1,
 				},
 				{ transaction },
 			);
@@ -113,7 +111,6 @@ export class UsersService extends BaseService {
 					person: createdPerson.id,
 					loyalty_level: 1,
 					level_progress_points: 0,
-					status: 1,
 				},
 				{ transaction },
 			);
@@ -124,7 +121,6 @@ export class UsersService extends BaseService {
 					person: createdPerson.id,
 					email,
 					password: hashedPassword,
-					status: 1,
 					signup_verified_at: new Date(),
 				},
 				{ transaction },
@@ -137,17 +133,15 @@ export class UsersService extends BaseService {
 	}
 
 	async updateUserStatus(userId: number, status: number) {
-		if (status !== 0 && status !== 1)
-			throw new ValidationError('El estado debe ser 0 (inactivo) o 1 (activo).', []);
+		if (status !== 0) throw new ValidationError('El estado debe ser 0 (inactivo) o 1 (activo).', []);
 
 		const user = await this._users.getOne({ id: userId });
 		if (!user) throw new NotFoundError('Usuario', userId.toString());
 
-		await this._users.update({ id: userId }, { status });
+		await this._users.delete(userId);
 
 		if (status === 0) {
-			// Revocar sesiones activas
-			const activeSessions = await this._usersLogins.getAll({ user: userId, status: 1 });
+			const activeSessions = await this._usersLogins.getAll({ user: userId });
 
 			if (activeSessions && activeSessions.rows && activeSessions.rows.length > 0) {
 				const blacklistPromises = [];
@@ -165,8 +159,7 @@ export class UsersService extends BaseService {
 
 				await Promise.all(blacklistPromises);
 
-				// Actualizar estado en DB
-				await this._usersLogins.update({ user: userId }, { status: 2, token_status: 2 });
+				await this._usersLogins.update({ user: userId }, { token_status: 2 });
 			}
 		}
 
@@ -269,13 +262,13 @@ export class UsersService extends BaseService {
 		if (!user || user.status !== 1) throw new AuthError('Usuario no encontrado o inactivo');
 
 		const isPasswordValid = await BcryptUtil.compare(currentPassword, user.password);
-		if (!isPasswordValid) throw new AuthError('La contraseña actual es incorrecta.', { code: 'INVALID_CURRENT_PASSWORD' });
+		if (!isPasswordValid)
+			throw new AuthError('La contraseña actual es incorrecta.', { code: 'INVALID_CURRENT_PASSWORD' });
 
 		const updateData: Record<string, any> = {};
 
 		if (email !== undefined) {
-			if (!REGEX.EMAIL.test(String(email)))
-				throw new ValidationError('El email proporcionado no es válido.', []);
+			if (!REGEX.EMAIL.test(String(email))) throw new ValidationError('El email proporcionado no es válido.', []);
 
 			const existingUser = await this._users.getByEmail(email);
 			if (existingUser && existingUser.id !== userId)

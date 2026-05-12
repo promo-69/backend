@@ -2,102 +2,102 @@
  * Formatea un título capitalizando palabras excepto conectores
  */
 export const formatTitle = (str: string): string => {
-    if (!str) return '';
+	if (!str) return '';
 
-    const connectors = [
-        'a',
-        'ante',
-        'bajo',
-        'cabe',
-        'con',
-        'contra',
-        'de',
-        'desde',
-        'durante',
-        'en',
-        'entre',
-        'hacia',
-        'hasta',
-        'mediante',
-        'para',
-        'por',
-        'según',
-        'sin',
-        'so',
-        'sobre',
-        'tras',
-        'versus',
-        'vía',
-        'la',
-        'el',
-        'los',
-        'las',
-        'un',
-        'una',
-        'unos',
-        'unas',
-        'y',
-        'o',
-        'u',
-        'e',
-        'ni',
-        'que',
-    ];
+	const connectors = [
+		'a',
+		'ante',
+		'bajo',
+		'cabe',
+		'con',
+		'contra',
+		'de',
+		'desde',
+		'durante',
+		'en',
+		'entre',
+		'hacia',
+		'hasta',
+		'mediante',
+		'para',
+		'por',
+		'según',
+		'sin',
+		'so',
+		'sobre',
+		'tras',
+		'versus',
+		'vía',
+		'la',
+		'el',
+		'los',
+		'las',
+		'un',
+		'una',
+		'unos',
+		'unas',
+		'y',
+		'o',
+		'u',
+		'e',
+		'ni',
+		'que',
+	];
 
-    return str
-        .split(' ')
-        .map((word, index) => {
-            const lowerWord = word.toLowerCase();
+	return str
+		.split(' ')
+		.map((word, index) => {
+			const lowerWord = word.toLowerCase();
 
-            if (index > 0 && connectors.includes(lowerWord)) return word.toLowerCase();
+			if (index > 0 && connectors.includes(lowerWord)) return word.toLowerCase();
 
-            return word.charAt(0).toUpperCase() + word.slice(1);
-        })
-        .join(' ');
+			return word.charAt(0).toUpperCase() + word.slice(1);
+		})
+		.join(' ');
 };
 
 /**
  * Convierte un array de objetos a una tabla HTML
  */
 export const createHTMLTable = (rows: Array<Record<string, any>>): string => {
-    if (!rows || !Array.isArray(rows) || rows.length === 0) return '';
+	if (!rows || !Array.isArray(rows) || rows.length === 0) return '';
 
-    const headers = Array.from(new Set(rows.flatMap((row) => Object.keys(row))));
+	const headers = Array.from(new Set(rows.flatMap((row) => Object.keys(row))));
 
-    const parsedHeaders = headers.map((head) => formatTitle(head.replace(/_/g, ' ')));
+	const parsedHeaders = headers.map((head) => formatTitle(head.replace(/_/g, ' ')));
 
-    return `
+	return `
     <table style="width: 100%; border-collapse: collapse; background-color: #ffffff;">
       <thead>
         <tr style="background-color: #f8f9fa; border-bottom: 2px solid #e9ecef;">
           ${parsedHeaders
-              .map(
-                  (header) =>
-                      `<th style="padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #dee2e6;">
+				.map(
+					(header) =>
+						`<th style="padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #dee2e6;">
               ${header}
             </th>`,
-              )
-              .join('')}
+				)
+				.join('')}
         </tr>
       </thead>
       <tbody>
         ${rows
-            .map(
-                (row) => `
+			.map(
+				(row) => `
           <tr style="border-bottom: 1px solid #e9ecef;">
             ${headers
-                .map(
-                    (header) => `
+				.map(
+					(header) => `
               <td style="padding: 12px; color: #212529;">
                 ${row.hasOwnProperty(header) ? String(row[header] || '') : ''}
               </td>
             `,
-                )
-                .join('')}
+				)
+				.join('')}
           </tr>
         `,
-            )
-            .join('')}
+			)
+			.join('')}
       </tbody>
     </table>
   `;
@@ -107,7 +107,7 @@ export const createHTMLTable = (rows: Array<Record<string, any>>): string => {
  * Aplica un tema HTML al contenido
  */
 export const applyEmailTheme = (content: string, primaryColor: string = '#00233b'): string => {
-    return `
+	return `
     <!DOCTYPE html>
     <html lang="es">
     <head>
@@ -217,9 +217,9 @@ export const applyEmailTheme = (content: string, primaryColor: string = '#00233b
  * Formatea una lista de requerimientos
  */
 export const formatRequirementsList = (requirements: Array<{ quantity: number; description: string }>): string => {
-    if (!requirements || !Array.isArray(requirements)) return '';
+	if (!requirements || !Array.isArray(requirements)) return '';
 
-    return `
+	return `
     <ul>
       ${requirements.map((req) => `<li><strong>(${req.quantity})</strong> ${req.description}</li>`).join('')}
     </ul>

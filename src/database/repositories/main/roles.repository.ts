@@ -1,5 +1,12 @@
 import { SequelizeRepositoryBase } from '@repositories/bases/sequelize.repository.js';
 import RolesModel from '@database/models/main/roles.model.js';
+export interface RolesAttributes {
+	id?: number;
+	code: string;
+	name: string;
+	description: string;
+	deleted_at?: Date;
+}
 
 export interface Roles {
 	id: number;
@@ -10,7 +17,6 @@ export interface Roles {
 	expires_at: Date;
 	created_at: Date;
 	updated_at: Date;
-	status: number;
 }
 
 class RolesRepository extends SequelizeRepositoryBase<Roles, number> {
@@ -23,7 +29,7 @@ class RolesRepository extends SequelizeRepositoryBase<Roles, number> {
 	}
 
 	async getAllFull(filters?: any) {
-		return this.getAllActive({ ...filters, count: true });
+		return this.getAll({ ...filters, count: true });
 	}
 }
 

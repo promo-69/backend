@@ -11,7 +11,7 @@
               in: path
               required: true
               schema:
-                type: integer
+                  type: integer
         responses:
             '200':
                 description: User retrieved successfully
@@ -35,10 +35,6 @@
                                         email:
                                             type: string
                                             format: email
-                                        last_login:
-                                            type: string
-                                            format: date-time
-                                            nullable: true
                                         signup_verified_at:
                                             type: string
                                             format: date-time
@@ -50,8 +46,6 @@
                                             type: string
                                             format: date-time
                                             nullable: true
-                                        status:
-                                            type: integer
                                         _People:
                                             type: object
                                             properties:

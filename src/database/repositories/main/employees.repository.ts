@@ -2,16 +2,16 @@ import { SequelizeRepositoryBase } from '@repositories/bases/sequelize.repositor
 import EmployeesModel from '@database/models/main/employees.model.js';
 
 export interface EmployeesAttributes {
-    id?: number;
-    person: number;
-    employee_code: string;
-    status: number;
+	id?: number;
+	person: number;
+	employee_code: string;
+	deleted_at?: Date;
 }
 
 class EmployeesRepository extends SequelizeRepositoryBase<EmployeesAttributes, number> {
-    constructor() {
-        super(EmployeesModel);
-    }
+	constructor() {
+		super(EmployeesModel);
+	}
 }
 
 export default new EmployeesRepository();

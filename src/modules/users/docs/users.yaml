@@ -31,10 +31,6 @@
                                             email:
                                                 type: string
                                                 format: email
-                                            last_login:
-                                                type: string
-                                                format: date-time
-                                                nullable: true
                                             signup_verified_at:
                                                 type: string
                                                 format: date-time
@@ -46,8 +42,6 @@
                                                 type: string
                                                 format: date-time
                                                 nullable: true
-                                            status:
-                                                type: integer
                                             _People:
                                                 type: object
                                                 properties:

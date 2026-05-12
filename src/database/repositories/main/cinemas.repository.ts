@@ -2,48 +2,38 @@ import { SequelizeRepositoryBase } from '@repositories/bases/sequelize.repositor
 import CinemasModel from '@database/models/main/cinemas.model.js';
 
 export interface CinemasAttributes {
-    id?: number;
-    name: string;
-    address?: string;
-    phone?: string;
-    opening_time: string;
-    closing_time: string;
-    status: number;
-}
-
-export interface CinemaFull extends CinemasAttributes {
-    _Status: { description: string };
+	id?: number;
+	name: string;
+	address?: string;
+	phone?: string;
+	opening_time: any;
+	closing_time: any;
+	deleted_at?: Date;
 }
 
 class CinemasRepository extends SequelizeRepositoryBase<CinemasAttributes, number> {
-    constructor() {
-        super(CinemasModel);
-    }
+	constructor() {
+		super(CinemasModel);
+	}
 
-    private get _relations() {
-        return [
-            {
-                association: '_Status',
-                attributes: ['description'],
-                required: true,
-            },
-        ];
-    }
+	private get _relations() {
+		return [];
+	}
 
-    async getFull(id: number): Promise<CinemaFull | null> {
-        return this.getOne({ id }, { relations: this._relations }) as Promise<CinemaFull | null>;
-    }
+	async getFull(id: number): Promise<CinemasAttributes | null> {
+		return this.getOne({ id }, { relations: this._relations }) as Promise<CinemasAttributes | null>;
+	}
 
-    async getAllFull(filters?: any): Promise<{ rows: CinemaFull[]; count: number }> {
-        return this.getAllActive({ ...filters, count: true, relations: this._relations }) as Promise<{
-            rows: CinemaFull[];
-            count: number;
-        }>;
-    }
+	async getAllFull(filters?: any): Promise<{ rows: CinemasAttributes[]; count: number }> {
+		return this.getAll({ ...filters, count: true, relations: this._relations }) as Promise<{
+			rows: CinemasAttributes[];
+			count: number;
+		}>;
+	}
 
-    async getByName(name: string): Promise<CinemasAttributes | null> {
-        return this.getOne({ name }) as Promise<CinemasAttributes | null>;
-    }
+	async getByName(name: string): Promise<CinemasAttributes | null> {
+		return this.getOne({ name }) as Promise<CinemasAttributes | null>;
+	}
 }
 
 export default new CinemasRepository();
