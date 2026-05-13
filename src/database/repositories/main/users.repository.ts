@@ -90,6 +90,25 @@ class UsersRepository extends SequelizeRepositoryBase<UsersAttributes, number> {
 		) as Promise<UsersWithPeople | null>;
 	}
 
+	async getByPerson(personId: number) {
+		return this.getOne(
+			{ person: personId },
+			{
+				attributes: [
+					'id',
+					'person',
+					'user_type',
+					'role',
+					'email',
+					'signup_verified_at',
+					'created_at',
+					'updated_at',
+				],
+				relations: this._relations,
+			},
+		) as Promise<UsersWithPeople | null>;
+	}
+
 	async getAllFull(filters?: any): Promise<{ rows: UsersWithPeople[]; count: number }> {
 		return this.getAll({
 			...filters,
