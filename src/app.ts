@@ -318,7 +318,7 @@ export class App {
 						const dynamicSwaggerDoc = { ...bundledDoc };
 						dynamicSwaggerDoc.servers = [
 							{
-								url: `${this.appConfig.protocol}://${interfaceIp}/api/v1`,
+								url: `${this.appConfig.isDocker ? 'https' : this.appConfig.protocol}://${interfaceIp}/api/v1/test`,
 								description: this.appConfig.docs?.description,
 							},
 						];
