@@ -1,0 +1,20 @@
+meta {
+  name: Get Catalog Metadata
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/catalogs/{{catalog}}/metadata
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+vars:pre-request {
+  blabla: currencies
+  catalog: roles
+}

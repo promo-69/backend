@@ -1,0 +1,41 @@
+meta {
+  name: Create Combo
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/concessions/combos
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "name": "Test Combo Bruno",
+    "sku": "TST-CMB-001",
+    "description": "A combo created during Bruno test execution.",
+    "currencyId": 1,
+    "price": 15.00,
+    "earnedLoyaltyPoints": 20,
+    "products": [
+      { "productId": {{testProductId}}, "quantity": 2 }
+    ]
+  }
+}
+
+script:post-response {
+  const resBody = res.getBody();
+  if (res.getStatus() === 201 && resBody && resBody.data && resBody.data.id) {
+    bru.setEnvVar('testComboId', resBody.data.id);
+  }
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  bru.setVar('baseUrl', baseUrl);
+}

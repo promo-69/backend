@@ -1,0 +1,26 @@
+meta {
+  name: Update Employee
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/employees/{{testEmployeeId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "employeeCode": "BRU-EMP-001-UPDATED"
+  }
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  bru.setVar('baseUrl', baseUrl);
+}

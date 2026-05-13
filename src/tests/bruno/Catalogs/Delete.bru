@@ -1,0 +1,19 @@
+meta {
+  name: Delete Catalog Item
+  type: http
+  seq: 6
+}
+
+delete {
+  url: {{baseUrl}}/catalogs/{{catalog}}/3
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+vars:pre-request {
+  catalog: currencies
+}

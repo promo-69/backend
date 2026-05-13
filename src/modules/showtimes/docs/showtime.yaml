@@ -1,0 +1,130 @@
+/showtimes/{id}:
+    get:
+        summary: Get Showtime By ID
+        description: Retrieve a single showtime by its ID.
+        tags:
+            - Showtimes
+        parameters:
+            - in: path
+              name: id
+              required: true
+              schema:
+                  type: integer
+              description: Showtime ID
+        responses:
+            '200':
+                description: Showtime found
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                data:
+                                    type: object
+                                    properties:
+                                        id:
+                                            type: integer
+                                        movie_id:
+                                            type: integer
+                                        room_id:
+                                            type: integer
+                                        projection_type_id:
+                                            type: integer
+                                        start_time:
+                                            type: string
+                                            format: date-time
+                                        end_time:
+                                            type: string
+                                            format: date-time
+                                        price:
+                                            type: number
+                                        earned_loyalty_points:
+                                            type: integer
+                                            nullable: true
+            '404':
+                description: Showtime not found
+            '500':
+                description: Internal server error
+    put:
+        summary: Update Showtime
+        description: Update the schedule or price of an existing showtime.
+        tags:
+            - Showtimes
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: path
+              name: id
+              required: true
+              schema:
+                  type: integer
+              description: Showtime ID
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            startTime:
+                                type: string
+                                format: date-time
+                                example: '2026-06-01T20:00:00Z'
+                            price:
+                                type: number
+                                example: 14.00
+                            currencyId:
+                                type: integer
+                                example: 1
+        responses:
+            '200':
+                description: Showtime updated successfully
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                message:
+                                    type: string
+                                    example: Función actualizada exitosamente
+            '400':
+                description: Bad request (validation errors)
+            '401':
+                description: Unauthorized
+            '404':
+                description: Showtime not found
+            '409':
+                description: Conflict — room schedule overlap
+            '500':
+                description: Internal server error
+    delete:
+        summary: Cancel Showtime
+        description: Cancel a scheduled showtime. This is a soft delete — the record is marked as cancelled.
+        tags:
+            - Showtimes
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: path
+              name: id
+              required: true
+              schema:
+                  type: integer
+              description: Showtime ID
+        responses:
+            '200':
+                description: Showtime cancelled successfully
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                message:
+                                    type: string
+                                    example: Función cancelada exitosamente
+            '401':
+                description: Unauthorized
+            '404':
+                description: Showtime not found
+            '500':
+                description: Internal server error

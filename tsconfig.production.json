@@ -1,0 +1,15 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "incremental": false,
+        "sourceMap": false,
+        "declaration": false,
+        "declarationMap": false,
+        "removeComments": true,
+        "noEmitOnError": true,
+        "stripInternal": true,
+        "importsNotUsedAsValues": "remove",
+        "verbatimModuleSyntax": true
+    },
+    "exclude": ["src/**/*.test.ts", "src/**/*.spec.ts", "tests/**/*", "**/__tests__/**", "**/__mocks__/**"]
+}

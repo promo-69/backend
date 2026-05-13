@@ -1,0 +1,37 @@
+meta {
+  name: Create Room Projection Type
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/rooms/{{testRoomId}}/projection-types
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "projectionType": 1
+  }
+}
+
+vars:pre-request {
+  testRoomId: 1
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  bru.setVar('baseUrl', baseUrl);
+}
+
+script:post-response {
+  const resBody = res.getBody();
+  if (res.getStatus() === 201 && resBody && resBody.data && resBody.data.id) {
+    bru.setEnvVar('testRoomProjectionTypeId', resBody.data.id);
+  }
+}

@@ -1,0 +1,19 @@
+meta {
+  name: Get Employee By ID
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/employees/{{testEmployeeId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+vars:pre-request {
+  testEmployeeId: 1
+}

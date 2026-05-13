@@ -1,0 +1,19 @@
+const path = require('path');
+const dbId = process.env.MIGRATE_DB_ID;
+
+if (!dbId) {
+	console.error('\n❌ ERROR: Falta proveer el ID de conector. Utiliza el wrapper pasándole --id=nombre.\n');
+	process.exit(1);
+}
+
+module.exports = {
+	// Ruta donde estará el archivo de conexión a la base de datos
+	config: path.resolve('src', 'migrate', 'config.js'),
+
+	// Ruta donde ya tienes tus modelos extraída dinámicamente según el ID
+	'models-path': path.resolve('src', 'database', 'models', dbId.toLowerCase()),
+
+	// Rutas donde el CLI guardará y leerá las migraciones y seeders
+	'seeders-path': path.resolve('src', 'migrate', 'seeders'),
+	'migrations-path': path.resolve('src', 'migrate', 'migrations'),
+};

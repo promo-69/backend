@@ -1,0 +1,113 @@
+/rooms/{id}:
+    get:
+        summary: Get Room By ID
+        description: Retrieve a single active room by its ID.
+        tags:
+            - Rooms
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Room retrieved successfully
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                data:
+                                    type: object
+                                    properties:
+                                        id:
+                                            type: integer
+                                        cinema:
+                                            type: integer
+                                        name:
+                                            type: string
+                                        grid_rows:
+                                            type: integer
+                                        grid_columns:
+                                            type: integer
+                                        total_capacity:
+                                            type: integer
+                                        status:
+                                            type: integer
+            '401':
+                description: Unauthorized
+            '404':
+                description: Room not found
+            '500':
+                description: Internal server error
+    put:
+        summary: Update Room
+        description: Update the name, total capacity or projection types of an existing room. At least one field must be provided.
+        tags:
+            - Rooms
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            name:
+                                type: string
+                                example: Sala 1 VIP
+                            totalCapacity:
+                                type: integer
+                                example: 120
+                            projectionTypes:
+                                type: array
+                                items:
+                                    type: integer
+                                example: [1, 3]
+        responses:
+            '200':
+                description: Room updated successfully
+            '400':
+                description: Bad request (validation errors or no data provided)
+            '401':
+                description: Unauthorized
+            '404':
+                description: Room not found
+            '409':
+                description: Conflict — duplicate room name in cinema
+            '500':
+                description: Internal server error
+    delete:
+        summary: Delete Room
+        description: Soft-delete a room. Fails if the room has future active showtimes.
+        tags:
+            - Rooms
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Room deleted successfully
+            '401':
+                description: Unauthorized
+            '404':
+                description: Room not found
+            '409':
+                description: Conflict — room has active showtimes
+            '500':
+                description: Internal server error

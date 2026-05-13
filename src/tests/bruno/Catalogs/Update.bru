@@ -1,0 +1,28 @@
+meta {
+  name: Update Catalog Item
+  type: http
+  seq: 5
+}
+
+patch {
+  url: {{baseUrl}}/catalogs/{{catalog}}/1
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "code": "12323123",
+    "description": "jeje",
+    "symbol": "%",
+    "is_base_currency": false
+  }
+}
+
+vars:pre-request {
+  catalog: currencies
+}

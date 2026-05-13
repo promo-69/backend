@@ -1,0 +1,23 @@
+meta {
+  name: Update Account Security
+  type: http
+  seq: 10
+}
+
+patch {
+  url: {{baseUrl}}/users/security
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "currentPassword": "Passw0rd!",
+    "newPassword": "NewPassw0rd!",
+    "email": "bruno.updated.security@example.com"
+  }
+}

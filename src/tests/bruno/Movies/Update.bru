@@ -1,0 +1,27 @@
+meta {
+  name: Update Movie
+  type: http
+  seq: 5
+}
+
+put {
+  url: {{baseUrl}}/movies/{{testMovieId}}
+  body: multipartForm
+  auth: bearer
+}
+
+body:multipart-form {
+  synopsis: Updated Bruno movie synopsis.
+  lifecycleState: 3
+  ~poster: @file(/path/to/optional_poster.jpg)
+  ~banner: @file(/path/to/optional_banner.jpg)
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  bru.setVar('baseUrl', baseUrl);
+}

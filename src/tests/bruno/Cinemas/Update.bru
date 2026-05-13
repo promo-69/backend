@@ -1,0 +1,29 @@
+meta {
+  name: Update Cinema
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/cinemas/{{testCinemaId}}
+  body: json
+  auth: bearer
+}
+
+body:json {
+  {
+    "name": "Test Cinema Bruno Updated",
+    "address": "456 Updated Ave",
+    "openingTime": "10:00",
+    "closingTime": "22:00"
+  }
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  bru.setVar('baseUrl', baseUrl);
+}

@@ -1,0 +1,21 @@
+meta {
+  name: Update Seats
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/seats/1
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "exampleField": "updated_value"
+  }
+}

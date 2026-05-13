@@ -1,0 +1,28 @@
+meta {
+  name: Create Catalog Item
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/catalogs/{{catalog}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "code": "1234",
+    "description": "jeje",
+    "symbol": "%",
+    "is_base_currency": false
+  }
+}
+
+vars:pre-request {
+  catalog: currencies
+}

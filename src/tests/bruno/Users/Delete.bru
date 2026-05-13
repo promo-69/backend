@@ -1,0 +1,21 @@
+meta {
+  name: Change User Status
+  type: http
+  seq: 5
+}
+
+patch {
+  url: {{baseUrl}}/users/{{testUserId}}/status
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "status": 0
+  }
+}

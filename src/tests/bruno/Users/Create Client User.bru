@@ -1,0 +1,31 @@
+meta {
+  name: Create Client User
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/users/client
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "email": "bruno-client-user@example.com",
+    "password": "Passw0rd!",
+    "personData": {
+      "documentNumber": "BRU1234567",
+      "firstName": "Bruno",
+      "lastName": "Client",
+      "gender": 1,
+      "phoneNumber": "1234567890",
+      "email": "bruno-client-user@example.com",
+      "birthDate": "1990-01-01"
+    }
+  }
+}

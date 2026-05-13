@@ -1,0 +1,44 @@
+/users/profile:
+    patch:
+        summary: Update User Profile
+        description: Update non-sensitive user profile fields such as phone, birth date, and personal email.
+        tags:
+            - Users
+        security:
+            - bearerAuth: []
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            phoneNumber:
+                                type: string
+                            birthDate:
+                                type: string
+                                format: date
+                            firstName:
+                                type: string
+                            lastName:
+                                type: string
+                            personalEmail:
+                                type: string
+                                format: email
+        responses:
+            '200':
+                description: Profile updated successfully
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                message:
+                                    type: string
+                                    example: Perfil actualizado.
+            '400':
+                description: Bad request
+            '401':
+                description: Unauthorized
+            '500':
+                description: Internal server error

@@ -1,0 +1,41 @@
+/auth/verify-reset-code:
+    post:
+        summary: Verify Reset Code
+        description: Endpoint to verify the password reset code sent to the user's email.
+        tags:
+            - Auth
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            email:
+                                type: string
+                                format: email
+                            code:
+                                type: string
+                        required:
+                            - email
+                            - code
+        responses:
+            '200':
+                description: Code verified successfully
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                message:
+                                    type: string
+                                    example: Código verificado correctamente
+                                data:
+                                    type: object
+                                    properties:
+                                        resetToken:
+                                            type: string
+            '400':
+                description: Bad request (validation errors)
+            '500':
+                description: Internal server error

@@ -1,0 +1,87 @@
+/price-modifiers:
+    post:
+        summary: Create Price Modifier
+        description: |
+            Create a pricing rule that applies a discount or surcharge to ticket or concession prices.
+            The fields allowed depend on the modifier scope:
+            - scope 1 (Ticketing): `audienceCategory`, `weekDay`, `seatCategory`, `projectionType` are valid. `productCategory`, `product`, `combo` must be omitted.
+            - scope 2 (Concessions): `productCategory`, `product`, `combo` are valid. `audienceCategory`, `seatCategory`, `projectionType` must be omitted.
+            - scope 3 (Global): all optional qualifier fields must be omitted.
+        tags:
+            - Price Modifiers
+        security:
+            - bearerAuth: []
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        required:
+                            - description
+                            - modifierScope
+                            - operationType
+                            - isPercentage
+                            - value
+                        properties:
+                            description:
+                                type: string
+                                example: Tuesday discount
+                            modifierScope:
+                                type: integer
+                                enum: [1, 2, 3]
+                                example: 1
+                            operationType:
+                                type: integer
+                                example: 2
+                            isPercentage:
+                                type: boolean
+                                example: true
+                            value:
+                                type: number
+                                example: 20
+                            audienceCategory:
+                                type: integer
+                                nullable: true
+                            weekDay:
+                                type: integer
+                                minimum: 1
+                                maximum: 7
+                                nullable: true
+                                example: 3
+                            seatCategory:
+                                type: integer
+                                nullable: true
+                            projectionType:
+                                type: integer
+                                nullable: true
+                            productCategory:
+                                type: integer
+                                nullable: true
+                            product:
+                                type: integer
+                                nullable: true
+                            combo:
+                                type: integer
+                                nullable: true
+        responses:
+            '201':
+                description: Price modifier created successfully
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                data:
+                                    type: object
+                                    properties:
+                                        id:
+                                            type: integer
+                                        description:
+                                            type: string
+            '400':
+                description: Bad request (validation errors or scope constraint violation)
+            '401':
+                description: Unauthorized
+            '500':
+                description: Internal server error

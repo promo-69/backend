@@ -1,0 +1,38 @@
+/catalogs/{catalogName}:
+    get:
+        summary: List Catalog Records
+        description: Returns all records from a specific catalog. Includes support for filtering and pagination via query parameters.
+        tags:
+            - Catalogs
+        parameters:
+            - in: path
+              name: catalogName
+              required: true
+              schema:
+                  type: string
+              description: The name of the catalog
+            - in: query
+              name: include
+              schema:
+                  type: boolean
+              description: Whether to include relational data
+            - in: query
+              name: includeDeleted
+              schema:
+                  type: boolean
+              description: Whether to include soft-deleted records
+        responses:
+            '200':
+                description: Successful response
+                content:
+                    application/json:
+                        schema:
+                            type: array
+                            items:
+                                type: object
+            '400':
+                description: Bad request
+            '404':
+                description: Catalog not found
+            '500':
+                description: Internal server error
