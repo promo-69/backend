@@ -60,8 +60,8 @@ class ConcessionsController extends ControllerBase {
         const { id } = this.getParams();
         const body = this.getBody();
         const req = this.getRequest();
-        await ConcessionsService.updateProduct(Number(id), body, req.files as any);
-        return this.success(null, 'Producto actualizado exitosamente');
+        const data = await ConcessionsService.updateProduct(Number(id), body, req.files as any);
+        return this.success(data, 'Producto actualizado exitosamente');
     }
 
     // ----- Combos -----
@@ -87,8 +87,8 @@ class ConcessionsController extends ControllerBase {
         const { id } = this.getParams();
         const body = this.getBody();
         const req = this.getRequest();
-        await ConcessionsService.updateCombo(Number(id), body, req.files as any);
-        return this.success(null, 'Combo actualizado exitosamente');
+        const data = await ConcessionsService.updateCombo(Number(id), body, req.files as any);
+        return this.success(data, 'Combo actualizado exitosamente');
     }
 
     // ----- Inventario -----
@@ -107,15 +107,9 @@ class ConcessionsController extends ControllerBase {
 
     async replenishInventory() {
         const { cinemaId, productId } = this.getParams();
-        const { quantity, remarks } = this.getBody();
+        const body = this.getBody();
         const session = this.getSession<any>();
-        await ConcessionsService.replenishInventory(
-            Number(cinemaId),
-            Number(productId),
-            quantity,
-            session.userId,
-            remarks,
-        );
+        await ConcessionsService.replenishInventory(Number(cinemaId), Number(productId), body, session.userId);
         return this.created(null, 'Reposición de inventario registrada exitosamente');
     }
 }

@@ -41,9 +41,8 @@ class MoviesController extends ControllerBase {
         const body = this.getBody();
         const req = this.getRequest();
 
-        await MoviesService.updateMovie(Number(id), body, req.files as any);
-
-        return this.success(null, 'Datos de la película actualizados exitosamente.');
+        const data = await MoviesService.updateMovie(Number(id), { ...body, imageFiles: req.files as any });
+        return this.success(data, 'Datos de la película actualizados exitosamente.');
     }
 
     // DELETE /api/v1/movies/:id  — HU-OPERATIVA-13 desactivación admin

@@ -2,6 +2,8 @@ import { BaseService } from '@bases/service.base.js';
 import { Database } from '@database/index.js';
 import { ConflictError, NotFoundError, ValidationError } from '@errors';
 import { concessionImagesService } from '@services/concession-images.service.js';
+import { imageStorageService } from '@services/image-storage.service.js';
+import { Logger } from '@utils/logger.util.js';
 import { type ProcessedQueryFilters } from '@rules/api-query.type.js';
 import { type Transaction } from 'sequelize';
 
@@ -33,7 +35,7 @@ interface UpdateProductBody {
 
 type RawFiles = Express.Multer.File[] | { [fieldname: string]: Express.Multer.File[] } | undefined;
 
-export class ConfiteriaService extends BaseService {
+export class ConcessionsService extends BaseService {
     constructor() {
         super();
     }
@@ -64,7 +66,6 @@ export class ConfiteriaService extends BaseService {
     async createProduct(body: CreateProductBody, rawFiles?: RawFiles) {
         const { name, sku } = body;
 
-        // Casteo explícito — multipart/form-data envía todo como string
         const price = Number(body.price);
         const productCategory = Number(body.productCategory);
         const currencyId = Number(body.currencyId);
@@ -84,7 +85,6 @@ export class ConfiteriaService extends BaseService {
         const existing = await this._products.getOne({ sku });
         if (existing) throw new ConflictError('Ya existe un producto con ese SKU', 'PRODUCT_SKU_DUPLICATE');
 
-        // Subir imagen si se envió, solo después de pasar todas las validaciones
         const imageFile = concessionImagesService.extractImage(rawFiles);
         const { imageUrl, imageFileId } = await concessionImagesService.uploadProductImage(imageFile);
 
@@ -110,7 +110,6 @@ export class ConfiteriaService extends BaseService {
     async createCombo(body: CreateComboBody, rawFiles?: RawFiles) {
         const { name, sku, description } = body;
 
-        // Casteo explícito — multipart/form-data envía todo como string
         const price = Number(body.price);
         const currencyId = Number(body.currencyId);
         const earnedLoyaltyPoints =
@@ -134,7 +133,6 @@ export class ConfiteriaService extends BaseService {
         const existing = await this._combos.getOne({ sku });
         if (existing) throw new ConflictError('Ya existe un combo con ese SKU', 'COMBO_SKU_DUPLICATE');
 
-        // Subir imagen si se envió, solo después de pasar todas las validaciones
         const imageFile = concessionImagesService.extractImage(rawFiles);
         const { imageUrl, imageFileId } = await concessionImagesService.uploadComboImage(imageFile);
 
@@ -175,7 +173,8 @@ export class ConfiteriaService extends BaseService {
         const product = await this._products.getFull(id);
         if (!product) throw new NotFoundError('Producto no encontrado');
 
-        // body puede llegar vacío cuando solo se envía imagen via multipart
+        const previousImageUrl: string | null = product.image_url ?? null;
+
         const safeBody = body ?? {};
         const updateData: Record<string, any> = {};
 
@@ -208,7 +207,13 @@ export class ConfiteriaService extends BaseService {
             throw error;
         }
 
-        return null;
+        if (imageUrl && previousImageUrl) {
+            imageStorageService
+                .deleteImageByUrl(previousImageUrl)
+                .catch((err) => Logger.error('updateProduct: failed to delete old image', err));
+        }
+
+        return this._products.getFull(id);
     }
 
     // --- HU-OPERATIVA-31: Editar combo ---
@@ -219,6 +224,8 @@ export class ConfiteriaService extends BaseService {
     ) {
         const combo = await this._combos.getFull(id);
         if (!combo) throw new NotFoundError('Combo no encontrado');
+
+        const previousImageUrl: string | null = combo.image_url ?? null;
 
         const safeBody = body ?? {};
         const updateData: Record<string, any> = {};
@@ -257,7 +264,7 @@ export class ConfiteriaService extends BaseService {
                 if (Object.keys(updateData).length > 0) await this._combos.update(id, updateData, { transaction });
 
                 if (products !== undefined) {
-                    await this._comboProducts.deleteByCombo(id, { transaction });
+                    await this._comboProducts.deleteByCombo(id, { transaction, force: true });
                     if (products.length > 0) {
                         const records = products.map(({ productId, quantity }) => ({
                             combo: id,
@@ -273,7 +280,13 @@ export class ConfiteriaService extends BaseService {
             throw error;
         }
 
-        return null;
+        if (imageUrl && previousImageUrl) {
+            imageStorageService
+                .deleteImageByUrl(previousImageUrl)
+                .catch((err) => Logger.error('updateCombo: failed to delete old image', err));
+        }
+
+        return this._combos.getFull(id);
     }
 
     // --- HU-OPERATIVA-34: Registrar reposición de inventario ---
@@ -300,7 +313,6 @@ export class ConfiteriaService extends BaseService {
             const newStock = inventory.stock + quantity;
             await this._inventories.update(inventory.id, { stock: newStock }, { transaction });
 
-            // operation_type 3 = Entrada de Inventario (seeder)
             await this._inventoryMovements.create(
                 {
                     inventory: inventory.id,
@@ -342,7 +354,6 @@ export class ConfiteriaService extends BaseService {
     }
 
     async findInventoryGroupedByCategory(cinemaId: number) {
-        // Obtenemos el inventario con los productos y sus categorías
         const inventory = await this._inventories.getAllByCinema(cinemaId, {
             include: ['_Product._ProductCategory'],
         });
@@ -354,14 +365,10 @@ export class ConfiteriaService extends BaseService {
             if (!product) continue;
             const cat = product._ProductCategory;
             const catId = cat?.id ?? 0;
-            const catName = cat?.description ?? 'Sin categoría'; // usar 'name' si ya migraste esa columna
+            const catName = cat?.description ?? 'Sin categoría';
 
             if (!grouped[catId]) {
-                grouped[catId] = {
-                    categoryId: catId,
-                    categoryName: catName,
-                    products: [],
-                };
+                grouped[catId] = { categoryId: catId, categoryName: catName, products: [] };
             }
             grouped[catId].products.push({
                 productId: product.id,
@@ -416,4 +423,4 @@ export class ConfiteriaService extends BaseService {
     }
 }
 
-export default new ConfiteriaService();
+export default new ConcessionsService();
