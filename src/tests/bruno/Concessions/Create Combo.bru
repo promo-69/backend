@@ -6,7 +6,7 @@ meta {
 
 post {
   url: {{baseUrl}}/concessions/combos
-  body: json
+  body: multipartForm
   auth: bearer
 }
 
@@ -14,18 +14,15 @@ auth:bearer {
   token: {{accessToken}}
 }
 
-body:json {
-  {
-    "name": "Test Combo Bruno",
-    "sku": "TST-CMB-001",
-    "description": "A combo created during Bruno test execution.",
-    "currencyId": 1,
-    "price": 15.00,
-    "earnedLoyaltyPoints": 20,
-    "products": [
-      { "productId": {{testProductId}}, "quantity": 2 }
-    ]
-  }
+body:multipart-form {
+  ~name: Test Combo Bruno
+  ~sku: TST-CMB-001
+  ~description: A combo created during Bruno test execution.
+  ~currencyId: 1
+  ~price: 15.00
+  ~earnedLoyaltyPoints: 20
+  ~products: [{"productId": {{testProductId}}, "quantity": 2}]
+  ~image: @file(/path/to/your/combo-image.jpg)
 }
 
 script:post-response {

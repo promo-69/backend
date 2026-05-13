@@ -1,7 +1,7 @@
 /concessions/combos:
     get:
         summary: List Combos
-        description: Retrieve all concession combos available in the system.
+        description: Retrieve all concession combos with their image URL.
         tags:
             - Concessions
         responses:
@@ -30,11 +30,14 @@
                                             earned_loyalty_points:
                                                 type: integer
                                                 nullable: true
+                                            image_url:
+                                                type: string
+                                                nullable: true
             '500':
                 description: Internal server error
     post:
         summary: Create Combo
-        description: Register a new combo grouping multiple concession products under a single price.
+        description: Register a new combo with optional image.
         tags:
             - Concessions
         security:
@@ -42,7 +45,7 @@
         requestBody:
             required: true
             content:
-                application/json:
+                multipart/form-data:
                     schema:
                         type: object
                         required:
@@ -72,19 +75,13 @@
                                 type: integer
                                 example: 25
                             products:
-                                type: array
-                                items:
-                                    type: object
-                                    required:
-                                        - productId
-                                        - quantity
-                                    properties:
-                                        productId:
-                                            type: integer
-                                            example: 1
-                                        quantity:
-                                            type: integer
-                                            example: 2
+                                type: string
+                                description: JSON string of array [{ productId, quantity }]
+                                example: '[{"productId":1,"quantity":2}]'
+                            image:
+                                type: string
+                                format: binary
+                                description: Combo image (optional)
         responses:
             '201':
                 description: Combo created successfully

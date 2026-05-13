@@ -1,12 +1,12 @@
 meta {
-  name: Create Product
+  name: Create Category
   type: http
-  seq: 1
+  seq: 11
 }
 
 post {
-  url: {{baseUrl}}/concessions/products
-  body: multipartForm
+  url: {{baseUrl}}/concessions/categories
+  body: json
   auth: bearer
 }
 
@@ -14,20 +14,17 @@ auth:bearer {
   token: {{accessToken}}
 }
 
-body:multipart-form {
-  ~name: Test Product Bruno
-  ~sku: TST-PRD-001
-  ~productCategory: 1
-  ~currencyId: 1
-  ~price: 5.50
-  ~earnedLoyaltyPoints: 5
-  ~image: @file(/path/to/your/product-image.jpg)
+body:json {
+  {
+    "name": "Test Category Bruno",
+    "description": "A category created during Bruno test execution."
+  }
 }
 
 script:post-response {
   const resBody = res.getBody();
   if (res.getStatus() === 201 && resBody && resBody.data && resBody.data.id) {
-    bru.setEnvVar('testProductId', resBody.data.id);
+    bru.setEnvVar('testCategoryId', resBody.data.id);
   }
 }
 
