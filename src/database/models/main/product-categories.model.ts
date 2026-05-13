@@ -31,7 +31,7 @@ export default class ProductCategoriesModel extends SequelizeModelBase {
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'product_categories',
-			appRawName: 'product_categories',
+			appRawName: 'product-categories',
 		};
 	}
 

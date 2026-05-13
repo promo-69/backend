@@ -114,8 +114,6 @@ export class AuthMiddleware {
 		try {
 			const result = await AuthMiddleware.getValidatedSession(req);
 
-			console.log(result);
-
 			req.session = result.session;
 			req.token = result.token;
 

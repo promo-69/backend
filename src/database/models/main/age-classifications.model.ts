@@ -31,7 +31,7 @@ export default class AgeClassificationsModel extends SequelizeModelBase {
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'age_classifications',
-			appRawName: 'age_classifications',
+			appRawName: 'age-classifications',
 		};
 	}
 

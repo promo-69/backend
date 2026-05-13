@@ -31,7 +31,7 @@ export default class SeatConditionsModel extends SequelizeModelBase {
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'seat_conditions',
-			appRawName: 'seat_conditions',
+			appRawName: 'seat-conditions',
 		};
 	}
 

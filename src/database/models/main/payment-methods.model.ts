@@ -35,7 +35,7 @@ export default class PaymentMethodsModel extends SequelizeModelBase {
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'payment_methods',
-			appRawName: 'payment_methods',
+			appRawName: 'payment-methods',
 		};
 	}
 

@@ -35,7 +35,7 @@ export default class RoleInheritancesModel extends SequelizeModelBase {
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'role_inheritances',
-			appRawName: 'role_inheritances',
+			appRawName: 'role-inheritances',
 		};
 	}
 

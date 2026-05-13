@@ -63,7 +63,7 @@ export default class OrderLinesModel extends SequelizeModelBase {
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'order_lines',
-			appRawName: 'order_lines',
+			appRawName: 'order-lines',
 		};
 	}
 

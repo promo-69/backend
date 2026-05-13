@@ -48,7 +48,7 @@ export default class LoyaltyLedgersModel extends SequelizeModelBase {
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'loyalty_ledgers',
-			appRawName: 'loyalty_ledgers',
+			appRawName: 'loyalty-ledgers',
 		};
 	}
 

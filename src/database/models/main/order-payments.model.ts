@@ -56,7 +56,7 @@ export default class OrderPaymentsModel extends SequelizeModelBase {
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'order_payments',
-			appRawName: 'order_payments',
+			appRawName: 'order-payments',
 		};
 	}
 

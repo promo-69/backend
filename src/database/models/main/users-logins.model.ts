@@ -52,7 +52,7 @@ export default class UsersLoginsModel extends SequelizeModelBase {
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'users_logins',
-			appRawName: 'users_logins',
+			appRawName: 'users-logins',
 		};
 	}
 

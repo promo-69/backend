@@ -31,7 +31,7 @@ export default class ModifierScopesModel extends SequelizeModelBase {
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'modifier_scopes',
-			appRawName: 'modifier_scopes',
+			appRawName: 'modifier-scopes',
 		};
 	}
 

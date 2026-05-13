@@ -18,6 +18,10 @@ export default class ProductsModel extends SequelizeModelBase {
 				allowNull: false,
 				type: DataTypes.STRING(100),
 			},
+			image_url: {
+				allowNull: true,
+				type: DataTypes.STRING(500),
+			},
 			product_category: {
 				allowNull: false,
 				type: DataTypes.INTEGER,

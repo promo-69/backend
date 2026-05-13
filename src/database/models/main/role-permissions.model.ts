@@ -35,7 +35,7 @@ export default class RolePermissionsModel extends SequelizeModelBase {
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'role_permissions',
-			appRawName: 'role_permissions',
+			appRawName: 'role-permissions',
 		};
 	}
 

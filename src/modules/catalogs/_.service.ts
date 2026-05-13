@@ -41,6 +41,23 @@ class BasicTablesService extends BaseService {
 		const rawAttributes = model.getAttributes ? model.getAttributes() : (model as any).rawAttributes;
 		const schema: Record<string, any> = {};
 
+		const associations = model.associations || {};
+		const foreignKeysMap = new Map<string, string>();
+
+		for (const assoc of Object.values(associations)) {
+			if ((assoc as any).associationType === 'BelongsTo') {
+				const fk =
+					typeof (assoc as any).foreignKey === 'string'
+						? (assoc as any).foreignKey
+						: (assoc as any).foreignKey?.name;
+				const targetModel = (assoc as any).target;
+				const targetCatalogName = targetModel.appRawName || targetModel.name;
+				if (fk) {
+					foreignKeysMap.set(fk, targetCatalogName);
+				}
+			}
+		}
+
 		for (const [key, attr] of Object.entries(rawAttributes)) {
 			const typedAttr = attr as any;
 			const enhancedData = typedAttr.enhancedData || {};
@@ -67,9 +84,15 @@ class BasicTablesService extends BaseService {
 				type,
 			};
 
-			if (typedAttr.references)
-				fieldSchema.reference =
-					typeof typedAttr.references === 'string' ? typedAttr.references : typedAttr.references.model;
+			if (foreignKeysMap.has(key)) {
+				fieldSchema.relatedCatalog = foreignKeysMap.get(key);
+			} else if (typedAttr.references) {
+				const refModel =
+					typeof typedAttr.references === 'string'
+						? typedAttr.references
+						: typedAttr.references.model?.tableName || typedAttr.references.model;
+				fieldSchema.relatedCatalog = refModel;
+			}
 
 			schema[key] = fieldSchema;
 		}
@@ -81,6 +104,13 @@ class BasicTablesService extends BaseService {
 		const catalog = this.catalogsSchema.get(catalogName);
 		if (!catalog) throw new ValidationError(`Catalog ${catalogName} not found`);
 		return catalog.schema;
+	}
+
+	public getAvailableCatalogs(): any {
+		return Array.from(this.catalogsSchema.entries()).map(([name, catalog]) => ({
+			name,
+			endpoint: `/api/v1/catalogs/${name}`,
+		}));
 	}
 
 	private getRepository(catalogName: string): SequelizeRepositoryBase<any, any> {
@@ -161,7 +191,12 @@ class BasicTablesService extends BaseService {
 		throw error as Error;
 	}
 
-	public async list(catalogName: string, filters: ProcessedQueryFilters, include: boolean, includeDeleted: boolean = false): Promise<any> {
+	public async list(
+		catalogName: string,
+		filters: ProcessedQueryFilters,
+		include: boolean,
+		includeDeleted: boolean = false,
+	): Promise<any> {
 		const repo = this.getRepository(catalogName);
 		const relations = this.buildRelations(catalogName, include);
 		const attributes = this.getVisibleAttributes(catalogName);
@@ -173,7 +208,7 @@ class BasicTablesService extends BaseService {
 		};
 
 		try {
-			return includeDeleted 
+			return includeDeleted
 				? await repo.getAllIncludingDeleted(options as any, filters.qc)
 				: await repo.getAll(options as any, filters.qc);
 		} catch (error) {
@@ -181,7 +216,12 @@ class BasicTablesService extends BaseService {
 		}
 	}
 
-	public async getById(catalogName: string, id: string | number, include: boolean, includeDeleted: boolean = false): Promise<any> {
+	public async getById(
+		catalogName: string,
+		id: string | number,
+		include: boolean,
+		includeDeleted: boolean = false,
+	): Promise<any> {
 		const repo = this.getRepository(catalogName);
 		const relations = this.buildRelations(catalogName, include);
 		const attributes = this.getVisibleAttributes(catalogName);

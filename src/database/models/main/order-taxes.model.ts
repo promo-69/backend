@@ -43,7 +43,7 @@ export default class OrderTaxesModel extends SequelizeModelBase {
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'order_taxes',
-			appRawName: 'order_taxes',
+			appRawName: 'order-taxes',
 		};
 	}
 

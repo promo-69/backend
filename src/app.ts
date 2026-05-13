@@ -332,7 +332,6 @@ export class App {
 					),
 				);
 			} catch (error: any) {
-				console.log(error);
 				new AppError({ ...error, message: `Failed to load Swagger UI: ${error.message}` });
 			}
 		}

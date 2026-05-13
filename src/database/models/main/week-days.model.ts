@@ -35,7 +35,7 @@ export default class WeekDaysModel extends SequelizeModelBase {
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'week_days',
-			appRawName: 'week_days',
+			appRawName: 'week-days',
 		};
 	}
 

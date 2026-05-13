@@ -45,7 +45,7 @@ export default class MovieSubscriptionsModel extends SequelizeModelBase {
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'movie_subscriptions',
-			appRawName: 'movie_subscriptions',
+			appRawName: 'movie-subscriptions',
 		};
 	}
 

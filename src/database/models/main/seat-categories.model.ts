@@ -31,7 +31,7 @@ export default class SeatCategoriesModel extends SequelizeModelBase {
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'seat_categories',
-			appRawName: 'seat_categories',
+			appRawName: 'seat-categories',
 		};
 	}
 

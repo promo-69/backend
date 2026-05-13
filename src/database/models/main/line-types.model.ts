@@ -31,7 +31,7 @@ export default class LineTypesModel extends SequelizeModelBase {
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'line_types',
-			appRawName: 'line_types',
+			appRawName: 'line-types',
 		};
 	}
 
