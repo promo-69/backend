@@ -89,9 +89,8 @@ class DatabaseManager {
 						.replace('-repository', '');
 
 					this.repositories.set(`${config.id}.${repoRawName}`, repoDefinition);
-					if (config.availableTestingEnv) {
+					if (config.availableTestingEnv)
 						this.repositories.set(`${config.id}-test.${repoRawName}`, repoDefinition);
-					}
 					loadedCount++;
 				}
 
