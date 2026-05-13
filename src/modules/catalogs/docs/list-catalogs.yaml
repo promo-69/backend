@@ -1,0 +1,22 @@
+/catalogs:
+    get:
+        summary: List All Available Catalogs
+        description: Returns a list of all generic catalogs available for querying in the system.
+        tags:
+            - Catalogs
+        responses:
+            '200':
+                description: Successful response
+                content:
+                    application/json:
+                        schema:
+                            type: array
+                            items:
+                                type: object
+                                properties:
+                                    name:
+                                        type: string
+                                    endpoint:
+                                        type: string
+            '500':
+                description: Internal server error

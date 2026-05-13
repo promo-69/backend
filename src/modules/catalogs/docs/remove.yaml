@@ -1,0 +1,28 @@
+/catalogs/{catalogName}/{id}:
+    delete:
+        summary: Remove Catalog Record
+        description: Soft-deletes a record from a specific catalog.
+        tags:
+            - Catalogs
+        parameters:
+            - in: path
+              name: catalogName
+              required: true
+              schema:
+                  type: string
+              description: The name of the catalog
+            - in: path
+              name: id
+              required: true
+              schema:
+                  type: string
+              description: The ID of the record
+        responses:
+            '204':
+                description: Record deleted successfully
+            '400':
+                description: Bad request
+            '404':
+                description: Catalog or record not found
+            '500':
+                description: Internal server error

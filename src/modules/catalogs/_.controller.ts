@@ -7,7 +7,8 @@ class CatalogsController extends ControllerBase {
 	}
 
 	async listAllCatalogs() {
-		return CatalogsService.getAvailableCatalogs();
+		const filters = this.getQueryFilters();
+		return CatalogsService.getAvailableCatalogs(filters);
 	}
 
 	async getMetadata() {

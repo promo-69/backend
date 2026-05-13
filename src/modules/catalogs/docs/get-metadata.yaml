@@ -1,0 +1,41 @@
+/catalogs/{catalogName}/metadata:
+    get:
+        summary: Get Catalog Metadata
+        description: Returns the metadata schema for a specific catalog, including fields, types, and relations.
+        tags:
+            - Catalogs
+        parameters:
+            - in: path
+              name: catalogName
+              required: true
+              schema:
+                  type: string
+              description: The name of the catalog
+        responses:
+            '200':
+                description: Successful response
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            additionalProperties:
+                                type: object
+                                properties:
+                                    uiLabel:
+                                        type: string
+                                    visible:
+                                        type: boolean
+                                    editable:
+                                        type: boolean
+                                    isRequired:
+                                        type: boolean
+                                    type:
+                                        type: string
+                                    relatedCatalog:
+                                        type: string
+            '400':
+                description: Bad request
+            '404':
+                description: Catalog not found
+            '500':
+                description: Internal server error
