@@ -1,7 +1,7 @@
 /concessions/products:
     get:
         summary: List Products
-        description: Retrieve all concession products available in the system.
+        description: Retrieve all concession products, each with its category and image URL.
         tags:
             - Concessions
         responses:
@@ -28,14 +28,24 @@
                                             earned_loyalty_points:
                                                 type: integer
                                                 nullable: true
+                                            image_url:
+                                                type: string
+                                                nullable: true
                                             created_at:
                                                 type: string
                                                 format: date-time
+                                            _ProductCategory:
+                                                type: object
+                                                properties:
+                                                    id:
+                                                        type: integer
+                                                    name:
+                                                        type: string
             '500':
                 description: Internal server error
     post:
         summary: Create Product
-        description: Register a new concession product in the system.
+        description: Register a new concession product. Supports optional image upload.
         tags:
             - Concessions
         security:
@@ -43,7 +53,7 @@
         requestBody:
             required: true
             content:
-                application/json:
+                multipart/form-data:
                     schema:
                         type: object
                         required:
@@ -71,6 +81,10 @@
                             earnedLoyaltyPoints:
                                 type: integer
                                 example: 5
+                            image:
+                                type: string
+                                format: binary
+                                description: Product image (JPEG, PNG, WebP)
         responses:
             '201':
                 description: Product created successfully

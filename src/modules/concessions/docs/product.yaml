@@ -1,7 +1,7 @@
 /concessions/products/{id}:
     get:
         summary: Get Product By ID
-        description: Retrieve a single concession product by its ID.
+        description: Retrieve a single concession product by its ID, including category and image.
         tags:
             - Concessions
         security:
@@ -35,6 +35,16 @@
                                         earned_loyalty_points:
                                             type: integer
                                             nullable: true
+                                        image_url:
+                                            type: string
+                                            nullable: true
+                                        _ProductCategory:
+                                            type: object
+                                            properties:
+                                                id:
+                                                    type: integer
+                                                name:
+                                                    type: string
             '401':
                 description: Unauthorized
             '404':
@@ -43,7 +53,7 @@
                 description: Internal server error
     put:
         summary: Update Product
-        description: Update the details of an existing concession product.
+        description: Update the details of an existing product. Optionally replace the image.
         tags:
             - Concessions
         security:
@@ -58,7 +68,7 @@
         requestBody:
             required: true
             content:
-                application/json:
+                multipart/form-data:
                     schema:
                         type: object
                         properties:
@@ -74,6 +84,10 @@
                             earnedLoyaltyPoints:
                                 type: integer
                                 example: 7
+                            image:
+                                type: string
+                                format: binary
+                                description: New product image (optional)
         responses:
             '200':
                 description: Product updated successfully

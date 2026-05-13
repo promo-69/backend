@@ -1,0 +1,20 @@
+meta {
+  name: Delete Category
+  type: http
+  seq: 15
+}
+
+delete {
+  url: {{baseUrl}}/concessions/categories/{{testCategoryId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  bru.setVar('baseUrl', baseUrl);
+}

@@ -6,7 +6,7 @@ meta {
 
 put {
   url: {{baseUrl}}/concessions/products/{{testProductId}}
-  body: json
+  body: multipartForm
   auth: bearer
 }
 
@@ -14,12 +14,11 @@ auth:bearer {
   token: {{accessToken}}
 }
 
-body:json {
-  {
-    "name": "Test Product Bruno Updated",
-    "price": 6.00,
-    "currencyId": 1
-  }
+body:multipart-form {
+  ~name: Test Product Bruno Updated
+  ~price: 6.00
+  ~currencyId: 1
+  ~image: @file(/path/to/your/updated-product-image.jpg)
 }
 
 script:pre-request {

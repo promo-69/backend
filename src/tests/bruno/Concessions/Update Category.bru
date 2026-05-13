@@ -1,0 +1,27 @@
+meta {
+  name: Update Category
+  type: http
+  seq: 14
+}
+
+put {
+  url: {{baseUrl}}/concessions/categories/{{testCategoryId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "name": "Updated Category Bruno",
+    "description": "An updated category during Bruno test execution."
+  }
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  bru.setVar('baseUrl', baseUrl);
+}
