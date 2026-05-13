@@ -5,7 +5,7 @@ module.exports = {
 	async up(queryInterface, Sequelize) {
 		const createTable = async (tableName, attributes) => queryInterface.createTable(tableName, attributes);
 		const addUnique = async (tableName, fields, indexName) =>
-			queryInterface.addIndex(tableName, fields, { unique: true, name: indexName });
+			queryInterface.addIndex(tableName, fields, { unique: true, name: indexName, where: { deleted_at: null } });
 		const addIndex = async (tableName, fields, indexName) =>
 			queryInterface.addIndex(tableName, fields, { name: indexName });
 
