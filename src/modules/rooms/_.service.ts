@@ -37,6 +37,17 @@ export class RoomsService extends BaseService {
 		return Database.repository('main', 'room-projection-types') as any;
 	}
 
+	private async _getRoomTotalCapacity(roomId: number) {
+		return this._seats.count({ room: roomId, seat_condition: 1, deleted_at: null });
+	}
+
+	private async _attachTotalCapacity(room: any) {
+		return {
+			...room,
+			total_capacity: await this._getRoomTotalCapacity(room.id),
+		};
+	}
+
 	// --- HU-OPERATIVA-07: Registrar sala (SIN generar asientos) ---
 	async createRoom(body: CreateRoomBody, actorUserId?: number) {
 		const { cinemaId, name, projectionTypes, gridRows, gridColumns, totalCapacity } = body;
@@ -168,13 +179,23 @@ export class RoomsService extends BaseService {
 
 	// --- Consultas generales ---
 	async findAll(cinemaId?: number, filters?: ProcessedQueryFilters) {
+		let rooms: any;
+
 		if (cinemaId === undefined) {
-			return this._rooms.getAll(filters || {});
+			rooms = await this._rooms.getAll(filters || {});
+		} else {
+			const cinema = await this._cinemas.getFull(cinemaId);
+			if (!cinema) throw new NotFoundError('Sucursal no encontrada');
+			rooms = await this._rooms.getAllByCinema(cinemaId, filters);
 		}
 
-		const cinema = await this._cinemas.getFull(cinemaId);
-		if (!cinema) throw new NotFoundError('Sucursal no encontrada');
-		return this._rooms.getAllByCinema(cinemaId, filters);
+		if (Array.isArray(rooms)) {
+			return Promise.all(rooms.map((room: any) => this._attachTotalCapacity(room)));
+		}
+		return {
+			...rooms,
+			rows: await Promise.all((rooms.rows || []).map((room: any) => this._attachTotalCapacity(room))),
+		};
 	}
 
 	async findRoomProjectionTypes(roomId: number, filters?: ProcessedQueryFilters) {
@@ -210,7 +231,7 @@ export class RoomsService extends BaseService {
 	async findById(id: number) {
 		const room = await this._rooms.getFull(id);
 		if (!room) throw new NotFoundError('Sala no encontrada');
-		return room;
+		return this._attachTotalCapacity(room);
 	}
 }
 
