@@ -9,6 +9,7 @@ const __dirname = dirname(__filename);
 dotenv.config({ path: resolve(__dirname, '..', '..', '.env'), quiet: true });
 
 export interface IAppConfig {
+	isDocker: boolean;
 	port: number;
 	host: string;
 	protocol: string;
@@ -160,6 +161,7 @@ export class AppConfig {
 				urlEndpoint: process.env.IMAGECLOUD_URL_ENDPOINT || '',
 			},
 			clientWebAppUrl: process.env.CLIENT_WEB_APP_URL || '',
+			isDocker: !!process.env.RUNNING_IN_DOCKER,
 		};
 		this._configCache = config;
 

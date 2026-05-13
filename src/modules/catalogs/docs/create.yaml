@@ -1,0 +1,33 @@
+/catalogs/{catalogName}:
+    post:
+        summary: Create Catalog Record
+        description: Creates a new record in a specific catalog.
+        tags:
+            - Catalogs
+        parameters:
+            - in: path
+              name: catalogName
+              required: true
+              schema:
+                  type: string
+              description: The name of the catalog
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        description: Key-value pairs matching the catalog metadata schema
+        responses:
+            '201':
+                description: Record created successfully
+                content:
+                    application/json:
+                        schema:
+                            type: object
+            '400':
+                description: Bad request (validation errors)
+            '404':
+                description: Catalog not found
+            '500':
+                description: Internal server error

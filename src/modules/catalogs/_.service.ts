@@ -106,11 +106,24 @@ class BasicTablesService extends BaseService {
 		return catalog.schema;
 	}
 
-	public getAvailableCatalogs(): any {
-		return Array.from(this.catalogsSchema.entries()).map(([name, catalog]) => ({
+	public getAvailableCatalogs(filters?: ProcessedQueryFilters): any {
+		const catalogs = Array.from(this.catalogsSchema.entries()).map(([name, catalog]) => ({
 			name,
 			endpoint: `/api/v1/catalogs/${name}`,
 		}));
+
+		if (!filters || !filters.pagination) return catalogs;
+
+		const { limit, offset } = filters.pagination;
+		const total = catalogs.length;
+		const data = catalogs.slice(offset, offset + limit);
+
+		return {
+			data,
+			total,
+			limit,
+			offset,
+		};
 	}
 
 	private getRepository(catalogName: string): SequelizeRepositoryBase<any, any> {

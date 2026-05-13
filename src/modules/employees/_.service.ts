@@ -27,14 +27,86 @@ export class EmployeesService extends BaseService {
 		return Database.repository('main', 'employee-positions') as any;
 	}
 
+	private get _users() {
+		return Database.repository('main', 'users') as any;
+	}
+
+	private normalizeEmployee(employee: any) {
+		if (!employee) return null;
+
+		const { deleted_at, _People, ...baseEmployee } = employee;
+		return {
+			...baseEmployee,
+			people: _People || null,
+		};
+	}
+
+	private async attachUserAndPerson(employee: any) {
+		const normalizedEmployee = this.normalizeEmployee(employee);
+		if (!normalizedEmployee) return null;
+
+		const _User = normalizedEmployee.person ? await this._users.getByPerson(normalizedEmployee.person) : null;
+		return {
+			...normalizedEmployee,
+			_User,
+		};
+	}
+
 	async findAllEmployees(filters?: any) {
-		return this._employees.getAll(filters || {});
+		const queryOptions = {
+			count: true,
+			attributes: ['id', 'person', 'employee_code'],
+			relations: [
+				{
+					association: '_People',
+					attributes: [
+						'id',
+						'document_number',
+						'first_name',
+						'last_name',
+						'gender',
+						'phone_number',
+						'personal_email',
+						'birth_date',
+					],
+				},
+			],
+		};
+
+		const result = await this._employees.getAll({ ...queryOptions, ...filters });
+
+		if (Array.isArray(result)) {
+			return Promise.all(result.map((employee) => this.attachUserAndPerson(employee)));
+		}
+
+		return {
+			...result,
+			rows: await Promise.all(result.rows.map((employee: any) => this.attachUserAndPerson(employee))),
+		};
 	}
 
 	async findEmployeeById(id: number) {
-		const employee = await this._employees.getById(id);
+		const employee = await this._employees.getById(id, {
+			attributes: ['id', 'person', 'employee_code'],
+			relations: [
+				{
+					association: '_People',
+					attributes: [
+						'id',
+						'document_number',
+						'first_name',
+						'last_name',
+						'gender',
+						'phone_number',
+						'personal_email',
+						'birth_date',
+					],
+				},
+			],
+		});
+
 		if (!employee) throw new NotFoundError('Employee', id);
-		return employee;
+		return this.attachUserAndPerson(employee);
 	}
 
 	async createEmployee(employeeData: any) {
