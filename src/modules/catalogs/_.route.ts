@@ -3,6 +3,7 @@ import catalogsController from './_.controller.js';
 
 const router = Router();
 
+router.get('/', catalogsController.listAllCatalogs);
 router.get('/:catalogName/metadata', catalogsController.getMetadata);
 router.get('/:catalogName', catalogsController.list);
 router.get('/:catalogName/:id', catalogsController.getById);

@@ -6,6 +6,10 @@ class CatalogsController extends ControllerBase {
 		super();
 	}
 
+	async listAllCatalogs() {
+		return CatalogsService.getAvailableCatalogs();
+	}
+
 	async getMetadata() {
 		const { catalogName } = this.getParams();
 		return CatalogsService.getCatalogMetadata(catalogName);
