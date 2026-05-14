@@ -45,7 +45,7 @@ export class ImageStorageService {
 
             const filePath = '/' + pathParts.slice(1).join('/');
 
-            Logger.natural('getFileIdByUrl: searching for filePath =', filePath);
+            Logger.natural(`getFileIdByUrl: searching for filePath = ${filePath}`);
 
             const files = await this.client.listFiles({
                 searchQuery: `filePath = "${filePath}"`,
@@ -53,13 +53,13 @@ export class ImageStorageService {
             } as any);
 
             if (!Array.isArray(files) || files.length === 0) {
-                Logger.error('getFileIdByUrl: no file found for filePath =', filePath);
+                Logger.error(`getFileIdByUrl: no file found for filePath = ${filePath}`, new Error('File not found'));
                 return null;
             }
 
             return (files[0] as any).fileId ?? null;
         } catch (error) {
-            Logger.error('getFileIdByUrl: could not resolve fileId for url:', url, error);
+            Logger.error(`getFileIdByUrl: could not resolve fileId for url: ${url}`, error instanceof Error ? error : new Error(String(error)));
             return null;
         }
     }
@@ -67,11 +67,11 @@ export class ImageStorageService {
     async deleteImageByUrl(url: string | null | undefined): Promise<void> {
         const fileId = await this.getFileIdByUrl(url);
         if (!fileId) {
-            if (url) Logger.error('deleteImageByUrl: fileId not found for url:', url);
+            if (url) Logger.error(`deleteImageByUrl: fileId not found for url: ${url}`, new Error('FileId not found'));
             return;
         }
         await this.deleteImage(fileId).catch((err) =>
-            Logger.error('deleteImageByUrl: failed to delete fileId', fileId, err),
+            Logger.error(`deleteImageByUrl: failed to delete fileId ${fileId}`, err instanceof Error ? err : new Error(String(err))),
         );
     }
 }
