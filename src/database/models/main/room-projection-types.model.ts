@@ -35,7 +35,7 @@ export default class RoomProjectionTypesModel extends SequelizeModelBase {
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'room_projection_types',
-			appRawName: 'room-projection_types',
+			appRawName: 'room-projection-types',
 		};
 	}
 

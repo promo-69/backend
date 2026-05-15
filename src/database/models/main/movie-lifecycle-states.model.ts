@@ -31,7 +31,7 @@ export default class MovieLifecycleStatesModel extends SequelizeModelBase {
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'movie_lifecycle_states',
-			appRawName: 'movie-lifecycle_states',
+			appRawName: 'movie-lifecycle-states',
 		};
 	}
 
