@@ -1,0 +1,295 @@
+paths:
+  /rates/currencies:
+    get:
+      summary: List currencies
+      tags:
+        - Rates
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Currency list returned
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        code:
+                          type: string
+                        description:
+                          type: string
+                        symbol:
+                          type: string
+                        is_base_currency:
+                          type: boolean
+        '401':
+          description: Unauthorized
+    post:
+      summary: Create a new currency
+      tags:
+        - Rates
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+                - description
+                - symbol
+              properties:
+                code:
+                  type: string
+                description:
+                  type: string
+                symbol:
+                  type: string
+                is_base_currency:
+                  type: boolean
+      responses:
+        '201':
+          description: Currency created
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Validation error
+        '409':
+          description: Conflict error
+  /rates/currencies/{id}:
+    get:
+      summary: Get currency by id
+      tags:
+        - Rates
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Currency details returned
+          content:
+            application/json:
+              schema:
+                type: object
+        '404':
+          description: Currency not found
+    put:
+      summary: Update currency
+      tags:
+        - Rates
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+                description:
+                  type: string
+                symbol:
+                  type: string
+                is_base_currency:
+                  type: boolean
+      responses:
+        '200':
+          description: Currency updated
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Validation error
+        '404':
+          description: Currency not found
+        '409':
+          description: Conflict error
+    delete:
+      summary: Delete currency
+      tags:
+        - Rates
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Currency deleted
+        '404':
+          description: Currency not found
+  /rates/exchange-rates:
+    get:
+      summary: List exchange rates
+      tags:
+        - Rates
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Exchange rate list returned
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Unauthorized
+    post:
+      summary: Create an exchange rate record
+      tags:
+        - Rates
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - currency
+                - rate
+              properties:
+                currency:
+                  type: integer
+                rate:
+                  type: number
+                  format: decimal
+      responses:
+        '201':
+          description: Exchange rate created
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Validation error
+        '404':
+          description: Currency not found
+  /rates/exchange-rates/{id}:
+    get:
+      summary: Get exchange rate by id
+      tags:
+        - Rates
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Exchange rate details returned
+          content:
+            application/json:
+              schema:
+                type: object
+        '404':
+          description: Exchange rate not found
+    delete:
+      summary: Delete exchange rate
+      tags:
+        - Rates
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Exchange rate deleted
+        '404':
+          description: Exchange rate not found
+  /rates/exchange-rates/currency/{currencyId}/history:
+    get:
+      summary: Get exchange rate history for a currency
+      tags:
+        - Rates
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: currencyId
+          required: true
+          schema:
+            type: integer
+        - in: query
+          name: startDate
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: endDate
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Exchange rate history returned
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Invalid date filter
+        '404':
+          description: Currency not found
