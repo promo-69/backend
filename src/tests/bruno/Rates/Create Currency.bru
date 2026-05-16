@@ -1,0 +1,42 @@
+meta {
+  name: Create Currency
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/rates/currencies
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "code": "{{testCurrencyCode}}",
+    "description": "Bruno test currency",
+    "symbol": "B",
+    "is_base_currency": false
+  }
+}
+
+vars:pre-request {
+  testCurrencyCode: 1234
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  bru.setVar('baseUrl', baseUrl);
+  const code = `BRU123`;
+  bru.setVar('testCurrencyCode', code);
+}
+
+script:post-response {
+  const resBody = res.getBody();
+  if (res.getStatus() === 201 && resBody && resBody.data && resBody.data.id) {
+    bru.setEnvVar('testCurrencyId', resBody.data.id);
+  }
+}
