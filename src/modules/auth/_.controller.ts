@@ -106,7 +106,7 @@ class AuthController extends ControllerBase {
 		if (transport === 'cookie') {
 			const accessName = security.jwtCookieAccessName || 'AT';
 			this.setCookie(accessName, accessToken, { maxAge: JWTUtil.getAccessExpiresInMs() });
-			if (refreshToken) this.setCookie(refreshName, refreshToken, { maxAge: JWTUtil.getRefreshExpiresInMs() });
+            this.setCookie(refreshName, refreshToken, { path: '/api/v1/auth/refresh', maxAge: JWTUtil.getRefreshExpiresInMs(), });
 
 			// Retorna SOLO el usuario
 			return this.success({ user }, 'Sesión renovada');
