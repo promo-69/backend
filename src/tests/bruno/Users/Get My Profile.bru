@@ -1,11 +1,11 @@
 meta {
-  name: Get Permissions
+  name: Get My Profile
   type: http
-  seq: 8
+  seq: 1
 }
 
 get {
-  url: {{baseUrl}}/users/permissions
+  url: {{baseUrl}}/users/me
   body: none
   auth: bearer
 }

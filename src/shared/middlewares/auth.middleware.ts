@@ -160,7 +160,10 @@ export class AuthMiddleware {
 				// Verificar que el usuario tenga TODOS los permisos requeridos
 				const hasAllPermissions = requiredPermissions.every((perm) => userPermissions.includes(perm));
 
-				if (!hasAllPermissions) throw new ForbiddenError();
+				if (!hasAllPermissions)
+					throw new ForbiddenError('Usuario no tiene los permisos necesarios para realizar esta acción', {
+						code: 'INSUFFICIENT_PERMISSIONS',
+					});
 
 				next();
 			} catch (error) {
