@@ -46,12 +46,12 @@ paths:
                   data:
                     type: "null"
         "400":
-          $ref: "#/components/responses/BadRequest"
+          description: Bad request (validation errors)
         "401":
-          $ref: "#/components/responses/Unauthorized"
+          description: Unauthorized
         "403":
-          $ref: "#/components/responses/Forbidden"
+          description: Forbidden
         "404":
-          $ref: "#/components/responses/NotFound"
+          description: Not Found
         "500":
-          $ref: "#/components/responses/InternalServerError"
+          description: Internal server error
