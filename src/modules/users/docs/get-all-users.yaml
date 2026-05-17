@@ -50,8 +50,8 @@ paths:
                         type: integer
                         example: 1
         "401":
-          $ref: "#/components/responses/Unauthorized"
+          description: Unauthorized
         "403":
-          $ref: "#/components/responses/Forbidden"
+          description: Forbidden
         "500":
-          $ref: "#/components/responses/InternalServerError"
+          description: Internal server error

@@ -32,6 +32,6 @@ paths:
                         type: string
                         example: "user@example.com"
         "401":
-          $ref: "#/components/responses/Unauthorized"
+          description: Unauthorized
         "500":
-          $ref: "#/components/responses/InternalServerError"
+          description: Internal server error
