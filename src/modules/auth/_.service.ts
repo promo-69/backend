@@ -108,7 +108,9 @@ export class AuthService extends BaseService {
 	}
 
 	private async _buildLoginResponse(sessionData: any): Promise<LoginResponse> {
+		const cinema = sessionData._People?._Employees?.[0]?._EmployeePositions?.[0].cinema;
 		const payload = await this._buildUserPayload(sessionData);
+		if (cinema) payload.cinemaId = cinema;
 		const accessToken = JWTUtil.generateToken(payload);
 		const refreshToken = JWTUtil.generateRefreshToken({ userId: sessionData.id });
 
@@ -120,10 +122,12 @@ export class AuthService extends BaseService {
 		const person = { firstName, lastName, email, phoneNumber, documentNumber, gender, birthDate };
 		const user = { email, password };
 
-		if (!password || !documentNumber || !firstName || !lastName || !email || !phoneNumber || !gender || !birthDate)
+		// VALIDACIÓN BASE: Datos estrictamente necesarios en cualquier escenario
+		if (!documentNumber || !email || !password)
 			throw new ValidationError('Los datos de registro están incompletos', []);
 
-		const validations = [
+		this.validateRegexpFields([
+			{ value: documentNumber, regex: REGEX.DOCUMENT_NUMBER, message: 'El número de documento no es válido' },
 			{ value: email, regex: REGEX.EMAIL, message: 'El correo electrónico no es válido' },
 			{
 				value: password,
@@ -131,32 +135,35 @@ export class AuthService extends BaseService {
 				message:
 					'La contraseña debe tener entre 8 y 20 caracteres y contener al menos un símbolo especial, una letra y un número',
 			},
-			{ value: documentNumber, regex: REGEX.DOCUMENT_NUMBER, message: 'El número de documento no es válido' },
-			{ value: firstName, regex: REGEX.PERSON_NAME, message: 'El nombre no es válido' },
-			{ value: lastName, regex: REGEX.PERSON_NAME, message: 'El apellido no es válido' },
-			{ value: phoneNumber, regex: REGEX.PHONE_NUMBER, message: 'El número de teléfono no es válido' },
-			{ value: gender, regex: REGEX.DATABASE_ID, message: 'El género no es válido' },
-			{ value: birthDate, regex: REGEX.DATE, message: 'La fecha de nacimiento no es válida' },
-		];
-		const validated = { good: [] as string[], bad: [] as string[] };
+		]);
 
-		for (const validation of validations)
-			validated[!validation.regex.test(String(validation.value)) ? 'bad' : 'good'].push(validation.message);
-		if (validated.bad.length > 0) throw new ValidationError(validated.bad.join('; '), []);
+		const existingUserByEmail = await this._users.getByEmail(email);
+		if (existingUserByEmail) throw new AuthError('El usuario ya existe', { code: 'USER_ALREADY_EXISTS' });
 
-		const foundUser = await this._users.getByEmail(email);
-		if (foundUser) throw new AuthError('El usuario ya existe', { code: 'USER_ALREADY_EXISTS' });
+		// VERIFICACIÓN DE PERSONA
+		let existingPerson = await this._people.getByDocumentNumber(documentNumber);
 
-		const foundUserByDocument = await this._users.getByDocumentNumber(documentNumber);
-		if (foundUserByDocument) throw new AuthError('El usuario ya existe', { code: 'USER_ALREADY_EXISTS' });
+		// VALIDACIÓN CONDICIONAL: Si la persona no existe, traemos TODOS los datos biográficos
+		if (!existingPerson) {
+			if (!firstName || !lastName || !phoneNumber || !gender || !birthDate)
+				throw new ValidationError('Los datos personales están incompletos para un nuevo registro', []);
+
+			this.validateRegexpFields([
+				{ value: firstName, regex: REGEX.PERSON_NAME, message: 'El nombre no es válido' },
+				{ value: lastName, regex: REGEX.PERSON_NAME, message: 'El apellido no es válido' },
+				{ value: phoneNumber, regex: REGEX.PHONE_NUMBER, message: 'El número de teléfono no es válido' },
+				{ value: gender, regex: REGEX.DATABASE_ID, message: 'El género no es válido' },
+				{ value: birthDate, regex: REGEX.DATE, message: 'La fecha de nacimiento no es válida' },
+			]);
+		}
 
 		let created;
 		try {
-			created = await this._people.transaction(async (transaction: Transaction) => {
+			created = await this._users.transaction(async (transaction: Transaction) => {
 				const signupCode = nanoid(20);
-				let createdPerson = await this._people.getByDocumentNumber(documentNumber);
 
-				if (!createdPerson) {
+				let createdPerson;
+				if (!existingPerson) {
 					createdPerson = await this._people.create(
 						Object.fromEntries(
 							Object.entries(person).map(([key, value]) => [
@@ -167,6 +174,7 @@ export class AuthService extends BaseService {
 						{ transaction },
 					);
 				}
+
 				const createdUser = await this._users.create(
 					{
 						...user,

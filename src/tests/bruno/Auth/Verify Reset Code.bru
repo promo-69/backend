@@ -1,0 +1,27 @@
+meta {
+  name: Verify Reset Code
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/auth/verify-reset-code
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "user@example.com",
+    "code": "123456"
+  }
+}
+
+script:post-response {
+  if (res.status === 200) {
+    const data = res.getBody();
+    if (data.data && data.data.resetToken) {
+      bru.setEnvVar("resetToken", data.data.resetToken);
+    }
+  }
+}

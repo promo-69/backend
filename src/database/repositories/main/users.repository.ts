@@ -16,7 +16,7 @@ export interface UsersAttributes {
 	deleted_at?: Date;
 }
 
-interface UsersWithPeople extends UsersAttributes {
+export interface UsersWithPeople extends UsersAttributes {
 	_People: {
 		first_name: string;
 		last_name: string;
@@ -36,6 +36,23 @@ class UsersRepository extends SequelizeRepositoryBase<UsersAttributes, number> {
 				association: '_People',
 				attributes: ['first_name', 'last_name', 'personal_email', 'phone_number'],
 				required: true,
+				nested: [
+					{
+						association: '_Employees',
+						attributes: [],
+						required: false,
+						where: { deleted_at: null },
+						nested: [
+							{
+								association: '_EmployeePositions',
+								attributes: ['cinema'],
+								separate: true,
+								order: [['id', 'DESC']],
+								limit: 1,
+							},
+						],
+					},
+				],
 			},
 			{
 				association: '_Roles',
@@ -76,6 +93,7 @@ class UsersRepository extends SequelizeRepositoryBase<UsersAttributes, number> {
 	}
 
 	async getByEmail(email: string) {
+		console.log(this._relations);
 		return this.getOne({ email }, { relations: this._relations }) as Promise<UsersWithPeople | null>;
 	}
 

@@ -31,6 +31,8 @@ export interface RelationConfig {
 	required?: boolean;
 	where?: WhereCondition;
 	separate?: boolean;
+	order?: any[];
+	limit?: number;
 }
 
 export interface OperationOptions {
@@ -663,7 +665,7 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
 		if (Array.isArray(config)) return config.flatMap((conf) => this.getFkRelation(conf, targetModel));
 
 		// 3. Si no, es RelationConfig individual
-		const { association, attributes, nested, required, where, separate } = config as RelationConfig;
+		const { association, attributes, nested, required, where, separate, order, limit } = config as RelationConfig;
 		const assocs = (targetModel || this._model).associations;
 
 		if (!assocs?.[association]) return [];
@@ -676,9 +678,12 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
 		if (attributes?.length) include.attributes = attributes;
 		if (required !== undefined) include.required = required;
 		if (separate !== undefined) include.separate = separate;
+		if (order) include.order = order;
+		if (limit !== undefined) include.limit = limit;
 
 		if (where) {
 			include.where = this.translateWhereCondition(where as any);
+
 			if (required !== undefined) include.required = required;
 		}
 
