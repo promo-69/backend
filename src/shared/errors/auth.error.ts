@@ -1,7 +1,7 @@
 import { AppError, type AppErrorOptions } from '@errors/app.error.js';
 
 export class AuthError extends AppError {
-	constructor(message: string = 'Authentication failed', options: Partial<AppErrorOptions> = {}) {
+	constructor(message: string = 'Authentication fallida', options: Partial<AppErrorOptions> = {}) {
 		super({
 			statusCode: 401,
 			message,
@@ -12,7 +12,7 @@ export class AuthError extends AppError {
 }
 
 export class ForbiddenError extends AppError {
-	constructor(message: string = 'Access forbidden', options: Partial<AppErrorOptions> = {}) {
+	constructor(message: string = 'Accesso prohibido', options: Partial<AppErrorOptions> = {}) {
 		super({
 			statusCode: 403,
 			message,

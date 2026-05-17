@@ -8,6 +8,18 @@ class TokenBlacklistService {
 		return CacheDatabaseProvider.getInstance().client;
 	}
 
+	async blacklistJti(jti: string, expiresAtUnix: number): Promise<boolean> {
+		const now = Math.floor(Date.now() / 1000);
+		const ttlInSeconds = expiresAtUnix - now;
+
+		if (ttlInSeconds <= 0) return false;
+
+		const key = `${this.keyPrefix}${jti}`;
+		const result = await this.client.set(key, 'blacklisted', 'EX', ttlInSeconds, 'NX');
+
+		return result === 'OK';
+	}
+
 	async blacklistTokenAtRefresh(token: string): Promise<boolean> {
 		const decoded = JWTUtil.decodeToken(token) as { exp?: number; jti?: string } | null;
 

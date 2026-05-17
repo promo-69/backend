@@ -1,0 +1,58 @@
+paths:
+  /api/v1/users/me/profile:
+    patch:
+      tags:
+        - Users (Self-Service)
+      summary: Update my profile
+      description: Updates the biographical data of the currently authenticated user.
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                firstName:
+                  type: string
+                  example: "John"
+                lastName:
+                  type: string
+                  example: "Doe"
+                phoneNumber:
+                  type: string
+                  example: "+1234567890"
+                personalEmail:
+                  type: string
+                  example: "personal@example.com"
+                birthDate:
+                  type: string
+                  format: date
+                  example: "1990-01-01"
+                gender:
+                  type: string
+                  example: "M"
+      responses:
+        "200":
+          description: Profile updated successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Datos biográficos actualizados correctamente."
+                  data:
+                    type: "null"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"

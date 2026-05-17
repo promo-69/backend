@@ -1,11 +1,11 @@
 meta {
-  name: Get Users By Id
+  name: Get All Users (Manager)
   type: http
-  seq: 2
+  seq: 4
 }
 
 get {
-  url: {{baseUrl}}/users/1
+  url: {{baseUrl}}/users?page=1&limit=10
   body: none
   auth: bearer
 }

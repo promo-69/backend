@@ -1,11 +1,11 @@
 meta {
-  name: Create Users
+  name: Change User Status (Manager)
   type: http
-  seq: 3
+  seq: 5
 }
 
-post {
-  url: {{baseUrl}}/users
+patch {
+  url: {{baseUrl}}/users/1/status
   body: json
   auth: bearer
 }
@@ -16,6 +16,6 @@ auth:bearer {
 
 body:json {
   {
-    "exampleField": "example_value"
+    "status": 0
   }
 }

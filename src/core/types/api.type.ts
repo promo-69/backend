@@ -28,6 +28,7 @@ export interface ResponseOptions {
 
 export interface UserSession {
 	userId: string;
+	cinemaId?: string;
 	documentNumber: string;
 	firstName: string;
 	lastName: string;

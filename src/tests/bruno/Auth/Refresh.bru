@@ -1,24 +1,21 @@
 meta {
-  name: Login
+  name: Refresh
   type: http
-  seq: 3
+  seq: 4
 }
 
 post {
-  url: {{baseUrl}}/auth/login
-  body: json
-  auth: none
+  url: {{baseUrl}}/auth/refresh
+  body: none
+  auth: bearer
 }
 
 headers {
   x-client-channel: mobile
 }
 
-body:json {
-  {
-    "email": "admin@cineflix.com",
-    "password": "Password123!"
-  }
+auth:bearer {
+  token: {{refreshToken}}
 }
 
 script:post-response {

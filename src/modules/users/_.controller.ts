@@ -6,98 +6,37 @@ class UsersController extends ControllerBase {
 		super();
 	}
 
-	async createAdministrativeAccount() {
-		const payload = this.getBody();
-		await UsersService.createAdministrativeAccount(payload);
-
-		return this.success(null, 'Cuenta administrativa generada exitosamente.');
+	async getMyProfile() {
+		const session = this.getSession();
+		const data = await UsersService.getUserProfile(session.userId);
+		return this.success(data, 'Perfil recuperado exitosamente.');
 	}
 
-	async createClientAccount() {
-		const payload = this.getBody();
-		await UsersService.createClientAccount(payload);
-
-		return this.success(null, 'Cuenta de cliente generada exitosamente.');
+	async updateMyProfile() {
+		const session = this.getSession();
+		await UsersService.updateProfile(session.userId, this.getBody());
+		return this.success(null, 'Datos biográficos actualizados correctamente.');
 	}
 
-	async changeStatus() {
+	async updateMySecurity() {
+		const session = this.getSession();
+		await UsersService.updateSecurity(session.userId, this.getBody());
+		return this.success(null, 'Credenciales de seguridad actualizadas correctamente.');
+	}
+
+	// --- Exclusivo para Gerente
+
+	async getAllUsers() {
+		const filters = this.getQueryFilters();
+		const data = await UsersService.getAllUsers(filters);
+		return data;
+	}
+
+	async changeUserStatus() {
 		const { id } = this.getParams();
-		const { status } = this.getBody();
-
-		const result = await UsersService.updateUserStatus(Number(id), Number(status));
-
+		const { status } = this.getBody(); // 0 = desactivar, 1 = activar
+		const result = await UsersService.changeUserStatus(Number(id), Number(status));
 		return this.success(null, result.message);
-	}
-
-	// --- Users ---
-
-	async findAllUsers() {
-		const data = await UsersService.findAllUsers(this.getQueryFilters());
-		return data;
-	}
-
-	async findUserById() {
-		const { id } = this.getParams();
-		const data = await UsersService.findUserById(Number(id));
-
-		return data;
-	}
-
-	async createUser() {
-		const userData = this.getBody();
-		const data = await UsersService.createUser(userData);
-
-		return data;
-	}
-
-	// --- Roles ---
-
-	async findAllRoles() {
-		const data = await UsersService.findAllRoles(this.getQueryFilters());
-
-		return data;
-	}
-
-	async findRoleById() {
-		const { id } = this.getParams();
-
-		const data = await UsersService.findRoleById(Number(id));
-
-		return data;
-	}
-
-	// --- Permissions ---
-
-	async findAllPermissions() {
-		const data = await UsersService.findAllPermissions(this.getQueryFilters());
-
-		return data;
-	}
-
-	async findPermissionById() {
-		const { id } = this.getParams();
-
-		const data = await UsersService.findPermissionById(Number(id));
-
-		return data;
-	}
-
-	async updateProfile() {
-		const session = this.getSession<any>();
-		const body = this.getBody();
-
-		await UsersService.updateProfile(session.userId, body);
-
-		return this.success(null, 'Perfil actualizado.');
-	}
-
-	async updateSecurity() {
-		const session = this.getSession<any>();
-		const body = this.getBody();
-
-		await UsersService.updateSecurity(session.userId, body);
-
-		return this.success(null, 'Seguridad de la cuenta actualizada correctamente.');
 	}
 }
 

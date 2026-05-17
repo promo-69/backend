@@ -39,6 +39,10 @@
                                             properties:
                                                 userId:
                                                     type: string
+                                                documentNumber:
+                                                    type: string
+                                                cinemaId:
+                                                    type: string
                                                 email:
                                                     type: string
                                                 firstName:
