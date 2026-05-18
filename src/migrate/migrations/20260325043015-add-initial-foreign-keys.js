@@ -101,15 +101,25 @@ const foreignKeys = [
 		name: 'fk_movie_subscriptions_customer',
 	},
 	{ table: 'movie_subscriptions', field: 'movie', target: 'movies', name: 'fk_movie_subscriptions_movie' },
+
+	{ table: 'room_bookings', field: 'room', target: 'rooms', name: 'fk_room_bookings_room' },
+	{ table: 'room_bookings', field: 'booking_type', target: 'booking_types', name: 'fk_room_bookings_booking_type' },
+
+	{ table: 'showtimes', field: 'booking', target: 'room_bookings', name: 'fk_showtimes_booking' },
 	{ table: 'showtimes', field: 'movie', target: 'movies', name: 'fk_showtimes_movie' },
-	{ table: 'showtimes', field: 'room', target: 'rooms', name: 'fk_showtimes_room' },
-	{
-		table: 'showtimes',
-		field: 'projection_type',
-		target: 'projection_types',
-		name: 'fk_showtimes_projection_type',
-	},
+	{ table: 'showtimes', field: 'projection_type', target: 'projection_types', name: 'fk_showtimes_projection_type' },
 	{ table: 'showtimes', field: 'currency', target: 'currencies', name: 'fk_showtimes_currency' },
+
+	{ table: 'room_events', field: 'booking', target: 'room_bookings', name: 'fk_room_events_booking' },
+	{ table: 'room_events', field: 'event_type', target: 'booking_types', name: 'fk_room_events_event_type' },
+	{ table: 'room_events', field: 'currency', target: 'currencies', name: 'fk_room_events_currency' },
+
+	{ table: 'rental_requests', field: 'customer', target: 'customers', name: 'fk_rental_requests_customer' },
+	{ table: 'rental_requests', field: 'room', target: 'rooms', name: 'fk_rental_requests_room' },
+	{ table: 'rental_requests', field: 'booking', target: 'room_bookings', name: 'fk_rental_requests_booking' },
+	{ table: 'rental_requests', field: 'event_type', target: 'booking_types', name: 'fk_rental_requests_event_type' },
+	{ table: 'rental_requests', field: 'currency', target: 'currencies', name: 'fk_rental_requests_currency' },
+
 	{
 		table: 'price_modifiers',
 		field: 'modifier_scope',
@@ -173,6 +183,7 @@ const foreignKeys = [
 	},
 	{ table: 'products', field: 'currency', target: 'currencies', name: 'fk_products_currency' },
 	{ table: 'combos', field: 'currency', target: 'currencies', name: 'fk_combos_currency' },
+	{ table: 'combos', field: 'cinema', target: 'cinemas', name: 'fk_combos_cinema' },
 	{ table: 'combo_products', field: 'combo', target: 'combos', name: 'fk_combo_products_combo' },
 	{ table: 'combo_products', field: 'product', target: 'products', name: 'fk_combo_products_product' },
 	{ table: 'inventories', field: 'cinema', target: 'cinemas', name: 'fk_inventories_cinema' },
@@ -283,16 +294,6 @@ const foreignKeys = [
 		target: 'operation_types',
 		name: 'fk_loyalty_ledgers_operation_type',
 	},
-
-	// Módulo 8
-	{
-		table: 'rental_requests',
-		field: 'event_type',
-		target: 'event_types',
-		name: 'fk_rental_requests_event_type',
-	},
-	{ table: 'rental_requests', field: 'cinema', target: 'cinemas', name: 'fk_rental_requests_cinema' },
-	{ table: 'rental_requests', field: 'customer', target: 'customers', name: 'fk_rental_requests_customer' },
 ];
 
 /** @type {import('sequelize-cli').Migration} */

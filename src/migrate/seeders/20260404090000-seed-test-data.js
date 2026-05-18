@@ -146,26 +146,53 @@ module.exports = {
 		);
 
 		await queryInterface.bulkInsert(
+			'booking_types',
+			[
+				{ id: 1, description: 'Película' },
+				{ id: 2, description: 'Evento Alternativo' },
+				{ id: 3, description: 'Alquiler Privado' },
+			],
+			{},
+		);
+
+		await queryInterface.bulkInsert(
+			'room_bookings',
+			[
+				{
+					id: 1,
+					room: 1,
+					start_time: '2026-05-01 18:00:00',
+					end_time: '2026-05-01 20:00:00',
+					booking_type: 1,
+				},
+				{
+					id: 2,
+					room: 2,
+					start_time: '2026-05-01 20:30:00',
+					end_time: '2026-05-01 22:05:00',
+					booking_type: 1,
+				},
+			],
+			{},
+		);
+
+		await queryInterface.bulkInsert(
 			'showtimes',
 			[
 				{
 					id: 1,
+					booking: 1,
 					movie: 1,
-					room: 1,
 					projection_type: 1,
-					start_time: '2026-05-01 18:00:00',
-					end_time: '2026-05-01 20:00:00',
 					currency: 1,
 					price: 12.5,
 					earned_loyalty_points: 25,
 				},
 				{
 					id: 2,
+					booking: 2,
 					movie: 2,
-					room: 2,
 					projection_type: 1,
-					start_time: '2026-05-01 20:30:00',
-					end_time: '2026-05-01 22:05:00',
 					currency: 1,
 					price: 10.0,
 					earned_loyalty_points: 20,
@@ -287,7 +314,10 @@ module.exports = {
 		await queryInterface.bulkDelete('movie_subscriptions', null, {});
 		await queryInterface.bulkDelete('customers', null, {});
 		await queryInterface.bulkDelete('people', null, {});
+		await queryInterface.bulkDelete('room_events', null, {});
 		await queryInterface.bulkDelete('showtimes', null, {});
+		await queryInterface.bulkDelete('room_bookings', null, {});
+		await queryInterface.bulkDelete('booking_types', null, {});
 		await queryInterface.bulkDelete('movie_genres', null, {});
 		await queryInterface.bulkDelete('movies', null, {});
 		await queryInterface.bulkDelete('seats', null, {});

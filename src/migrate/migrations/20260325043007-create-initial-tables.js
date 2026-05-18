@@ -3,11 +3,35 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
 	async up(queryInterface, Sequelize) {
+		await queryInterface.sequelize.query('CREATE EXTENSION IF NOT EXISTS btree_gist;');
 		const createTable = async (tableName, attributes) => queryInterface.createTable(tableName, attributes);
-		const addUnique = async (tableName, fields, indexName) =>
-			queryInterface.addIndex(tableName, fields, { unique: true, name: indexName, where: { deleted_at: null } });
-		const addIndex = async (tableName, fields, indexName) =>
+		const addUnique = async (tableName, fields, indexName, extraConditions = {}) => {
+			if (!tableName || !fields || !indexName) return;
+
+			queryInterface.addIndex(tableName, fields, {
+				unique: true,
+				name: indexName,
+				where: { deleted_at: null, ...extraConditions },
+			});
+		};
+		const addIndex = async (tableName, fields, indexName) => {
+			if (!tableName || !fields || !indexName) return;
+
 			queryInterface.addIndex(tableName, fields, { name: indexName });
+		};
+		const addTimeExclusion = async (tableName, resourceField, startField, endField, constraintName) => {
+			if (!tableName || !resourceField || !startField || !endField || !constraintName) return;
+
+			const sql = `
+				ALTER TABLE ${tableName}
+				ADD CONSTRAINT ${constraintName}
+				EXCLUDE USING gist (
+					${resourceField} WITH =,
+					tstzrange(${startField}, ${endField}) WITH &&
+				) WHERE (deleted_at IS NULL);
+			`;
+			await queryInterface.sequelize.query(sql);
+		};
 
 		// --- MÓDULO 1: CATÁLOGOS BASE ---
 		await createTable('operation_types', {
@@ -136,6 +160,9 @@ module.exports = {
 			end_date: { type: Sequelize.DATEONLY, allowNull: true },
 			salary_base: { type: Sequelize.DECIMAL(10, 2), allowNull: true },
 			deleted_at: { type: Sequelize.DATE, allowNull: true },
+		});
+		await addUnique('employee_positions', ['employee'], 'idx_employee_positions_active_uq', {
+			end_date: null,
 		});
 
 		await createTable('loyalty_levels', {
@@ -349,21 +376,66 @@ module.exports = {
 		});
 		await addUnique('movie_subscriptions', ['customer', 'movie'], 'idx_movie_subscriptions_uq');
 
-		await createTable('showtimes', {
+		await createTable('booking_types', {
 			id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true, allowNull: false },
-			movie: { type: Sequelize.INTEGER, allowNull: false },
+			description: { type: Sequelize.STRING(255), allowNull: false },
+			deleted_at: { type: Sequelize.DATE, allowNull: true },
+		});
+		await addUnique('booking_types', ['description'], 'idx_booking_types_description_uq');
+
+		await createTable('room_bookings', {
+			id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true, allowNull: false },
 			room: { type: Sequelize.INTEGER, allowNull: false },
-			projection_type: { type: Sequelize.INTEGER, allowNull: false },
 			start_time: { type: Sequelize.DATE, allowNull: false },
 			end_time: { type: Sequelize.DATE, allowNull: false },
+			booking_type: { type: Sequelize.INTEGER, allowNull: false },
+			deleted_at: { type: Sequelize.DATE, allowNull: true },
+		});
+		await addTimeExclusion('room_bookings', 'room', 'start_time', 'end_time', 'chk_room_bookings_no_overlap');
+		await addIndex('room_bookings', ['room', 'start_time'], 'idx_room_bookings_room_time');
+
+		await createTable('showtimes', {
+			id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true, allowNull: false },
+			booking: { type: Sequelize.INTEGER, allowNull: false },
+			movie: { type: Sequelize.INTEGER, allowNull: false },
+			projection_type: { type: Sequelize.INTEGER, allowNull: false },
 			currency: { type: Sequelize.INTEGER, allowNull: false },
 			price: { type: Sequelize.DECIMAL(10, 2), allowNull: false },
 			earned_loyalty_points: { type: Sequelize.INTEGER, allowNull: true },
 			deleted_at: { type: Sequelize.DATE, allowNull: true },
 		});
-		await addUnique('showtimes', ['room', 'start_time'], 'idx_showtimes_room_time_uq');
-		await addIndex('showtimes', ['movie', 'start_time'], 'idx_showtimes_movie_time');
-		await addIndex('showtimes', ['room', 'start_time'], 'idx_showtimes_room_time');
+		await addUnique('showtimes', ['booking'], 'idx_showtimes_booking_uq');
+		await addIndex('showtimes', ['movie'], 'idx_showtimes_movie');
+
+		await createTable('room_events', {
+			id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true, allowNull: false },
+			booking: { type: Sequelize.INTEGER, allowNull: false },
+			event_type: { type: Sequelize.INTEGER, allowNull: false },
+			name: { type: Sequelize.STRING(255), allowNull: false },
+			organizer: { type: Sequelize.STRING(255), allowNull: true },
+			description: { type: Sequelize.TEXT, allowNull: true },
+			currency: { type: Sequelize.INTEGER, allowNull: false },
+			price: { type: Sequelize.DECIMAL(10, 2), allowNull: false },
+			deleted_at: { type: Sequelize.DATE, allowNull: true },
+		});
+		await addUnique('room_events', ['booking'], 'idx_room_events_booking_uq');
+
+		await createTable('rental_requests', {
+			id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true, allowNull: false },
+			customer: { type: Sequelize.INTEGER, allowNull: false },
+			room: { type: Sequelize.INTEGER, allowNull: false },
+			booking: { type: Sequelize.INTEGER, allowNull: true },
+			event_type: { type: Sequelize.INTEGER, allowNull: false },
+			requested_start_time: { type: Sequelize.DATE, allowNull: false },
+			requested_end_time: { type: Sequelize.DATE, allowNull: false },
+			event_name: { type: Sequelize.STRING(255), allowNull: false },
+			event_description: { type: Sequelize.TEXT, allowNull: true },
+			status: { type: Sequelize.INTEGER, allowNull: false },
+			currency: { type: Sequelize.INTEGER, allowNull: true },
+			price: { type: Sequelize.DECIMAL(10, 2), allowNull: true },
+			deleted_at: { type: Sequelize.DATE, allowNull: true },
+		});
+		await addIndex('rental_requests', ['customer', 'requested_start_time'], 'idx_rentals_customer_time');
 
 		await createTable('week_days', {
 			id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true, allowNull: false },
@@ -428,6 +500,7 @@ module.exports = {
 
 		await createTable('combos', {
 			id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true, allowNull: false },
+			cinema: { type: Sequelize.INTEGER, allowNull: false },
 			name: { type: Sequelize.STRING(255), allowNull: false },
 			sku: { type: Sequelize.STRING(100), allowNull: false },
 			description: { type: Sequelize.STRING(255), allowNull: false },
@@ -438,6 +511,7 @@ module.exports = {
 			deleted_at: { type: Sequelize.DATE, allowNull: true },
 		});
 		await addUnique('combos', ['sku'], 'idx_combos_sku_uq');
+		await addUnique('combos', ['cinema', 'name'], 'idx_combos_name_uq');
 
 		await createTable('combo_products', {
 			id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true, allowNull: false },
@@ -643,33 +717,6 @@ module.exports = {
 		});
 		await addIndex('loyalty_ledgers', ['customer', 'operation_type'], 'idx_loyalty_customer_op');
 
-		// --- MÓDULO 8: EVENTOS PRIVADOS ---
-		await createTable('event_types', {
-			id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true, allowNull: false },
-			description: { type: Sequelize.STRING(255), allowNull: false },
-			deleted_at: { type: Sequelize.DATE, allowNull: true },
-		});
-		await addUnique('event_types', ['description'], 'idx_event_types_desc_uq');
-
-		await createTable('rental_requests', {
-			id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true, allowNull: false },
-			event_type: { type: Sequelize.INTEGER, allowNull: false },
-			cinema: { type: Sequelize.INTEGER, allowNull: false },
-			customer: { type: Sequelize.INTEGER, allowNull: true },
-			contact_name: { type: Sequelize.STRING(255), allowNull: false },
-			contact_email: { type: Sequelize.STRING(255), allowNull: false },
-			contact_phone: { type: Sequelize.STRING(50), allowNull: false },
-			event_date: { type: Sequelize.DATE, allowNull: false },
-			attendees: { type: Sequelize.INTEGER, allowNull: false },
-			created_at: {
-				type: Sequelize.DATE,
-				allowNull: false,
-				defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
-			},
-			deleted_at: { type: Sequelize.DATE, allowNull: true },
-		});
-		await addIndex('rental_requests', ['cinema', 'event_date'], 'idx_rental_requests_cinema_date');
-
 		// ==============================================================================
 		// APLICACIÓN DE CONSTRAINTS "CHECK"
 		// ==============================================================================
@@ -681,7 +728,6 @@ module.exports = {
 			'ALTER TABLE seats ADD CONSTRAINT chk_seats_col CHECK (column_number > 0);',
 			'ALTER TABLE exchange_rates ADD CONSTRAINT chk_exchange_rates_rate CHECK (rate > 0);',
 			'ALTER TABLE movies ADD CONSTRAINT chk_movies_duration CHECK (duration_minutes > 0);',
-			'ALTER TABLE showtimes ADD CONSTRAINT chk_showtimes_times CHECK (end_time > start_time AND price >= 0);',
 			'ALTER TABLE week_days ADD CONSTRAINT chk_week_days_range CHECK (day_number BETWEEN 1 AND 7);',
 			`ALTER TABLE price_modifiers ADD CONSTRAINT chk_price_modifiers_logic
              CHECK (value > 0 AND
@@ -717,7 +763,6 @@ module.exports = {
 			'ALTER TABLE loyalty_levels ADD CONSTRAINT chk_loyalty_levels_pts CHECK (required_points >= 0);',
 			'ALTER TABLE customers ADD CONSTRAINT chk_customers_progress CHECK (level_progress_points >= 0);',
 			'ALTER TABLE customers ADD CONSTRAINT chk_customers_pts_balance CHECK (current_points_balance >= 0);',
-			'ALTER TABLE rental_requests ADD CONSTRAINT chk_rental_requests_attendees CHECK (attendees > 0);',
 			'ALTER TABLE taxes ADD CONSTRAINT chk_taxes_rate CHECK (rate >= 0);',
 		];
 

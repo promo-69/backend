@@ -35,7 +35,6 @@ export class EmailProvider {
 
 		try {
 			Logger.natural(ANSI.success(`[+] Email Provider initialized via Google API for ${this.fromAddress}`));
-			this.sendMail('aliriofreytez1@gmail.com', 'Prueba de conexión', '<h1>Prueba exitosa</h1>');
 		} catch (error) {
 			Logger.error('Email Provider Initialization Error:', error as Error);
 		}
