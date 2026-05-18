@@ -146,6 +146,46 @@ docker compose -f docker-compose.yml -f docker-compose.local.yml down -v --rmi l
 
 ---
 
+## Realtime / WebSockets
+
+Esta API incluye soporte para WebSockets con `socket.io`, configurado por namespaces de recurso y rooms "per-resource".
+
+### Variables de entorno
+
+- `REALTIME_ENABLED` = `true` para activar el servidor Socket.IO.
+- `REALTIME_PATH` = ruta del punto de conexión de Socket.IO (por defecto `/socket.io`).
+- `REALTIME_ADAPTER` = `redis` para múltiples instancias o `memory` para un solo proceso.
+- `REALTIME_NAMESPACE_PREFIX` = prefijo para namespaces.
+- `REALTIME_PING_INTERVAL` = intervalo de ping en milisegundos.
+
+### Ejemplo de uso
+
+```ts
+import { io } from 'socket.io-client';
+
+const socket = io('https://127.0.0.1', {
+  path: '/socket.io',
+  auth: {
+    token: 'Bearer <ACCESS_TOKEN>',
+  },
+  transports: ['websocket'],
+});
+
+socket.on('connect', () => {
+  console.log('Connected to realtime server', socket.id);
+});
+
+socket.emit('join-room', { room: 'movie:123' });
+```
+
+### Convenciones de namespaces y rooms
+
+- Namespace por recurso: `/movies`, `/cinemas`, `/users`.
+- Room por entidad: `movie:123`, `cinema:456`, `customer:789`.
+- Un namespace maneja los eventos de un recurso y las rooms permiten suscripciones específicas.
+
+---
+
 ## Solución de Problemas Comunes (FAQ)
 
 **1. permission denied while trying to connect to the docker daemon socket**

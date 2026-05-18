@@ -68,6 +68,13 @@ export interface IAppConfig {
 		urlEndpoint: string;
 	};
 	clientWebAppUrl: string;
+	realtime?: {
+		enabled: boolean;
+		path?: string;
+		adapter?: 'redis' | 'memory';
+		namespacePrefix?: string;
+		pingInterval?: number;
+	};
 }
 
 export class AppConfig {
@@ -161,6 +168,13 @@ export class AppConfig {
 				urlEndpoint: process.env.IMAGECLOUD_URL_ENDPOINT || '',
 			},
 			clientWebAppUrl: process.env.CLIENT_WEB_APP_URL || '',
+			realtime: {
+				enabled: process.env.REALTIME_ENABLED === 'true',
+				path: process.env.REALTIME_PATH || '/socket.io',
+				adapter: (process.env.REALTIME_ADAPTER as any) || 'redis',
+				namespacePrefix: process.env.REALTIME_NAMESPACE_PREFIX || '/',
+				pingInterval: parseInt(process.env.REALTIME_PING_INTERVAL || '25000', 10),
+			},
 			isDocker: !!process.env.RUNNING_IN_DOCKER,
 		};
 		this._configCache = config;

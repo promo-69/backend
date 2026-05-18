@@ -71,10 +71,67 @@ export class AuthMiddleware {
 		// 3. No se encontró en ningún transporte
 		return null;
 	}
-
-	/**
-	 * Obtener sesión validada.
-	 */
++
++	private static parseCookieHeader(cookieHeader: string): Record<string, string> {
++		return cookieHeader
++			.split(';')
++			.map((part) => part.trim())
++			.reduce((result: Record<string, string>, pair) => {
++				const [key, ...valueParts] = pair.split('=');
++				if (!key) return result;
++				result[key.trim()] = decodeURIComponent(valueParts.join('=') || '');
++				return result;
++			}, {});
++	}
++
++	private static extractTokenFromSocket(socket: any, tokenType: 'access' | 'refresh' = 'access'): string | null {
++		const security = AppConfig.load().security;
++		const cookieName = tokenType === 'refresh' ? security.jwtCookieRefreshName : security.jwtCookieAccessName;
++
++		const cookieHeader = socket.handshake?.headers?.cookie;
++		if (typeof cookieHeader === 'string') {
++			const cookies = this.parseCookieHeader(cookieHeader);
++			if (cookies[cookieName]) return cookies[cookieName];
++		}
++
++		const authHeader = socket.handshake?.auth?.token || socket.handshake?.headers?.authorization;
++
++		if (typeof authHeader === 'string') {
++			if (authHeader.startsWith('Bearer ')) return authHeader.slice(7);
++			return authHeader;
++		}
++
++		return null;
++	}
++
++	/**
++	 * Middleware de autenticación para Socket.IO.
++	 */
++	static async socketAuth(socket: any, next: (err?: Error) => void): Promise<void> {
++		try {
++			const token = this.extractTokenFromSocket(socket, 'access');
++			if (!token) throw new AuthError('Token de autenticación no encontrado', { code: 'TOKEN_NOT_FOUND' });
++
++			const payload = JWTUtil.verifyToken(token) as JWTPayload & UserSession & { iat: number };
++			if (!payload || !payload.userId || !payload.type)
++				throw new AuthError('Token inválido', { code: 'TOKEN_INVALID' });
++
++			const isBlacklisted = await tokenBlacklistService.isBlacklisted(token);
++			if (isBlacklisted)
++				throw new AuthError('Sesión ha expirado o ha sido revocada por seguridad', { code: 'TOKEN_REVOKED' });
++
++			socket.data = socket.data || {};
++			socket.data.session = AuthMiddleware.buildSession(payload);
++			socket.data.token = token;
++			next();
++		} catch (error: any) {
++			next(error instanceof Error ? error : new Error('Autenticación de socket fallida'));
++		}
++	}
++
++	/**
++	 * Obtener sesión validada.
++	 */
 	private static async getValidatedSession(req: Request): Promise<{ session: UserSession; token: string }> {
 		const token = this.extractToken(req, 'access');
 
@@ -235,5 +292,6 @@ export const optionalAuth = AuthMiddleware.optionalAuth.bind(AuthMiddleware);
 export const verifyPermission = AuthMiddleware.verifyPermission;
 export const verifyRole = AuthMiddleware.verifyRole;
 export const preventAuthenticatedAccess = AuthMiddleware.preventAuthenticatedAccess.bind(AuthMiddleware);
+export const socketAuth = AuthMiddleware.socketAuth.bind(AuthMiddleware);
 
 export default AuthMiddleware;

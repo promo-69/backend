@@ -19,7 +19,7 @@ services:
             - .env
         environment:
             - RUNNING_IN_DOCKER=true
-            - IS_DOCKER=true
+            - IS_DOCKER=false
             - DB_POSTGRESQL_MAIN_HOST=db
             - DB_POSTGRESQL_MAIN_PORT=5432
             - NPM_CONFIG_UPDATE_NOTIFIER=false

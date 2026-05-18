@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import { AppConfig, type IAppConfig } from '@config/app.config.js';
+import RealtimeProvider from '@shared/providers/realtime.provider.js';
 import { AppError, NotFoundError } from '@errors';
 import { ANSI } from '@utils/ansi.util.js';
 import { Logger } from '@utils/logger.util.js';
@@ -32,9 +33,24 @@ export class App {
 	async start(): Promise<http.Server> {
 		const serverApp = await this.initialize();
 
-		return new Promise((resolve, reject) => {
-			this.httpServer = http.createServer(serverApp);
+		this.httpServer = http.createServer(serverApp);
 
+		// Attach realtime if enabled
+		try {
+			const cfg = AppConfig.load();
+			if ((cfg as any).realtime?.enabled) {
+				// eslint-disable-next-line @typescript-eslint/no-floating-promises
+				RealtimeProvider.getInstance()
+					.attach(this.httpServer)
+					.catch((err) => {
+						Logger.error('Failed to attach RealtimeProvider', err);
+					});
+			}
+		} catch (err: any) {
+			Logger.error('Error initializing realtime provider check', err);
+		}
+
+		return new Promise((resolve, reject) => {
 			this.httpServer.on('error', (err) => {
 				reject(err);
 			});
