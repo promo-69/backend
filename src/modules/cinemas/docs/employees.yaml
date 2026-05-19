@@ -37,7 +37,41 @@
             content:
                 application/json:
                     schema:
-                        $ref: '#/components/schemas/CreateEmployee'
+                        type: object
+                        required:
+                            - documentNumber
+                            - firstName
+                            - lastName
+                            - employeeCode
+                            - jobPosition
+                            - startDate
+                        properties:
+                            documentNumber:
+                                type: string
+                            firstName:
+                                type: string
+                            lastName:
+                                type: string
+                            employeeCode:
+                                type: string
+                            jobPosition:
+                                type: integer
+                            startDate:
+                                type: string
+                                format: date
+                            salaryBase:
+                                type: number
+                            email:
+                                type: string
+                            password:
+                                type: string
+                            gender:
+                                type: integer
+                            phoneNumber:
+                                type: string
+                            birthDate:
+                                type: string
+                                format: date
         responses:
             '201':
                 description: Employee created

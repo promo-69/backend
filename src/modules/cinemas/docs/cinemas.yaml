@@ -15,7 +15,22 @@
                                 data:
                                     type: array
                                     items:
-                                        $ref: '#/components/schemas/Cinema'
+                                        type: object
+                                        properties:
+                                            id:
+                                                type: integer
+                                            name:
+                                                type: string
+                                            address:
+                                                type: string
+                                            phone:
+                                                type: string
+                                            opening_time:
+                                                type: string
+                                            closing_time:
+                                                type: string
+                                            active:
+                                                type: boolean
             '500':
                 description: Internal server error
     post:
