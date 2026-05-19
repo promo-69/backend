@@ -1,11 +1,11 @@
 meta {
-  name: Delete Employee
+  name: Get Customer By Id
   type: http
-  seq: 6
+  seq: 2
 }
 
-delete {
-  url: {{baseUrl}}/employees/{{testEmployeeId}}
+get {
+  url: {{baseUrl}}/customers/{{testCustomerId}}
   body: none
   auth: bearer
 }
