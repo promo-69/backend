@@ -1,11 +1,11 @@
 meta {
-  name: Create Employee
+  name: Create Customer
   type: http
-  seq: 1
+  seq: 3
 }
 
 post {
-  url: {{baseUrl}}/employees
+  url: {{baseUrl}}/customers
   body: json
   auth: bearer
 }
@@ -16,22 +16,20 @@ auth:bearer {
 
 body:json {
   {
-    "documentNumber": "BRU123456",
-    "firstName": "Bruno",
-    "lastName": "Test",
-    "employeeCode": "BRU-EMP-001",
-    "jobPosition": 1,
-    "startDate": "2026-04-23",
-    "salaryBase": 1200.0,
-    "email": "bruno.test@cineflix.com",
-    "password": "SecurePass123!"
+    "documentNumber": "V-12345678",
+    "firstName": "María",
+    "lastName": "Rodríguez",
+    "gender": 2,
+    "phoneNumber": "+584140000000",
+    "email": "maria.rodriguez@example.com",
+    "birthDate": "1990-06-15"
   }
 }
 
 script:post-response {
   const resBody = res.getBody();
   if (res.getStatus() === 201 && resBody && resBody.data && resBody.data.id) {
-    bru.setEnvVar('testEmployeeId', resBody.data.id);
+    bru.setEnvVar('testCustomerId', resBody.data.id);
   }
 }
 

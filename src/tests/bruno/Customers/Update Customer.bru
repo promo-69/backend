@@ -1,0 +1,31 @@
+meta {
+  name: Update Customer
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/customers/{{testCustomerId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "firstName": "María Actualizada",
+    "lastName": "Rodríguez Modificado",
+    "phoneNumber": "+584141234567",
+    "email": "maria.nueva@example.com",
+    "birthDate": "1990-06-16",
+    "gender": 2
+  }
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  bru.setVar('baseUrl', baseUrl);
+}

@@ -1,11 +1,11 @@
 meta {
-  name: Change Employee Position
+  name: Adjust Loyalty Points
   type: http
   seq: 5
 }
 
-put {
-  url: {{baseUrl}}/employees/{{testEmployeeId}}/position
+patch {
+  url: {{baseUrl}}/customers/{{testCustomerId}}/loyalty-points
   body: json
   auth: bearer
 }
@@ -16,10 +16,9 @@ auth:bearer {
 
 body:json {
   {
-    "jobPosition": 2,
-    "cinema": 1,
-    "startDate": "2026-05-01",
-    "salaryBase": 1400.0
+    "operationType": 1,
+    "points": 200,
+    "remarks": "Ajuste manual de prueba"
   }
 }
 
