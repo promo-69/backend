@@ -4,16 +4,16 @@ import { verifySession, verifyPermission } from '@middlewares/auth.middleware.js
 
 const router = Router();
 
-router.get('/', verifySession, verifyPermission('CRUD:READ:EMPLOYEES'), employeesController.findAll);
-router.get('/:id', verifySession, verifyPermission('CRUD:READ:EMPLOYEES'), employeesController.findById);
-router.post('/', verifySession, verifyPermission('CRUD:CREATE:EMPLOYEES'), employeesController.create);
-router.put('/:id', verifySession, verifyPermission('CRUD:UPDATE:EMPLOYEES'), employeesController.update);
-router.put(
+router.get('/', verifySession, /* verifyPermission('CRUD:READ:EMPLOYEES'), */ employeesController.findAll);
+router.get('/:id', verifySession, /* verifyPermission('CRUD:READ:EMPLOYEES'), */ employeesController.findById);
+router.post('/', verifySession, /* verifyPermission('CRUD:CREATE:EMPLOYEES'), */ employeesController.create);
+router.patch('/:id', verifySession, /* verifyPermission('CRUD:UPDATE:EMPLOYEES'), */ employeesController.update);
+router.patch(
     '/:id/position',
     verifySession,
-    verifyPermission('CRUD:CHANGE_POSITION:EMPLOYEES'),
+    /* verifyPermission('CRUD:CHANGE_POSITION:EMPLOYEES'), */
     employeesController.changePosition,
 );
-router.delete('/:id', verifySession, verifyPermission('CRUD:DELETE:EMPLOYEES'), employeesController.delete);
+router.delete('/:id', verifySession, /* verifyPermission('CRUD:DELETE:EMPLOYEES'), */ employeesController.delete);
 
 export default router;
