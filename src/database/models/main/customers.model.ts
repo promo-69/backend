@@ -29,11 +29,6 @@ export default class CustomersModel extends SequelizeModelBase {
                 type: DataTypes.DATE,
                 defaultValue: DataTypes.NOW,
             },
-            status: {
-                allowNull: false,
-                type: DataTypes.INTEGER,
-                defaultValue: 1,
-            },
             deleted_at: {
                 allowNull: true,
                 type: DataTypes.DATE,

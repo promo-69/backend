@@ -200,7 +200,6 @@ export class EmployeesService extends BaseService {
                         phone_number: employeeData.phoneNumber || null,
                         personal_email: employeeData.email || null,
                         birth_date: employeeData.birthDate || null,
-                        status: 1,
                     },
                     { transaction },
                 );
@@ -213,7 +212,6 @@ export class EmployeesService extends BaseService {
                     employee_code: employeeData.employeeCode,
                     cinema: cinemaId,
                     hire_date: employeeData.startDate || new Date(), // usá startDate o la fecha actual
-                    status: 1,
                 },
                 { transaction },
             );
@@ -362,7 +360,7 @@ export class EmployeesService extends BaseService {
             if (employee.person) {
                 const user = await this._users.getOne({ person: employee.person });
                 if (user) {
-                    await this._users.update(user.id, { status: 2 }, { transaction });
+                    await this._users.update(user.id, { transaction });
                 }
             }
         });

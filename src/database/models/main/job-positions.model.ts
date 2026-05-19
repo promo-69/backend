@@ -18,11 +18,6 @@ export default class JobPositionsModel extends SequelizeModelBase {
                 allowNull: true,
                 type: DataTypes.STRING(255),
             },
-            status: {
-                allowNull: false,
-                type: DataTypes.INTEGER,
-                defaultValue: 1,
-            },
             deleted_at: {
                 allowNull: true,
                 type: DataTypes.DATE,

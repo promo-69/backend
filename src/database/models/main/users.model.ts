@@ -38,11 +38,6 @@ export default class UsersModel extends SequelizeModelBase {
                 allowNull: true,
                 type: DataTypes.DATE,
             },
-            status: {
-                allowNull: false,
-                type: DataTypes.INTEGER,
-                defaultValue: 1,
-            },
             created_at: {
                 allowNull: false,
                 type: DataTypes.DATE,

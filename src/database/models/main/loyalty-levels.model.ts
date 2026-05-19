@@ -14,9 +14,6 @@ export default class LoyaltyLevelsModel extends SequelizeModelBase {
                 allowNull: false,
                 type: DataTypes.STRING(100),
             },
-            // CORRECCIÓN: era allowNull: true, lo que permitía nulls en comparaciones
-            // de puntos y producía resultados silenciosamente incorrectos.
-            // El nivel base (Bronce) debe tener required_points = 0.
             required_points: {
                 allowNull: false,
                 defaultValue: 0,

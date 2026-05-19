@@ -27,11 +27,6 @@ export default class EmployeesModel extends SequelizeModelBase {
                 type: DataTypes.STRING(50),
                 defaultValue: '',
             },
-            status: {
-                allowNull: false,
-                type: DataTypes.INTEGER,
-                defaultValue: 1,
-            },
             deleted_at: {
                 allowNull: true,
                 type: DataTypes.DATE,
