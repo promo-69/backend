@@ -1,13 +1,17 @@
 meta {
-  name: Get Cinema By ID
+  name: List Employees in Cinema
   type: http
-  seq: 2
+  seq: 7
 }
 
 get {
-  url: {{baseUrl}}/cinemas/{{testCinemaId}}
+  url: {{baseUrl}}/cinemas/{{testCinemaId}}/employees
   body: none
-  auth: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
 }
 
 script:pre-request {

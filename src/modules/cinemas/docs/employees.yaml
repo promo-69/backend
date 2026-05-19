@@ -1,0 +1,49 @@
+/cinemas/{cinemaId}/employees:
+    get:
+        summary: List Employees in a Cinema
+        description: Returns all employees with an active position in the specified cinema. Explicit context for general management.
+        tags:
+            - Cinemas
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: cinemaId
+              in: path
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: List of employees
+            '401':
+                description: Unauthorized
+            '500':
+                description: Internal server error
+    post:
+        summary: Create Employee in a Cinema
+        description: Creates a new employee and assigns them directly to the specified cinema. Explicit context for general management.
+        tags:
+            - Cinemas
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: cinemaId
+              in: path
+              required: true
+              schema:
+                  type: integer
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/CreateEmployee'
+        responses:
+            '201':
+                description: Employee created
+            '400':
+                description: Validation error
+            '401':
+                description: Unauthorized
+            '500':
+                description: Internal server error

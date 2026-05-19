@@ -1,17 +1,13 @@
 meta {
-  name: Get Cinemas
+  name: Get All Cinemas
   type: http
-  seq: 2
+  seq: 1
 }
 
 get {
   url: {{baseUrl}}/cinemas
   body: none
-  auth: bearer
-}
-
-auth:bearer {
-  token: {{accessToken}}
+  auth: none
 }
 
 script:pre-request {
