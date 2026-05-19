@@ -29,10 +29,6 @@ export class EmployeesService extends BaseService {
         return Database.repository('main', 'users') as any;
     }
 
-    /* Formatea la respuesta de un empleado en una estructura legible:
-     * el registro de people es el "padre" en la raíz,
-     * employee y user son propiedades de primer nivel,
-     * positions es el historial de cargos anidado en employee. */
     private _formatEmployeeResponse(raw: any) {
         if (!raw) return null;
 
@@ -251,7 +247,7 @@ export class EmployeesService extends BaseService {
                             person: person.id,
                             email: employeeData.email,
                             password: hashedPassword,
-                            user_type: 1, // Empleado
+                            user_type: 1,
                             status: 1,
                         },
                         { transaction },
