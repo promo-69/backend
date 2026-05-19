@@ -71,6 +71,10 @@ export class AuthService extends BaseService {
         );
     }
 
+    private get _roles() {
+        return Database.repository('main', 'roles') as any;
+    }
+
     // --- Authentication & Sessions ---
 
     private async _buildUserPayload(foundUser: any): Promise<UserSession> {
@@ -112,14 +116,23 @@ export class AuthService extends BaseService {
     }
 
     private async _buildLoginResponse(sessionData: any): Promise<LoginResponse> {
-        // Cinema del cargo activo (end_date IS NULL)
         const activePosition = sessionData._People?._Employees?.[0]?._EmployeePositions?.find(
             (p: any) => p.end_date === null,
         );
         const cinema = activePosition?.cinema;
 
         const payload = await this._buildUserPayload(sessionData);
+
+        // Cargar el roleCode desde la base de datos (transición roles → permisos)
+        if (sessionData.role) {
+            const role = await this._roles.getById(sessionData.role);
+            if (role) {
+                payload.roleCode = role.code;
+            }
+        }
+
         if (cinema) payload.cinemaId = cinema;
+
         const accessToken = JWTUtil.generateToken(payload);
         const refreshToken = JWTUtil.generateRefreshToken({ userId: sessionData.id });
 
