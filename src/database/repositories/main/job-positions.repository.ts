@@ -2,17 +2,17 @@ import { SequelizeRepositoryBase } from '@repositories/bases/sequelize.repositor
 import JobPositionsModel from '@database/models/main/job-positions.model.js';
 
 export interface JobPositionsAttributes {
-	id?: number;
-	title: string;
-	description?: string;
-	is_pensionable?: boolean;
-	deleted_at?: Date;
+    id?: number;
+    name: string;
+    description?: string;
+    status?: number;
+    deleted_at?: Date;
 }
 
 class JobPositionsRepository extends SequelizeRepositoryBase<JobPositionsAttributes, number> {
-	constructor() {
-		super(JobPositionsModel);
-	}
+    constructor() {
+        super(JobPositionsModel);
+    }
 }
 
 export default new JobPositionsRepository();
