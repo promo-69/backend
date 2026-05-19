@@ -11,8 +11,7 @@ router.put('/:id', verifySession, verifyPermission('CRUD:UPDATE:CUSTOMERS'), cus
 router.patch(
     '/:id/loyalty-points',
     verifySession,
-    verifyPermission('CRUD:ADJUST_POINTS:CUSTOMERS'),
+    verifyPermission('FEAT:DO:POINTS-ADJUSTMENT'),
     customersController.adjustLoyaltyPoints,
 );
-
 export default router;
