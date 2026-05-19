@@ -1,0 +1,137 @@
+/customers:
+    get:
+        summary: List / Search Customers
+        description: |
+            Retrieves a paginated list of customers. Supports filters via query
+            parameters (e.g. document_number for quick taquilla search).
+        tags:
+            - Customers
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: query
+              name: document_number
+              schema:
+                  type: string
+              description: Filter by document number
+            - in: query
+              name: page
+              schema:
+                  type: integer
+                  default: 1
+            - in: query
+              name: per_page
+              schema:
+                  type: integer
+                  default: 10
+        responses:
+            '200':
+                description: A list of customers
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                data:
+                                    type: array
+                                    items:
+                                        type: object
+                                        properties:
+                                            id:
+                                                type: integer
+                                            person:
+                                                type: integer
+                                            level_progress_points:
+                                                type: integer
+                                            loyalty_level:
+                                                type: integer
+                                            _People:
+                                                type: object
+                                                properties:
+                                                    id:
+                                                        type: integer
+                                                    document_number:
+                                                        type: string
+                                                    first_name:
+                                                        type: string
+                                                    last_name:
+                                                        type: string
+                                                    phone_number:
+                                                        type: string
+                                                        nullable: true
+                                                    personal_email:
+                                                        type: string
+                                                        nullable: true
+            '401':
+                description: Unauthorized
+            '500':
+                description: Internal server error
+    post:
+        summary: Quick Taquilla Registration
+        description: |
+            Creates a new customer for a physical or digital buyer.
+            If the person already exists by document number, the existing record
+            is reused. No user account is created (taquilla registration).
+        tags:
+            - Customers
+        security:
+            - bearerAuth: []
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        required:
+                            - documentNumber
+                            - firstName
+                            - lastName
+                        properties:
+                            documentNumber:
+                                type: string
+                                example: V-12345678
+                            firstName:
+                                type: string
+                                example: María
+                            lastName:
+                                type: string
+                                example: Rodríguez
+                            gender:
+                                type: integer
+                                nullable: true
+                            phoneNumber:
+                                type: string
+                                nullable: true
+                            email:
+                                type: string
+                                format: email
+                                nullable: true
+                            birthDate:
+                                type: string
+                                format: date
+                                nullable: true
+        responses:
+            '201':
+                description: Customer created successfully
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                data:
+                                    type: object
+                                    properties:
+                                        id:
+                                            type: integer
+                                        person:
+                                            type: integer
+                                        _People:
+                                            type: object
+            '400':
+                description: Validation error
+            '401':
+                description: Unauthorized
+            '409':
+                description: Customer already exists for this person
+            '500':
+                description: Internal server error

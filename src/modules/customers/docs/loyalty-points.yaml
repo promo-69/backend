@@ -1,7 +1,12 @@
 /customers/{id}/loyalty-points:
     patch:
-        summary: Adjust Loyalty Points
-        description: Manually increment or decrement a customer's loyalty points balance. Operates as a ledger entry — each adjustment is recorded individually. Balance cannot go below zero.
+        summary: Adjust Loyalty Points (Admin)
+        description: |
+            Manually increments or decrements a customer's loyalty points.
+            The operation is atomic and includes row-level locking to prevent
+            race conditions. The loyalty level is automatically recalculated
+            based on the new point total. An entry in the loyalty ledger is
+            recorded for auditing.
         tags:
             - Customers
         security:
@@ -32,6 +37,10 @@
                                 type: integer
                                 minimum: 1
                                 example: 100
+                            remarks:
+                                type: string
+                                description: Optional note for the ledger entry
+                                example: 'Customer support adjustment'
         responses:
             '200':
                 description: Loyalty points adjusted successfully
@@ -43,7 +52,7 @@
                                 message:
                                     type: string
             '400':
-                description: Bad request (points must be a positive integer)
+                description: Bad request (validation errors)
             '401':
                 description: Unauthorized
             '404':
