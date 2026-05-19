@@ -10,13 +10,9 @@ router.get('/', cinemasController.findAll);
 router.get('/:id', cinemasController.findById);
 
 // Protegidos — gerencia general
-router.post('/', verifySession, /* verifyPermission('CRUD:CREATE:CINEMAS'), */ cinemasController.create);
-router.put('/:id', verifySession, /* verifyPermission('CRUD:UPDATE:CINEMAS'), */ cinemasController.update);
-router.patch(
-    '/:id/status',
-    verifySession,
-    /* verifyPermission('CRUD:UPDATE_STATUS:CINEMAS'), */ cinemasController.setStatus,
-);
+router.post('/', verifySession, verifyPermission('CRUD:CREATE:CINEMAS'), cinemasController.create);
+router.put('/:id', verifySession, verifyPermission('CRUD:UPDATE:CINEMAS'), cinemasController.update);
+router.patch('/:id/status', verifySession, verifyPermission('CRUD:UPDATE_STATUS:CINEMAS'), cinemasController.setStatus);
 
 // Contexto implícito — gerente de sede
 router.put('/', verifySession, cinemasController.updateOwnCinema);
