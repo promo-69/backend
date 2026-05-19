@@ -123,11 +123,16 @@ export class AuthService extends BaseService {
 
         const payload = await this._buildUserPayload(sessionData);
 
-        // Cargar el roleCode desde la base de datos (transición roles → permisos)
+        // Cargar el roleCode desde la base de datos
         if (sessionData.role) {
             const role = await this._roles.getById(sessionData.role);
             if (role) {
                 payload.roleCode = role.code;
+
+                // Asignar permisos comodín al SUPER_ADMIN
+                if (role.code === 'SUPER_ADMIN') {
+                    payload.permissions = ['*:*'];
+                }
             }
         }
 
