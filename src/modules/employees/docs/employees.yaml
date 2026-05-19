@@ -1,7 +1,9 @@
 /employees:
     get:
-        summary: List Employees
-        description: Retrieve all employees registered in the system.
+        summary: List Employees (by current user's cinema)
+        description: |
+            Retrieves all employees who have an active position in the cinema
+            extracted from the authenticated user's JWT.
         tags:
             - Employees
         security:
@@ -25,18 +27,41 @@
                                                 type: integer
                                             employee_code:
                                                 type: string
-                                            status:
-                                                type: integer
-                                            created_at:
-                                                type: string
-                                                format: date-time
+                                            people:
+                                                type: object
+                                                properties:
+                                                    id:
+                                                        type: integer
+                                                    document_number:
+                                                        type: string
+                                                    first_name:
+                                                        type: string
+                                                    last_name:
+                                                        type: string
+                                                    gender:
+                                                        type: integer
+                                                    phone_number:
+                                                        type: string
+                                                    personal_email:
+                                                        type: string
+                                                    birth_date:
+                                                        type: string
+                                                        format: date
+                                            _User:
+                                                type: object
+                                                nullable: true
             '401':
                 description: Unauthorized
             '500':
                 description: Internal server error
     post:
         summary: Create Employee
-        description: Register a new employee. If the person does not exist by document number, they are created automatically.
+        description: |
+            Registers a new employee. If the person already exists by document
+            number, the existing record is reused; otherwise a new person is
+            created. The cinema is taken from the authenticated user's JWT.
+            Optionally, if email and password are provided, a user account is
+            created for the employee.
         tags:
             - Employees
         security:
@@ -53,7 +78,6 @@
                             - lastName
                             - employeeCode
                             - jobPosition
-                            - cinema
                             - startDate
                         properties:
                             documentNumber:
@@ -70,9 +94,7 @@
                                 example: EMP-001
                             jobPosition:
                                 type: integer
-                                example: 1
-                            cinema:
-                                type: integer
+                                description: Job position ID
                                 example: 1
                             startDate:
                                 type: string
@@ -88,6 +110,11 @@
                                 type: string
                                 format: email
                                 nullable: true
+                                description: Required only if a user account should be created
+                            password:
+                                type: string
+                                nullable: true
+                                description: Required only if a user account should be created
                             birthDate:
                                 type: string
                                 format: date
@@ -114,8 +141,10 @@
                                             type: integer
                                         employee_code:
                                             type: string
+                                        _People:
+                                            type: object
             '400':
-                description: Bad request (validation errors or invalid references)
+                description: Bad request (validation errors)
             '401':
                 description: Unauthorized
             '500':
