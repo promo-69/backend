@@ -62,7 +62,7 @@
                 description: Customer not found
             '500':
                 description: Internal server error
-    put:
+    patch:
         summary: Update Customer Biographical Data
         description: |
             Corrects the customer's biographical information stored in the
