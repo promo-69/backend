@@ -10,7 +10,7 @@ export default class JobPositionsModel extends SequelizeModelBase {
                 allowNull: true,
                 type: DataTypes.INTEGER,
             },
-            name: {
+            title: {
                 allowNull: false,
                 type: DataTypes.STRING(100),
             },

@@ -13,14 +13,6 @@ class SeatsController extends ControllerBase {
         return this.success(data, 'Asiento obtenido exitosamente');
     }
 
-    // POST /api/v1/rooms/:id/seats (maneja objeto único o array)
-    async create() {
-        const { id: roomId } = this.getParams();
-        const body = this.getBody();
-        await SeatsService.createSeats(Number(roomId), body);
-        return this.created(null, 'Asiento(s) agregado(s) exitosamente');
-    }
-
     // PATCH /api/v1/seats/:id
     async update() {
         const { id } = this.getParams();

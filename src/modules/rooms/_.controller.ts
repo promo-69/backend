@@ -74,6 +74,14 @@ class RoomsController extends ControllerBase {
         const data = await RoomsService.getSeatMap(Number(id), this.getQueryFilters());
         return this.success(data, 'Mapa de asientos obtenido exitosamente');
     }
+
+    // POST /api/v1/rooms/:id/seats
+    async createSeat() {
+        const { id } = this.getParams();
+        const body = this.getBody();
+        await SeatsService.createSeats(Number(id), body);
+        return this.created(null, 'Asiento(s) agregado(s) exitosamente');
+    }
 }
 
 export default new RoomsController();

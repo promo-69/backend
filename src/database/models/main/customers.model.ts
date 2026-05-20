@@ -24,6 +24,11 @@ export default class CustomersModel extends SequelizeModelBase {
                 type: DataTypes.INTEGER,
                 defaultValue: 0,
             },
+            current_points: {
+                allowNull: false,
+                type: DataTypes.INTEGER,
+                defaultValue: 0,
+            },
             registration_date: {
                 allowNull: false,
                 type: DataTypes.DATE,

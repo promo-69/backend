@@ -109,6 +109,7 @@ export class CustomersService extends BaseService {
                         phone_number: body.phoneNumber ?? null,
                         personal_email: body.email ?? null,
                         birth_date: body.birthDate ?? null,
+                        current_points: 0,
                     },
                     { transaction },
                 );
@@ -208,7 +209,6 @@ export class CustomersService extends BaseService {
         delta: number, // positivo = acumulación, negativo = canje/resta
         operationTypeId: number,
         orderId: number | null,
-        remarks: string | null,
         transaction: Transaction,
     ): Promise<void> {
         // Lock sobre el registro del cliente para serializar escrituras concurrentes
@@ -226,6 +226,12 @@ export class CustomersService extends BaseService {
 
         const newLevelId = await this._calculateLoyaltyLevel(newProgress, transaction);
 
+        const newBalance = (customer.current_points_balance ?? 0) + delta;
+
+        if (newProgress < 0 || newBalance < 0) {
+            throw new ValidationError('Los puntos resultantes no pueden ser negativos', ['points']);
+        }
+
         // Registrar movimiento en el ledger (append-only)
         await this._loyaltyLedgers.create(
             {
@@ -234,6 +240,16 @@ export class CustomersService extends BaseService {
                 operation_type: operationTypeId,
                 points: Math.abs(delta),
                 remarks: remarks ?? null,
+            },
+            { transaction },
+        );
+
+        await this._customers.update(
+            customerId,
+            {
+                level_progress_points: newProgress,
+                current_points_balance: newBalance,
+                loyalty_level: newLevelId,
             },
             { transaction },
         );
@@ -251,8 +267,8 @@ export class CustomersService extends BaseService {
 
     /* PATCH /customers/:id/loyalty-points — ajuste manual administrativo.
      * Abre su propia transacción y delega a applyLoyaltyPointsDelta. */
-    async adjustLoyaltyPoints(customerId: number, body: { operationType: number; points: number; remarks?: string }) {
-        const { operationType, points, remarks } = body;
+    async adjustLoyaltyPoints(customerId: number, body: { operationType: number; points: number }) {
+        const { operationType, points } = body;
 
         this.validateRequired({ operationType, points } as any, ['operationType', 'points']);
 

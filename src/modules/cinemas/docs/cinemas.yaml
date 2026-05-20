@@ -77,34 +77,3 @@
                 description: Duplicate name
             '500':
                 description: Internal server error
-    put:
-        summary: Update Own Cinema
-        description: Update the operating policies of the cinema assigned to the authenticated user (implicit context). Only phone and opening/closing times can be changed.
-        tags:
-            - Cinemas
-        security:
-            - bearerAuth: []
-        requestBody:
-            required: true
-            content:
-                application/json:
-                    schema:
-                        type: object
-                        properties:
-                            phone:
-                                type: string
-                            openingTime:
-                                type: string
-                                pattern: '^([01]\d|2[0-3]):[0-5]\d$'
-                            closingTime:
-                                type: string
-                                pattern: '^([01]\d|2[0-3]):[0-5]\d$'
-        responses:
-            '200':
-                description: Cinema updated
-            '400':
-                description: Validation error
-            '401':
-                description: Unauthorized
-            '500':
-                description: Internal server error

@@ -82,36 +82,3 @@
                 description: Cinema not found
             '500':
                 description: Internal server error
-    patch:
-        summary: Set Cinema Status
-        description: Activates or deactivates a cinema. Replaces the former DELETE endpoint.
-        tags:
-            - Cinemas
-        security:
-            - bearerAuth: []
-        parameters:
-            - name: id
-              in: path
-              required: true
-              schema:
-                  type: integer
-        requestBody:
-            required: true
-            content:
-                application/json:
-                    schema:
-                        type: object
-                        required:
-                            - active
-                        properties:
-                            active:
-                                type: boolean
-        responses:
-            '200':
-                description: Status changed
-            '401':
-                description: Unauthorized
-            '404':
-                description: Cinema not found
-            '500':
-                description: Internal server error

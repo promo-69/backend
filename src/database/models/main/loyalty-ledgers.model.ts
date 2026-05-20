@@ -26,12 +26,6 @@ export default class LoyaltyLedgersModel extends SequelizeModelBase {
                 allowNull: false,
                 type: DataTypes.INTEGER,
             },
-            // CORRECCIÓN: campo faltante. El service lo insertaba pero el modelo
-            // no lo declaraba, causando que Sequelize lo ignorara silenciosamente.
-            remarks: {
-                allowNull: true,
-                type: DataTypes.TEXT,
-            },
             created_at: {
                 allowNull: false,
                 type: DataTypes.DATE,

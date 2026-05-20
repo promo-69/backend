@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import roomsController from './_.controller.js';
-import seatsController from '../seats/_.controller.js';
 import { verifySession, verifyPermission } from '@middlewares/auth.middleware.js';
 
 const router = Router();
@@ -27,5 +26,7 @@ router.delete('/:id', verifySession, /* verifyPermission('CRUD:DELETE:ROOMS'), *
 
 router.get('/:id/seats', verifySession, /* verifyPermission('CRUD:READ:SEATS'), */ roomsController.getSeatMap);
 router.post('/:id/seats', verifySession, /* verifyPermission('CRUD:CREATE:SEATS'), */ seatsController.create);
+
+router.post('/:id/seats', verifySession, roomsController.createSeat);
 
 export default router;

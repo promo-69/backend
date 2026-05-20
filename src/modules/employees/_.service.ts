@@ -60,7 +60,7 @@ export class EmployeesService extends BaseService {
                     salary_base: pos.salary_base ?? null,
                     is_active: pos.end_date === null,
                     job_position: pos._JobPositions
-                        ? { id: pos._JobPositions.id, name: pos._JobPositions.name }
+                        ? { id: pos._JobPositions.id, name: pos._JobPositions.title }
                         : { id: pos.job_position },
                     cinema: pos._Cinemas ? { id: pos._Cinemas.id, name: pos._Cinemas.name } : { id: pos.cinema },
                 })),
