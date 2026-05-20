@@ -64,6 +64,7 @@ const foreignKeys = [
 
 	// Módulo 3
 	{ table: 'rooms', field: 'cinema', target: 'cinemas', name: 'fk_rooms_cinema' },
+	{ table: 'rooms', field: 'room_type', target: 'room_types', name: 'fk_rooms_room_type' },
 	{ table: 'room_projection_types', field: 'room', target: 'rooms', name: 'fk_room_projection_types_room' },
 	{
 		table: 'room_projection_types',
@@ -94,22 +95,41 @@ const foreignKeys = [
 	},
 	{ table: 'movie_genres', field: 'movie', target: 'movies', name: 'fk_movie_genres_movie' },
 	{ table: 'movie_genres', field: 'genre', target: 'genres', name: 'fk_movie_genres_genre' },
+	{ table: 'movie_languages', field: 'movie', target: 'movies', name: 'fk_movie_languages_movie' },
+	{ table: 'movie_languages', field: 'language', target: 'languages', name: 'fk_movie_languages_language' },
+	{ table: 'movie_projection_types', field: 'movie', target: 'movies', name: 'fk_movie_projection_types_movie' },
 	{
-		table: 'movie_subscriptions',
-		field: 'customer',
-		target: 'customers',
-		name: 'fk_movie_subscriptions_customer',
-	},
-	{ table: 'movie_subscriptions', field: 'movie', target: 'movies', name: 'fk_movie_subscriptions_movie' },
-	{ table: 'showtimes', field: 'movie', target: 'movies', name: 'fk_showtimes_movie' },
-	{ table: 'showtimes', field: 'room', target: 'rooms', name: 'fk_showtimes_room' },
-	{
-		table: 'showtimes',
+		table: 'movie_projection_types',
 		field: 'projection_type',
 		target: 'projection_types',
-		name: 'fk_showtimes_projection_type',
+		name: 'fk_movie_projection_types_projection_type',
 	},
+	{
+		table: 'movie_user_subscriptions',
+		field: 'customer',
+		target: 'customers',
+		name: 'fk_movie_user_subscriptions_customer',
+	},
+	{ table: 'movie_user_subscriptions', field: 'movie', target: 'movies', name: 'fk_movie_user_subscriptions_movie' },
+
+	{ table: 'room_bookings', field: 'room', target: 'rooms', name: 'fk_room_bookings_room' },
+	{ table: 'room_bookings', field: 'booking_type', target: 'booking_types', name: 'fk_room_bookings_booking_type' },
+
+	{ table: 'showtimes', field: 'booking', target: 'room_bookings', name: 'fk_showtimes_booking' },
+	{ table: 'showtimes', field: 'movie', target: 'movies', name: 'fk_showtimes_movie' },
+	{ table: 'showtimes', field: 'projection_type', target: 'projection_types', name: 'fk_showtimes_projection_type' },
 	{ table: 'showtimes', field: 'currency', target: 'currencies', name: 'fk_showtimes_currency' },
+
+	{ table: 'room_events', field: 'booking', target: 'room_bookings', name: 'fk_room_events_booking' },
+	{ table: 'room_events', field: 'event_type', target: 'booking_types', name: 'fk_room_events_event_type' },
+	{ table: 'room_events', field: 'currency', target: 'currencies', name: 'fk_room_events_currency' },
+
+	{ table: 'rental_requests', field: 'customer', target: 'customers', name: 'fk_rental_requests_customer' },
+	{ table: 'rental_requests', field: 'room', target: 'rooms', name: 'fk_rental_requests_room' },
+	{ table: 'rental_requests', field: 'booking', target: 'room_bookings', name: 'fk_rental_requests_booking' },
+	{ table: 'rental_requests', field: 'event_type', target: 'booking_types', name: 'fk_rental_requests_event_type' },
+	{ table: 'rental_requests', field: 'currency', target: 'currencies', name: 'fk_rental_requests_currency' },
+
 	{
 		table: 'price_modifiers',
 		field: 'modifier_scope',
@@ -156,6 +176,24 @@ const foreignKeys = [
 		target: 'line_types',
 		name: 'fk_price_modifiers_line_type',
 	},
+	{
+		table: 'price_modifiers',
+		field: 'booking_type',
+		target: 'booking_types',
+		name: 'fk_price_modifiers_booking_type',
+	},
+	{
+		table: 'price_modifiers',
+		field: 'movie',
+		target: 'movies',
+		name: 'fk_price_modifiers_movie',
+	},
+	{
+		table: 'price_modifiers',
+		field: 'room_type',
+		target: 'room_types',
+		name: 'fk_price_modifiers_room_type',
+	},
 	{ table: 'price_modifiers', field: 'currency', target: 'currencies', name: 'fk_price_modifiers_currency' },
 	{
 		table: 'price_modifiers',
@@ -173,6 +211,7 @@ const foreignKeys = [
 	},
 	{ table: 'products', field: 'currency', target: 'currencies', name: 'fk_products_currency' },
 	{ table: 'combos', field: 'currency', target: 'currencies', name: 'fk_combos_currency' },
+	{ table: 'combos', field: 'cinema', target: 'cinemas', name: 'fk_combos_cinema' },
 	{ table: 'combo_products', field: 'combo', target: 'combos', name: 'fk_combo_products_combo' },
 	{ table: 'combo_products', field: 'product', target: 'products', name: 'fk_combo_products_product' },
 	{ table: 'inventories', field: 'cinema', target: 'cinemas', name: 'fk_inventories_cinema' },
@@ -239,21 +278,13 @@ const foreignKeys = [
 	{ table: 'order_lines', field: 'combo', target: 'combos', name: 'fk_order_lines_combo' },
 	{
 		table: 'order_lines',
-		field: 'price_modifier',
-		target: 'price_modifiers',
-		name: 'fk_order_lines_price_modifier',
-	},
-	{
-		table: 'order_lines',
 		field: 'quoted_exchange_rate',
 		target: 'exchange_rates',
 		name: 'fk_order_lines_quoted_exchange_rate',
 	},
-
 	{ table: 'tickets', field: 'order', target: 'orders', name: 'fk_tickets_order' },
-	{ table: 'tickets', field: 'showtime', target: 'showtimes', name: 'fk_tickets_showtime' },
+	{ table: 'tickets', field: 'booking', target: 'room_bookings', name: 'fk_tickets_booking' },
 	{ table: 'tickets', field: 'seat', target: 'seats', name: 'fk_tickets_seat' },
-	{ table: 'tickets', field: 'price_modifier', target: 'price_modifiers', name: 'fk_tickets_price_modifier' },
 	{
 		table: 'tickets',
 		field: 'quoted_exchange_rate',
@@ -283,37 +314,81 @@ const foreignKeys = [
 		target: 'operation_types',
 		name: 'fk_loyalty_ledgers_operation_type',
 	},
-
-	// Módulo 8
+	{ table: 'rental_requests', field: 'order', target: 'orders', name: 'fk_rental_requests_order' },
 	{
-		table: 'rental_requests',
-		field: 'event_type',
-		target: 'event_types',
-		name: 'fk_rental_requests_event_type',
+		table: 'rental_catering',
+		field: 'rental_request',
+		target: 'rental_requests',
+		name: 'fk_rental_catering_request',
 	},
-	{ table: 'rental_requests', field: 'cinema', target: 'cinemas', name: 'fk_rental_requests_cinema' },
-	{ table: 'rental_requests', field: 'customer', target: 'customers', name: 'fk_rental_requests_customer' },
+	{ table: 'rental_catering', field: 'product', target: 'products', name: 'fk_rental_catering_product' },
+	{ table: 'rental_catering', field: 'combo', target: 'combos', name: 'fk_rental_catering_combo' },
+	{
+		table: 'rental_catering',
+		field: 'line_type',
+		target: 'line_types',
+		name: 'fk_rental_catering_line_type',
+	},
+	{
+		table: 'rental_catering',
+		field: 'quoted_exchange_rate',
+		target: 'exchange_rates',
+		name: 'fk_rental_catering_quoted_exchange_rate',
+	},
+	{
+		table: 'applied_price_modifiers',
+		field: 'price_modifier',
+		target: 'price_modifiers',
+		name: 'fk_applied_modifiers_rule',
+	},
+	{ table: 'applied_price_modifiers', field: 'order', target: 'orders', name: 'fk_applied_modifiers_order' },
+	{ table: 'applied_price_modifiers', field: 'ticket', target: 'tickets', name: 'fk_applied_modifiers_ticket' },
+	{
+		table: 'applied_price_modifiers',
+		field: 'order_line',
+		target: 'order_lines',
+		name: 'fk_applied_modifiers_order_line',
+	},
+	{
+		table: 'applied_price_modifiers',
+		field: 'rental_request',
+		target: 'rental_requests',
+		name: 'fk_applied_modifiers_rental_req',
+	},
+	{
+		table: 'applied_price_modifiers',
+		field: 'rental_catering',
+		target: 'rental_catering',
+		name: 'fk_applied_modifiers_rental_cat',
+	},
 ];
 
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
 	async up(queryInterface, Sequelize) {
-		for (const fk of foreignKeys) {
-			await queryInterface.addConstraint(fk.table, {
-				fields: [fk.field],
-				type: 'foreign key',
-				name: fk.name,
-				references: {
-					table: fk.target,
-					field: 'id',
-				},
-				onDelete: 'RESTRICT',
-				onUpdate: 'CASCADE',
-			});
-		}
+		await queryInterface.sequelize.transaction(async (transaction) => {
+			for (const fk of foreignKeys) {
+				await queryInterface.addConstraint(fk.table, {
+					fields: [fk.field],
+					type: 'foreign key',
+					name: fk.name,
+					references: {
+						table: fk.target,
+						field: 'id',
+					},
+					onDelete: 'RESTRICT',
+					onUpdate: 'CASCADE',
+					transaction,
+				});
+			}
+		});
 	},
 
 	async down(queryInterface, Sequelize) {
-		for (const fk of foreignKeys.reverse()) await queryInterface.removeConstraint(fk.table, fk.name);
+		await queryInterface.sequelize.transaction(async (transaction) => {
+			for (const fk of [...foreignKeys].reverse()) {
+				await queryInterface.removeConstraint(fk.table, fk.name, { transaction });
+			}
+		});
 	},
 };

@@ -7,7 +7,7 @@ export default class PriceModifiersModel extends SequelizeModelBase {
 			id: {
 				primaryKey: true,
 				autoIncrement: true,
-				allowNull: true,
+				allowNull: false,
 				type: DataTypes.INTEGER,
 			},
 			description: {
@@ -86,6 +86,18 @@ export default class PriceModifiersModel extends SequelizeModelBase {
 				allowNull: true,
 				type: DataTypes.INTEGER,
 			},
+			booking_type: {
+				allowNull: true,
+				type: DataTypes.INTEGER,
+			},
+			movie: {
+				allowNull: true,
+				type: DataTypes.INTEGER,
+			},
+			room_type: {
+				allowNull: true,
+				type: DataTypes.INTEGER,
+			},
 			target_currency: {
 				allowNull: true,
 				type: DataTypes.INTEGER,
@@ -98,7 +110,7 @@ export default class PriceModifiersModel extends SequelizeModelBase {
 			deleted_at: {
 				allowNull: true,
 				type: DataTypes.DATE,
-			},
+			}
 		};
 	}
 
@@ -109,7 +121,7 @@ export default class PriceModifiersModel extends SequelizeModelBase {
 			createdAt: false,
 			updatedAt: false,
 			deletedAt: 'deleted_at',
-			isBasicTable: true,
+			isBasicTable: false,
 			schema: 'public',
 			tableName: 'price_modifiers',
 			appRawName: 'price-modifiers',
@@ -260,6 +272,39 @@ export default class PriceModifiersModel extends SequelizeModelBase {
 				type: 'hasMany',
 				target: 'Currencies',
 				options: { foreignKey: 'target_currency', targetKey: 'id', as: '_PriceModifiersCurrencyTarget' },
+			},
+			{
+				type: 'belongsTo',
+				target: 'BookingTypes',
+				options: { foreignKey: 'booking_type', targetKey: 'id', as: '_BookingTypes' },
+			},
+			{
+				inversed: true,
+				type: 'hasMany',
+				target: 'BookingTypes',
+				options: { foreignKey: 'booking_type', targetKey: 'id', as: '_PriceModifiers' },
+			},
+			{
+				type: 'belongsTo',
+				target: 'Movies',
+				options: { foreignKey: 'movie', targetKey: 'id', as: '_Movies' },
+			},
+			{
+				inversed: true,
+				type: 'hasMany',
+				target: 'Movies',
+				options: { foreignKey: 'movie', targetKey: 'id', as: '_PriceModifiers' },
+			},
+			{
+				type: 'belongsTo',
+				target: 'RoomTypes',
+				options: { foreignKey: 'room_type', targetKey: 'id', as: '_RoomTypes' },
+			},
+			{
+				inversed: true,
+				type: 'hasMany',
+				target: 'RoomTypes',
+				options: { foreignKey: 'room_type', targetKey: 'id', as: '_PriceModifiers' },
 			},
 		];
 	}

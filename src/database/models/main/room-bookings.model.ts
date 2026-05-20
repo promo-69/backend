@@ -1,32 +1,30 @@
 import { DataTypes } from 'sequelize';
 import { type RelationsReturn, SequelizeModelBase } from '@database/models/bases/sequelize.model.js';
 
-export default class MovieSubscriptionsModel extends SequelizeModelBase {
+export default class RoomBookingsModel extends SequelizeModelBase {
 	static definition() {
 		return {
 			id: {
 				primaryKey: true,
 				autoIncrement: true,
-				allowNull: true,
-				type: DataTypes.INTEGER,
-			},
-			customer: {
 				allowNull: false,
 				type: DataTypes.INTEGER,
 			},
-			movie: {
+			room: {
 				allowNull: false,
 				type: DataTypes.INTEGER,
 			},
-			is_notified: {
-				allowNull: false,
-				type: DataTypes.BOOLEAN,
-				defaultValue: false,
-			},
-			created_at: {
+			start_time: {
 				allowNull: false,
 				type: DataTypes.DATE,
-				defaultValue: DataTypes.NOW,
+			},
+			end_time: {
+				allowNull: false,
+				type: DataTypes.DATE,
+			},
+			booking_type: {
+				allowNull: false,
+				type: DataTypes.INTEGER,
 			},
 			deleted_at: {
 				allowNull: true,
@@ -39,13 +37,13 @@ export default class MovieSubscriptionsModel extends SequelizeModelBase {
 		return {
 			timestamps: true,
 			paranoid: true,
-			createdAt: 'created_at',
+			createdAt: false,
 			updatedAt: false,
 			deletedAt: 'deleted_at',
-			isBasicTable: true,
+			isBasicTable: false,
 			schema: 'public',
-			tableName: 'movie_subscriptions',
-			appRawName: 'movie-subscriptions',
+			tableName: 'room_bookings',
+			appRawName: 'room-bookings',
 		};
 	}
 
@@ -53,25 +51,25 @@ export default class MovieSubscriptionsModel extends SequelizeModelBase {
 		return [
 			{
 				type: 'belongsTo',
-				target: 'Customers',
-				options: { foreignKey: 'customer', targetKey: 'id', as: '_Customers' },
+				target: 'Rooms',
+				options: { foreignKey: 'room', targetKey: 'id', as: '_Rooms' },
 			},
 			{
 				inversed: true,
 				type: 'hasMany',
-				target: 'Customers',
-				options: { foreignKey: 'customer', targetKey: 'id', as: '_MovieSubscriptions' },
+				target: 'Rooms',
+				options: { foreignKey: 'room', targetKey: 'id', as: '_RoomBookings' },
 			},
 			{
 				type: 'belongsTo',
-				target: 'Movies',
-				options: { foreignKey: 'movie', targetKey: 'id', as: '_Movies' },
+				target: 'BookingTypes',
+				options: { foreignKey: 'booking_type', targetKey: 'id', as: '_BookingTypes' },
 			},
 			{
 				inversed: true,
 				type: 'hasMany',
-				target: 'Movies',
-				options: { foreignKey: 'movie', targetKey: 'id', as: '_MovieSubscriptions' },
+				target: 'BookingTypes',
+				options: { foreignKey: 'booking_type', targetKey: 'id', as: '_RoomBookings' },
 			},
 		];
 	}

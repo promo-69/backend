@@ -1,0 +1,125 @@
+import { DataTypes } from 'sequelize';
+import { type RelationsReturn, SequelizeModelBase } from '@database/models/bases/sequelize.model.js';
+
+export default class RentalCateringModel extends SequelizeModelBase {
+	static definition() {
+		return {
+			id: {
+				primaryKey: true,
+				autoIncrement: true,
+				allowNull: false,
+				type: DataTypes.INTEGER,
+			},
+			rental_request: {
+				allowNull: false,
+				type: DataTypes.INTEGER,
+			},
+			line_type: {
+				allowNull: false,
+				type: DataTypes.INTEGER,
+			},
+			product: {
+				allowNull: true,
+				type: DataTypes.INTEGER,
+			},
+			combo: {
+				allowNull: true,
+				type: DataTypes.INTEGER,
+			},
+			quantity: {
+				allowNull: false,
+				type: DataTypes.INTEGER,
+			},
+			original_unit_price: {
+				allowNull: true,
+				type: DataTypes.DECIMAL(10, 2),
+			},
+			unit_price: {
+				allowNull: true,
+				type: DataTypes.DECIMAL(10, 2),
+			},
+			quoted_exchange_rate: {
+				allowNull: true,
+				type: DataTypes.INTEGER,
+			},
+			deleted_at: {
+				allowNull: true,
+				type: DataTypes.DATE,
+			}
+		};
+	}
+
+	static config() {
+		return {
+			timestamps: true,
+			paranoid: true,
+			createdAt: false,
+			updatedAt: false,
+			deletedAt: 'deleted_at',
+			isBasicTable: false,
+			schema: 'public',
+			tableName: 'rental_catering',
+			appRawName: 'rental-catering',
+		};
+	}
+
+	static override relations(): RelationsReturn {
+		return [
+			{
+				type: 'belongsTo',
+				target: 'RentalRequests',
+				options: { foreignKey: 'rental_request', targetKey: 'id', as: '_RentalRequests' },
+			},
+			{
+				inversed: true,
+				type: 'hasMany',
+				target: 'RentalRequests',
+				options: { foreignKey: 'rental_request', targetKey: 'id', as: '_RentalCatering' },
+			},
+			{
+				type: 'belongsTo',
+				target: 'LineTypes',
+				options: { foreignKey: 'line_type', targetKey: 'id', as: '_LineTypes' },
+			},
+			{
+				inversed: true,
+				type: 'hasMany',
+				target: 'LineTypes',
+				options: { foreignKey: 'line_type', targetKey: 'id', as: '_RentalCatering' },
+			},
+			{
+				type: 'belongsTo',
+				target: 'Products',
+				options: { foreignKey: 'product', targetKey: 'id', as: '_Products' },
+			},
+			{
+				inversed: true,
+				type: 'hasMany',
+				target: 'Products',
+				options: { foreignKey: 'product', targetKey: 'id', as: '_RentalCatering' },
+			},
+			{
+				type: 'belongsTo',
+				target: 'Combos',
+				options: { foreignKey: 'combo', targetKey: 'id', as: '_Combos' },
+			},
+			{
+				inversed: true,
+				type: 'hasMany',
+				target: 'Combos',
+				options: { foreignKey: 'combo', targetKey: 'id', as: '_RentalCatering' },
+			},
+			{
+				type: 'belongsTo',
+				target: 'ExchangeRates',
+				options: { foreignKey: 'quoted_exchange_rate', targetKey: 'id', as: '_ExchangeRates' },
+			},
+			{
+				inversed: true,
+				type: 'hasMany',
+				target: 'ExchangeRates',
+				options: { foreignKey: 'quoted_exchange_rate', targetKey: 'id', as: '_RentalCatering' },
+			},
+		];
+	}
+}
