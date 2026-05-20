@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict j5Nl1ATvzTVThuepxCgGVYkEs4dRjppI8iQqJmIO3Q8Cbeg5bcYzMxSiV252d5R
+\restrict 4VajqwGfzMKbNkroZrZLphBsFjD8v1aGRUIhVFpr6QneOTOE8HR8ukdDTT9Yk0m
 
 -- Dumped from database version 15.17
 -- Dumped by pg_dump version 15.17
@@ -226,6 +226,48 @@ ALTER TABLE public.age_classifications_id_seq OWNER TO postgres;
 --
 
 ALTER SEQUENCE public.age_classifications_id_seq OWNED BY public.age_classifications.id;
+
+
+--
+-- Name: applied_price_modifiers; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.applied_price_modifiers (
+    id integer NOT NULL,
+    price_modifier integer NOT NULL,
+    "order" integer,
+    ticket integer,
+    order_line integer,
+    rental_request integer,
+    rental_catering integer,
+    applied_amount_base_currency numeric(10,2) NOT NULL,
+    deleted_at timestamp with time zone,
+    CONSTRAINT chk_applied_modifiers_target CHECK ((num_nonnulls("order", ticket, order_line, rental_request, rental_catering) = 1))
+);
+
+
+ALTER TABLE public.applied_price_modifiers OWNER TO postgres;
+
+--
+-- Name: applied_price_modifiers_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.applied_price_modifiers_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.applied_price_modifiers_id_seq OWNER TO postgres;
+
+--
+-- Name: applied_price_modifiers_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.applied_price_modifiers_id_seq OWNED BY public.applied_price_modifiers.id;
 
 
 --
@@ -546,11 +588,9 @@ CREATE TABLE public.customers (
     person integer NOT NULL,
     loyalty_level integer DEFAULT 1 NOT NULL,
     level_progress_points integer DEFAULT 0 NOT NULL,
-    current_points_balance integer DEFAULT 0 NOT NULL,
     registration_date timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     deleted_at timestamp with time zone,
-    CONSTRAINT chk_customers_progress CHECK ((level_progress_points >= 0)),
-    CONSTRAINT chk_customers_pts_balance CHECK ((current_points_balance >= 0))
+    CONSTRAINT chk_customers_progress CHECK ((level_progress_points >= 0))
 );
 
 
@@ -773,12 +813,8 @@ CREATE TABLE public.inventories (
     cinema integer NOT NULL,
     product integer NOT NULL,
     minimum_stock integer DEFAULT 0 NOT NULL,
-    stock integer NOT NULL,
-    current_unit_cost_base_currency numeric(10,2) DEFAULT 0 NOT NULL,
     deleted_at timestamp with time zone,
-    CONSTRAINT chk_inventories_min_stock CHECK ((minimum_stock >= 0)),
-    CONSTRAINT chk_inventories_stock CHECK ((stock >= 0)),
-    CONSTRAINT chk_inventories_unit_cost CHECK ((current_unit_cost_base_currency >= (0)::numeric))
+    CONSTRAINT chk_inventories_min_stock CHECK ((minimum_stock >= 0))
 );
 
 
@@ -818,6 +854,8 @@ CREATE TABLE public.inventory_movements (
     unit_cost numeric(10,2) DEFAULT 0 NOT NULL,
     currency integer DEFAULT 1 NOT NULL,
     "user" integer NOT NULL,
+    resulting_stock integer NOT NULL,
+    resulting_unit_cost_base_currency numeric(10,2) NOT NULL,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     remarks character varying(255),
     deleted_at timestamp with time zone,
@@ -965,6 +1003,41 @@ ALTER SEQUENCE public.job_positions_id_seq OWNED BY public.job_positions.id;
 
 
 --
+-- Name: languages; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.languages (
+    id integer NOT NULL,
+    description character varying(255) NOT NULL,
+    deleted_at timestamp with time zone
+);
+
+
+ALTER TABLE public.languages OWNER TO postgres;
+
+--
+-- Name: languages_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.languages_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.languages_id_seq OWNER TO postgres;
+
+--
+-- Name: languages_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.languages_id_seq OWNED BY public.languages.id;
+
+
+--
 -- Name: line_types; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -1009,6 +1082,7 @@ CREATE TABLE public.loyalty_ledgers (
     "order" integer,
     operation_type integer NOT NULL,
     points integer NOT NULL,
+    points_balance integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     deleted_at timestamp with time zone,
     CONSTRAINT chk_loyalty_ledgers_pts CHECK ((points > 0))
@@ -1148,6 +1222,42 @@ ALTER SEQUENCE public.movie_genres_id_seq OWNED BY public.movie_genres.id;
 
 
 --
+-- Name: movie_languages; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.movie_languages (
+    id integer NOT NULL,
+    movie integer NOT NULL,
+    language integer NOT NULL,
+    deleted_at timestamp with time zone
+);
+
+
+ALTER TABLE public.movie_languages OWNER TO postgres;
+
+--
+-- Name: movie_languages_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.movie_languages_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.movie_languages_id_seq OWNER TO postgres;
+
+--
+-- Name: movie_languages_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.movie_languages_id_seq OWNED BY public.movie_languages.id;
+
+
+--
 -- Name: movie_lifecycle_states; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -1183,10 +1293,46 @@ ALTER SEQUENCE public.movie_lifecycle_states_id_seq OWNED BY public.movie_lifecy
 
 
 --
--- Name: movie_subscriptions; Type: TABLE; Schema: public; Owner: postgres
+-- Name: movie_projection_types; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE public.movie_subscriptions (
+CREATE TABLE public.movie_projection_types (
+    id integer NOT NULL,
+    movie integer NOT NULL,
+    projection_type integer NOT NULL,
+    deleted_at timestamp with time zone
+);
+
+
+ALTER TABLE public.movie_projection_types OWNER TO postgres;
+
+--
+-- Name: movie_projection_types_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.movie_projection_types_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.movie_projection_types_id_seq OWNER TO postgres;
+
+--
+-- Name: movie_projection_types_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.movie_projection_types_id_seq OWNED BY public.movie_projection_types.id;
+
+
+--
+-- Name: movie_user_subscriptions; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.movie_user_subscriptions (
     id integer NOT NULL,
     customer integer NOT NULL,
     movie integer NOT NULL,
@@ -1196,13 +1342,13 @@ CREATE TABLE public.movie_subscriptions (
 );
 
 
-ALTER TABLE public.movie_subscriptions OWNER TO postgres;
+ALTER TABLE public.movie_user_subscriptions OWNER TO postgres;
 
 --
--- Name: movie_subscriptions_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: movie_user_subscriptions_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE public.movie_subscriptions_id_seq
+CREATE SEQUENCE public.movie_user_subscriptions_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -1211,13 +1357,13 @@ CREATE SEQUENCE public.movie_subscriptions_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.movie_subscriptions_id_seq OWNER TO postgres;
+ALTER TABLE public.movie_user_subscriptions_id_seq OWNER TO postgres;
 
 --
--- Name: movie_subscriptions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: movie_user_subscriptions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE public.movie_subscriptions_id_seq OWNED BY public.movie_subscriptions.id;
+ALTER SEQUENCE public.movie_user_subscriptions_id_seq OWNED BY public.movie_user_subscriptions.id;
 
 
 --
@@ -1312,7 +1458,6 @@ CREATE TABLE public.order_lines (
     combo integer,
     quantity integer NOT NULL,
     original_unit_price numeric(10,2) NOT NULL,
-    price_modifier integer,
     unit_price numeric(10,2) NOT NULL,
     quoted_exchange_rate integer NOT NULL,
     deleted_at timestamp with time zone,
@@ -1682,6 +1827,9 @@ CREATE TABLE public.price_modifiers (
     start_time time without time zone,
     end_time time without time zone,
     line_type integer,
+    booking_type integer,
+    movie integer,
+    room_type integer,
     target_currency integer,
     target_currency_condition boolean DEFAULT false,
     deleted_at timestamp with time zone,
@@ -1827,14 +1975,58 @@ ALTER SEQUENCE public.projection_types_id_seq OWNED BY public.projection_types.i
 
 
 --
+-- Name: rental_catering; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.rental_catering (
+    id integer NOT NULL,
+    rental_request integer NOT NULL,
+    line_type integer NOT NULL,
+    product integer,
+    combo integer,
+    quantity integer NOT NULL,
+    original_unit_price numeric(10,2),
+    unit_price numeric(10,2),
+    quoted_exchange_rate integer,
+    deleted_at timestamp with time zone,
+    CONSTRAINT chk_rental_catering_logic CHECK (((quantity > 0) AND (((line_type = 1) AND (product IS NOT NULL) AND (combo IS NULL)) OR ((line_type = 2) AND (product IS NULL) AND (combo IS NOT NULL)))))
+);
+
+
+ALTER TABLE public.rental_catering OWNER TO postgres;
+
+--
+-- Name: rental_catering_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.rental_catering_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.rental_catering_id_seq OWNER TO postgres;
+
+--
+-- Name: rental_catering_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.rental_catering_id_seq OWNED BY public.rental_catering.id;
+
+
+--
 -- Name: rental_requests; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.rental_requests (
     id integer NOT NULL,
     customer integer NOT NULL,
-    room integer NOT NULL,
+    "order" integer,
     booking integer,
+    room integer NOT NULL,
     event_type integer NOT NULL,
     requested_start_time timestamp with time zone NOT NULL,
     requested_end_time timestamp with time zone NOT NULL,
@@ -2133,12 +2325,48 @@ ALTER SEQUENCE public.room_projection_types_id_seq OWNED BY public.room_projecti
 
 
 --
+-- Name: room_types; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.room_types (
+    id integer NOT NULL,
+    description character varying(255) NOT NULL,
+    deleted_at timestamp with time zone
+);
+
+
+ALTER TABLE public.room_types OWNER TO postgres;
+
+--
+-- Name: room_types_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.room_types_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.room_types_id_seq OWNER TO postgres;
+
+--
+-- Name: room_types_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.room_types_id_seq OWNED BY public.room_types.id;
+
+
+--
 -- Name: rooms; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.rooms (
     id integer NOT NULL,
     cinema integer NOT NULL,
+    room_type integer NOT NULL,
     name character varying(100) NOT NULL,
     grid_rows integer NOT NULL,
     grid_columns integer NOT NULL,
@@ -2408,10 +2636,9 @@ ALTER SEQUENCE public.taxes_id_seq OWNED BY public.taxes.id;
 CREATE TABLE public.tickets (
     id integer NOT NULL,
     "order" integer NOT NULL,
-    showtime integer NOT NULL,
+    booking integer NOT NULL,
     seat integer NOT NULL,
     original_price numeric(10,2) NOT NULL,
-    price_modifier integer,
     price numeric(10,2) NOT NULL,
     quoted_exchange_rate integer NOT NULL,
     qr_code character varying(500) NOT NULL,
@@ -2653,6 +2880,13 @@ ALTER TABLE ONLY public.age_classifications ALTER COLUMN id SET DEFAULT nextval(
 
 
 --
+-- Name: applied_price_modifiers id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.applied_price_modifiers ALTER COLUMN id SET DEFAULT nextval('public.applied_price_modifiers_id_seq'::regclass);
+
+
+--
 -- Name: audience_categories id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -2779,6 +3013,13 @@ ALTER TABLE ONLY public.job_positions ALTER COLUMN id SET DEFAULT nextval('publi
 
 
 --
+-- Name: languages id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.languages ALTER COLUMN id SET DEFAULT nextval('public.languages_id_seq'::regclass);
+
+
+--
 -- Name: line_types id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -2814,6 +3055,13 @@ ALTER TABLE ONLY public.movie_genres ALTER COLUMN id SET DEFAULT nextval('public
 
 
 --
+-- Name: movie_languages id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.movie_languages ALTER COLUMN id SET DEFAULT nextval('public.movie_languages_id_seq'::regclass);
+
+
+--
 -- Name: movie_lifecycle_states id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -2821,10 +3069,17 @@ ALTER TABLE ONLY public.movie_lifecycle_states ALTER COLUMN id SET DEFAULT nextv
 
 
 --
--- Name: movie_subscriptions id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: movie_projection_types id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.movie_subscriptions ALTER COLUMN id SET DEFAULT nextval('public.movie_subscriptions_id_seq'::regclass);
+ALTER TABLE ONLY public.movie_projection_types ALTER COLUMN id SET DEFAULT nextval('public.movie_projection_types_id_seq'::regclass);
+
+
+--
+-- Name: movie_user_subscriptions id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.movie_user_subscriptions ALTER COLUMN id SET DEFAULT nextval('public.movie_user_subscriptions_id_seq'::regclass);
 
 
 --
@@ -2933,6 +3188,13 @@ ALTER TABLE ONLY public.projection_types ALTER COLUMN id SET DEFAULT nextval('pu
 
 
 --
+-- Name: rental_catering id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.rental_catering ALTER COLUMN id SET DEFAULT nextval('public.rental_catering_id_seq'::regclass);
+
+
+--
 -- Name: rental_requests id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -2986,6 +3248,13 @@ ALTER TABLE ONLY public.room_events ALTER COLUMN id SET DEFAULT nextval('public.
 --
 
 ALTER TABLE ONLY public.room_projection_types ALTER COLUMN id SET DEFAULT nextval('public.room_projection_types_id_seq'::regclass);
+
+
+--
+-- Name: room_types id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.room_types ALTER COLUMN id SET DEFAULT nextval('public.room_types_id_seq'::regclass);
 
 
 --
@@ -3101,6 +3370,14 @@ ALTER TABLE ONLY public.actions
 
 ALTER TABLE ONLY public.age_classifications
     ADD CONSTRAINT age_classifications_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: applied_price_modifiers applied_price_modifiers_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.applied_price_modifiers
+    ADD CONSTRAINT applied_price_modifiers_pkey PRIMARY KEY (id);
 
 
 --
@@ -3256,6 +3533,14 @@ ALTER TABLE ONLY public.job_positions
 
 
 --
+-- Name: languages languages_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.languages
+    ADD CONSTRAINT languages_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: line_types line_types_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -3296,6 +3581,14 @@ ALTER TABLE ONLY public.movie_genres
 
 
 --
+-- Name: movie_languages movie_languages_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.movie_languages
+    ADD CONSTRAINT movie_languages_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: movie_lifecycle_states movie_lifecycle_states_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -3304,11 +3597,19 @@ ALTER TABLE ONLY public.movie_lifecycle_states
 
 
 --
--- Name: movie_subscriptions movie_subscriptions_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: movie_projection_types movie_projection_types_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.movie_subscriptions
-    ADD CONSTRAINT movie_subscriptions_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.movie_projection_types
+    ADD CONSTRAINT movie_projection_types_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: movie_user_subscriptions movie_user_subscriptions_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.movie_user_subscriptions
+    ADD CONSTRAINT movie_user_subscriptions_pkey PRIMARY KEY (id);
 
 
 --
@@ -3432,6 +3733,14 @@ ALTER TABLE ONLY public.projection_types
 
 
 --
+-- Name: rental_catering rental_catering_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.rental_catering
+    ADD CONSTRAINT rental_catering_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: rental_requests rental_requests_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -3493,6 +3802,14 @@ ALTER TABLE ONLY public.room_events
 
 ALTER TABLE ONLY public.room_projection_types
     ADD CONSTRAINT room_projection_types_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: room_types room_types_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.room_types
+    ADD CONSTRAINT room_types_pkey PRIMARY KEY (id);
 
 
 --
@@ -3810,10 +4127,17 @@ CREATE UNIQUE INDEX idx_job_positions_title_uq ON public.job_positions USING btr
 
 
 --
--- Name: idx_line_types_uq; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_languages_description_uq; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE UNIQUE INDEX idx_line_types_uq ON public.line_types USING btree (description) WHERE (deleted_at IS NULL);
+CREATE UNIQUE INDEX idx_languages_description_uq ON public.languages USING btree (description) WHERE (deleted_at IS NULL);
+
+
+--
+-- Name: idx_line_types_description_uq; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX idx_line_types_description_uq ON public.line_types USING btree (description) WHERE (deleted_at IS NULL);
 
 
 --
@@ -3845,6 +4169,13 @@ CREATE UNIQUE INDEX idx_movie_genres_uq ON public.movie_genres USING btree (movi
 
 
 --
+-- Name: idx_movie_languages_uq; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX idx_movie_languages_uq ON public.movie_languages USING btree (movie, language) WHERE (deleted_at IS NULL);
+
+
+--
 -- Name: idx_movie_lifecycle_states_description_uq; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -3852,10 +4183,17 @@ CREATE UNIQUE INDEX idx_movie_lifecycle_states_description_uq ON public.movie_li
 
 
 --
--- Name: idx_movie_subscriptions_uq; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_movie_projection_types_uq; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE UNIQUE INDEX idx_movie_subscriptions_uq ON public.movie_subscriptions USING btree (customer, movie) WHERE (deleted_at IS NULL);
+CREATE UNIQUE INDEX idx_movie_projection_types_uq ON public.movie_projection_types USING btree (movie, projection_type) WHERE (deleted_at IS NULL);
+
+
+--
+-- Name: idx_movie_user_subscriptions_uq; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX idx_movie_user_subscriptions_uq ON public.movie_user_subscriptions USING btree (customer, movie) WHERE (deleted_at IS NULL);
 
 
 --
@@ -3894,10 +4232,10 @@ CREATE UNIQUE INDEX idx_order_payments_ref_uq ON public.order_payments USING btr
 
 
 --
--- Name: idx_order_statuses_uq; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_order_statuses_description_uq; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE UNIQUE INDEX idx_order_statuses_uq ON public.order_statuses USING btree (description) WHERE (deleted_at IS NULL);
+CREATE UNIQUE INDEX idx_order_statuses_description_uq ON public.order_statuses USING btree (description) WHERE (deleted_at IS NULL);
 
 
 --
@@ -3978,10 +4316,10 @@ CREATE INDEX idx_price_modifiers_scope ON public.price_modifiers USING btree (mo
 
 
 --
--- Name: idx_product_categories_name_uq; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_product_categories_description_uq; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE UNIQUE INDEX idx_product_categories_name_uq ON public.product_categories USING btree (description) WHERE (deleted_at IS NULL);
+CREATE UNIQUE INDEX idx_product_categories_description_uq ON public.product_categories USING btree (description) WHERE (deleted_at IS NULL);
 
 
 --
@@ -4062,6 +4400,13 @@ CREATE UNIQUE INDEX idx_room_projection_types_uq ON public.room_projection_types
 
 
 --
+-- Name: idx_room_types_description_uq; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX idx_room_types_description_uq ON public.room_types USING btree (description) WHERE (deleted_at IS NULL);
+
+
+--
 -- Name: idx_rooms_cinema_name_uq; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -4125,6 +4470,13 @@ CREATE UNIQUE INDEX idx_taxes_name_uq ON public.taxes USING btree (name) WHERE (
 
 
 --
+-- Name: idx_tickets_booking_seat_uq; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX idx_tickets_booking_seat_uq ON public.tickets USING btree (booking, seat) WHERE (deleted_at IS NULL);
+
+
+--
 -- Name: idx_tickets_order; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -4136,13 +4488,6 @@ CREATE INDEX idx_tickets_order ON public.tickets USING btree ("order");
 --
 
 CREATE UNIQUE INDEX idx_tickets_qr_code_uq ON public.tickets USING btree (qr_code) WHERE (deleted_at IS NULL);
-
-
---
--- Name: idx_tickets_showtime_seat_uq; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE UNIQUE INDEX idx_tickets_showtime_seat_uq ON public.tickets USING btree (showtime, seat) WHERE (deleted_at IS NULL);
 
 
 --
@@ -4185,6 +4530,54 @@ CREATE INDEX idx_users_logins_user ON public.users_logins USING btree ("user");
 --
 
 CREATE UNIQUE INDEX idx_week_days_day_number_uq ON public.week_days USING btree (day_number) WHERE (deleted_at IS NULL);
+
+
+--
+-- Name: applied_price_modifiers fk_applied_modifiers_order; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.applied_price_modifiers
+    ADD CONSTRAINT fk_applied_modifiers_order FOREIGN KEY ("order") REFERENCES public.orders(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
+-- Name: applied_price_modifiers fk_applied_modifiers_order_line; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.applied_price_modifiers
+    ADD CONSTRAINT fk_applied_modifiers_order_line FOREIGN KEY (order_line) REFERENCES public.order_lines(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
+-- Name: applied_price_modifiers fk_applied_modifiers_rental_cat; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.applied_price_modifiers
+    ADD CONSTRAINT fk_applied_modifiers_rental_cat FOREIGN KEY (rental_catering) REFERENCES public.rental_catering(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
+-- Name: applied_price_modifiers fk_applied_modifiers_rental_req; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.applied_price_modifiers
+    ADD CONSTRAINT fk_applied_modifiers_rental_req FOREIGN KEY (rental_request) REFERENCES public.rental_requests(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
+-- Name: applied_price_modifiers fk_applied_modifiers_rule; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.applied_price_modifiers
+    ADD CONSTRAINT fk_applied_modifiers_rule FOREIGN KEY (price_modifier) REFERENCES public.price_modifiers(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
+-- Name: applied_price_modifiers fk_applied_modifiers_ticket; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.applied_price_modifiers
+    ADD CONSTRAINT fk_applied_modifiers_ticket FOREIGN KEY (ticket) REFERENCES public.tickets(id) ON UPDATE CASCADE ON DELETE RESTRICT;
 
 
 --
@@ -4388,19 +4781,51 @@ ALTER TABLE ONLY public.movie_genres
 
 
 --
--- Name: movie_subscriptions fk_movie_subscriptions_customer; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: movie_languages fk_movie_languages_language; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.movie_subscriptions
-    ADD CONSTRAINT fk_movie_subscriptions_customer FOREIGN KEY (customer) REFERENCES public.customers(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+ALTER TABLE ONLY public.movie_languages
+    ADD CONSTRAINT fk_movie_languages_language FOREIGN KEY (language) REFERENCES public.languages(id) ON UPDATE CASCADE ON DELETE RESTRICT;
 
 
 --
--- Name: movie_subscriptions fk_movie_subscriptions_movie; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: movie_languages fk_movie_languages_movie; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.movie_subscriptions
-    ADD CONSTRAINT fk_movie_subscriptions_movie FOREIGN KEY (movie) REFERENCES public.movies(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+ALTER TABLE ONLY public.movie_languages
+    ADD CONSTRAINT fk_movie_languages_movie FOREIGN KEY (movie) REFERENCES public.movies(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
+-- Name: movie_projection_types fk_movie_projection_types_movie; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.movie_projection_types
+    ADD CONSTRAINT fk_movie_projection_types_movie FOREIGN KEY (movie) REFERENCES public.movies(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
+-- Name: movie_projection_types fk_movie_projection_types_projection_type; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.movie_projection_types
+    ADD CONSTRAINT fk_movie_projection_types_projection_type FOREIGN KEY (projection_type) REFERENCES public.projection_types(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
+-- Name: movie_user_subscriptions fk_movie_user_subscriptions_customer; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.movie_user_subscriptions
+    ADD CONSTRAINT fk_movie_user_subscriptions_customer FOREIGN KEY (customer) REFERENCES public.customers(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
+-- Name: movie_user_subscriptions fk_movie_user_subscriptions_movie; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.movie_user_subscriptions
+    ADD CONSTRAINT fk_movie_user_subscriptions_movie FOREIGN KEY (movie) REFERENCES public.movies(id) ON UPDATE CASCADE ON DELETE RESTRICT;
 
 
 --
@@ -4441,14 +4866,6 @@ ALTER TABLE ONLY public.order_lines
 
 ALTER TABLE ONLY public.order_lines
     ADD CONSTRAINT fk_order_lines_order FOREIGN KEY ("order") REFERENCES public.orders(id) ON UPDATE CASCADE ON DELETE RESTRICT;
-
-
---
--- Name: order_lines fk_order_lines_price_modifier; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.order_lines
-    ADD CONSTRAINT fk_order_lines_price_modifier FOREIGN KEY (price_modifier) REFERENCES public.price_modifiers(id) ON UPDATE CASCADE ON DELETE RESTRICT;
 
 
 --
@@ -4588,6 +5005,14 @@ ALTER TABLE ONLY public.price_modifiers
 
 
 --
+-- Name: price_modifiers fk_price_modifiers_booking_type; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.price_modifiers
+    ADD CONSTRAINT fk_price_modifiers_booking_type FOREIGN KEY (booking_type) REFERENCES public.booking_types(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
 -- Name: price_modifiers fk_price_modifiers_cinema; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -4628,6 +5053,14 @@ ALTER TABLE ONLY public.price_modifiers
 
 
 --
+-- Name: price_modifiers fk_price_modifiers_movie; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.price_modifiers
+    ADD CONSTRAINT fk_price_modifiers_movie FOREIGN KEY (movie) REFERENCES public.movies(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
 -- Name: price_modifiers fk_price_modifiers_operation_type; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -4657,6 +5090,14 @@ ALTER TABLE ONLY public.price_modifiers
 
 ALTER TABLE ONLY public.price_modifiers
     ADD CONSTRAINT fk_price_modifiers_projection_type FOREIGN KEY (projection_type) REFERENCES public.projection_types(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
+-- Name: price_modifiers fk_price_modifiers_room_type; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.price_modifiers
+    ADD CONSTRAINT fk_price_modifiers_room_type FOREIGN KEY (room_type) REFERENCES public.room_types(id) ON UPDATE CASCADE ON DELETE RESTRICT;
 
 
 --
@@ -4700,6 +5141,46 @@ ALTER TABLE ONLY public.products
 
 
 --
+-- Name: rental_catering fk_rental_catering_combo; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.rental_catering
+    ADD CONSTRAINT fk_rental_catering_combo FOREIGN KEY (combo) REFERENCES public.combos(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
+-- Name: rental_catering fk_rental_catering_line_type; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.rental_catering
+    ADD CONSTRAINT fk_rental_catering_line_type FOREIGN KEY (line_type) REFERENCES public.line_types(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
+-- Name: rental_catering fk_rental_catering_product; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.rental_catering
+    ADD CONSTRAINT fk_rental_catering_product FOREIGN KEY (product) REFERENCES public.products(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
+-- Name: rental_catering fk_rental_catering_quoted_exchange_rate; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.rental_catering
+    ADD CONSTRAINT fk_rental_catering_quoted_exchange_rate FOREIGN KEY (quoted_exchange_rate) REFERENCES public.exchange_rates(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
+-- Name: rental_catering fk_rental_catering_request; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.rental_catering
+    ADD CONSTRAINT fk_rental_catering_request FOREIGN KEY (rental_request) REFERENCES public.rental_requests(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
 -- Name: rental_requests fk_rental_requests_booking; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -4729,6 +5210,14 @@ ALTER TABLE ONLY public.rental_requests
 
 ALTER TABLE ONLY public.rental_requests
     ADD CONSTRAINT fk_rental_requests_event_type FOREIGN KEY (event_type) REFERENCES public.booking_types(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
+-- Name: rental_requests fk_rental_requests_order; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.rental_requests
+    ADD CONSTRAINT fk_rental_requests_order FOREIGN KEY ("order") REFERENCES public.orders(id) ON UPDATE CASCADE ON DELETE RESTRICT;
 
 
 --
@@ -4836,6 +5325,14 @@ ALTER TABLE ONLY public.rooms
 
 
 --
+-- Name: rooms fk_rooms_room_type; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.rooms
+    ADD CONSTRAINT fk_rooms_room_type FOREIGN KEY (room_type) REFERENCES public.room_types(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
 -- Name: seats fk_seats_room; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -4940,19 +5437,19 @@ ALTER TABLE ONLY public.tax_rules
 
 
 --
+-- Name: tickets fk_tickets_booking; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.tickets
+    ADD CONSTRAINT fk_tickets_booking FOREIGN KEY (booking) REFERENCES public.room_bookings(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
 -- Name: tickets fk_tickets_order; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.tickets
     ADD CONSTRAINT fk_tickets_order FOREIGN KEY ("order") REFERENCES public.orders(id) ON UPDATE CASCADE ON DELETE RESTRICT;
-
-
---
--- Name: tickets fk_tickets_price_modifier; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.tickets
-    ADD CONSTRAINT fk_tickets_price_modifier FOREIGN KEY (price_modifier) REFERENCES public.price_modifiers(id) ON UPDATE CASCADE ON DELETE RESTRICT;
 
 
 --
@@ -4969,14 +5466,6 @@ ALTER TABLE ONLY public.tickets
 
 ALTER TABLE ONLY public.tickets
     ADD CONSTRAINT fk_tickets_seat FOREIGN KEY (seat) REFERENCES public.seats(id) ON UPDATE CASCADE ON DELETE RESTRICT;
-
-
---
--- Name: tickets fk_tickets_showtime; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.tickets
-    ADD CONSTRAINT fk_tickets_showtime FOREIGN KEY (showtime) REFERENCES public.showtimes(id) ON UPDATE CASCADE ON DELETE RESTRICT;
 
 
 --
@@ -5031,5 +5520,5 @@ ALTER TABLE ONLY public.users
 -- PostgreSQL database dump complete
 --
 
-\unrestrict j5Nl1ATvzTVThuepxCgGVYkEs4dRjppI8iQqJmIO3Q8Cbeg5bcYzMxSiV252d5R
+\unrestrict 4VajqwGfzMKbNkroZrZLphBsFjD8v1aGRUIhVFpr6QneOTOE8HR8ukdDTT9Yk0m
 

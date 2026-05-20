@@ -7,7 +7,7 @@ export default class InventoryMovementsModel extends SequelizeModelBase {
 			id: {
 				primaryKey: true,
 				autoIncrement: true,
-				allowNull: true,
+				allowNull: false,
 				type: DataTypes.INTEGER,
 			},
 			inventory: {
@@ -36,6 +36,14 @@ export default class InventoryMovementsModel extends SequelizeModelBase {
 				allowNull: false,
 				type: DataTypes.INTEGER,
 			},
+			resulting_stock: {
+				allowNull: false,
+				type: DataTypes.INTEGER,
+			},
+			resulting_unit_cost_base_currency: {
+				allowNull: false,
+				type: DataTypes.DECIMAL(10, 2),
+			},
 			created_at: {
 				allowNull: false,
 				type: DataTypes.DATE,
@@ -48,7 +56,7 @@ export default class InventoryMovementsModel extends SequelizeModelBase {
 			deleted_at: {
 				allowNull: true,
 				type: DataTypes.DATE,
-			},
+			}
 		};
 	}
 
@@ -59,7 +67,7 @@ export default class InventoryMovementsModel extends SequelizeModelBase {
 			createdAt: 'created_at',
 			updatedAt: false,
 			deletedAt: 'deleted_at',
-			isBasicTable: true,
+			isBasicTable: false,
 			schema: 'public',
 			tableName: 'inventory_movements',
 			appRawName: 'inventory-movements',

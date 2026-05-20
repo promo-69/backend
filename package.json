@@ -37,6 +37,7 @@
 		"docker:db:setup": "yarn docker:api-exec yarn db:setup",
 		"docker:db:setup:full": "yarn docker:api-exec yarn db:setup:full",
 		"docker:db:reset": "yarn docker:api-exec yarn db:reset",
+		"docker:db:drop": "yarn docker:api-exec yarn db:drop",
 		"docker:db:migrate": "yarn docker:api-exec yarn db:migrate",
 		"docker:db:migrate:undo": "yarn docker:api-exec yarn db:migrate:undo",
 		"docker:db:migrate:undo:all": "yarn docker:api-exec yarn db:migrate:undo:all",

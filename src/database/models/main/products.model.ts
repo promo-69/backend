@@ -7,7 +7,7 @@ export default class ProductsModel extends SequelizeModelBase {
 			id: {
 				primaryKey: true,
 				autoIncrement: true,
-				allowNull: true,
+				allowNull: false,
 				type: DataTypes.INTEGER,
 			},
 			name: {
@@ -17,6 +17,10 @@ export default class ProductsModel extends SequelizeModelBase {
 			sku: {
 				allowNull: false,
 				type: DataTypes.STRING(100),
+			},
+			image_url: {
+				allowNull: true,
+				type: DataTypes.STRING(500),
 			},
 			product_category: {
 				allowNull: false,
@@ -34,14 +38,10 @@ export default class ProductsModel extends SequelizeModelBase {
 				allowNull: true,
 				type: DataTypes.INTEGER,
 			},
-			image_url: {
-				allowNull: true,
-				type: DataTypes.STRING(500),
-			},
 			deleted_at: {
 				allowNull: true,
 				type: DataTypes.DATE,
-			},
+			}
 		};
 	}
 
@@ -52,7 +52,7 @@ export default class ProductsModel extends SequelizeModelBase {
 			createdAt: false,
 			updatedAt: false,
 			deletedAt: 'deleted_at',
-			isBasicTable: true,
+			isBasicTable: false,
 			schema: 'public',
 			tableName: 'products',
 			appRawName: 'products',

@@ -7,7 +7,7 @@ export default class OrdersModel extends SequelizeModelBase {
 			id: {
 				primaryKey: true,
 				autoIncrement: true,
-				allowNull: true,
+				allowNull: false,
 				type: DataTypes.INTEGER,
 			},
 			customer: {
@@ -47,15 +47,10 @@ export default class OrdersModel extends SequelizeModelBase {
 				type: DataTypes.INTEGER,
 				defaultValue: 1,
 			},
-			created_at: {
-				allowNull: false,
-				type: DataTypes.DATE,
-				defaultValue: DataTypes.NOW,
-			},
 			deleted_at: {
 				allowNull: true,
 				type: DataTypes.DATE,
-			},
+			}
 		};
 	}
 
@@ -66,7 +61,7 @@ export default class OrdersModel extends SequelizeModelBase {
 			createdAt: 'created_at',
 			updatedAt: false,
 			deletedAt: 'deleted_at',
-			isBasicTable: true,
+			isBasicTable: false,
 			schema: 'public',
 			tableName: 'orders',
 			appRawName: 'orders',

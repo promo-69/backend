@@ -7,7 +7,7 @@ export default class UsersModel extends SequelizeModelBase {
 			id: {
 				primaryKey: true,
 				autoIncrement: true,
-				allowNull: true,
+				allowNull: false,
 				type: DataTypes.INTEGER,
 			},
 			person: {
@@ -38,19 +38,10 @@ export default class UsersModel extends SequelizeModelBase {
 				allowNull: true,
 				type: DataTypes.DATE,
 			},
-			created_at: {
-				allowNull: false,
-				type: DataTypes.DATE,
-				defaultValue: DataTypes.NOW,
-			},
-			updated_at: {
-				allowNull: true,
-				type: DataTypes.DATE,
-			},
 			deleted_at: {
 				allowNull: true,
 				type: DataTypes.DATE,
-			},
+			}
 		};
 	}
 
@@ -61,7 +52,7 @@ export default class UsersModel extends SequelizeModelBase {
 			createdAt: 'created_at',
 			updatedAt: 'updated_at',
 			deletedAt: 'deleted_at',
-			isBasicTable: true,
+			isBasicTable: false,
 			schema: 'public',
 			tableName: 'users',
 			appRawName: 'users',
