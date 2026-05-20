@@ -1,11 +1,11 @@
 meta {
-  name: Delete Cinema
+  name: Get Customer By Id
   type: http
-  seq: 5
+  seq: 2
 }
 
-delete {
-  url: {{baseUrl}}/cinemas/{{testCinemaId}}
+get {
+  url: {{baseUrl}}/customers/{{testCustomerId}}
   body: none
   auth: bearer
 }

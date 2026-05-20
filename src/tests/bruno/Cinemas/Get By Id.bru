@@ -1,17 +1,13 @@
 meta {
   name: Get Cinema By ID
   type: http
-  seq: 3
+  seq: 2
 }
 
 get {
   url: {{baseUrl}}/cinemas/{{testCinemaId}}
   body: none
-  auth: bearer
-}
-
-auth:bearer {
-  token: {{accessToken}}
+  auth: none
 }
 
 script:pre-request {

@@ -1,11 +1,11 @@
 meta {
-  name: Delete Employee
+  name: List Employees in Cinema
   type: http
-  seq: 6
+  seq: 7
 }
 
-delete {
-  url: {{baseUrl}}/employees/{{testEmployeeId}}
+get {
+  url: {{baseUrl}}/cinemas/{{testCinemaId}}/employees
   body: none
   auth: bearer
 }

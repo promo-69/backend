@@ -1,17 +1,23 @@
 meta {
-  name: Delete Employee
+  name: Set Cinema Status
   type: http
   seq: 6
 }
 
-delete {
-  url: {{baseUrl}}/employees/{{testEmployeeId}}
-  body: none
+patch {
+  url: {{baseUrl}}/cinemas/{{testCinemaId}}/status
+  body: json
   auth: bearer
 }
 
 auth:bearer {
   token: {{accessToken}}
+}
+
+body:json {
+  {
+    "active": false
+  }
 }
 
 script:pre-request {

@@ -1,21 +1,27 @@
 import { Router } from 'express';
 import cinemasController from './_.controller.js';
-import { verifySession, verifyRole } from '@middlewares/auth.middleware.js';
+import { verifySession, verifyPermission } from '@middlewares/auth.middleware.js';
 import roomsRouter from './rooms.route.js';
-import { MiddlewareHandler } from '@rules/api.type.js';
 
 const router = Router();
 
-const adminRoles = ['SUPER_ADMIN', 'CINEMA_MANAGER'];
-const middlewares = [verifySession, verifyRole(adminRoles)];
+// Públicos
+router.get('/', cinemasController.findAll);
+router.get('/:id', cinemasController.findById);
 
-router.get('/', ...middlewares, cinemasController.findAll);
-router.get('/:id', ...middlewares, cinemasController.findById);
-router.post('/', ...middlewares, cinemasController.create);
-router.put('/:id', ...middlewares, cinemasController.update);
-router.delete('/:id', ...middlewares, cinemasController.remove);
+// Protegidos — gerencia general
+router.post('/', verifySession, verifyPermission('CRUD:CREATE:CINEMAS'), cinemasController.create);
+router.put('/:id', verifySession, verifyPermission('CRUD:UPDATE:CINEMAS'), cinemasController.update);
+router.patch('/:id/status', verifySession, verifyPermission('CRUD:UPDATE_STATUS:CINEMAS'), cinemasController.setStatus);
 
-// Montar el subrouter de salas en la ruta /:cinemaId/rooms
-router.use('/:cinemaId/rooms', roomsRouter); // ← línea clave
+// Contexto implícito — gerente de sede
+router.put('/', verifySession, cinemasController.updateOwnCinema);
+
+// Contexto explícito — empleados
+router.get('/:cinemaId/employees', verifySession, cinemasController.findEmployeesByCinema);
+router.post('/:cinemaId/employees', verifySession, cinemasController.createEmployeeInCinema);
+
+// Subrouter de salas
+router.use('/:cinemaId/rooms', roomsRouter);
 
 export default router;

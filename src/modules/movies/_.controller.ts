@@ -25,7 +25,6 @@ class MoviesController extends ControllerBase {
     }
 
     // POST /api/v1/movies  — HU-OPERATIVA-12/13 admin
-    // Content-Type: multipart/form-data
     async create() {
         const body = this.getBody();
         const req = this.getRequest();

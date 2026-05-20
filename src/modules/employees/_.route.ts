@@ -1,17 +1,19 @@
 import { Router } from 'express';
 import employeesController from './_.controller.js';
-import { verifySession, verifyRole } from '@middlewares/auth.middleware.js';
-import { MiddlewareHandler } from '@rules/api.type.js';
+import { verifySession, verifyPermission } from '@middlewares/auth.middleware.js';
 
 const router = Router();
-const adminRoles = ['SUPER_ADMIN', 'CINEMA_MANAGER'];
-const middlewares: MiddlewareHandler[] = []; //verifySession];
 
-router.get('/', verifySession, verifyRole(adminRoles), employeesController.findAll);
-router.get('/:id', verifySession, verifyRole(adminRoles), employeesController.findById);
-router.post('/', verifySession, verifyRole(adminRoles), employeesController.create);
-router.put('/:id', verifySession, verifyRole(adminRoles), employeesController.update);
-router.delete('/:id', verifySession, verifyRole(['SUPER_ADMIN']), employeesController.delete);
-router.put('/:id/positions', verifySession, verifyRole(adminRoles), employeesController.changePosition);
+router.get('/', verifySession, verifyPermission('CRUD:READ:EMPLOYEES'), employeesController.findAll);
+router.get('/:id', verifySession, verifyPermission('CRUD:READ:EMPLOYEES'), employeesController.findById);
+router.post('/', verifySession, verifyPermission('CRUD:CREATE:EMPLOYEES'), employeesController.create);
+router.patch('/:id', verifySession, verifyPermission('CRUD:UPDATE:EMPLOYEES'), employeesController.update);
+router.patch(
+    '/:id/position',
+    verifySession,
+    verifyPermission('CRUD:CHANGE_POSITION:EMPLOYEES'),
+    employeesController.changePosition,
+);
+router.delete('/:id', verifySession, verifyPermission('CRUD:DELETE:EMPLOYEES'), employeesController.delete);
 
 export default router;

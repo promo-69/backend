@@ -4,7 +4,7 @@ meta {
   seq: 4
 }
 
-put {
+patch {
   url: {{baseUrl}}/rooms/{{testRoomId}}
   body: json
   auth: bearer
@@ -16,8 +16,7 @@ auth:bearer {
 
 body:json {
   {
-    "name": "Test Room Bruno Updated",
-    "totalCapacity": 100
+    "name": "Test Room Bruno Updated"
   }
 }
 

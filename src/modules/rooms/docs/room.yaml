@@ -1,7 +1,7 @@
 /rooms/{id}:
     get:
         summary: Get Room By ID
-        description: Retrieve a single active room by its ID.
+        description: Retrieve a single active room by its ID. The total capacity is calculated dynamically from active seats.
         tags:
             - Rooms
         security:
@@ -35,17 +35,15 @@
                                             type: integer
                                         total_capacity:
                                             type: integer
-                                        status:
-                                            type: integer
             '401':
                 description: Unauthorized
             '404':
                 description: Room not found
             '500':
                 description: Internal server error
-    put:
-        summary: Update Room
-        description: Update the name, total capacity or projection types of an existing room. At least one field must be provided.
+    patch:
+        summary: Update Room (Partial)
+        description: Update the name and/or projection types of an existing room. At least one field must be provided. Projection types cannot be removed if future showtimes depend on them.
         tags:
             - Rooms
         security:
@@ -66,9 +64,6 @@
                             name:
                                 type: string
                                 example: Sala 1 VIP
-                            totalCapacity:
-                                type: integer
-                                example: 120
                             projectionTypes:
                                 type: array
                                 items:
@@ -84,7 +79,7 @@
             '404':
                 description: Room not found
             '409':
-                description: Conflict — duplicate room name in cinema
+                description: Conflict — duplicate room name or active showtimes
             '500':
                 description: Internal server error
     delete:

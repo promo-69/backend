@@ -1,16 +1,32 @@
-/employees:
+/customers:
     get:
-        summary: List Employees (by current user's cinema)
+        summary: List / Search Customers
         description: |
-            Retrieves all employees who have an active position in the cinema
-            extracted from the authenticated user's JWT.
+            Retrieves a paginated list of customers. Supports filters via query
+            parameters (e.g. document_number for quick taquilla search).
         tags:
-            - Employees
+            - Customers
         security:
             - bearerAuth: []
+        parameters:
+            - in: query
+              name: document_number
+              schema:
+                  type: string
+              description: Filter by document number
+            - in: query
+              name: page
+              schema:
+                  type: integer
+                  default: 1
+            - in: query
+              name: per_page
+              schema:
+                  type: integer
+                  default: 10
         responses:
             '200':
-                description: A list of employees
+                description: A list of customers
                 content:
                     application/json:
                         schema:
@@ -25,9 +41,11 @@
                                                 type: integer
                                             person:
                                                 type: integer
-                                            employee_code:
-                                                type: string
-                                            people:
+                                            level_progress_points:
+                                                type: integer
+                                            loyalty_level:
+                                                type: integer
+                                            _People:
                                                 type: object
                                                 properties:
                                                     id:
@@ -38,32 +56,24 @@
                                                         type: string
                                                     last_name:
                                                         type: string
-                                                    gender:
-                                                        type: integer
                                                     phone_number:
                                                         type: string
+                                                        nullable: true
                                                     personal_email:
                                                         type: string
-                                                    birth_date:
-                                                        type: string
-                                                        format: date
-                                            _User:
-                                                type: object
-                                                nullable: true
+                                                        nullable: true
             '401':
                 description: Unauthorized
             '500':
                 description: Internal server error
     post:
-        summary: Create Employee
+        summary: Quick Taquilla Registration
         description: |
-            Registers a new employee. If the person already exists by document
-            number, the existing record is reused; otherwise a new person is
-            created. The cinema is taken from the authenticated user's JWT.
-            Optionally, if email and password are provided, a user account is
-            created for the employee.
+            Creates a new customer for a physical or digital buyer.
+            If the person already exists by document number, the existing record
+            is reused. No user account is created (taquilla registration).
         tags:
-            - Employees
+            - Customers
         security:
             - bearerAuth: []
         requestBody:
@@ -76,30 +86,16 @@
                             - documentNumber
                             - firstName
                             - lastName
-                            - employeeCode
-                            - jobPosition
-                            - startDate
                         properties:
                             documentNumber:
                                 type: string
-                                example: V-98765432
+                                example: V-12345678
                             firstName:
                                 type: string
-                                example: Carlos
+                                example: María
                             lastName:
                                 type: string
-                                example: Pérez
-                            employeeCode:
-                                type: string
-                                example: EMP-001
-                            jobPosition:
-                                type: integer
-                                description: Job position ID
-                                example: 1
-                            startDate:
-                                type: string
-                                format: date
-                                example: '2026-01-15'
+                                example: Rodríguez
                             gender:
                                 type: integer
                                 nullable: true
@@ -110,25 +106,13 @@
                                 type: string
                                 format: email
                                 nullable: true
-                                description: Required only if a user account should be created
-                            password:
-                                type: string
-                                nullable: true
-                                description: Required only if a user account should be created
                             birthDate:
                                 type: string
                                 format: date
                                 nullable: true
-                            endDate:
-                                type: string
-                                format: date
-                                nullable: true
-                            salaryBase:
-                                type: number
-                                nullable: true
         responses:
             '201':
-                description: Employee created successfully
+                description: Customer created successfully
                 content:
                     application/json:
                         schema:
@@ -139,13 +123,15 @@
                                     properties:
                                         id:
                                             type: integer
-                                        employee_code:
-                                            type: string
+                                        person:
+                                            type: integer
                                         _People:
                                             type: object
             '400':
-                description: Bad request (validation errors)
+                description: Validation error
             '401':
                 description: Unauthorized
+            '409':
+                description: Customer already exists for this person
             '500':
                 description: Internal server error
