@@ -39,7 +39,7 @@ class UsersRepository extends SequelizeRepositoryBase<UsersAttributes, number> {
                 nested: [
                     {
                         association: '_Employees',
-                        attributes: [id],
+                        attributes: ['id'],
                         required: false,
                         where: { deleted_at: null },
                         nested: [
