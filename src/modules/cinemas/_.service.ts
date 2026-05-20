@@ -164,20 +164,6 @@ export class CinemasService extends BaseService {
         });
     }
 
-    // --- Activar / desactivar sucursal (soft-disable) ---
-    async setCinemaStatus(id: number, active: boolean) {
-        await this._cinemas.transaction(async (transaction: Transaction) => {
-            const cinema = await this._cinemas.getById(id, {
-                transaction,
-                lock: transaction.LOCK.UPDATE,
-            });
-            if (!cinema) throw new NotFoundError('Sucursal no encontrada');
-
-            await this._cinemas.update(id, { active: active }, { transaction });
-        });
-        return null;
-    }
-
     // --- Consultas ---
     async findAll(filters?: ProcessedQueryFilters) {
         return this._cinemas.getAllFull(filters);

@@ -1,15 +1,16 @@
 import { Router } from 'express';
 import seatsController from './_.controller.js';
-import { verifySession, verifyRole } from '@middlewares/auth.middleware.js';
+import { verifySession, verifyPermission } from '@middlewares/auth.middleware.js';
 
 const router = Router();
 
-const adminRoles = ['SUPER_ADMIN', 'CINEMA_MANAGER'];
+// GET /api/v1/seats/:id
+router.get('/:id', verifySession, /* verifyPermission('CRUD:READ:SEATS'), */ seatsController.findById);
 
-// PATCH /api/v1/seats/:id  — actualizar condición/categoría (HU-OPERATIVA-10, HU-OPERATIVA-11)
-router.patch('/:id', verifySession, /* verifyRole(adminRoles), */ seatsController.update);
+// PATCH /api/v1/seats/:id
+router.patch('/:id', verifySession, /* verifyPermission('CRUD:UPDATE:SEATS'), */ seatsController.update);
 
-// DELETE /api/v1/seats/:id  — soft delete (HU-OPERATIVA-09 Remoción)
-router.delete('/:id', verifySession, /* verifyRole(['SUPER_ADMIN']), */ seatsController.remove);
+// DELETE /api/v1/seats/:id
+router.delete('/:id', verifySession, /* verifyPermission('CRUD:DELETE:SEATS'), */ seatsController.remove);
 
 export default router;

@@ -34,11 +34,6 @@ export default class CinemasModel extends SequelizeModelBase {
                 allowNull: true,
                 type: DataTypes.DATE,
             },
-            active: {
-                allowNull: false,
-                type: DataTypes.BOOLEAN,
-                defaultValue: true,
-            },
         };
     }
 
