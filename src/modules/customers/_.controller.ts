@@ -6,27 +6,27 @@ class CustomersController extends ControllerBase {
         super();
     }
 
-    /* GET /customers - Búsqueda por cédula (útil en taquilla) */
+    /* GET /customers — búsqueda por cédula, útil en taquilla */
     async findAll() {
         const data = await CustomersService.findAllCustomers(this.getQueryFilters());
         return data;
     }
 
-    /* POST /customers - Registro rápido en taquilla (solo people + customers, sin usuario) */
+    /* POST /customers — registro rápido en taquilla (people + customers, sin usuario) */
     async create() {
         const body = this.getBody();
         const data = await CustomersService.createCustomer(body);
-        return this.created(data, 'Cliente creado exitosamente');
+        return this.created(data, 'Cliente registrado exitosamente');
     }
 
-    /* GET /customers/:id - Expediente del cliente + historial de compras */
+    /* GET /customers/:id — expediente del cliente */
     async findById() {
         const { id } = this.getParams();
         const data = await CustomersService.findCustomerById(Number(id));
         return this.success(data, 'Cliente encontrado');
     }
 
-    /* PUT /customers/:id - Corrección de datos biográficos en people */
+    /* PATCH /customers/:id — corrección parcial de datos biográficos */
     async update() {
         const { id } = this.getParams();
         const body = this.getBody();
@@ -34,7 +34,7 @@ class CustomersController extends ControllerBase {
         return this.success(null, 'Cliente actualizado exitosamente');
     }
 
-    /* PATCH /customers/:id/loyalty-points - Ajuste administrativo de puntos de lealtad */
+    /* PATCH /customers/:id/loyalty-points — ajuste manual administrativo de puntos */
     async adjustLoyaltyPoints() {
         const { id } = this.getParams();
         const body = this.getBody();

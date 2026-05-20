@@ -1,11 +1,11 @@
 meta {
-  name: Update Room
+  name: Update Cinema (Explicit)
   type: http
   seq: 4
 }
 
-patch {
-  url: {{baseUrl}}/rooms/{{testRoomId}}
+put {
+  url: {{baseUrl}}/cinemas/{{testCinemaId}}
   body: json
   auth: bearer
 }
@@ -16,12 +16,11 @@ auth:bearer {
 
 body:json {
   {
-    "name": "Test Room Bruno Updated"
+    "name": "Test Cinema Bruno Updated",
+    "address": "456 Updated Ave",
+    "openingTime": "10:00",
+    "closingTime": "22:00"
   }
-}
-
-vars:pre-request {
-  testRoomId: 1
 }
 
 script:pre-request {

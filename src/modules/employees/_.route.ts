@@ -7,8 +7,8 @@ const router = Router();
 router.get('/', verifySession, verifyPermission('CRUD:READ:EMPLOYEES'), employeesController.findAll);
 router.get('/:id', verifySession, verifyPermission('CRUD:READ:EMPLOYEES'), employeesController.findById);
 router.post('/', verifySession, verifyPermission('CRUD:CREATE:EMPLOYEES'), employeesController.create);
-router.put('/:id', verifySession, verifyPermission('CRUD:UPDATE:EMPLOYEES'), employeesController.update);
-router.put(
+router.patch('/:id', verifySession, verifyPermission('CRUD:UPDATE:EMPLOYEES'), employeesController.update);
+router.patch(
     '/:id/position',
     verifySession,
     verifyPermission('CRUD:CHANGE_POSITION:EMPLOYEES'),

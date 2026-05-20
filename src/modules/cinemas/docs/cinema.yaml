@@ -1,11 +1,9 @@
 /cinemas/{id}:
     get:
-        summary: Get Cinema By ID
-        description: Retrieve a single active cinema location by its ID.
+        summary: Get Cinema by ID
+        description: Public endpoint. Returns a single cinema.
         tags:
             - Cinemas
-        security:
-            - bearerAuth: []
         parameters:
             - name: id
               in: path
@@ -14,7 +12,7 @@
                   type: integer
         responses:
             '200':
-                description: Cinema retrieved successfully
+                description: Cinema found
                 content:
                     application/json:
                         schema:
@@ -29,30 +27,21 @@
                                             type: string
                                         address:
                                             type: string
-                                            nullable: true
                                         phone:
                                             type: string
-                                            nullable: true
                                         opening_time:
                                             type: string
-                                            example: '10:00'
                                         closing_time:
                                             type: string
-                                            example: '22:00'
-                                        status:
-                                            type: integer
-                                        created_at:
-                                            type: string
-                                            format: date-time
-            '401':
-                description: Unauthorized
+                                        active:
+                                            type: boolean
             '404':
                 description: Cinema not found
             '500':
                 description: Internal server error
     put:
-        summary: Update Cinema
-        description: Update the details of an existing cinema location. At least one field must be provided.
+        summary: Update Cinema (General Management)
+        description: Full update of a cinema. Requires admin role. Can modify name, address, phone and schedules.
         tags:
             - Cinemas
         security:
@@ -72,37 +61,30 @@
                         properties:
                             name:
                                 type: string
-                                example: Cineflix Barquisimeto Premium
                             address:
                                 type: string
-                                nullable: true
                             phone:
                                 type: string
-                                nullable: true
                             openingTime:
                                 type: string
                                 pattern: '^([01]\d|2[0-3]):[0-5]\d$'
-                                example: '09:00'
                             closingTime:
                                 type: string
                                 pattern: '^([01]\d|2[0-3]):[0-5]\d$'
-                                example: '23:00'
         responses:
             '200':
-                description: Cinema updated successfully
+                description: Cinema updated
             '400':
-                description: Bad request (validation errors or no data provided)
+                description: Validation error
             '401':
                 description: Unauthorized
             '404':
                 description: Cinema not found
-            '409':
-                description: Conflict — duplicate cinema name
             '500':
                 description: Internal server error
-    delete:
-        summary: Delete Cinema
-        description: Soft-delete a cinema location. Fails if the cinema has active rooms.
+    patch:
+        summary: Set Cinema Status
+        description: Activates or deactivates a cinema. Replaces the former DELETE endpoint.
         tags:
             - Cinemas
         security:
@@ -113,26 +95,23 @@
               required: true
               schema:
                   type: integer
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        required:
+                            - active
+                        properties:
+                            active:
+                                type: boolean
         responses:
             '200':
-                description: Cinema deleted successfully
-                content:
-                    application/json:
-                        schema:
-                            type: object
-                            properties:
-                                data:
-                                    type: object
-                                    properties:
-                                        id:
-                                            type: integer
-                                        deleted:
-                                            type: boolean
+                description: Status changed
             '401':
                 description: Unauthorized
             '404':
                 description: Cinema not found
-            '409':
-                description: Conflict — cinema has active rooms
             '500':
                 description: Internal server error

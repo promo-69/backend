@@ -1,17 +1,23 @@
 meta {
-  name: Delete Cinema
+  name: Set Cinema Status
   type: http
-  seq: 5
+  seq: 6
 }
 
-delete {
-  url: {{baseUrl}}/cinemas/{{testCinemaId}}
-  body: none
+patch {
+  url: {{baseUrl}}/cinemas/{{testCinemaId}}/status
+  body: json
   auth: bearer
 }
 
 auth:bearer {
   token: {{accessToken}}
+}
+
+body:json {
+  {
+    "active": false
+  }
 }
 
 script:pre-request {

@@ -57,6 +57,12 @@ export class AuthService extends BaseService {
     private get _cacheClient() {
         return CacheDatabaseProvider.getInstance().client;
     }
+    private get _roles() {
+        return Database.repository('main', 'roles') as any;
+    }
+    private get _rolePermissions() {
+        return Database.repository('main', 'role-permissions') as any;
+    }
 
     private parsePermissions(permissions: any[]): string[] {
         return Array.from(
@@ -69,6 +75,44 @@ export class AuthService extends BaseService {
                 }),
             ),
         );
+    }
+
+    private async getRolePermissions(roleId: number): Promise<string[]> {
+        // 1. Obtener los IDs de los permisos asignados al rol
+        const rolePermissions = await this._rolePermissions.getAll({ count: false }, { role: roleId });
+        const permissionIds = (Array.isArray(rolePermissions) ? rolePermissions : rolePermissions.rows).map(
+            (rp: any) => rp.permission,
+        );
+
+        if (permissionIds.length === 0) return [];
+
+        // 2. Obtener los permisos con sus relaciones (actions, resources, permission_types)
+        const permissions = await this._permisos.getAll(
+            { count: false },
+            { id: permissionIds },
+            {
+                include: [
+                    { association: '_Actions', attributes: ['code'] },
+                    { association: '_Resources', attributes: ['code'] },
+                    { association: '_PermissionTypes', attributes: ['code'] },
+                ],
+            },
+        );
+
+        const permList = Array.isArray(permissions) ? permissions : permissions.rows;
+
+        // 3. Mapear a formato string, ignorando permisos sin código
+        return permList
+            .map((p: any) => {
+                const action = p._Actions?.code;
+                const resource = p._Resources?.code;
+                const type = p._PermissionTypes?.code;
+                if (action && resource && type) {
+                    return `${type}:${action}:${resource}`;
+                }
+                return null;
+            })
+            .filter((s: string | null) => s !== null) as string[];
     }
 
     // --- Authentication & Sessions ---
@@ -112,14 +156,25 @@ export class AuthService extends BaseService {
     }
 
     private async _buildLoginResponse(sessionData: any): Promise<LoginResponse> {
-        // Cinema del cargo activo (end_date IS NULL)
         const activePosition = sessionData._People?._Employees?.[0]?._EmployeePositions?.find(
             (p: any) => p.end_date === null,
         );
         const cinema = activePosition?.cinema;
 
         const payload = await this._buildUserPayload(sessionData);
+
+        // Cargar roleCode y permisos desde la base de datos
+        if (sessionData.role) {
+            const role = await this._roles.getById(sessionData.role);
+            if (role) {
+                payload.roleCode = role.code;
+                // Obtener permisos reales del rol (sin hardcodeo)
+                payload.permissions = await this.getRolePermissions(role.id);
+            }
+        }
+
         if (cinema) payload.cinemaId = cinema;
+
         const accessToken = JWTUtil.generateToken(payload);
         const refreshToken = JWTUtil.generateRefreshToken({ userId: sessionData.id });
 
@@ -209,29 +264,23 @@ export class AuthService extends BaseService {
         if (!REGEX.EMAIL.test(email) || !REGEX.PASSWORD.test(password))
             throw new ValidationError('Las credenciales no son válidas', []);
 
-        // Usamos getOne con include manual para esquivar el error de users.repository.ts
         const foundUser = await this._users.getOne(
             { email },
             {
-                include: [
-                    { association: '_People' },
-                    { association: '_UserTypes' },
-                    // No incluimos _Roles ni _UserPermissions por ahora
-                ],
+                include: [{ association: '_People' }, { association: '_UserTypes' }],
             },
         );
 
         if (!foundUser || !(await BcryptUtil.compare(password, foundUser.password)))
             throw new AuthError('Las credenciales no son correctas', { code: 'INVALID_LOGIN' });
 
-        if (!foundUser.signup_verified_at) {
+        // Verificar si el usuario es SUPER_ADMIN (no necesita verificar correo en desarrollo)
+        const roleCode = foundUser.role ? (await this._roles.getById(foundUser.role))?.code : null;
+        const isSuperAdmin = roleCode === 'SUPER_ADMIN';
+
+        if (!isSuperAdmin && !foundUser.signup_verified_at) {
             const signupCode = nanoid(20);
-            await this._users.update(
-                { id: foundUser.id },
-                {
-                    signup_code: await BcryptUtil.hash(signupCode),
-                },
-            );
+            await this._users.update({ id: foundUser.id }, { signup_code: await BcryptUtil.hash(signupCode) });
 
             emailService.sendVerificationCode(email, email, signupCode).catch((err) => {
                 Logger.error('Error al enviar el correo de verificación:', err);

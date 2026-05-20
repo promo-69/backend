@@ -14,4 +14,5 @@ router.patch(
     verifyPermission('FEAT:DO:POINTS-ADJUSTMENT'),
     customersController.adjustLoyaltyPoints,
 );
+
 export default router;

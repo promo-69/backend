@@ -1,13 +1,17 @@
 meta {
   name: Create Cinema
   type: http
-  seq: 1
+  seq: 3
 }
 
 post {
   url: {{baseUrl}}/cinemas
   body: json
   auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
 }
 
 body:json {
@@ -18,10 +22,6 @@ body:json {
     "openingTime": "09:00",
     "closingTime": "23:00"
   }
-}
-
-auth:bearer {
-  token: {{accessToken}}
 }
 
 script:post-response {

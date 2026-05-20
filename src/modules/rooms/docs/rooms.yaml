@@ -37,8 +37,6 @@
                                                 type: integer
                                             total_capacity:
                                                 type: integer
-                                            status:
-                                                type: integer
             '401':
                 description: Unauthorized
             '404':
@@ -47,7 +45,7 @@
                 description: Internal server error
     post:
         summary: Create Room
-        description: Register a new room in a cinema location, assigning its grid layout and supported projection types.
+        description: Register a new room in a cinema location. The total capacity is calculated from the seat grid (rows × columns).
         tags:
             - Rooms
         security:
@@ -69,7 +67,6 @@
                             - projectionTypes
                             - gridRows
                             - gridColumns
-                            - totalCapacity
                         properties:
                             name:
                                 type: string
@@ -85,9 +82,6 @@
                             gridColumns:
                                 type: integer
                                 example: 15
-                            totalCapacity:
-                                type: integer
-                                example: 150
         responses:
             '201':
                 description: Room created successfully
