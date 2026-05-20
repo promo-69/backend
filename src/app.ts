@@ -5,7 +5,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import { AppConfig, type IAppConfig } from '@config/app.config.js';
-import RealtimeProvider from '@shared/providers/realtime.provider.js';
+import RealtimeProvider from '@providers/realtime.provider.js';
 import { AppError, NotFoundError } from '@errors';
 import { ANSI } from '@utils/ansi.util.js';
 import { Logger } from '@utils/logger.util.js';
@@ -34,39 +34,37 @@ export class App {
 		const serverApp = await this.initialize();
 
 		this.httpServer = http.createServer(serverApp);
+		const server = this.httpServer!;
 
 		// Attach realtime if enabled
 		try {
 			const cfg = AppConfig.load();
 			if ((cfg as any).realtime?.enabled) {
-				// eslint-disable-next-line @typescript-eslint/no-floating-promises
-				RealtimeProvider.getInstance()
-					.attach(this.httpServer)
-					.catch((err) => {
-						Logger.error('Failed to attach RealtimeProvider', err);
-					});
+				RealtimeProvider.getInstance().attach(server).catch((err: any) => {
+					Logger.error('Failed to attach RealtimeProvider', err);
+				});
 			}
 		} catch (err: any) {
 			Logger.error('Error initializing realtime provider check', err);
 		}
 
 		return new Promise((resolve, reject) => {
-			this.httpServer.on('error', (err) => {
+			server.on('error', (err: any) => {
 				reject(err);
 			});
 
-			this.httpServer.listen(this.appConfig.port, this.appConfig.host, () => {
+			server.listen(this.appConfig.port, this.appConfig.host, () => {
 				Logger.natural(
 					ANSI.info(`Server running on ${ANSI.link(this.appConfig.apiBaseUrl)}${ANSI.getCode('reset')}`),
 				);
 				Logger.natural(ANSI.info('Waiting for requests...\n'));
 
-				resolve(this.httpServer as http.Server);
+				resolve(server);
 			});
 
-			this.httpServer.setTimeout(30000);
-			this.httpServer.keepAliveTimeout = 65000;
-			this.httpServer.headersTimeout = 66000;
+			server.setTimeout(30000);
+			server.keepAliveTimeout = 65000;
+			server.headersTimeout = 66000;
 		});
 	}
 

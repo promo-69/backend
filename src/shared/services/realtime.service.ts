@@ -1,7 +1,6 @@
-import RealtimeProvider from '@shared/providers/realtime.provider.js';
+import RealtimeProvider from '@providers/realtime.provider.js';
 import { Logger } from '@utils/logger.util.js';
 import type { Socket } from 'socket.io';
-import { TokenBlacklistService } from '@shared/services/token-blacklist.service.js';
 
 export class RealtimeService {
 	private static _instance: RealtimeService;
