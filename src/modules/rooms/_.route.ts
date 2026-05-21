@@ -4,28 +4,30 @@ import { verifySession, verifyPermission } from '@middlewares/auth.middleware.js
 
 const router = Router();
 
-router.get('/', verifySession, /* verifyPermission('CRUD:READ:ROOMS'), */ roomsController.findAll);
+router.get('/', verifySession, verifyPermission('CRUD:READ:ROOMS'), roomsController.findAll);
 router.get(
     '/:id/projection-types',
     verifySession,
-    /* verifyPermission('CRUD:READ:ROOMS'), */ roomsController.findProjectionTypes,
+    verifyPermission('CRUD:READ:ROOMS'),
+    roomsController.findProjectionTypes,
 );
 router.post(
     '/:id/projection-types',
     verifySession,
-    /* verifyPermission('CRUD:UPDATE:ROOMS'), */ roomsController.createProjectionType,
+    verifyPermission('CRUD:UPDATE:ROOMS'),
+    roomsController.createProjectionType,
 );
 router.delete(
     '/:id/projection-types/:projectionTypeId',
     verifySession,
-    /* verifyPermission('CRUD:UPDATE:ROOMS'), */ roomsController.deleteProjectionType,
+    verifyPermission('CRUD:UPDATE:ROOMS'),
+    roomsController.deleteProjectionType,
 );
-router.get('/:id', verifySession, /* verifyPermission('CRUD:READ:ROOMS'), */ roomsController.findById);
-router.patch('/:id', verifySession, /* verifyPermission('CRUD:UPDATE:ROOMS'), */ roomsController.update);
-router.delete('/:id', verifySession, /* verifyPermission('CRUD:DELETE:ROOMS'), */ roomsController.remove);
+router.get('/:id', verifySession, verifyPermission('CRUD:READ:ROOMS'), roomsController.findById);
+router.patch('/:id', verifySession, verifyPermission('CRUD:UPDATE:ROOMS'), roomsController.update);
+router.delete('/:id', verifySession, verifyPermission('CRUD:DELETE:ROOMS'), roomsController.remove);
 
-router.get('/:id/seats', verifySession, /* verifyPermission('CRUD:READ:SEATS'), */ roomsController.getSeatMap);
-// La creación de asientos pasa por roomsController.createSeat (que internamente llama a SeatsService)
-router.post('/:id/seats', verifySession, /* verifyPermission('CRUD:CREATE:SEATS'), */ roomsController.createSeat);
+router.get('/:id/seats', verifySession, verifyPermission('CRUD:READ:SEATS'), roomsController.getSeatMap);
+router.post('/:id/seats', verifySession, verifyPermission('CRUD:CREATE:SEATS'), roomsController.createSeat);
 
 export default router;

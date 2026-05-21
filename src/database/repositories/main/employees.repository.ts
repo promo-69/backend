@@ -4,8 +4,6 @@ import EmployeesModel from '@database/models/main/employees.model.js';
 export interface EmployeesAttributes {
     id?: number;
     person: number;
-    // cinema y hire_date no existen en la tabla employees de la migración.
-    // La sucursal y fecha de inicio están en employee_positions.
     employee_code: string;
     deleted_at?: Date;
 }
@@ -38,7 +36,7 @@ class EmployeesRepository extends SequelizeRepositoryBase<EmployeesAttributes, n
                 include: [
                     {
                         association: '_JobPositions',
-                        attributes: ['id', 'title'], // la migración usa 'title', no 'name'
+                        attributes: ['id', 'title'],
                     },
                     {
                         association: '_Cinemas',
