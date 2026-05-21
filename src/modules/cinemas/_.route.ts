@@ -2,6 +2,7 @@ import { Router } from 'express';
 import cinemasController from './_.controller.js';
 import { verifySession, verifyPermission } from '@middlewares/auth.middleware.js';
 import roomsRouter from './rooms.route.js';
+import inventoryRouter from './inventory.route.js';
 
 const router = Router();
 
@@ -13,7 +14,7 @@ router.get('/:id', cinemasController.findById);
 router.post('/', verifySession, verifyPermission('CRUD:CREATE:CINEMAS'), cinemasController.create);
 router.put('/:id', verifySession, verifyPermission('CRUD:UPDATE:CINEMAS'), cinemasController.update);
 
-// DELETE — soft delete via deleted_at (la tabla no tiene columna status)
+// DELETE — soft delete via deleted_at
 router.delete('/:id', verifySession, verifyPermission('CRUD:DELETE:CINEMAS'), cinemasController.delete);
 
 // Contexto implícito — gerente de sede
@@ -25,5 +26,8 @@ router.post('/:cinemaId/employees', verifySession, cinemasController.createEmplo
 
 // Subrouter de salas
 router.use('/:cinemaId/rooms', roomsRouter);
+
+// Subrouter de inventario
+router.use('/:cinemaId/inventory', inventoryRouter);
 
 export default router;

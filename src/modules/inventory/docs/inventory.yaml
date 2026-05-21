@@ -1,0 +1,54 @@
+/inventory:
+    get:
+        summary: Get My Inventory
+        description: Returns the stock of all products in the cinema assigned to the authenticated user (JWT).
+        tags:
+            - Inventory
+        security:
+            - bearerAuth: []
+        responses:
+            '200':
+                description: Inventory list
+            '401':
+                description: Unauthorized
+            '500':
+                description: Internal server error
+    post:
+        summary: Register Movements
+        description: Register one or more inventory movements (entries, exits, shrinkage) using operation type codes.
+        tags:
+            - Inventory
+        security:
+            - bearerAuth: []
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        required:
+                            - movements
+                        properties:
+                            movements:
+                                type: array
+                                items:
+                                    type: object
+                                    required:
+                                        - operationTypeCode
+                                        - quantity
+                                    properties:
+                                        operationTypeCode:
+                                            type: string
+                                        quantity:
+                                            type: integer
+                                        remarks:
+                                            type: string
+        responses:
+            '201':
+                description: Movements registered
+            '400':
+                description: Validation error
+            '401':
+                description: Unauthorized
+            '500':
+                description: Internal server error

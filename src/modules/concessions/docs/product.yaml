@@ -4,8 +4,6 @@
         description: Retrieve a single concession product by its ID, including category and image.
         tags:
             - Concessions
-        security:
-            - bearerAuth: []
         parameters:
             - in: path
               name: id
@@ -43,15 +41,13 @@
                                             properties:
                                                 id:
                                                     type: integer
-                                                name:
-                                                    type: string
-            '401':
-                description: Unauthorized
+                                                    name:
+                                                        type: string
             '404':
                 description: Product not found
             '500':
                 description: Internal server error
-    put:
+    patch:
         summary: Update Product
         description: Update the details of an existing product. Optionally replace the image.
         tags:
@@ -105,5 +101,32 @@
                 description: Unauthorized
             '404':
                 description: Product not found
+            '500':
+                description: Internal server error
+    delete:
+        summary: Delete Product
+        description: Soft‑delete a product. Fails if the product belongs to active combos.
+        tags:
+            - Concessions
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: path
+              name: id
+              required: true
+              schema:
+                  type: integer
+              description: Product ID
+        responses:
+            '200':
+                description: Product deleted successfully
+            '400':
+                description: Bad request
+            '401':
+                description: Unauthorized
+            '404':
+                description: Product not found
+            '409':
+                description: Conflict — product belongs to active combos
             '500':
                 description: Internal server error

@@ -24,7 +24,6 @@ export default class CustomersModel extends SequelizeModelBase {
                 type: DataTypes.INTEGER,
                 defaultValue: 0,
             },
-            // La migración define 'current_points_balance', NO 'current_points'
             current_points_balance: {
                 allowNull: false,
                 type: DataTypes.INTEGER,
