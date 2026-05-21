@@ -12,12 +12,14 @@ router.get('/:id', cinemasController.findById);
 // Protegidos — gerencia general
 router.post('/', verifySession, verifyPermission('CRUD:CREATE:CINEMAS'), cinemasController.create);
 router.put('/:id', verifySession, verifyPermission('CRUD:UPDATE:CINEMAS'), cinemasController.update);
-router.patch('/:id/status', verifySession, verifyPermission('CRUD:UPDATE_STATUS:CINEMAS'), cinemasController.setStatus);
+
+// DELETE — soft delete via deleted_at (la tabla no tiene columna status)
+router.delete('/:id', verifySession, verifyPermission('CRUD:DELETE:CINEMAS'), cinemasController.delete);
 
 // Contexto implícito — gerente de sede
 router.put('/', verifySession, cinemasController.updateOwnCinema);
 
-// Contexto explícito — empleados
+// Empleados de una sucursal
 router.get('/:cinemaId/employees', verifySession, cinemasController.findEmployeesByCinema);
 router.post('/:cinemaId/employees', verifySession, cinemasController.createEmployeeInCinema);
 

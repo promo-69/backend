@@ -29,33 +29,32 @@ class CinemasController extends ControllerBase {
         return this.created(data, 'Sucursal registrada exitosamente');
     }
 
-    // PUT /cinemas — contexto implícito (gerente de sede)
-    async updateOwnCinema() {
-        const session = this.getSession<any>();
-        if (!session.cinemaId) throw new ValidationError('No tienes una sucursal asignada', []);
-        const body = this.getBody();
-        await CinemasService.updateCinema(session.cinemaId, body, session.userId, true); // restringido
-        return this.success(null, 'Sucursal actualizada exitosamente');
-    }
-
-    // PUT /cinemas/:id — contexto explícito (gerencia general)
+    // PUT /cinemas/:id — gerencia general (sin restricciones)
     async update() {
         const { id } = this.getParams();
         const body = this.getBody();
         const session = this.getSession<any>();
-        await CinemasService.updateCinema(Number(id), body, session.userId, false); // sin restricciones
+        await CinemasService.updateCinema(Number(id), body, session.userId, false);
         return this.success(null, 'Sucursal actualizada exitosamente');
     }
 
-    // PATCH /cinemas/:id/status — desactivar/activar sede
-    async setStatus() {
-        const { id } = this.getParams();
-        const { active } = this.getBody();
-        await CinemasService.setCinemaStatus(Number(id), active);
-        return this.success(null, `Sucursal ${active ? 'activada' : 'desactivada'} exitosamente`);
+    // PUT /cinemas — gerente de sede (contexto implícito, restringido)
+    async updateOwnCinema() {
+        const session = this.getSession<any>();
+        if (!session.cinemaId) throw new ValidationError('No tienes una sucursal asignada', []);
+        const body = this.getBody();
+        await CinemasService.updateCinema(session.cinemaId, body, session.userId, true);
+        return this.success(null, 'Sucursal actualizada exitosamente');
     }
 
-    // --- Empleados en una sucursal ---
+    // DELETE /cinemas/:id — eliminar sucursal (soft delete via deleted_at)
+    // La tabla cinemas NO tiene columna 'status'. Se elimina lógicamente.
+    async delete() {
+        const { id } = this.getParams();
+        await CinemasService.deleteCinema(Number(id));
+        return this.success(null, 'Sucursal eliminada exitosamente');
+    }
+
     // GET /cinemas/:cinemaId/employees
     async findEmployeesByCinema() {
         const { cinemaId } = this.getParams();

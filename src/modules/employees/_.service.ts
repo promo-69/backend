@@ -35,7 +35,6 @@ export class EmployeesService extends BaseService {
         const { _People: people, _EmployeePositions: positions, deleted_at, person, ...employeeFields } = raw;
 
         return {
-            // Datos biográficos de la persona (el "padre")
             person: people
                 ? {
                       id: people.id,
@@ -49,29 +48,26 @@ export class EmployeesService extends BaseService {
                   }
                 : null,
 
-            // Datos propios del registro en employees
             employee: {
                 ...employeeFields,
-                // Historial de cargos anidado en employee
                 positions: (positions ?? []).map((pos: any) => ({
                     id: pos.id,
                     start_date: pos.start_date,
                     end_date: pos.end_date ?? null,
                     salary_base: pos.salary_base ?? null,
                     is_active: pos.end_date === null,
+                    // La migración de job_positions usa 'title', no 'name'
                     job_position: pos._JobPositions
-                        ? { id: pos._JobPositions.id, name: pos._JobPositions.title }
+                        ? { id: pos._JobPositions.id, title: pos._JobPositions.title }
                         : { id: pos.job_position },
                     cinema: pos._Cinemas ? { id: pos._Cinemas.id, name: pos._Cinemas.name } : { id: pos.cinema },
                 })),
             },
 
-            // Registro de usuario (puede ser null si no tiene credenciales)
-            user: null as any, // se completa en _attachUser
+            user: null as any,
         };
     }
 
-    /* Adjunta el usuario asociado a la persona del empleado */
     private async _attachUser(formatted: any, personId: number) {
         if (!formatted) return null;
         try {
@@ -81,7 +77,6 @@ export class EmployeesService extends BaseService {
                       id: user.id,
                       email: user.email,
                       user_type: user.user_type,
-                      status: user.status,
                       signup_verified_at: user.signup_verified_at ?? null,
                   }
                 : null;
@@ -91,15 +86,15 @@ export class EmployeesService extends BaseService {
         return formatted;
     }
 
-    /* Lista empleados de la sucursal del usuario (contexto implícito).
-     * required: true → INNER JOIN → solo empleados con cargo activo en esa sede. */
     async findAllEmployees(cinemaId?: number, filters?: any) {
+        // Filtra por cargo activo en la sucursal si se especifica cinemaId
         const positionFilter: any = { end_date: null };
         if (cinemaId) positionFilter.cinema = cinemaId;
 
         const queryOptions = {
             count: true,
-            attributes: ['id', 'person', 'cinema', 'hire_date', 'employee_code'],
+            // employees en la migración solo tiene: id, person, employee_code, deleted_at
+            attributes: ['id', 'person', 'employee_code'],
             relations: [
                 {
                     association: '_People',
@@ -116,10 +111,13 @@ export class EmployeesService extends BaseService {
                 },
                 {
                     association: '_EmployeePositions',
-                    attributes: ['id', 'job_position', 'cinema', 'start_date', 'end_date'],
+                    attributes: ['id', 'job_position', 'cinema', 'start_date', 'end_date', 'salary_base'],
                     required: !!cinemaId,
                     where: positionFilter,
-                    include: [{ association: '_JobPositions', attributes: ['id', 'name'] }],
+                    include: [
+                        { association: '_JobPositions', attributes: ['id', 'title'] },
+                        { association: '_Cinemas', attributes: ['id', 'name'] },
+                    ],
                 },
             ],
         };
@@ -141,8 +139,6 @@ export class EmployeesService extends BaseService {
         };
     }
 
-    /* Detalle de un empleado con historial completo de cargos.
-     * Solo accesible si tiene un cargo ACTIVO en la sucursal del solicitante. */
     async findEmployeeById(id: number, cinemaId?: number) {
         const raw = await this._employees.getFull(id);
         if (!raw) throw new NotFoundError('Empleado no encontrado');
@@ -157,8 +153,6 @@ export class EmployeesService extends BaseService {
         return this._attachUser(formatted, raw.person);
     }
 
-    /* Contratación local (contexto implícito) o explícita (SUPER_ADMIN).
-     * Transacción atómica: people → employees → employee_positions → (opcional) users. */
     async createEmployee(employeeData: any, session: any) {
         let cinemaId: number;
         if (session.cinemaId) {
@@ -214,17 +208,16 @@ export class EmployeesService extends BaseService {
             }
 
             // 2. Crear empleado
+            // La tabla employees solo tiene: person, employee_code (NO cinema ni hire_date)
             const employee = await this._employees.create(
                 {
                     person: person.id,
-                    cinema: cinemaId,
-                    hire_date: employeeData.startDate ?? new Date(),
                     employee_code: employeeData.employeeCode,
                 },
                 { transaction },
             );
 
-            // 3. Crear cargo activo
+            // 3. Crear cargo activo en employee_positions (aquí sí va cinema y start_date)
             await this._employeePositions.create(
                 {
                     employee: employee.id,
@@ -248,7 +241,7 @@ export class EmployeesService extends BaseService {
                             email: employeeData.email,
                             password: hashedPassword,
                             user_type: 1,
-                            status: 1,
+                            role: employeeData.role ?? null,
                         },
                         { transaction },
                     );
@@ -263,11 +256,8 @@ export class EmployeesService extends BaseService {
         return this._attachUser(formatted, raw.person);
     }
 
-    /* PATCH /employees/:id — actualiza datos biográficos y/o employee_code.
-     * Concurrencia: adquiere LOCK sobre employees antes de modificar. */
     async updateEmployee(id: number, employeeData: any) {
         await this._employees.transaction(async (transaction: Transaction) => {
-            // Lock sobre el registro del empleado para evitar actualizaciones simultáneas
             const employee = await this._employees.getById(id, {
                 transaction,
                 lock: transaction.LOCK.UPDATE,
@@ -283,7 +273,6 @@ export class EmployeesService extends BaseService {
             if (employeeData.gender !== undefined) peopleUpdate.gender = employeeData.gender;
 
             if (Object.keys(peopleUpdate).length > 0) {
-                // Lock sobre el registro de people también
                 const person = await this._people.getById(employee.person, {
                     transaction,
                     lock: transaction.LOCK.UPDATE,
@@ -305,8 +294,6 @@ export class EmployeesService extends BaseService {
         return null;
     }
 
-    /* PATCH /employees/:id/position — SCD Tipo 2.
-     * Concurrencia: lock sobre el cargo activo antes de cerrarlo. */
     async changeEmployeePosition(employeeId: number, positionData: any) {
         this.validateRequired(positionData, ['jobPosition', 'cinema', 'startDate']);
 
@@ -317,14 +304,12 @@ export class EmployeesService extends BaseService {
         if (!cinema) throw new ValidationError('Sucursal inválida');
 
         const newPosition = await this._employeePositions.transaction(async (transaction: Transaction) => {
-            // Verificar que el empleado existe con lock
             const employee = await this._employees.getById(employeeId, {
                 transaction,
                 lock: transaction.LOCK.UPDATE,
             });
             if (!employee) throw new NotFoundError('Empleado no encontrado');
 
-            // Buscar y lockear el cargo activo (end_date IS NULL)
             const activePositionsResult = await this._employeePositions.getAll(
                 {
                     count: false,
@@ -338,10 +323,8 @@ export class EmployeesService extends BaseService {
 
             if (!activePosition) throw new ValidationError('El empleado no tiene un cargo activo');
 
-            // Cerrar solo el registro activo
             await this._employeePositions.update(activePosition.id, { end_date: new Date() }, { transaction });
 
-            // Crear nuevo cargo
             const created = await this._employeePositions.create(
                 {
                     employee: employeeId,
@@ -360,18 +343,14 @@ export class EmployeesService extends BaseService {
         return newPosition;
     }
 
-    /* DELETE /employees/:id — cierra cargo activo, soft-delete, desactiva usuario.
-     * Concurrencia: lock sobre employees y sobre el cargo activo. */
     async deleteEmployee(id: number) {
         await this._employees.transaction(async (transaction: Transaction) => {
-            // Lock sobre el registro del empleado
             const employee = await this._employees.getById(id, {
                 transaction,
                 lock: transaction.LOCK.UPDATE,
             });
             if (!employee) throw new NotFoundError('Empleado no encontrado');
 
-            // Buscar y lockear el cargo activo
             const activePositionsResult = await this._employeePositions.getAll(
                 {
                     count: false,
@@ -387,17 +366,15 @@ export class EmployeesService extends BaseService {
                 await this._employeePositions.update(activePosition.id, { end_date: new Date() }, { transaction });
             }
 
-            // Soft-delete del empleado
             await this._employees.delete(id, { transaction });
 
-            // Desactivar usuario si existe, con lock
             if (employee.person) {
                 const user = await this._users.getOne(
                     { person: employee.person },
                     { transaction, lock: transaction.LOCK.UPDATE },
                 );
                 if (user) {
-                    await this._users.update(user.id, { status: 0 }, { transaction });
+                    await this._users.update(user.id, { deleted_at: new Date() }, { transaction });
                 }
             }
         });

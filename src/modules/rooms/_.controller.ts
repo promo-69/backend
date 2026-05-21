@@ -1,12 +1,13 @@
 import { ControllerBase } from '@bases/controller.base.js';
 import RoomsService from './_.service.js';
+import SeatsService from '../seats/_.service.js';
 
 class RoomsController extends ControllerBase {
     constructor() {
         super();
     }
 
-    // GET /rooms (o /cinemas/:cinemaId/rooms)
+    // GET /cinemas/:cinemaId/rooms  o  GET /rooms
     async findAll() {
         const { cinemaId } = this.getParams();
         const filters = this.getQueryFilters();
@@ -25,7 +26,7 @@ class RoomsController extends ControllerBase {
     // POST /rooms/:id/projection-types
     async createProjectionType() {
         const { id } = this.getParams();
-        const { projectionType } = this.getBody(); // ← camelCase
+        const { projectionType } = this.getBody();
         const data = await RoomsService.createRoomProjectionType(Number(id), Number(projectionType));
         return this.created(data, 'Tipo de proyección asignado');
     }
@@ -75,7 +76,7 @@ class RoomsController extends ControllerBase {
         return this.success(data, 'Mapa de asientos obtenido exitosamente');
     }
 
-    // POST /api/v1/rooms/:id/seats
+    // POST /rooms/:id/seats  (delegado a SeatsService importado aquí, no en la ruta)
     async createSeat() {
         const { id } = this.getParams();
         const body = this.getBody();

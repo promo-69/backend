@@ -1,11 +1,11 @@
 meta {
-  name: Update Cinema (Explicit)
+  name: Update Own Cinema
   type: http
-  seq: 4
+  seq: 5
 }
 
 put {
-  url: {{baseUrl}}/cinemas/{{testCinemaId}}
+  url: {{baseUrl}}/cinemas
   body: json
   auth: bearer
 }
@@ -16,9 +16,7 @@ auth:bearer {
 
 body:json {
   {
-    "name": "Test Cinema Bruno Updated",
-    "address": "456 Updated Ave",
-    "phone": "+1234567899",
+    "phone": "+58212000000",
     "openingTime": "10:00",
     "closingTime": "22:00"
   }

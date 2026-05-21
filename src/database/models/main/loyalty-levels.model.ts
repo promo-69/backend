@@ -10,13 +10,13 @@ export default class LoyaltyLevelsModel extends SequelizeModelBase {
                 allowNull: true,
                 type: DataTypes.INTEGER,
             },
+            // La migración define 'name', NO 'description'
             name: {
                 allowNull: false,
                 type: DataTypes.STRING(100),
             },
             required_points: {
-                allowNull: false,
-                defaultValue: 0,
+                allowNull: true,
                 type: DataTypes.INTEGER,
             },
             deleted_at: {

@@ -25,8 +25,7 @@ router.patch('/:id', verifySession, /* verifyPermission('CRUD:UPDATE:ROOMS'), */
 router.delete('/:id', verifySession, /* verifyPermission('CRUD:DELETE:ROOMS'), */ roomsController.remove);
 
 router.get('/:id/seats', verifySession, /* verifyPermission('CRUD:READ:SEATS'), */ roomsController.getSeatMap);
-router.post('/:id/seats', verifySession, /* verifyPermission('CRUD:CREATE:SEATS'), */ seatsController.create);
-
-router.post('/:id/seats', verifySession, roomsController.createSeat);
+// La creación de asientos pasa por roomsController.createSeat (que internamente llama a SeatsService)
+router.post('/:id/seats', verifySession, /* verifyPermission('CRUD:CREATE:SEATS'), */ roomsController.createSeat);
 
 export default router;

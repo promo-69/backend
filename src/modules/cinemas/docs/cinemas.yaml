@@ -1,7 +1,7 @@
 /cinemas:
     get:
         summary: List All Cinemas
-        description: Public endpoint. Returns all active cinemas.
+        description: Public endpoint. Returns all cinemas.
         tags:
             - Cinemas
         responses:
@@ -29,13 +29,11 @@
                                                 type: string
                                             closing_time:
                                                 type: string
-                                            active:
-                                                type: boolean
             '500':
                 description: Internal server error
     post:
         summary: Create Cinema
-        description: Register a new cinema. Requires admin role.
+        description: Register a new cinema. Requires general management role.
         tags:
             - Cinemas
         security:
@@ -75,5 +73,36 @@
                 description: Unauthorized
             '409':
                 description: Duplicate name
+            '500':
+                description: Internal server error
+    put:
+        summary: Update Own Cinema (Implicit Context)
+        description: Update the operating policies (phone, schedules) of the cinema assigned to the authenticated user. The cinema ID is taken from the JWT.
+        tags:
+            - Cinemas
+        security:
+            - bearerAuth: []
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            phone:
+                                type: string
+                            openingTime:
+                                type: string
+                                pattern: '^([01]\d|2[0-3]):[0-5]\d$'
+                            closingTime:
+                                type: string
+                                pattern: '^([01]\d|2[0-3]):[0-5]\d$'
+        responses:
+            '200':
+                description: Cinema updated
+            '400':
+                description: Validation error
+            '401':
+                description: Unauthorized
             '500':
                 description: Internal server error

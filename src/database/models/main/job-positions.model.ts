@@ -10,13 +10,19 @@ export default class JobPositionsModel extends SequelizeModelBase {
                 allowNull: true,
                 type: DataTypes.INTEGER,
             },
+            // La migración usa 'title', no 'name'
             title: {
                 allowNull: false,
-                type: DataTypes.STRING(100),
+                type: DataTypes.STRING(255),
             },
             description: {
                 allowNull: true,
                 type: DataTypes.STRING(255),
+            },
+            is_pensionable: {
+                allowNull: false,
+                type: DataTypes.BOOLEAN,
+                defaultValue: false,
             },
             deleted_at: {
                 allowNull: true,
@@ -35,7 +41,7 @@ export default class JobPositionsModel extends SequelizeModelBase {
             isBasicTable: true,
             schema: 'public',
             tableName: 'job_positions',
-            appRawName: 'job_positions',
+            appRawName: 'job-positions',
         };
     }
 

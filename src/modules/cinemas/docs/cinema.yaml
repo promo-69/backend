@@ -33,15 +33,13 @@
                                             type: string
                                         closing_time:
                                             type: string
-                                        active:
-                                            type: boolean
             '404':
                 description: Cinema not found
             '500':
                 description: Internal server error
     put:
-        summary: Update Cinema (General Management)
-        description: Full update of a cinema. Requires admin role. Can modify name, address, phone and schedules.
+        summary: Update Cinema (Explicit Context)
+        description: Full update of a cinema by general management. All fields can be modified.
         tags:
             - Cinemas
         security:
@@ -80,5 +78,29 @@
                 description: Unauthorized
             '404':
                 description: Cinema not found
+            '500':
+                description: Internal server error
+    delete:
+        summary: Delete Cinema
+        description: Soft‑delete a cinema. Fails if the cinema has active rooms.
+        tags:
+            - Cinemas
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Cinema deleted
+            '401':
+                description: Unauthorized
+            '404':
+                description: Cinema not found
+            '409':
+                description: Conflict – cinema has active rooms
             '500':
                 description: Internal server error
