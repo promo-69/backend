@@ -1,13 +1,13 @@
 import { DataTypes } from 'sequelize';
 import { type RelationsReturn, SequelizeModelBase } from '@database/models/bases/sequelize.model.js';
 
-export default class EventTypesModel extends SequelizeModelBase {
+export default class BookingTypesModel extends SequelizeModelBase {
 	static definition() {
 		return {
 			id: {
 				primaryKey: true,
 				autoIncrement: true,
-				allowNull: true,
+				allowNull: false,
 				type: DataTypes.INTEGER,
 			},
 			description: {
@@ -17,7 +17,7 @@ export default class EventTypesModel extends SequelizeModelBase {
 			deleted_at: {
 				allowNull: true,
 				type: DataTypes.DATE,
-			},
+			}
 		};
 	}
 
@@ -30,8 +30,8 @@ export default class EventTypesModel extends SequelizeModelBase {
 			deletedAt: 'deleted_at',
 			isBasicTable: true,
 			schema: 'public',
-			tableName: 'event_types',
-			appRawName: 'event-types',
+			tableName: 'booking_types',
+			appRawName: 'booking-types',
 		};
 	}
 

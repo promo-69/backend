@@ -5,6 +5,17 @@ module.exports = {
 	async up(queryInterface, Sequelize) {
 		// --- MÓDULO 3: INFRAESTRUCTURA ---
 		await queryInterface.bulkInsert(
+			'room_types',
+			[
+				{ id: 1, description: 'Tradicional' },
+				{ id: 2, description: 'Premium' },
+				{ id: 3, description: 'VIP' },
+				{ id: 4, description: 'IMAX' },
+			],
+			{},
+		);
+
+		await queryInterface.bulkInsert(
 			'projection_types',
 			[
 				{ id: 1, description: '2D Digital' },
@@ -129,6 +140,28 @@ module.exports = {
 			{},
 		);
 
+		await queryInterface.bulkInsert(
+			'languages',
+			[
+				{ id: 1, description: 'Español' },
+				{ id: 2, description: 'Inglés' },
+				{ id: 3, description: 'Portugués' },
+				{ id: 4, description: 'Francés' },
+				{ id: 5, description: 'Italiano' },
+			],
+			{},
+		);
+
+		await queryInterface.bulkInsert(
+			'booking_types',
+			[
+				{ id: 1, description: 'Película' },
+				{ id: 2, description: 'Evento Alternativo' },
+				{ id: 3, description: 'Alquiler Privado' },
+			],
+			{},
+		);
+
 		// --- GAMIFICACIÓN: Niveles Minerales ---
 		await queryInterface.bulkInsert(
 			'loyalty_levels',
@@ -205,13 +238,16 @@ module.exports = {
 			'loyalty_levels',
 			'modifier_scopes',
 			'week_days',
+			'booking_types',
 			'audience_categories',
 			'movie_lifecycle_states',
 			'age_classifications',
+			'languages',
 			'genres',
 			'currencies',
 			'seat_conditions',
 			'seat_categories',
+			'room_types',
 			'projection_types',
 		];
 

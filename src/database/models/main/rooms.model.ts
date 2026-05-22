@@ -7,10 +7,14 @@ export default class RoomsModel extends SequelizeModelBase {
 			id: {
 				primaryKey: true,
 				autoIncrement: true,
-				allowNull: true,
+				allowNull: false,
 				type: DataTypes.INTEGER,
 			},
 			cinema: {
+				allowNull: false,
+				type: DataTypes.INTEGER,
+			},
+			room_type: {
 				allowNull: false,
 				type: DataTypes.INTEGER,
 			},
@@ -29,7 +33,7 @@ export default class RoomsModel extends SequelizeModelBase {
 			deleted_at: {
 				allowNull: true,
 				type: DataTypes.DATE,
-			},
+			}
 		};
 	}
 
@@ -40,7 +44,7 @@ export default class RoomsModel extends SequelizeModelBase {
 			createdAt: false,
 			updatedAt: false,
 			deletedAt: 'deleted_at',
-			isBasicTable: true,
+			isBasicTable: false,
 			schema: 'public',
 			tableName: 'rooms',
 			appRawName: 'rooms',
@@ -59,6 +63,17 @@ export default class RoomsModel extends SequelizeModelBase {
 				type: 'hasMany',
 				target: 'Cinemas',
 				options: { foreignKey: 'cinema', targetKey: 'id', as: '_Rooms' },
+			},
+			{
+				type: 'belongsTo',
+				target: 'RoomTypes',
+				options: { foreignKey: 'room_type', targetKey: 'id', as: '_RoomTypes' },
+			},
+			{
+				inversed: true,
+				type: 'hasMany',
+				target: 'RoomTypes',
+				options: { foreignKey: 'room_type', targetKey: 'id', as: '_Rooms' },
 			},
 		];
 	}
