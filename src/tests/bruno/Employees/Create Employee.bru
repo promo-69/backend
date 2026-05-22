@@ -30,8 +30,8 @@ body:json {
 
 script:post-response {
   const resBody = res.getBody();
-  if (res.getStatus() === 201 && resBody && resBody.data && resBody.data.id) {
-    bru.setEnvVar('testEmployeeId', resBody.data.id);
+  if (res.getStatus() === 201 && resBody?.data?.employee?.id) {
+    bru.setEnvVar('testEmployeeId', resBody.data.employee.id);
   }
 }
 

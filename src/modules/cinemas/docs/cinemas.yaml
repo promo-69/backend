@@ -1,7 +1,7 @@
 /cinemas:
     get:
         summary: List All Cinemas
-        description: Public endpoint. Returns all active cinemas.
+        description: Public endpoint. Returns all cinemas.
         tags:
             - Cinemas
         responses:
@@ -29,13 +29,11 @@
                                                 type: string
                                             closing_time:
                                                 type: string
-                                            active:
-                                                type: boolean
             '500':
                 description: Internal server error
     post:
         summary: Create Cinema
-        description: Register a new cinema. Requires admin role.
+        description: Register a new cinema. Requires general management role.
         tags:
             - Cinemas
         security:
@@ -77,9 +75,9 @@
                 description: Duplicate name
             '500':
                 description: Internal server error
-    put:
-        summary: Update Own Cinema
-        description: Update the operating policies of the cinema assigned to the authenticated user (implicit context). Only phone and opening/closing times can be changed.
+    patch:
+        summary: Update Own Cinema (Implicit Context)
+        description: Update the operating policies (phone, schedules) of the cinema assigned to the authenticated user. The cinema ID is taken from the JWT.
         tags:
             - Cinemas
         security:

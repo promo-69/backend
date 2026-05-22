@@ -1,11 +1,11 @@
 meta {
-  name: Update Category
+  name: Register Inventory Movements
   type: http
-  seq: 14
+  seq: 3
 }
 
-put {
-  url: {{baseUrl}}/concessions/categories/{{testCategoryId}}
+post {
+  url: {{baseUrl}}/inventory/{{testInventoryId}}/movements
   body: json
   auth: bearer
 }
@@ -16,8 +16,9 @@ auth:bearer {
 
 body:json {
   {
-    "name": "Updated Category Bruno",
-    "description": "An updated category during Bruno test execution."
+    "movements": [
+      { "operationTypeCode": "REPLENISH", "quantity": 100, "remarks": "Weekly replenishment" }
+    ]
   }
 }
 

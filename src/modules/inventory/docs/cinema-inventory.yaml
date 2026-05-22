@@ -1,0 +1,68 @@
+/cinemas/{cinemaId}/inventory:
+    get:
+        summary: Get Inventory by Cinema
+        description: Returns the inventory of a specific cinema (remote audit).
+        tags:
+            - Inventory
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: cinemaId
+              in: path
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Inventory list
+            '401':
+                description: Unauthorized
+            '500':
+                description: Internal server error
+
+/cinemas/{cinemaId}/inventory/{id}/movements:
+    post:
+        summary: Register Inventory Movements for a Cinema
+        description: Register movements for a specific inventory record. The body is an array of movement objects.
+        tags:
+            - Inventory
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: cinemaId
+              in: path
+              required: true
+              schema:
+                  type: integer
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: array
+                        items:
+                            type: object
+                            required:
+                                - operationType
+                                - quantity
+                            properties:
+                                operationType:
+                                    type: integer
+                                quantity:
+                                    type: integer
+                                remarks:
+                                    type: string
+        responses:
+            '201':
+                description: Movements registered
+            '400':
+                description: Validation error
+            '401':
+                description: Unauthorized
+            '500':
+                description: Internal server error

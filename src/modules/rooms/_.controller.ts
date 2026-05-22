@@ -1,19 +1,24 @@
 import { ControllerBase } from '@bases/controller.base.js';
 import RoomsService from './_.service.js';
+import SeatManagementService from '@services/seat-management.service.js';
 
 class RoomsController extends ControllerBase {
     constructor() {
         super();
     }
 
-    // GET /rooms (o /cinemas/:cinemaId/rooms)
+    // GET /rooms — stock de la sede implícita (cinemaId del JWT)
     async findAll() {
-        const { cinemaId } = this.getParams();
-        const filters = this.getQueryFilters();
-        const data = cinemaId
-            ? await RoomsService.findAll(Number(cinemaId), filters)
-            : await RoomsService.findAll(undefined, filters);
+        const session = this.getSession<any>();
+        const data = await RoomsService.findAll(session?.cinemaId, this.getQueryFilters());
         return data;
+    }
+
+    // GET /rooms/:id
+    async findById() {
+        const { id } = this.getParams();
+        const data = await RoomsService.findById(Number(id));
+        return this.success(data, 'Sala obtenida exitosamente');
     }
 
     // GET /rooms/:id/projection-types
@@ -25,7 +30,7 @@ class RoomsController extends ControllerBase {
     // POST /rooms/:id/projection-types
     async createProjectionType() {
         const { id } = this.getParams();
-        const { projectionType } = this.getBody(); // ← camelCase
+        const { projectionType } = this.getBody();
         const data = await RoomsService.createRoomProjectionType(Number(id), Number(projectionType));
         return this.created(data, 'Tipo de proyección asignado');
     }
@@ -35,22 +40,6 @@ class RoomsController extends ControllerBase {
         const { id, projectionTypeId } = this.getParams();
         await RoomsService.deleteRoomProjectionType(Number(id), Number(projectionTypeId));
         return this.noContent();
-    }
-
-    // GET /rooms/:id
-    async findById() {
-        const { id } = this.getParams();
-        const data = await RoomsService.findById(Number(id));
-        return this.success(data, 'Sala obtenida exitosamente');
-    }
-
-    // POST /cinemas/:cinemaId/rooms
-    async create() {
-        const { cinemaId } = this.getParams();
-        const body = this.getBody();
-        const session = this.getSession<any>();
-        const data = await RoomsService.createRoom(Number(cinemaId), body, session?.userId);
-        return this.created(data, 'Sala registrada exitosamente');
     }
 
     // PATCH /rooms/:id
@@ -73,6 +62,14 @@ class RoomsController extends ControllerBase {
         const { id } = this.getParams();
         const data = await RoomsService.getSeatMap(Number(id), this.getQueryFilters());
         return this.success(data, 'Mapa de asientos obtenido exitosamente');
+    }
+
+    // POST /rooms/:id/seats — delega al caso de uso compartido de asientos
+    async createSeat() {
+        const { id } = this.getParams();
+        const body = this.getBody();
+        await SeatManagementService.createSeats(Number(id), body);
+        return this.created(null, 'Asiento(s) agregado(s) exitosamente');
     }
 }
 

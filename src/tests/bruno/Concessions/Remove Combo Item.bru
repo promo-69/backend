@@ -1,11 +1,11 @@
 meta {
-  name: Delete Category
+  name: Remove Combo Item
   type: http
-  seq: 15
+  seq: 20
 }
 
 delete {
-  url: {{baseUrl}}/concessions/categories/{{testCategoryId}}
+  url: {{baseUrl}}/concessions/combos/{{testComboId}}/items/{{testComboItemId}}
   body: none
   auth: bearer
 }

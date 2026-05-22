@@ -55,41 +55,23 @@ export default class EmployeePositionsModel extends SequelizeModelBase {
 		};
 	}
 
-	static override relations(): RelationsReturn {
-		return [
-			{
-				type: 'belongsTo',
-				target: 'Employees',
-				options: { foreignKey: 'employee', targetKey: 'id', as: '_Employees' },
-			},
-			{
-				inversed: true,
-				type: 'hasMany',
-				target: 'Employees',
-				options: { foreignKey: 'employee', targetKey: 'id', as: '_EmployeePositions' },
-			},
-			{
-				type: 'belongsTo',
-				target: 'JobPositions',
-				options: { foreignKey: 'job_position', targetKey: 'id', as: '_JobPositions' },
-			},
-			{
-				inversed: true,
-				type: 'hasMany',
-				target: 'JobPositions',
-				options: { foreignKey: 'job_position', targetKey: 'id', as: '_EmployeePositions' },
-			},
-			{
-				type: 'belongsTo',
-				target: 'Cinemas',
-				options: { foreignKey: 'cinema', targetKey: 'id', as: '_Cinemas' },
-			},
-			{
-				inversed: true,
-				type: 'hasMany',
-				target: 'Cinemas',
-				options: { foreignKey: 'cinema', targetKey: 'id', as: '_EmployeePositions' },
-			},
-		];
-	}
+    static override relations(): RelationsReturn {
+        return [
+            {
+                type: 'belongsTo',
+                target: 'Employees',
+                options: { foreignKey: 'employee', targetKey: 'id', as: '_Employees' },
+            },
+            {
+                type: 'belongsTo',
+                target: 'JobPositions',
+                options: { foreignKey: 'job_position', targetKey: 'id', as: '_JobPositions' },
+            },
+            {
+                type: 'belongsTo',
+                target: 'Cinemas',
+                options: { foreignKey: 'cinema', targetKey: 'id', as: '_Cinemas' },
+            },
+        ];
+    }
 }

@@ -1,6 +1,6 @@
 import { ControllerBase } from '@bases/controller.base.js';
 import CinemasService from './_.service.js';
-import EmployeesService from '../employees/_.service.js';
+import EmployeeManagementService from '@services/employee-management.service.js';
 import { ValidationError } from '@errors/validation.error.js';
 
 class CinemasController extends ControllerBase {
@@ -29,47 +29,52 @@ class CinemasController extends ControllerBase {
         return this.created(data, 'Sucursal registrada exitosamente');
     }
 
-    // PUT /cinemas — contexto implícito (gerente de sede)
-    async updateOwnCinema() {
-        const session = this.getSession<any>();
-        if (!session.cinemaId) throw new ValidationError('No tienes una sucursal asignada', []);
-        const body = this.getBody();
-        await CinemasService.updateCinema(session.cinemaId, body, session.userId, true); // restringido
-        return this.success(null, 'Sucursal actualizada exitosamente');
-    }
-
-    // PUT /cinemas/:id — contexto explícito (gerencia general)
+    // PATCH /cinemas/:id — gerencia general (sin restricciones)
     async update() {
         const { id } = this.getParams();
         const body = this.getBody();
         const session = this.getSession<any>();
-        await CinemasService.updateCinema(Number(id), body, session.userId, false); // sin restricciones
+        await CinemasService.updateCinema(Number(id), body, session.userId, false);
         return this.success(null, 'Sucursal actualizada exitosamente');
     }
 
-    // PATCH /cinemas/:id/status — desactivar/activar sede
-    async setStatus() {
-        const { id } = this.getParams();
-        const { active } = this.getBody();
-        await CinemasService.setCinemaStatus(Number(id), active);
-        return this.success(null, `Sucursal ${active ? 'activada' : 'desactivada'} exitosamente`);
+    // PATCH /cinemas — gerente de sede (contexto implícito, restringido)
+    async updateOwnCinema() {
+        const session = this.getSession<any>();
+        if (!session.cinemaId) throw new ValidationError('No tienes una sucursal asignada en tu sesión', []);
+        const body = this.getBody();
+        await CinemasService.updateCinema(session.cinemaId, body, session.userId, true);
+        return this.success(null, 'Sucursal actualizada exitosamente');
     }
 
-    // --- Empleados en una sucursal ---
-    // GET /cinemas/:cinemaId/employees
+    // DELETE /cinemas/:id — soft delete
+    async delete() {
+        const { id } = this.getParams();
+        await CinemasService.deleteCinema(Number(id));
+        return this.success(null, 'Sucursal eliminada exitosamente');
+    }
+
+    // GET /cinemas/:cinemaId/employees — usa caso de uso compartido
     async findEmployeesByCinema() {
         const { cinemaId } = this.getParams();
-        const data = await EmployeesService.findAllEmployees(Number(cinemaId), this.getQueryFilters());
+        const data = await EmployeeManagementService.findAllEmployees(Number(cinemaId), this.getQueryFilters());
         return data;
     }
 
-    // POST /cinemas/:cinemaId/employees
+    // POST /cinemas/:cinemaId/employees — usa caso de uso compartido
     async createEmployeeInCinema() {
         const { cinemaId } = this.getParams();
         const employeeData = this.getBody();
-        const session = { cinemaId: Number(cinemaId) };
-        const data = await EmployeesService.createEmployee(employeeData, session);
+        const data = await EmployeeManagementService.createEmployee(employeeData, Number(cinemaId));
         return this.created(data, 'Empleado creado exitosamente');
+    }
+
+    // DELETE /cinemas/:cinemaId/employees/:employeeId
+    async removeEmployeeFromCinema() {
+        const { cinemaId, employeeId } = this.getParams();
+        await EmployeeManagementService.findEmployeeById(Number(employeeId), Number(cinemaId));
+        await EmployeeManagementService.deleteEmployee(Number(employeeId));
+        return this.success(null, 'Empleado desactivado exitosamente');
     }
 }
 

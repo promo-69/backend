@@ -33,42 +33,12 @@ export class CinemasService extends BaseService {
     private get _rooms() {
         return Database.repository('main', 'rooms') as any;
     }
-    private get _auditLogs() {
-        return Database.repository('main', 'catalog-audit-logs') as any;
-    }
-
-    private async _writeAudit(
-        tableName: string,
-        recordId: number,
-        action: 'CREATE' | 'UPDATE' | 'DELETE',
-        previousData: object | null,
-        newData: object | null,
-        changedBy?: number,
-        transaction?: Transaction,
-    ) {
-        try {
-            await this._auditLogs.create(
-                {
-                    table_name: tableName,
-                    record_id: recordId,
-                    action,
-                    previous_data: previousData,
-                    new_data: newData,
-                    changed_by: changedBy ?? null,
-                },
-                { transaction },
-            );
-        } catch {
-            // La auditoría nunca debe bloquear la operación principal
-        }
-    }
 
     private _validateTimeFormat(time: string, fieldName: string): void {
         if (!TIME_REGEX.test(time))
             throw new ValidationError(`El campo '${fieldName}' debe tener formato HH:MM (ej: 09:00)`, [fieldName]);
     }
 
-    // --- Registrar sucursal (gerencia general) ---
     async createCinema(body: CreateCinemaBody, actorUserId?: number) {
         const { name, address, phone, openingTime, closingTime } = body;
 
@@ -76,7 +46,7 @@ export class CinemasService extends BaseService {
         this._validateTimeFormat(openingTime, 'openingTime');
         this._validateTimeFormat(closingTime, 'closingTime');
 
-        if (openingTime > closingTime)
+        if (openingTime >= closingTime)
             throw new ValidationError('El horario de cierre debe ser posterior al de apertura', ['closingTime']);
 
         const existing = await this._cinemas.getByName(name);
@@ -90,12 +60,9 @@ export class CinemasService extends BaseService {
             closing_time: closingTime,
         });
 
-        //await this._writeAudit('cinemas', created.id, 'CREATE', null, created, actorUserId);
-
         return this._cinemas.getFull(created.id);
     }
 
-    // --- Modificar sucursal ---
     async updateCinema(id: number, body: UpdateCinemaBody, actorUserId?: number, restricted = false) {
         return this._cinemas.transaction(async (transaction: Transaction) => {
             const cinema = await this._cinemas.getById(id, {
@@ -117,12 +84,6 @@ export class CinemasService extends BaseService {
                     this._validateTimeFormat(closingTime, 'closingTime');
                     updateData.closing_time = closingTime;
                 }
-                const newOpen = (updateData.opening_time as string) ?? cinema.opening_time;
-                const newClose = (updateData.closing_time as string) ?? cinema.closing_time;
-                if (newOpen >= newClose)
-                    throw new ValidationError('El horario de cierre debe ser posterior al de apertura', [
-                        'closingTime',
-                    ]);
             } else {
                 if (name !== undefined && name !== cinema.name) {
                     const existing = await this._cinemas.getByName(name);
@@ -140,6 +101,9 @@ export class CinemasService extends BaseService {
                     this._validateTimeFormat(closingTime, 'closingTime');
                     updateData.closing_time = closingTime;
                 }
+            }
+
+            if (Object.keys(updateData).length > 0) {
                 const newOpen = (updateData.opening_time as string) ?? cinema.opening_time;
                 const newClose = (updateData.closing_time as string) ?? cinema.closing_time;
                 if (newOpen >= newClose)
@@ -151,20 +115,32 @@ export class CinemasService extends BaseService {
             if (Object.keys(updateData).length === 0)
                 throw new ValidationError('No se proporcionaron datos para actualizar', []);
 
-            await this._writeAudit(
-                'cinemas',
-                id,
-                'UPDATE',
-                cinema,
-                { ...cinema, ...updateData },
-                actorUserId,
-                transaction,
-            );
             await this._cinemas.update(id, updateData, { transaction });
         });
     }
 
-    // --- Consultas ---
+    // setCinemaStatus eliminado: la tabla cinemas NO tiene columna 'status' en la migración.
+    // La eliminación lógica se hace via deleted_at (soft delete).
+    async deleteCinema(id: number) {
+        return this._cinemas.transaction(async (transaction: Transaction) => {
+            const cinema = await this._cinemas.getById(id, {
+                transaction,
+                lock: transaction.LOCK.UPDATE,
+            });
+            if (!cinema) throw new NotFoundError('Sucursal no encontrada');
+
+            // Verificar que no tenga salas activas
+            const activeRooms = await this._rooms.count({ cinema: id, deleted_at: null }, { transaction });
+            if (activeRooms > 0)
+                throw new ConflictError(
+                    'No se puede eliminar la sucursal porque tiene salas activas',
+                    'CINEMA_HAS_ACTIVE_ROOMS',
+                );
+
+            await this._cinemas.delete(id, { transaction });
+        });
+    }
+
     async findAll(filters?: ProcessedQueryFilters) {
         return this._cinemas.getAllFull(filters);
     }

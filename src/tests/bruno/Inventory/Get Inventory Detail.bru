@@ -1,11 +1,11 @@
 meta {
-  name: Get Inventory
+  name: Get Inventory Detail
   type: http
-  seq: 9
+  seq: 2
 }
 
 get {
-  url: {{baseUrl}}/concessions/inventory/{{testCinemaId}}
+  url: {{baseUrl}}/inventory/{{testInventoryId}}
   body: none
   auth: bearer
 }

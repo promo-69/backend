@@ -21,24 +21,12 @@ export class CustomersService extends BaseService {
         return Database.repository('main', 'loyalty-levels') as any;
     }
 
-    /* Formatea la respuesta del cliente en una estructura legible:
-     * person en la raíz como "padre", customer y loyalty como propiedades. */
     private _formatCustomerResponse(raw: any) {
         if (!raw) return null;
 
-        const {
-            _People: people,
-            _LoyaltyLevel: loyaltyLevel,
-            _LoyaltyLevels: loyaltyLevelAlt, // el alias puede variar según la relación
-            deleted_at,
-            person,
-            ...customerFields
-        } = raw;
-
-        const resolvedLevel = loyaltyLevel ?? loyaltyLevelAlt ?? null;
+        const { _People: people, _LoyaltyLevels: loyaltyLevel, deleted_at, person, ...customerFields } = raw;
 
         return {
-            // Datos biográficos de la persona (el "padre")
             person: people
                 ? {
                       id: people.id,
@@ -52,39 +40,28 @@ export class CustomersService extends BaseService {
                   }
                 : null,
 
-            // Datos propios de customers + fidelización
             customer: {
                 ...customerFields,
                 loyalty: {
                     level_id: customerFields.loyalty_level,
-                    level_name: resolvedLevel?.description ?? resolvedLevel?.name ?? null,
+                    level_name: loyaltyLevel?.name ?? null,
                     progress_points: customerFields.level_progress_points,
+                    current_points_balance: customerFields.current_points_balance,
                 },
             },
         };
     }
 
-    /* Listar clientes — búsqueda por cédula opcional, útil en taquilla */
     async findAllCustomers(filters?: any) {
-        const queryOptions = {
+        // Las relaciones viven en el repositorio — se reutilizan sin duplicar.
+        const result = await this._customers.getAll({
             count: true,
-            relations: [
-                {
-                    association: '_People',
-                    attributes: ['id', 'document_number', 'first_name', 'last_name', 'phone_number', 'personal_email'],
-                },
-                {
-                    association: '_LoyaltyLevels',
-                    attributes: ['id', 'description'],
-                    required: false,
-                },
-            ],
-        };
-
-        const result = await this._customers.getAll({ ...queryOptions, ...filters });
+            relations: this._customers.relations,
+            ...filters,
+        });
 
         if (Array.isArray(result)) {
-            return result.map((c) => this._formatCustomerResponse(c));
+            return result.map((c: any) => this._formatCustomerResponse(c));
         }
 
         return {
@@ -93,7 +70,6 @@ export class CustomersService extends BaseService {
         };
     }
 
-    /* Registro rápido en taquilla (people + customers, sin user) */
     async createCustomer(body: any) {
         this.validateRequired(body, ['documentNumber', 'firstName', 'lastName']);
 
@@ -123,6 +99,7 @@ export class CustomersService extends BaseService {
                 {
                     person: person.id,
                     level_progress_points: 0,
+                    current_points_balance: 0,
                     loyalty_level: 1,
                 },
                 { transaction },
@@ -135,37 +112,16 @@ export class CustomersService extends BaseService {
         return this._formatCustomerResponse(raw);
     }
 
-    /* Expediente del cliente + datos biográficos */
     async findCustomerById(id: number) {
+        // Reutiliza las mismas relaciones del repositorio.
         const raw = await this._customers.getById(id, {
-            relations: [
-                {
-                    association: '_People',
-                    attributes: [
-                        'id',
-                        'document_number',
-                        'first_name',
-                        'last_name',
-                        'gender',
-                        'phone_number',
-                        'personal_email',
-                        'birth_date',
-                    ],
-                },
-                {
-                    association: '_LoyaltyLevels',
-                    attributes: ['id', 'description'],
-                    required: false,
-                },
-            ],
+            relations: this._customers.relations,
         });
 
         if (!raw) throw new NotFoundError('Cliente no encontrado');
         return this._formatCustomerResponse(raw);
     }
 
-    /* PATCH /customers/:id — actualización parcial de datos biográficos.
-     * Concurrencia: lock sobre customers y sobre people antes de modificar. */
     async updateCustomer(id: number, body: any) {
         const updateData: Record<string, any> = {};
         if (body.firstName !== undefined) updateData.first_name = body.firstName;
@@ -180,14 +136,12 @@ export class CustomersService extends BaseService {
         }
 
         await this._customers.transaction(async (transaction: Transaction) => {
-            // Lock sobre el registro del cliente
             const customer = await this._customers.getById(id, {
                 transaction,
                 lock: transaction.LOCK.UPDATE,
             });
             if (!customer) throw new NotFoundError('Cliente no encontrado');
 
-            // Lock sobre el registro de people
             const person = await this._people.getById(customer.person, {
                 transaction,
                 lock: transaction.LOCK.UPDATE,
@@ -200,18 +154,17 @@ export class CustomersService extends BaseService {
         return null;
     }
 
-    /* Caso de uso compartido: actualización atómica de puntos de lealtad.
-     * Reutilizable desde orders (acumulación por compra) y desde adjustLoyaltyPoints (admin).
-     * Requiere una transacción activa — el llamador es responsable de abrirla. */
+    /**
+     * Caso de uso compartido: actualización atómica de puntos de lealtad.
+     * Requiere una transacción activa — el llamador es responsable de abrirla.
+     */
     async applyLoyaltyPointsDelta(
         customerId: number,
-        delta: number, // positivo = acumulación, negativo = canje/resta
+        delta: number,
         operationTypeId: number,
         orderId: number | null,
-        remarks: string | null,
         transaction: Transaction,
     ): Promise<void> {
-        // Lock sobre el registro del cliente para serializar escrituras concurrentes
         const customer = await this._customers.getById(customerId, {
             transaction,
             lock: transaction.LOCK.UPDATE,
@@ -219,40 +172,37 @@ export class CustomersService extends BaseService {
         if (!customer) throw new NotFoundError('Cliente no encontrado');
 
         const newProgress = (customer.level_progress_points ?? 0) + delta;
+        const newBalance = (customer.current_points_balance ?? 0) + delta;
 
-        if (newProgress < 0) {
+        if (newProgress < 0 || newBalance < 0) {
             throw new ValidationError('Los puntos resultantes no pueden ser negativos', ['points']);
         }
 
         const newLevelId = await this._calculateLoyaltyLevel(newProgress, transaction);
 
-        // Registrar movimiento en el ledger (append-only)
         await this._loyaltyLedgers.create(
             {
                 customer: customerId,
                 order: orderId,
                 operation_type: operationTypeId,
                 points: Math.abs(delta),
-                remarks: remarks ?? null,
             },
             { transaction },
         );
 
-        // Actualizar campos desnormalizados atómicamente
         await this._customers.update(
             customerId,
             {
                 level_progress_points: newProgress,
+                current_points_balance: newBalance,
                 loyalty_level: newLevelId,
             },
             { transaction },
         );
     }
 
-    /* PATCH /customers/:id/loyalty-points — ajuste manual administrativo.
-     * Abre su propia transacción y delega a applyLoyaltyPointsDelta. */
-    async adjustLoyaltyPoints(customerId: number, body: { operationType: number; points: number; remarks?: string }) {
-        const { operationType, points, remarks } = body;
+    async adjustLoyaltyPoints(customerId: number, body: { operationType: number; points: number }) {
+        const { operationType, points } = body;
 
         this.validateRequired({ operationType, points } as any, ['operationType', 'points']);
 
@@ -266,14 +216,12 @@ export class CustomersService extends BaseService {
         const delta = operationType === 1 ? points : -points;
 
         await this._customers.transaction(async (transaction: Transaction) => {
-            await this.applyLoyaltyPointsDelta(customerId, delta, operationType, null, remarks ?? null, transaction);
+            await this.applyLoyaltyPointsDelta(customerId, delta, operationType, null, transaction);
         });
 
         return null;
     }
 
-    /* Calcula el nivel de lealtad según los puntos acumulados.
-     * Corre dentro de la transacción activa para lectura consistente. */
     private async _calculateLoyaltyLevel(points: number, transaction?: Transaction): Promise<number> {
         const levels = await this._loyaltyLevels.getAll(
             {

@@ -6,37 +6,6 @@ class ConcessionsController extends ControllerBase {
         super();
     }
 
-    // ----- Product Categories -----
-    async findAllCategories() {
-        const data = await ConcessionsService.findAllCategories(this.getQueryFilters());
-        return data;
-    }
-
-    async findCategoryById() {
-        const { id } = this.getParams();
-        const data = await ConcessionsService.findCategoryById(Number(id));
-        return this.success(data, 'Categoría obtenida exitosamente');
-    }
-
-    async createCategory() {
-        const body = this.getBody();
-        const data = await ConcessionsService.createCategory(body);
-        return this.created(data, 'Categoría registrada exitosamente');
-    }
-
-    async updateCategory() {
-        const { id } = this.getParams();
-        const body = this.getBody();
-        await ConcessionsService.updateCategory(Number(id), body);
-        return this.success(null, 'Categoría actualizada exitosamente');
-    }
-
-    async deleteCategory() {
-        const { id } = this.getParams();
-        await ConcessionsService.deleteCategory(Number(id));
-        return this.success(null, 'Categoría eliminada exitosamente');
-    }
-
     // ----- Products -----
     async findAllProducts() {
         const data = await ConcessionsService.findAllProducts(this.getQueryFilters());
@@ -60,8 +29,14 @@ class ConcessionsController extends ControllerBase {
         const { id } = this.getParams();
         const body = this.getBody();
         const req = this.getRequest();
-        const data = await ConcessionsService.updateProduct(Number(id), body, req.files as any);
-        return this.success(data, 'Producto actualizado exitosamente');
+        await ConcessionsService.updateProduct(Number(id), body, req.files as any);
+        return this.success(null, 'Producto actualizado exitosamente');
+    }
+
+    async deleteProduct() {
+        const { id } = this.getParams();
+        await ConcessionsService.deleteProduct(Number(id));
+        return this.success(null, 'Producto eliminado exitosamente');
     }
 
     // ----- Combos -----
@@ -87,30 +62,28 @@ class ConcessionsController extends ControllerBase {
         const { id } = this.getParams();
         const body = this.getBody();
         const req = this.getRequest();
-        const data = await ConcessionsService.updateCombo(Number(id), body, req.files as any);
-        return this.success(data, 'Combo actualizado exitosamente');
+        await ConcessionsService.updateCombo(Number(id), body, req.files as any);
+        return this.success(null, 'Combo actualizado exitosamente');
     }
 
-    // ----- Inventario -----
-    async findInventoryByCinema() {
-        const { cinemaId } = this.getParams();
-        const data = await ConcessionsService.findInventoryByCinema(Number(cinemaId), this.getQueryFilters());
-        return data;
+    async deleteCombo() {
+        const { id } = this.getParams();
+        await ConcessionsService.deleteCombo(Number(id));
+        return this.success(null, 'Combo eliminado exitosamente');
     }
 
-    // Inventario agrupado por categoría (nuevo)
-    async findInventoryGroupedByCategory() {
-        const { cinemaId } = this.getParams();
-        const data = await ConcessionsService.findInventoryGroupedByCategory(Number(cinemaId));
-        return this.success(data, 'Inventario agrupado por categoría');
+    // ----- Combo Items (BOM) -----
+    async addComboItems() {
+        const { id } = this.getParams();
+        const { items } = this.getBody();
+        await ConcessionsService.addItemsToCombo(Number(id), items);
+        return this.created(null, 'Ítems agregados al combo exitosamente');
     }
 
-    async replenishInventory() {
-        const { cinemaId, productId } = this.getParams();
-        const body = this.getBody();
-        const session = this.getSession<any>();
-        await ConcessionsService.replenishInventory(Number(cinemaId), Number(productId), body, session.userId);
-        return this.created(null, 'Reposición de inventario registrada exitosamente');
+    async removeComboItem() {
+        const { id, itemId } = this.getParams();
+        await ConcessionsService.removeItemFromCombo(Number(id), Number(itemId));
+        return this.success(null, 'Ítem eliminado del combo exitosamente');
     }
 }
 

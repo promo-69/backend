@@ -1,13 +1,17 @@
 meta {
-  name: Get Categories
+  name: Delete Combo
   type: http
-  seq: 12
+  seq: 18
 }
 
-get {
-  url: {{baseUrl}}/concessions/categories
+delete {
+  url: {{baseUrl}}/concessions/combos/{{testComboId}}
   body: none
-  auth: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
 }
 
 script:pre-request {

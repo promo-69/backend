@@ -1,11 +1,11 @@
 meta {
-  name: Replenish Inventory
+  name: Add Combo Items
   type: http
-  seq: 10
+  seq: 19
 }
 
 post {
-  url: {{baseUrl}}/concessions/inventory/{{testCinemaId}}/products/{{testProductId}}/replenish
+  url: {{baseUrl}}/concessions/combos/{{testComboId}}/items
   body: json
   auth: bearer
 }
@@ -16,8 +16,9 @@ auth:bearer {
 
 body:json {
   {
-    "quantity": 100,
-    "remarks": "Stock replenishment during Bruno test execution."
+    "items": [
+      { "productId": 1, "quantity": 1 }
+    ]
   }
 }
 

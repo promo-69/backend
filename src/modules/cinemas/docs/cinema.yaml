@@ -33,15 +33,13 @@
                                             type: string
                                         closing_time:
                                             type: string
-                                        active:
-                                            type: boolean
             '404':
                 description: Cinema not found
             '500':
                 description: Internal server error
-    put:
-        summary: Update Cinema (General Management)
-        description: Full update of a cinema. Requires admin role. Can modify name, address, phone and schedules.
+    patch:
+        summary: Update Cinema (Explicit Context)
+        description: Full update of a cinema by general management. All fields can be modified.
         tags:
             - Cinemas
         security:
@@ -82,9 +80,9 @@
                 description: Cinema not found
             '500':
                 description: Internal server error
-    patch:
-        summary: Set Cinema Status
-        description: Activates or deactivates a cinema. Replaces the former DELETE endpoint.
+    delete:
+        summary: Delete Cinema
+        description: Soft‑delete a cinema. Fails if the cinema has active rooms.
         tags:
             - Cinemas
         security:
@@ -95,23 +93,14 @@
               required: true
               schema:
                   type: integer
-        requestBody:
-            required: true
-            content:
-                application/json:
-                    schema:
-                        type: object
-                        required:
-                            - active
-                        properties:
-                            active:
-                                type: boolean
         responses:
             '200':
-                description: Status changed
+                description: Cinema deleted
             '401':
                 description: Unauthorized
             '404':
                 description: Cinema not found
+            '409':
+                description: Conflict – cinema has active rooms
             '500':
                 description: Internal server error

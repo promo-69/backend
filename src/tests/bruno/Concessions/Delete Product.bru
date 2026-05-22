@@ -1,11 +1,11 @@
 meta {
-  name: Get Inventory Grouped by Category
+  name: Delete Product
   type: http
-  seq: 16
+  seq: 17
 }
 
-get {
-  url: {{baseUrl}}/concessions/inventory/{{testCinemaId}}/grouped
+delete {
+  url: {{baseUrl}}/concessions/products/{{testProductId}}
   body: none
   auth: bearer
 }

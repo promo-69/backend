@@ -4,8 +4,6 @@ import EmployeesModel from '@database/models/main/employees.model.js';
 export interface EmployeesAttributes {
     id?: number;
     person: number;
-    cinema: number;
-    hire_date: Date;
     employee_code: string;
     deleted_at?: Date;
 }
@@ -38,7 +36,7 @@ class EmployeesRepository extends SequelizeRepositoryBase<EmployeesAttributes, n
                 include: [
                     {
                         association: '_JobPositions',
-                        attributes: ['id', 'name'],
+                        attributes: ['id', 'title'],
                     },
                     {
                         association: '_Cinemas',
@@ -51,7 +49,7 @@ class EmployeesRepository extends SequelizeRepositoryBase<EmployeesAttributes, n
 
     async getFull(id: number) {
         return this.getById(id, {
-            attributes: ['id', 'person', 'cinema', 'hire_date', 'employee_code'],
+            attributes: ['id', 'person', 'employee_code'],
             relations: this._fullRelations,
         });
     }
