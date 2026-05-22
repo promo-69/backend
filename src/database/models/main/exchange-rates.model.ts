@@ -7,7 +7,7 @@ export default class ExchangeRatesModel extends SequelizeModelBase {
 			id: {
 				primaryKey: true,
 				autoIncrement: true,
-				allowNull: true,
+				allowNull: false,
 				type: DataTypes.INTEGER,
 			},
 			currency: {
@@ -22,15 +22,10 @@ export default class ExchangeRatesModel extends SequelizeModelBase {
 				allowNull: false,
 				type: DataTypes.INTEGER,
 			},
-			created_at: {
-				allowNull: false,
-				type: DataTypes.DATE,
-				defaultValue: DataTypes.NOW,
-			},
 			deleted_at: {
 				allowNull: true,
 				type: DataTypes.DATE,
-			},
+			}
 		};
 	}
 
@@ -41,7 +36,7 @@ export default class ExchangeRatesModel extends SequelizeModelBase {
 			createdAt: 'created_at',
 			updatedAt: false,
 			deletedAt: 'deleted_at',
-			isBasicTable: true,
+			isBasicTable: false,
 			schema: 'public',
 			tableName: 'exchange_rates',
 			appRawName: 'exchange-rates',

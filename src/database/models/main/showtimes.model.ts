@@ -7,28 +7,20 @@ export default class ShowtimesModel extends SequelizeModelBase {
 			id: {
 				primaryKey: true,
 				autoIncrement: true,
-				allowNull: true,
+				allowNull: false,
+				type: DataTypes.INTEGER,
+			},
+			booking: {
+				allowNull: false,
 				type: DataTypes.INTEGER,
 			},
 			movie: {
 				allowNull: false,
 				type: DataTypes.INTEGER,
 			},
-			room: {
-				allowNull: false,
-				type: DataTypes.INTEGER,
-			},
 			projection_type: {
 				allowNull: false,
 				type: DataTypes.INTEGER,
-			},
-			start_time: {
-				allowNull: false,
-				type: DataTypes.DATE,
-			},
-			end_time: {
-				allowNull: false,
-				type: DataTypes.DATE,
 			},
 			currency: {
 				allowNull: false,
@@ -45,7 +37,7 @@ export default class ShowtimesModel extends SequelizeModelBase {
 			deleted_at: {
 				allowNull: true,
 				type: DataTypes.DATE,
-			},
+			}
 		};
 	}
 
@@ -56,7 +48,7 @@ export default class ShowtimesModel extends SequelizeModelBase {
 			createdAt: false,
 			updatedAt: false,
 			deletedAt: 'deleted_at',
-			isBasicTable: true,
+			isBasicTable: false,
 			schema: 'public',
 			tableName: 'showtimes',
 			appRawName: 'showtimes',
@@ -78,14 +70,14 @@ export default class ShowtimesModel extends SequelizeModelBase {
 			},
 			{
 				type: 'belongsTo',
-				target: 'Rooms',
-				options: { foreignKey: 'room', targetKey: 'id', as: '_Rooms' },
+				target: 'RoomBookings',
+				options: { foreignKey: 'booking', targetKey: 'id', as: '_RoomBookings' },
 			},
 			{
 				inversed: true,
 				type: 'hasMany',
-				target: 'Rooms',
-				options: { foreignKey: 'room', targetKey: 'id', as: '_Showtimes' },
+				target: 'RoomBookings',
+				options: { foreignKey: 'booking', targetKey: 'id', as: '_Showtimes' },
 			},
 			{
 				type: 'belongsTo',

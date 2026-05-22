@@ -172,6 +172,9 @@ module.exports = {
 	async down(queryInterface, Sequelize) {
 		// Reversión en orden inverso
 		await queryInterface.bulkDelete('job_positions', null, {});
+		await queryInterface.bulkDelete('resources', null, {});
+		await queryInterface.bulkDelete('actions', null, {});
+		await queryInterface.bulkDelete('permission_types', null, {});
 		await queryInterface.bulkDelete('roles', null, {});
 		await queryInterface.bulkDelete('user_types', null, {});
 		await queryInterface.bulkDelete('genders', null, {});

@@ -7,7 +7,7 @@ export default class MoviesModel extends SequelizeModelBase {
 			id: {
 				primaryKey: true,
 				autoIncrement: true,
-				allowNull: true,
+				allowNull: false,
 				type: DataTypes.INTEGER,
 			},
 			title: {
@@ -32,15 +32,15 @@ export default class MoviesModel extends SequelizeModelBase {
 			},
 			trailer_url: {
 				allowNull: true,
-				type: DataTypes.STRING(500),
+				type: DataTypes.STRING(255),
 			},
 			poster_url: {
 				allowNull: true,
-				type: DataTypes.STRING(500),
+				type: DataTypes.STRING(255),
 			},
 			banner_url: {
 				allowNull: true,
-				type: DataTypes.STRING(500),
+				type: DataTypes.STRING(255),
 			},
 			release_date: {
 				allowNull: false,
@@ -49,7 +49,7 @@ export default class MoviesModel extends SequelizeModelBase {
 			deleted_at: {
 				allowNull: true,
 				type: DataTypes.DATE,
-			},
+			}
 		};
 	}
 
@@ -60,7 +60,7 @@ export default class MoviesModel extends SequelizeModelBase {
 			createdAt: false,
 			updatedAt: false,
 			deletedAt: 'deleted_at',
-			isBasicTable: true,
+			isBasicTable: false,
 			schema: 'public',
 			tableName: 'movies',
 			appRawName: 'movies',

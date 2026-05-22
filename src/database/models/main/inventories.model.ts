@@ -7,7 +7,7 @@ export default class InventoriesModel extends SequelizeModelBase {
 			id: {
 				primaryKey: true,
 				autoIncrement: true,
-				allowNull: true,
+				allowNull: false,
 				type: DataTypes.INTEGER,
 			},
 			cinema: {
@@ -23,19 +23,10 @@ export default class InventoriesModel extends SequelizeModelBase {
 				type: DataTypes.INTEGER,
 				defaultValue: 0,
 			},
-			stock: {
-				allowNull: false,
-				type: DataTypes.INTEGER,
-			},
-			current_unit_cost_base_currency: {
-				allowNull: false,
-				type: DataTypes.DECIMAL(10, 2),
-				defaultValue: 0,
-			},
 			deleted_at: {
 				allowNull: true,
 				type: DataTypes.DATE,
-			},
+			}
 		};
 	}
 
@@ -46,7 +37,7 @@ export default class InventoriesModel extends SequelizeModelBase {
 			createdAt: false,
 			updatedAt: false,
 			deletedAt: 'deleted_at',
-			isBasicTable: true,
+			isBasicTable: false,
 			schema: 'public',
 			tableName: 'inventories',
 			appRawName: 'inventories',

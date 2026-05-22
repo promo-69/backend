@@ -6,6 +6,7 @@ const { nanoid } = require('nanoid');
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
 	async up(queryInterface, Sequelize) {
+		// --- MÓDULO 2: SUCURSALES ---
 		await queryInterface.bulkInsert(
 			'cinemas',
 			[
@@ -35,6 +36,7 @@ module.exports = {
 				{
 					id: 1,
 					cinema: 1,
+					room_type: 1, // Tradicional
 					name: 'Sala 1',
 					grid_rows: 5,
 					grid_columns: 8,
@@ -42,6 +44,7 @@ module.exports = {
 				{
 					id: 2,
 					cinema: 1,
+					room_type: 1, // Tradicional
 					name: 'Sala 2',
 					grid_rows: 4,
 					grid_columns: 6,
@@ -53,9 +56,9 @@ module.exports = {
 		await queryInterface.bulkInsert(
 			'room_projection_types',
 			[
-				{ id: 1, room: 1, projection_type: 1 },
-				{ id: 2, room: 1, projection_type: 2 },
-				{ id: 3, room: 2, projection_type: 1 },
+				{ id: 1, room: 1, projection_type: 1 }, // Sala 1 - 2D Digital
+				{ id: 2, room: 1, projection_type: 2 }, // Sala 1 - 3D Digital
+				{ id: 3, room: 2, projection_type: 1 }, // Sala 2 - 2D Digital
 			],
 			{},
 		);
@@ -68,45 +71,46 @@ module.exports = {
 					room: 1,
 					row_identifier: 'A',
 					column_number: 1,
-					seat_category: 1,
-					seat_condition: 1,
+					seat_category: 1, // General
+					seat_condition: 1, // Operativa
 				},
 				{
 					id: 2,
 					room: 1,
 					row_identifier: 'A',
 					column_number: 2,
-					seat_category: 1,
-					seat_condition: 1,
+					seat_category: 1, // General
+					seat_condition: 1, // Operativa
 				},
 				{
 					id: 3,
 					room: 1,
 					row_identifier: 'A',
 					column_number: 3,
-					seat_category: 2,
-					seat_condition: 1,
+					seat_category: 2, // VIP
+					seat_condition: 1, // Operativa
 				},
 				{
 					id: 4,
 					room: 2,
 					row_identifier: 'A',
 					column_number: 1,
-					seat_category: 1,
-					seat_condition: 1,
+					seat_category: 1, // General
+					seat_condition: 1, // Operativa
 				},
 				{
 					id: 5,
 					room: 2,
 					row_identifier: 'A',
 					column_number: 2,
-					seat_category: 2,
-					seat_condition: 1,
+					seat_category: 2, // VIP
+					seat_condition: 1, // Operativa
 				},
 			],
 			{},
 		);
 
+		// --- MÓDULO 5: CARTELERA ---
 		await queryInterface.bulkInsert(
 			'movies',
 			[
@@ -114,8 +118,8 @@ module.exports = {
 					id: 1,
 					title: 'La Aventura del Cine',
 					duration_minutes: 110,
-					age_classification: 1,
-					lifecycle_state: 2,
+					age_classification: 1, // A
+					lifecycle_state: 2, // En Cartelera (Estreno)
 					synopsis: 'Una historia sobre el amor por las salas de cine y la magia de la pantalla grande.',
 					trailer_url: 'https://example.com/trailer/la-aventura-del-cine',
 					release_date: '2026-05-01',
@@ -124,8 +128,8 @@ module.exports = {
 					id: 2,
 					title: 'Fantasía Urbana',
 					duration_minutes: 95,
-					age_classification: 2,
-					lifecycle_state: 3,
+					age_classification: 2, // B
+					lifecycle_state: 3, // En Cartelera (Regular)
 					synopsis: 'Aventuras fantásticas en el corazón de la ciudad, con mucho humor y corazón.',
 					trailer_url: 'https://example.com/trailer/fantasia-urbana',
 					release_date: '2026-04-15',
@@ -146,27 +150,51 @@ module.exports = {
 		);
 
 		await queryInterface.bulkInsert(
+			'room_bookings',
+			[
+				{
+					id: 1,
+					room: 1,
+					start_time: '2026-05-01 18:00:00',
+					end_time: '2026-05-01 20:00:00',
+					booking_type: 1, // Película
+				},
+				{
+					id: 2,
+					room: 2,
+					start_time: '2026-05-01 20:30:00',
+					end_time: '2026-05-01 22:05:00',
+					booking_type: 1, // Película
+				},
+				{
+					id: 3,
+					room: 2,
+					start_time: '2026-06-02 14:00:00',
+					end_time: '2026-06-02 18:00:00',
+					booking_type: 3, // Alquiler Privado
+				},
+			],
+			{},
+		);
+
+		await queryInterface.bulkInsert(
 			'showtimes',
 			[
 				{
 					id: 1,
+					booking: 1,
 					movie: 1,
-					room: 1,
 					projection_type: 1,
-					start_time: '2026-05-01 18:00:00',
-					end_time: '2026-05-01 20:00:00',
-					currency: 1,
+					currency: 1, // USD
 					price: 12.5,
 					earned_loyalty_points: 25,
 				},
 				{
 					id: 2,
+					booking: 2,
 					movie: 2,
-					room: 2,
 					projection_type: 1,
-					start_time: '2026-05-01 20:30:00',
-					end_time: '2026-05-01 22:05:00',
-					currency: 1,
+					currency: 1, // USD
 					price: 10.0,
 					earned_loyalty_points: 20,
 				},
@@ -174,6 +202,7 @@ module.exports = {
 			{},
 		);
 
+		// --- MÓDULO 2: PERSONAS, CLIENTES Y EMPLEADOS ---
 		await queryInterface.bulkInsert(
 			'people',
 			[
@@ -182,7 +211,7 @@ module.exports = {
 					document_number: 'V-12345678',
 					first_name: 'María',
 					last_name: 'Pérez',
-					gender: 2,
+					gender: 2, // Femenino
 					phone_number: '+58 424-123-4567',
 					personal_email: 'maria.perez@example.com',
 					birth_date: '1992-08-10',
@@ -192,7 +221,7 @@ module.exports = {
 					document_number: 'V-87654321',
 					first_name: 'Admin',
 					last_name: 'Super',
-					gender: 1,
+					gender: 1, // Masculino
 					phone_number: '+58 212-555-0000',
 					personal_email: 'admin.super@cineflix.com',
 					birth_date: '1985-01-01',
@@ -207,8 +236,8 @@ module.exports = {
 				{
 					id: 1,
 					person: 1,
-					loyalty_level: 1,
-					level_progress_points: 80,
+					loyalty_level: 1, // Cuarzo
+					level_progress_points: 281, // Puntos acumulados en las compras simuladas
 					registration_date: '2026-04-01 12:00:00',
 				},
 			],
@@ -233,7 +262,7 @@ module.exports = {
 				{
 					id: 1,
 					employee: 1,
-					job_position: 1,
+					job_position: 1, // Gerente General
 					cinema: 1,
 					start_date: '2026-04-01',
 					end_date: null,
@@ -244,13 +273,13 @@ module.exports = {
 		);
 
 		await queryInterface.bulkInsert(
-			'movie_subscriptions',
+			'movie_user_subscriptions',
 			[{ id: 1, customer: 1, movie: 1, is_notified: true }],
 			{},
 		);
 
 		const mariaPassword = await bcrypt.hash('password123.', 10);
-		const adminPassword = await bcrypt.hash(process.env.SUPER_ADMIN_PASSWORD, 10);
+		const adminPassword = await bcrypt.hash(process.env.SUPER_ADMIN_PASSWORD || 'admin123456*', 10);
 
 		await queryInterface.bulkInsert(
 			'users',
@@ -258,7 +287,7 @@ module.exports = {
 				{
 					id: 1,
 					person: 1,
-					user_type: 2,
+					user_type: 2, // Cliente
 					role: null,
 					email: 'maria.perez@example.com',
 					password: mariaPassword,
@@ -268,9 +297,9 @@ module.exports = {
 				{
 					id: 2,
 					person: 2,
-					user_type: 1,
-					role: 1,
-					email: process.env.SUPER_ADMIN_EMAIL,
+					user_type: 1, // Empleado
+					role: 1, // SUPER_ADMIN
+					email: process.env.SUPER_ADMIN_EMAIL || 'admin@cineflix.com',
 					password: adminPassword,
 					signup_code: await bcrypt.hash(nanoid(20), 10),
 					signup_verified_at: new Date(),
@@ -278,18 +307,471 @@ module.exports = {
 			],
 			{},
 		);
+
+		// --- MÓDULO 4 Y 7: ECONOMÍA, IMPUESTOS Y REGLAS ---
+		await queryInterface.bulkInsert(
+			'taxes',
+			[
+				{
+					id: 1,
+					name: 'IVA 16%',
+					rate: 16.00,
+					is_percentage: true,
+				},
+			],
+			{},
+		);
+
+		await queryInterface.bulkInsert(
+			'tax_rules',
+			[
+				{
+					id: 1,
+					tax: 1,
+					tax_scope: 3, // Global
+				},
+			],
+			{},
+		);
+
+		await queryInterface.bulkInsert(
+			'exchange_rates',
+			[
+				{
+					id: 1,
+					currency: 2, // Bolívares (VES)
+					rate: 36.50,
+					user: 2, // Empleado (Admin)
+				},
+			],
+			{},
+		);
+
+		await queryInterface.bulkInsert(
+			'price_modifiers',
+			[
+				{
+					id: 1,
+					description: 'Descuento Estudiantil (20% en boletería)',
+					operation_type: 2, // Resta (descuento)
+					is_percentage: true,
+					value: 20.00,
+					modifier_scope: 1, // Boletería
+					audience_category: 4, // Estudiante
+				},
+			],
+			{},
+		);
+
+		// --- MÓDULO 6: INVENTARIO, PRODUCTOS Y COMBOS ---
+		await queryInterface.bulkInsert(
+			'products',
+			[
+				{
+					id: 1,
+					name: 'Cotufas Grandes',
+					sku: 'PROD-POPCORN-LG',
+					product_category: 2, // Snacks
+					currency: 1, // USD
+					price: 5.00,
+					earned_loyalty_points: 10,
+				},
+				{
+					id: 2,
+					name: 'Refresco Mediano',
+					sku: 'PROD-SODA-MD',
+					product_category: 1, // Bebidas
+					currency: 1, // USD
+					price: 2.50,
+					earned_loyalty_points: 5,
+				},
+				{
+					id: 3,
+					name: 'Chocolate Extremo',
+					sku: 'PROD-CHOCO-EXT',
+					product_category: 3, // Chocolatería y Dulces
+					currency: 1, // USD
+					price: 3.00,
+					earned_loyalty_points: 6,
+				},
+			],
+			{},
+		);
+
+		await queryInterface.bulkInsert(
+			'combos',
+			[
+				{
+					id: 1,
+					cinema: 1,
+					name: 'Combo Pareja',
+					sku: 'CMB-DUO',
+					description: '1 Cotufa Grande + 2 Refrescos Medianos con descuento especial',
+					currency: 1, // USD
+					price: 8.50,
+					earned_loyalty_points: 18,
+				},
+			],
+			{},
+		);
+
+		await queryInterface.bulkInsert(
+			'combo_products',
+			[
+				{ id: 1, combo: 1, product: 1, quantity: 1 },
+				{ id: 2, combo: 1, product: 2, quantity: 2 },
+			],
+			{},
+		);
+
+		await queryInterface.bulkInsert(
+			'inventories',
+			[
+				{ id: 1, cinema: 1, product: 1, minimum_stock: 10 },
+				{ id: 2, cinema: 1, product: 2, minimum_stock: 20 },
+				{ id: 3, cinema: 1, product: 3, minimum_stock: 5 },
+			],
+			{},
+		);
+
+		await queryInterface.bulkInsert(
+			'inventory_movements',
+			[
+				{
+					id: 1,
+					inventory: 1,
+					operation_type: 3, // Entrada
+					quantity: 100,
+					unit_cost: 1.50,
+					currency: 1,
+					user: 2,
+					resulting_stock: 100,
+					resulting_unit_cost_base_currency: 1.50,
+					remarks: 'Carga inicial de stock',
+				},
+				{
+					id: 2,
+					inventory: 2,
+					operation_type: 3, // Entrada
+					quantity: 200,
+					unit_cost: 0.80,
+					currency: 1,
+					user: 2,
+					resulting_stock: 200,
+					resulting_unit_cost_base_currency: 0.80,
+					remarks: 'Carga inicial de stock',
+				},
+				{
+					id: 3,
+					inventory: 3,
+					operation_type: 3, // Entrada
+					quantity: 50,
+					unit_cost: 1.00,
+					currency: 1,
+					user: 2,
+					resulting_stock: 50,
+					resulting_unit_cost_base_currency: 1.00,
+					remarks: 'Carga inicial de stock',
+				},
+			],
+			{},
+		);
+
+		// --- MÓDULO 7: ORDENES, DETALLES, TICKETS Y PAGOS ---
+
+		// ORDEN 1: Alquiler de Sala Privada (Aceptado y Pagado)
+		// Cotización: Alquiler espacio ($150) + Catering de 10 Cotufas ($50) y 20 Refrescos ($50) = Subtotal $250.00
+		// Impuestos: IVA 16% = $40.00. Total = $290.00
+		await queryInterface.bulkInsert(
+			'orders',
+			[
+				{
+					id: 1,
+					customer: 1,
+					employee: 1, // Admin aprobador
+					cinema: 1,
+					system_base_currency: 1, // USD
+					subtotal_base_currency: 250.00,
+					tax_amount_base_currency: 40.00,
+					total_amount_base_currency: 290.00,
+					generated_points: 250,
+					order_status: 2, // Pagada / Completada
+				},
+			],
+			{},
+		);
+
+		await queryInterface.bulkInsert(
+			'order_taxes',
+			[
+				{
+					id: 1,
+					order: 1,
+					tax: 1, // IVA 16%
+					applied_rate: 16.00,
+					tax_amount_base_currency: 40.00,
+				},
+			],
+			{},
+		);
+
+		await queryInterface.bulkInsert(
+			'order_payments',
+			[
+				{
+					id: 1,
+					order: 1,
+					payment_method: 1, // Efectivo Divisas
+					amount: 290.00,
+					quoted_exchange_rate: 1, // Tasa USD base = 1
+					reference_number: 'PAY-RENTAL-001',
+					is_approved: true,
+				},
+			],
+			{},
+		);
+
+		// ORDEN 2: Compra Regular en Taquilla
+		// Detalle: 2 boletos para Showtime 1. Boleto 1 aplica Descuento Estudiantil ($12.50 -> $10.00). Boleto 2 normal ($12.50)
+		// Adicional: 1 Combo Pareja ($8.50)
+		// Subtotal = $10.00 + $12.50 + $8.50 = $31.00
+		// Impuestos: IVA 16% = $4.96. Total = $35.96
+		await queryInterface.bulkInsert(
+			'orders',
+			[
+				{
+					id: 2,
+					customer: 1,
+					employee: null, // Compra web por la cliente
+					cinema: 1,
+					system_base_currency: 1, // USD
+					subtotal_base_currency: 31.00,
+					tax_amount_base_currency: 4.96,
+					total_amount_base_currency: 35.96,
+					generated_points: 31,
+					order_status: 2, // Pagada
+				},
+			],
+			{},
+		);
+
+		await queryInterface.bulkInsert(
+			'order_taxes',
+			[
+				{
+					id: 2,
+					order: 2,
+					tax: 1, // IVA 16%
+					applied_rate: 16.00,
+					tax_amount_base_currency: 4.96,
+				},
+			],
+			{},
+		);
+
+		await queryInterface.bulkInsert(
+			'order_lines',
+			[
+				{
+					id: 1,
+					order: 2,
+					line_type: 2, // Combo
+					product: null,
+					combo: 1,
+					quantity: 1,
+					original_unit_price: 8.50,
+					unit_price: 8.50,
+					quoted_exchange_rate: 1,
+				},
+			],
+			{},
+		);
+
+		await queryInterface.bulkInsert(
+			'tickets',
+			[
+				{
+					id: 1,
+					order: 2,
+					booking: 1, // Showtime 1 booking
+					seat: 1,
+					original_price: 12.50,
+					price: 10.00, // Con descuento
+					quoted_exchange_rate: 1,
+					qr_code: 'TICKET-QR-STUDENT-001',
+					validation_time: null,
+				},
+				{
+					id: 2,
+					order: 2,
+					booking: 1,
+					seat: 2,
+					original_price: 12.50,
+					price: 12.50, // Normal
+					quoted_exchange_rate: 1,
+					qr_code: 'TICKET-QR-NORMAL-002',
+					validation_time: null,
+				},
+			],
+			{},
+		);
+
+		// Aplicar el descuento polimórfico al Ticket 1
+		await queryInterface.bulkInsert(
+			'applied_price_modifiers',
+			[
+				{
+					id: 1,
+					price_modifier: 1, // Descuento Estudiantil
+					order: null,
+					ticket: 1,
+					order_line: null,
+					rental_request: null,
+					rental_catering: null,
+					applied_amount_base_currency: 2.50, // Se descontaron 2.50$
+				},
+			],
+			{},
+		);
+
+		await queryInterface.bulkInsert(
+			'order_payments',
+			[
+				{
+					id: 2,
+					order: 2,
+					payment_method: 3, // Punto de venta
+					amount: 35.96,
+					quoted_exchange_rate: 1,
+					reference_number: 'PAY-TICKET-001',
+					is_approved: true,
+				},
+			],
+			{},
+		);
+
+		// --- MÓDULO 5: SOLICITUDES DE ALQUILER PRIVADO (RENTALS) ---
+		await queryInterface.bulkInsert(
+			'rental_requests',
+			[
+				// Caso 1: Solicitud pendiente sin precio ni moneda (según regla descrita)
+				{
+					id: 1,
+					customer: 1,
+					order: null,
+					booking: null,
+					room: 1,
+					event_type: 3, // Alquiler Privado
+					requested_start_time: '2026-06-01 10:00:00',
+					requested_end_time: '2026-06-01 14:00:00',
+					event_name: 'Cumpleaños de María',
+					event_description: 'Celebración privada con amigos y familiares',
+					status: 1, // Pendiente
+					currency: null,
+					price: null,
+				},
+				// Caso 2: Solicitud aceptada y pagada (asociada a Orden 1 y Reserva 3)
+				{
+					id: 2,
+					customer: 1,
+					order: 1, // Orden de Pago 1
+					booking: 3, // Reserva física en sala 2
+					room: 2,
+					event_type: 3, // Alquiler Privado
+					requested_start_time: '2026-06-02 14:00:00',
+					requested_end_time: '2026-06-02 18:00:00',
+					event_name: 'Conferencia Tech',
+					event_description: 'Presentación corporativa de tecnología',
+					status: 2, // Aceptada / Completada
+					currency: 1, // USD
+					price: 150.00, // Precio asignado por el administrador por el espacio
+				},
+			],
+			{},
+		);
+
+		await queryInterface.bulkInsert(
+			'rental_catering',
+			[
+				{
+					id: 1,
+					rental_request: 2,
+					line_type: 1, // Producto
+					product: 1, // Cotufas Grandes
+					combo: null,
+					quantity: 10,
+					original_unit_price: 5.00,
+					unit_price: 5.00,
+					quoted_exchange_rate: 1,
+				},
+				{
+					id: 2,
+					rental_request: 2,
+					line_type: 1, // Producto
+					product: 2, // Refresco Mediano
+					combo: null,
+					quantity: 20,
+					original_unit_price: 2.50,
+					unit_price: 2.50,
+					quoted_exchange_rate: 1,
+				},
+			],
+			{},
+		);
+
+		// --- MÓDULO 2 Y FIDELIDAD: REGISTRO EN EL LIBRO DE FIDELIDAD (LEDGER) ---
+		await queryInterface.bulkInsert(
+			'loyalty_ledgers',
+			[
+				{
+					id: 1,
+					customer: 1,
+					order: 1,
+					operation_type: 1, // Suma de puntos por compra
+					points: 250,
+					points_balance: 250,
+				},
+				{
+					id: 2,
+					customer: 1,
+					order: 2,
+					operation_type: 1, // Suma de puntos por compra
+					points: 31,
+					points_balance: 281, // Balance total actual del cliente (250 + 31 = 281)
+				},
+			],
+			{},
+		);
 	},
 
 	async down(queryInterface, Sequelize) {
+		// Reversión estricta en orden inverso de dependencias de claves foráneas
+		await queryInterface.bulkDelete('loyalty_ledgers', null, {});
+		await queryInterface.bulkDelete('applied_price_modifiers', null, {});
+		await queryInterface.bulkDelete('order_payments', null, {});
+		await queryInterface.bulkDelete('tickets', null, {});
+		await queryInterface.bulkDelete('order_lines', null, {});
+		await queryInterface.bulkDelete('order_taxes', null, {});
+		await queryInterface.bulkDelete('orders', null, {});
+		await queryInterface.bulkDelete('rental_catering', null, {});
+		await queryInterface.bulkDelete('rental_requests', null, {});
+		await queryInterface.bulkDelete('inventory_movements', null, {});
+		await queryInterface.bulkDelete('inventories', null, {});
+		await queryInterface.bulkDelete('combo_products', null, {});
+		await queryInterface.bulkDelete('combos', null, {});
+		await queryInterface.bulkDelete('products', null, {});
+		await queryInterface.bulkDelete('price_modifiers', null, {});
+		await queryInterface.bulkDelete('exchange_rates', null, {});
+		await queryInterface.bulkDelete('tax_rules', null, {});
+		await queryInterface.bulkDelete('taxes', null, {});
 		await queryInterface.bulkDelete('users', null, {});
 		await queryInterface.bulkDelete('employee_positions', null, {});
 		await queryInterface.bulkDelete('employees', null, {});
-		await queryInterface.bulkDelete('movie_subscriptions', null, {});
+		await queryInterface.bulkDelete('movie_user_subscriptions', null, {});
 		await queryInterface.bulkDelete('customers', null, {});
 		await queryInterface.bulkDelete('people', null, {});
 		await queryInterface.bulkDelete('showtimes', null, {});
-		await queryInterface.bulkDelete('movie_genres', null, {});
-		await queryInterface.bulkDelete('movies', null, {});
+		await queryInterface.bulkDelete('room_bookings', null, {});
 		await queryInterface.bulkDelete('seats', null, {});
 		await queryInterface.bulkDelete('room_projection_types', null, {});
 		await queryInterface.bulkDelete('rooms', null, {});
