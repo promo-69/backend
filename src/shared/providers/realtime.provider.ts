@@ -10,7 +10,7 @@ import redisAdapterPkg from '@socket.io/redis-adapter';
 
 export class RealtimeProvider {
 	private static instance: RealtimeProvider;
-	private _io!: SocketIOServer;
+	private _io!: SocketIOServer | undefined;
 
 	private constructor() {}
 
@@ -49,5 +49,13 @@ export class RealtimeProvider {
 		});
 
 		Logger.natural(ANSI.success(`[+] Realtime Provider (Socket.io) initialized`));
+	}
+
+	async close(): Promise<void> {
+		if (!this._io) return;
+
+		await this._io.close();
+
+		this._io = undefined;
 	}
 }

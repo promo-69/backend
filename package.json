@@ -52,7 +52,8 @@
 		"docker:logs": "docker compose -f docker-compose.yml logs -f",
 		"docker:reset": "docker compose -f docker-compose.yml down -v --rmi local && docker compose -f docker-compose.yml up -d --build",
 		"docker:reset:full": "docker compose -f docker-compose.yml down -v --rmi local && docker compose -f docker-compose.yml up -d --build && yarn docker:db:reset:full --id main",
-		"docker:db:backup:ddl": "docker compose -f docker-compose.yml exec -T db sh -c \"pg_dump -U \\$POSTGRES_USER -d \\$POSTGRES_DB --schema-only\" > ./src/migrate/estructura_cineflix.sql"
+		"docker:db:backup:ddl": "docker compose -f docker-compose.yml exec -T db sh -c \"pg_dump -U \\$POSTGRES_USER -d \\$POSTGRES_DB --schema-only\" > ./src/migrate/estructura_cineflix.sql",
+		"docker:restart": "yarn docker:down && yarn docker:up"
 	},
 	"devDependencies": {
 		"@apidevtools/swagger-parser": "^12.1.0",

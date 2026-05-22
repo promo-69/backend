@@ -1,4 +1,4 @@
-import { Queue } from 'bullmq';
+import { type JobsOptions, Queue } from 'bullmq';
 import { CacheDatabaseProvider } from '@providers/cache-database.provider.js';
 
 export class QueueProvider {
@@ -30,5 +30,11 @@ export class QueueProvider {
 		}
 
 		return this.queues.get(name)!;
+	}
+
+	async add<T = any>(queueName: string, taskName: string, data: T, options?: JobsOptions) {
+		const queue = this.getQueue(queueName);
+
+		return await queue.add(taskName, data, options);
 	}
 }

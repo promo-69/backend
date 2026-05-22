@@ -33,11 +33,11 @@ export class App {
 
 	async start(): Promise<http.Server> {
 		const serverApp = await this.initialize();
-        this.httpServer = http.createServer(serverApp);
-        const server = this.httpServer!;
+		this.httpServer = http.createServer(serverApp);
+		const server = this.httpServer!;
 
-        await this.setupRealtime(server);
-        await this.setupBackgroundTasks();
+		await this.setupRealtime(server);
+		await this.setupBackgroundTasks();
 
 		return new Promise((resolve, reject) => {
 			server.on('error', (err) => {
@@ -47,6 +47,7 @@ export class App {
 			server.listen(this.appConfig.port, this.appConfig.host, () => {
 				Logger.natural(
 					ANSI.info(`Server running on ${ANSI.link(this.appConfig.apiBaseUrl)}${ANSI.getCode('reset')}`),
+					{ sepStart: true },
 				);
 				Logger.natural(ANSI.info('Waiting for requests...\n'));
 
@@ -80,7 +81,7 @@ export class App {
 		// 4. Manejo de errores
 		this.setupErrorHandling();
 
-		Logger.natural(ANSI.success('[+] Application initialized successfully'), { sepStart: true, sepEnd: true });
+		Logger.natural(ANSI.success('[+] Application initialized successfully'), { sepStart: true });
 
 		return this.app;
 	}

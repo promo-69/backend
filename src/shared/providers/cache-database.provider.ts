@@ -1,5 +1,5 @@
 import IORedis from 'ioredis';
-import type { Redis } from 'ioredis'; // Importamos el tipo nativo
+import type { Redis } from 'ioredis';
 import { AppConfig } from '@config/app.config.js';
 import { Logger } from '@utils/logger.util.js';
 import { ANSI } from '@utils/ansi.util.js';
