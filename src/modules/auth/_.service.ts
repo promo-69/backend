@@ -258,21 +258,29 @@ export class AuthService extends BaseService {
         });
     }
 
-    async authenticateUser({ email, password }: LoginBody, device?: string): Promise<LoginResponse> {
-        if (!email || !password) throw new ValidationError('Las credenciales están incompletas', []);
-
+    private async _authenticate(
+        email: string,
+        password: string,
+        expectedUserType: number,
+        device?: string,
+    ): Promise<LoginResponse> {
+        if (!email || !password) throw new ValidationError('Credenciales incompletas', []);
         if (!REGEX.EMAIL.test(email) || !REGEX.PASSWORD.test(password))
-            throw new ValidationError('Las credenciales no son válidas', []);
+            throw new ValidationError('Credenciales inválidas', []);
 
         const foundUser = await this._users.getOne(
             { email },
-            {
-                include: [{ association: '_People' }, { association: '_UserTypes' }],
-            },
+            { include: [{ association: '_People' }, { association: '_UserTypes' }] },
         );
 
         if (!foundUser || !(await BcryptUtil.compare(password, foundUser.password)))
-            throw new AuthError('Las credenciales no son correctas', { code: 'INVALID_LOGIN' });
+            throw new AuthError('Credenciales inválidas', { code: 'INVALID_LOGIN' });
+
+        // 🚨 Validación de seguridad: restringir por tipo de usuario
+        if (foundUser.user_type !== expectedUserType) {
+            const roleName = expectedUserType === 1 ? 'empleado' : 'cliente';
+            throw new AuthError(`Credenciales inválidas.`, { code: 'INVALID_USER_TYPE' });
+        }
 
         // Verificar si el usuario es SUPER_ADMIN (no necesita verificar correo en desarrollo)
         const roleCode = foundUser.role ? (await this._roles.getById(foundUser.role))?.code : null;
@@ -281,11 +289,9 @@ export class AuthService extends BaseService {
         if (!isSuperAdmin && !foundUser.signup_verified_at) {
             const signupCode = nanoid(20);
             await this._users.update({ id: foundUser.id }, { signup_code: await BcryptUtil.hash(signupCode) });
-
             emailService.sendVerificationCode(email, email, signupCode).catch((err) => {
                 Logger.error('Error al enviar el correo de verificación:', err);
             });
-
             throw new AuthError(
                 'Cuenta no verificada. Por favor revisa tu correo electrónico y completa la verificación.',
                 { code: 'UNVERIFIED_ACCOUNT' },
@@ -306,6 +312,16 @@ export class AuthService extends BaseService {
         }
 
         return loginResponse;
+    }
+
+    /** Login para clientes (web / app móvil) */
+    async authenticateUser({ email, password }: LoginBody, device?: string): Promise<LoginResponse> {
+        return this._authenticate(email, password, 2, device);
+    }
+
+    /** Login para empleados (backoffice) */
+    async authenticateAdmin({ email, password }: LoginBody, device?: string): Promise<LoginResponse> {
+        return this._authenticate(email, password, 1, device);
     }
 
     async verifySignupCode(email: string, code: string | number, device?: string): Promise<void> {
