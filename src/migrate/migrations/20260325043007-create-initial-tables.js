@@ -711,7 +711,7 @@ module.exports = {
 				operation_type: { type: Sequelize.INTEGER, allowNull: false },
 				points: { type: Sequelize.INTEGER, allowNull: false },
 				points_balance: { type: Sequelize.INTEGER, allowNull: false, defaultValue: 0 },
-				remarks: { allowNull: true, type: DataTypes.TEXT },
+				remarks: { allowNull: true, type: Sequelize.TEXT },
 				created_at: {
 					type: Sequelize.DATE,
 					allowNull: false,

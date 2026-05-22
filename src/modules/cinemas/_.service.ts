@@ -164,6 +164,26 @@ export class CinemasService extends BaseService {
         });
     }
 
+    // --- Activar/Desactivar sucursal ---
+    async setCinemaStatus(id: number, active: boolean) {
+        return this._cinemas.transaction(async (transaction: Transaction) => {
+            const cinema = await this._cinemas.getById(id, {
+                transaction,
+                lock: transaction.LOCK.UPDATE,
+            });
+            if (!cinema) throw new NotFoundError('Sucursal no encontrada');
+
+            if (active) {
+                if (!cinema.deleted_at) throw new ValidationError('La sucursal ya está activa', []);
+                // If restore method doesn't exist, we might have to use update
+                await this._cinemas.update(id, { deleted_at: null }, { transaction });
+            } else {
+                if (cinema.deleted_at) throw new ValidationError('La sucursal ya está desactivada', []);
+                await this._cinemas.delete(id, { transaction });
+            }
+        });
+    }
+
     // --- Consultas ---
     async findAll(filters?: ProcessedQueryFilters) {
         return this._cinemas.getAllFull(filters);

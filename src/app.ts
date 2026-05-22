@@ -14,6 +14,8 @@ import swaggerUi from 'swagger-ui-express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { buildSwaggerDocs } from './docs/swagger.bundler.js';
+import { RealtimeProvider } from '@providers/realtime.provider.js';
+import { startBackgroundProcesses } from './background/orchestrator.js';
 
 const __dirnameApp = path.dirname(fileURLToPath(import.meta.url));
 
@@ -31,27 +33,38 @@ export class App {
 
 	async start(): Promise<http.Server> {
 		const serverApp = await this.initialize();
+        this.httpServer = http.createServer(serverApp);
+        const server = this.httpServer!;
+
+        await this.setupRealtime(server);
+        await this.setupBackgroundTasks();
 
 		return new Promise((resolve, reject) => {
-			this.httpServer = http.createServer(serverApp);
-
-			this.httpServer.on('error', (err) => {
+			server.on('error', (err) => {
 				reject(err);
 			});
 
-			this.httpServer.listen(this.appConfig.port, this.appConfig.host, () => {
+			server.listen(this.appConfig.port, this.appConfig.host, () => {
 				Logger.natural(
 					ANSI.info(`Server running on ${ANSI.link(this.appConfig.apiBaseUrl)}${ANSI.getCode('reset')}`),
 				);
 				Logger.natural(ANSI.info('Waiting for requests...\n'));
 
-				resolve(this.httpServer as http.Server);
+				resolve(server as http.Server);
 			});
 
-			this.httpServer.setTimeout(30000);
-			this.httpServer.keepAliveTimeout = 65000;
-			this.httpServer.headersTimeout = 66000;
+			server.setTimeout(30000);
+			server.keepAliveTimeout = 65000;
+			server.headersTimeout = 66000;
 		});
+	}
+
+	private async setupRealtime(server: http.Server): Promise<void> {
+		RealtimeProvider.getInstance().attach(server);
+	}
+
+	private async setupBackgroundTasks(): Promise<void> {
+		await startBackgroundProcesses();
 	}
 
 	async initialize(): Promise<Express> {
