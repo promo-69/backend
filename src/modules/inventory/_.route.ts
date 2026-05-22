@@ -4,8 +4,13 @@ import { verifySession, verifyPermission } from '@middlewares/auth.middleware.js
 
 const router = Router();
 
-router.get('/', verifySession, verifyPermission('CRUD:READ:INVENTORY'), inventoryController.findAll);
-router.get('/:id', verifySession, verifyPermission('CRUD:READ:INVENTORY'), inventoryController.findById);
+// GET /inventory — stock de la sede del usuario (cinemaId del JWT)
+router.get('/', verifySession, verifyPermission('CRUD:SELECT:INVENTORY'), inventoryController.findAll);
+
+// GET /inventory/:id — detalle del registro + movimientos
+router.get('/:id', verifySession, verifyPermission('CRUD:SELECT:INVENTORY'), inventoryController.findById);
+
+// POST /inventory/:id/movements — registrar movimientos
 router.post(
     '/:id/movements',
     verifySession,

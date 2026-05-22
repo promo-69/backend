@@ -23,7 +23,7 @@
 /cinemas/{cinemaId}/inventory/{id}/movements:
     post:
         summary: Register Inventory Movements for a Cinema
-        description: Register movements for a specific inventory record (central warehouse replenishment).
+        description: Register movements for a specific inventory record. The body is an array of movement objects.
         tags:
             - Inventory
         security:
@@ -44,21 +44,19 @@
             content:
                 application/json:
                     schema:
-                        type: object
-                        required:
-                            - movements
-                        properties:
-                            movements:
-                                type: array
-                                items:
-                                    type: object
-                                    properties:
-                                        operationTypeCode:
-                                            type: string
-                                        quantity:
-                                            type: integer
-                                        remarks:
-                                            type: string
+                        type: array
+                        items:
+                            type: object
+                            required:
+                                - operationType
+                                - quantity
+                            properties:
+                                operationType:
+                                    type: integer
+                                quantity:
+                                    type: integer
+                                remarks:
+                                    type: string
         responses:
             '201':
                 description: Movements registered

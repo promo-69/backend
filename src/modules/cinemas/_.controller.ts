@@ -1,6 +1,6 @@
 import { ControllerBase } from '@bases/controller.base.js';
 import CinemasService from './_.service.js';
-import EmployeesService from '../employees/_.service.js';
+import { EmployeeUseCases } from '@services/employee-use-cases.service.js';
 import { ValidationError } from '@errors/validation.error.js';
 
 class CinemasController extends ControllerBase {
@@ -29,7 +29,7 @@ class CinemasController extends ControllerBase {
         return this.created(data, 'Sucursal registrada exitosamente');
     }
 
-    // PUT /cinemas/:id — gerencia general (sin restricciones)
+    // PATCH /cinemas/:id — gerencia general (sin restricciones)
     async update() {
         const { id } = this.getParams();
         const body = this.getBody();
@@ -38,37 +38,44 @@ class CinemasController extends ControllerBase {
         return this.success(null, 'Sucursal actualizada exitosamente');
     }
 
-    // PUT /cinemas — gerente de sede (contexto implícito, restringido)
+    // PATCH /cinemas — gerente de sede (contexto implícito, restringido)
     async updateOwnCinema() {
         const session = this.getSession<any>();
-        if (!session.cinemaId) throw new ValidationError('No tienes una sucursal asignada', []);
+        if (!session.cinemaId) throw new ValidationError('No tienes una sucursal asignada en tu sesión', []);
         const body = this.getBody();
         await CinemasService.updateCinema(session.cinemaId, body, session.userId, true);
         return this.success(null, 'Sucursal actualizada exitosamente');
     }
 
-    // DELETE /cinemas/:id — eliminar sucursal (soft delete via deleted_at)
-    // La tabla cinemas NO tiene columna 'status'. Se elimina lógicamente.
+    // DELETE /cinemas/:id — soft delete
     async delete() {
         const { id } = this.getParams();
         await CinemasService.deleteCinema(Number(id));
         return this.success(null, 'Sucursal eliminada exitosamente');
     }
 
-    // GET /cinemas/:cinemaId/employees
+    // GET /cinemas/:cinemaId/employees — usa caso de uso compartido
     async findEmployeesByCinema() {
         const { cinemaId } = this.getParams();
-        const data = await EmployeesService.findAllEmployees(Number(cinemaId), this.getQueryFilters());
+        const data = await EmployeeUseCases.findAll(Number(cinemaId), this.getQueryFilters());
         return data;
     }
 
-    // POST /cinemas/:cinemaId/employees
+    // POST /cinemas/:cinemaId/employees — usa caso de uso compartido
     async createEmployeeInCinema() {
         const { cinemaId } = this.getParams();
         const employeeData = this.getBody();
         const session = { cinemaId: Number(cinemaId) };
-        const data = await EmployeesService.createEmployee(employeeData, session);
+        const data = await EmployeeUseCases.createEmployee(employeeData, session);
         return this.created(data, 'Empleado creado exitosamente');
+    }
+
+    // DELETE /cinemas/:cinemaId/employees/:employeeId
+    async removeEmployeeFromCinema() {
+        const { cinemaId, employeeId } = this.getParams();
+        await EmployeeUseCases.findById(Number(employeeId), Number(cinemaId));
+        await EmployeeUseCases.deleteEmployeeFromCinema(Number(employeeId));
+        return this.success(null, 'Empleado desactivado exitosamente');
     }
 }
 

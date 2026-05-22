@@ -2,13 +2,23 @@ import { Router } from 'express';
 import roomsController from './_.controller.js';
 import { verifySession, verifyPermission } from '@middlewares/auth.middleware.js';
 
-const router = Router();
+const router = Router({ mergeParams: true });
 
-router.get('/', verifySession, verifyPermission('CRUD:READ:ROOMS'), roomsController.findAll);
+// Obtener salas
+
+// GET /rooms — todas las salas del sistema (o de la sucursal implícita si el usuario tiene cinemaId)
+router.get('/', verifySession, verifyPermission('CRUD:SELECT:ROOMS'), roomsController.findAll);
+
+// Detalle y actualización de sala
+router.get('/:id', verifySession, verifyPermission('CRUD:SELECT:ROOMS'), roomsController.findById);
+router.patch('/:id', verifySession, verifyPermission('CRUD:UPDATE:ROOMS'), roomsController.update);
+router.delete('/:id', verifySession, verifyPermission('CRUD:DELETE:ROOMS'), roomsController.remove);
+
+// Tipos de proyección
 router.get(
     '/:id/projection-types',
     verifySession,
-    verifyPermission('CRUD:READ:ROOMS'),
+    verifyPermission('CRUD:SELECT:ROOMS'),
     roomsController.findProjectionTypes,
 );
 router.post(
@@ -23,11 +33,9 @@ router.delete(
     verifyPermission('CRUD:UPDATE:ROOMS'),
     roomsController.deleteProjectionType,
 );
-router.get('/:id', verifySession, verifyPermission('CRUD:READ:ROOMS'), roomsController.findById);
-router.patch('/:id', verifySession, verifyPermission('CRUD:UPDATE:ROOMS'), roomsController.update);
-router.delete('/:id', verifySession, verifyPermission('CRUD:DELETE:ROOMS'), roomsController.remove);
 
-router.get('/:id/seats', verifySession, verifyPermission('CRUD:READ:SEATS'), roomsController.getSeatMap);
+// Asientos
+router.get('/:id/seats', verifySession, verifyPermission('CRUD:SELECT:SEATS'), roomsController.getSeatMap);
 router.post('/:id/seats', verifySession, verifyPermission('CRUD:CREATE:SEATS'), roomsController.createSeat);
 
 export default router;

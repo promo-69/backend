@@ -6,19 +6,23 @@ export interface CustomersAttributes {
     person: number;
     loyalty_level?: number;
     level_progress_points?: number;
-    current_points_balance?: number; // columna real en la migración
+    current_points_balance?: number;
     registration_date?: Date;
     deleted_at?: Date;
 }
 
 export interface CustomerFull extends CustomersAttributes {
     _People: {
+        id: number;
         first_name: string;
         last_name: string;
         personal_email: string;
         phone_number: string;
+        document_number: string;
+        gender: number | null;
+        birth_date: Date | null;
     };
-    _LoyaltyLevels: { name: string }; // loyalty_levels tiene 'name', no 'description'
+    _LoyaltyLevels: { id: number; name: string };
 }
 
 class CustomersRepository extends SequelizeRepositoryBase<CustomersAttributes, number> {
@@ -26,23 +30,32 @@ class CustomersRepository extends SequelizeRepositoryBase<CustomersAttributes, n
         super(CustomersModel);
     }
 
-    private get _relations() {
+    get relations() {
         return [
             {
                 association: '_People',
-                attributes: ['id', 'document_number', 'first_name', 'last_name', 'personal_email', 'phone_number'],
+                attributes: [
+                    'id',
+                    'document_number',
+                    'first_name',
+                    'last_name',
+                    'gender',
+                    'phone_number',
+                    'personal_email',
+                    'birth_date',
+                ],
                 required: true,
             },
             {
                 association: '_LoyaltyLevels',
-                attributes: ['id', 'name'], // 'name' según la migración
+                attributes: ['id', 'name'],
                 required: false,
             },
         ];
     }
 
     async getFull(id: number): Promise<CustomerFull | null> {
-        return this.getOne({ id }, { relations: this._relations }) as Promise<CustomerFull | null>;
+        return this.getById(id, { relations: this.relations }) as Promise<CustomerFull | null>;
     }
 }
 

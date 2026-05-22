@@ -44,7 +44,7 @@ export class CustomersService extends BaseService {
                 ...customerFields,
                 loyalty: {
                     level_id: customerFields.loyalty_level,
-                    level_name: loyaltyLevel?.description ?? loyaltyLevel?.name ?? null,
+                    level_name: loyaltyLevel?.name ?? null,
                     progress_points: customerFields.level_progress_points,
                     current_points_balance: customerFields.current_points_balance,
                 },
@@ -53,26 +53,15 @@ export class CustomersService extends BaseService {
     }
 
     async findAllCustomers(filters?: any) {
-        const queryOptions = {
+        // Las relaciones viven en el repositorio — se reutilizan sin duplicar.
+        const result = await this._customers.getAll({
             count: true,
-            relations: [
-                {
-                    association: '_People',
-                    attributes: ['id', 'document_number', 'first_name', 'last_name', 'phone_number', 'personal_email'],
-                },
-                {
-                    association: '_LoyaltyLevels',
-                    // La migración define loyalty_levels con columna 'name', no 'description'
-                    attributes: ['id', 'name'],
-                    required: false,
-                },
-            ],
-        };
-
-        const result = await this._customers.getAll({ ...queryOptions, ...filters });
+            relations: this._customers.relations,
+            ...filters,
+        });
 
         if (Array.isArray(result)) {
-            return result.map((c) => this._formatCustomerResponse(c));
+            return result.map((c: any) => this._formatCustomerResponse(c));
         }
 
         return {
@@ -124,27 +113,9 @@ export class CustomersService extends BaseService {
     }
 
     async findCustomerById(id: number) {
+        // Reutiliza las mismas relaciones del repositorio.
         const raw = await this._customers.getById(id, {
-            relations: [
-                {
-                    association: '_People',
-                    attributes: [
-                        'id',
-                        'document_number',
-                        'first_name',
-                        'last_name',
-                        'gender',
-                        'phone_number',
-                        'personal_email',
-                        'birth_date',
-                    ],
-                },
-                {
-                    association: '_LoyaltyLevels',
-                    attributes: ['id', 'name'],
-                    required: false,
-                },
-            ],
+            relations: this._customers.relations,
         });
 
         if (!raw) throw new NotFoundError('Cliente no encontrado');
@@ -209,8 +180,6 @@ export class CustomersService extends BaseService {
 
         const newLevelId = await this._calculateLoyaltyLevel(newProgress, transaction);
 
-        // Registrar movimiento en el ledger (append-only)
-        // loyalty_ledgers tiene: customer, order, operation_type, points
         await this._loyaltyLedgers.create(
             {
                 customer: customerId,

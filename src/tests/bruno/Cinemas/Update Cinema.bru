@@ -4,7 +4,7 @@ meta {
   seq: 4
 }
 
-put {
+patch {
   url: {{baseUrl}}/cinemas/{{testCinemaId}}
   body: json
   auth: bearer
@@ -18,7 +18,6 @@ body:json {
   {
     "name": "Test Cinema Bruno Updated",
     "address": "456 Updated Ave",
-    "phone": "+1234567899",
     "openingTime": "10:00",
     "closingTime": "22:00"
   }

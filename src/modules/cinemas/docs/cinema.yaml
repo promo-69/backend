@@ -37,7 +37,7 @@
                 description: Cinema not found
             '500':
                 description: Internal server error
-    put:
+    patch:
         summary: Update Cinema (Explicit Context)
         description: Full update of a cinema by general management. All fields can be modified.
         tags:

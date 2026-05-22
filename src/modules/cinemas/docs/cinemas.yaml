@@ -75,7 +75,7 @@
                 description: Duplicate name
             '500':
                 description: Internal server error
-    put:
+    patch:
         summary: Update Own Cinema (Implicit Context)
         description: Update the operating policies (phone, schedules) of the cinema assigned to the authenticated user. The cinema ID is taken from the JWT.
         tags:

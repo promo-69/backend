@@ -56,7 +56,6 @@ export class EmployeesService extends BaseService {
                     end_date: pos.end_date ?? null,
                     salary_base: pos.salary_base ?? null,
                     is_active: pos.end_date === null,
-                    // La migración de job_positions usa 'title', no 'name'
                     job_position: pos._JobPositions
                         ? { id: pos._JobPositions.id, title: pos._JobPositions.title }
                         : { id: pos.job_position },
@@ -87,13 +86,11 @@ export class EmployeesService extends BaseService {
     }
 
     async findAllEmployees(cinemaId?: number, filters?: any) {
-        // Filtra por cargo activo en la sucursal si se especifica cinemaId
         const positionFilter: any = { end_date: null };
         if (cinemaId) positionFilter.cinema = cinemaId;
 
         const queryOptions = {
             count: true,
-            // employees en la migración solo tiene: id, person, employee_code, deleted_at
             attributes: ['id', 'person', 'employee_code'],
             relations: [
                 {
@@ -144,9 +141,15 @@ export class EmployeesService extends BaseService {
         if (!raw) throw new NotFoundError('Empleado no encontrado');
 
         if (cinemaId) {
-            const positions = raw._EmployeePositions ?? [];
-            const belongsToCinema = positions.some((pos: any) => pos.cinema === cinemaId && pos.end_date === null);
-            if (!belongsToCinema) throw new NotFoundError('Empleado no encontrado en esta sucursal');
+            // Consultar directamente si el empleado tiene un cargo activo en esa sucursal
+            const position = await this._employeePositions.getOne({
+                employee: id,
+                cinema: cinemaId,
+                end_date: null,
+            });
+            if (!position) {
+                throw new NotFoundError('El empleado no está asignado a esta sucursal o no tiene un cargo activo');
+            }
         }
 
         const formatted = this._formatEmployeeResponse(raw);
@@ -190,7 +193,6 @@ export class EmployeesService extends BaseService {
         }
 
         const result = await this._people.transaction(async (transaction: Transaction) => {
-            // 1. Buscar o crear persona
             let person = await this._people.getOne({ document_number: employeeData.documentNumber });
             if (!person) {
                 person = await this._people.create(
@@ -207,8 +209,6 @@ export class EmployeesService extends BaseService {
                 );
             }
 
-            // 2. Crear empleado
-            // La tabla employees solo tiene: person, employee_code (NO cinema ni hire_date)
             const employee = await this._employees.create(
                 {
                     person: person.id,
@@ -217,7 +217,6 @@ export class EmployeesService extends BaseService {
                 { transaction },
             );
 
-            // 3. Crear cargo activo en employee_positions (aquí sí va cinema y start_date)
             await this._employeePositions.create(
                 {
                     employee: employee.id,
@@ -230,7 +229,6 @@ export class EmployeesService extends BaseService {
                 { transaction },
             );
 
-            // 4. Crear usuario si se envían credenciales
             if (employeeData.email && employeeData.password) {
                 const existingUser = await this._users.getOne({ person: person.id });
                 if (!existingUser) {
@@ -282,7 +280,7 @@ export class EmployeesService extends BaseService {
             }
 
             if (employeeData.employeeCode !== undefined) {
-                if (!employeeData.employeeCode) throw new ValidationError('employeeCode no puede estar vacío');
+                if (!employeeData.employeeCode) throw new ValidationError('El código de empleado no puede estar vacío');
                 await this._employees.update(id, { employee_code: employeeData.employeeCode }, { transaction });
             }
 
@@ -351,6 +349,7 @@ export class EmployeesService extends BaseService {
             });
             if (!employee) throw new NotFoundError('Empleado no encontrado');
 
+            // Cerrar cargo activo si existe
             const activePositionsResult = await this._employeePositions.getAll(
                 {
                     count: false,
@@ -374,7 +373,7 @@ export class EmployeesService extends BaseService {
                     { transaction, lock: transaction.LOCK.UPDATE },
                 );
                 if (user) {
-                    await this._users.update(user.id, { deleted_at: new Date() }, { transaction });
+                    await this._users.delete(user.id, { transaction });
                 }
             }
         });

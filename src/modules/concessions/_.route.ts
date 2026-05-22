@@ -6,7 +6,7 @@ import { uploadFields } from '@middlewares/upload.middleware.js';
 const router = Router();
 
 const imageUpload = uploadFields([{ name: 'image', maxCount: 1 }], {
-    maxSizeMB: 5,
+    maxSizeMB: 25,
     allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp'],
 });
 
@@ -61,13 +61,13 @@ router.delete('/combos/:id', verifySession, verifyPermission('CRUD:DELETE:COMBOS
 router.post(
     '/combos/:id/items',
     verifySession,
-    verifyPermission('CRUD:MANAGE_COMBO_ITEMS:COMBOS'),
+    verifyPermission('FEAT:MANAGE:COMBOS_ITEMS'),
     concessionsController.addComboItems,
 );
 router.delete(
     '/combos/:id/items/:itemId',
     verifySession,
-    verifyPermission('CRUD:MANAGE_COMBO_ITEMS:COMBOS'),
+    verifyPermission('FEAT:MANAGE:COMBOS_ITEMS'),
     concessionsController.removeComboItem,
 );
 

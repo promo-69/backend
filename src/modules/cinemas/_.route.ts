@@ -10,24 +10,35 @@ const router = Router();
 router.get('/', cinemasController.findAll);
 router.get('/:id', cinemasController.findById);
 
-// Protegidos — gerencia general
+// Gerencia general
 router.post('/', verifySession, verifyPermission('CRUD:CREATE:CINEMAS'), cinemasController.create);
-router.put('/:id', verifySession, verifyPermission('CRUD:UPDATE:CINEMAS'), cinemasController.update);
-
-// DELETE — soft delete via deleted_at
+router.patch('/:id', verifySession, verifyPermission('CRUD:UPDATE:CINEMAS'), cinemasController.update);
 router.delete('/:id', verifySession, verifyPermission('CRUD:DELETE:CINEMAS'), cinemasController.delete);
 
 // Contexto implícito — gerente de sede
-router.put('/', verifySession, cinemasController.updateOwnCinema);
+router.patch('/', verifySession, verifyPermission('CRUD:UPDATE_OWN:CINEMAS'), cinemasController.updateOwnCinema);
 
-// Empleados de una sucursal
-router.get('/:cinemaId/employees', verifySession, cinemasController.findEmployeesByCinema);
-router.post('/:cinemaId/employees', verifySession, cinemasController.createEmployeeInCinema);
+router.get(
+    '/:cinemaId/employees',
+    verifySession,
+    verifyPermission('CRUD:READ:EMPLOYEES'),
+    cinemasController.findEmployeesByCinema,
+);
+router.post(
+    '/:cinemaId/employees',
+    verifySession,
+    verifyPermission('CRUD:CREATE:EMPLOYEES'),
+    cinemasController.createEmployeeInCinema,
+);
+router.delete(
+    '/:cinemaId/employees/:employeeId',
+    verifySession,
+    verifyPermission('CRUD:DELETE:EMPLOYEES'),
+    cinemasController.removeEmployeeFromCinema,
+);
 
-// Subrouter de salas
+// Subrouters
 router.use('/:cinemaId/rooms', roomsRouter);
-
-// Subrouter de inventario
 router.use('/:cinemaId/inventory', inventoryRouter);
 
 export default router;

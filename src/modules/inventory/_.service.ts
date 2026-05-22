@@ -10,12 +10,10 @@ export class InventoryService extends BaseService {
     private get _inventoryMovements() {
         return Database.repository('main', 'inventory-movements') as any;
     }
-    // El modelo tiene appRawName: 'operation-types', por eso usamos ese nombre
     private get _operationTypes() {
         return Database.repository('main', 'operation-types') as any;
     }
 
-    /** Stock de todos los productos en una sucursal */
     async getStockByCinema(cinemaId: number, filters?: any) {
         return this._inventories.getAllByCinema(cinemaId, {
             ...filters,
@@ -28,7 +26,6 @@ export class InventoryService extends BaseService {
         });
     }
 
-    /** Detalle de un registro de inventario + últimos movimientos */
     async getInventoryDetail(inventoryId: number) {
         const inv = await this._inventories.getById(inventoryId, {
             relations: [
@@ -42,9 +39,10 @@ export class InventoryService extends BaseService {
         if (!inv) throw new NotFoundError('Registro de inventario no encontrado');
 
         const movements = await this._inventoryMovements.getAll(
-            { count: false, order: [['created_at', 'DESC']], limit: 20 },
+            { count: false, order: [['created_at', 'DESC']] },
             { inventory: inventoryId },
         );
+
         return {
             ...inv,
             movements: Array.isArray(movements) ? movements : movements.rows,
@@ -52,16 +50,15 @@ export class InventoryService extends BaseService {
     }
 
     /**
-     * Registra un lote de movimientos (entrada/salida/merma).
-     * El tipo de operación se identifica por su descripción (única según migración).
+     * Registra un lote de movimientos (entrada/salida/merma)
      */
     async registerMovements(
         inventoryId: number,
-        movements: Array<{ operationType: string; quantity: number; remarks?: string }>,
+        movements: Array<{ operationType: number; quantity: number; remarks?: string }>,
         userId: number,
     ) {
         if (!Array.isArray(movements) || movements.length === 0) {
-            throw new ValidationError('Debe enviar al menos un movimiento', ['movements']);
+            throw new ValidationError('Debe enviar al menos un movimiento');
         }
 
         await this._inventories.transaction(async (transaction: Transaction) => {
@@ -74,18 +71,26 @@ export class InventoryService extends BaseService {
             let newStock = inventory.stock;
 
             for (const mov of movements) {
-                if (!mov.quantity || mov.quantity <= 0)
-                    throw new ValidationError('La cantidad debe ser positiva', ['quantity']);
+                if (!mov.quantity || mov.quantity <= 0) {
+                    throw new ValidationError('La cantidad de cada movimiento debe ser un número positivo');
+                }
 
-                // Buscar por descripción (única) en lugar de código
-                const opType = await this._operationTypes.getOne({ description: mov.operationType }, { transaction });
-                if (!opType)
-                    throw new ValidationError(`Tipo de operación desconocido: ${mov.operationType}`, ['operationType']);
+                // Búsqueda por id (integer)
+                const opType = await this._operationTypes.getById(mov.operationType, { transaction });
+                if (!opType) {
+                    throw new ValidationError(
+                        `El tipo de operación con ID ${mov.operationType} no existe en el sistema`,
+                    );
+                }
 
                 const delta = opType.is_increment ? mov.quantity : -mov.quantity;
                 newStock += delta;
 
-                if (newStock < 0) throw new ValidationError('Stock insuficiente para la operación', ['quantity']);
+                if (newStock < 0) {
+                    throw new ValidationError(
+                        'El stock resultante no puede ser negativo. Verifica las cantidades de salida',
+                    );
+                }
 
                 await this._inventoryMovements.create(
                     {
