@@ -51,13 +51,13 @@ export default defineConfig(({ mode }) => {
 			target: 'node18',
 			rollupOptions: {
 				input: path.resolve(__dirname, 'src/index.ts'),
-				external: ['pg', 'sequelize', 'pg-hstore', 'pdfmake', 'pdfmake/src/printer.js', 'swagger-ui-express'],
+				external: ['pg', 'sequelize', 'pg-hstore', 'pdfmake', 'pdfmake/src/printer.js', 'swagger-ui-express', 'socket.io', '@socket.io/redis-adapter', 'bullmq'],
 			},
 		},
 		// SSR Configuration (Force bundle for everything except natively compiled binaries)
 		ssr: {
 			noExternal: true,
-			external: ['pg', 'sequelize', 'pg-hstore', 'pdfmake', 'pdfmake/src/printer.js'],
+			external: ['pg', 'sequelize', 'pg-hstore', 'pdfmake', 'pdfmake/src/printer.js', 'swagger-ui-express', 'socket.io', '@socket.io/redis-adapter', 'bullmq'],
 			target: 'node',
 		},
 		// Optimize purely for Dev

@@ -22,8 +22,7 @@ module.exports = {
 			[
 				{ id: 1, description: 'Masculino' },
 				{ id: 2, description: 'Femenino' },
-				{ id: 3, description: 'No Binario' },
-				{ id: 4, description: 'Prefiero no decirlo' },
+				{ id: 3, description: 'Prefiero no decirlo' },
 			],
 			{},
 		);
@@ -50,20 +49,27 @@ module.exports = {
 				},
 				{
 					id: 2,
-					code: 'CINEMA_MANAGER',
-					name: 'Gerente',
-					description: 'Administración, supervisión de personal y reportes de un cine específico.',
+					code: 'GENERAL_MANAGER',
+					name: 'Gerente General',
+					description: 'Administración, supervisión de personal y reportes de todas sucursales.',
 				},
 				{
 					id: 3,
-					code: 'CASHIER',
-					name: 'Cajero',
-					description: 'Atención al cliente, venta de boletos en taquilla y productos de confitería.',
+					code: 'CINEMA_MANAGER',
+					name: 'Gerente de Sucursal',
+					description: 'Administración, supervisión de personal y reportes de un cine específico.',
 				},
 				{
 					id: 4,
+					code: 'CASHIER',
+					name: 'Operador Nivel 2',
+					description:
+						'Control de acceso a las salas, validación de boletos, asistencia al cliente, atención al cliente, venta de boletos en taquilla y productos de confitería.',
+				},
+				{
+					id: 5,
 					code: 'USHER',
-					name: 'Acomodador',
+					name: 'Operador Nivel 1',
 					description: 'Control de acceso a las salas, validación de boletos y asistencia al cliente.',
 				},
 			],
@@ -72,9 +78,9 @@ module.exports = {
 		await queryInterface.bulkInsert(
 			'permission_types',
 			[
-				{ id: 1, code: 'VIEW', description: 'Acceso a alguna vista' },
+				{ id: 1, code: 'VIEW', description: 'Gestión de apartados visuales' },
 				{ id: 2, code: 'CRUD', description: 'Crear, leer, actualizar y eliminar registros' },
-				{ id: 3, code: 'FEATURE', description: 'Acceso a ejecutar alguna funcionalidad' },
+				{ id: 3, code: 'FEAT', description: 'Acceso a gestionar funcionalidades' },
 			],
 			{},
 		);
@@ -85,44 +91,12 @@ module.exports = {
 				{ id: 2, code: 'READ', description: 'Leer registros' },
 				{ id: 3, code: 'UPDATE', description: 'Actualizar registros' },
 				{ id: 4, code: 'DELETE', description: 'Eliminar registros' },
-				{ id: 5, code: 'DO', description: 'Ejecutar alguna funcionalidad' },
-				{ id: 6, code: 'ACCESS', description: 'Acceso a alguna vista' },
+				{ id: 5, code: 'DO', description: 'Ejecutar funcionalidad' },
+				{ id: 6, code: 'ACCESS', description: 'Acceder a apartado visual' },
 			],
 			{},
 		);
-		await queryInterface.bulkInsert(
-			'resources',
-			[
-				{ id: 1, code: 'DASHBOARD', description: 'Dashboard principal' },
-				{ id: 2, code: 'MOVIES', description: 'Películas' },
-				{ id: 3, code: 'SHOWTIMES', description: 'Horarios' },
-				{ id: 4, code: 'TICKETS', description: 'Boletos' },
-				{ id: 5, code: 'CONCESSIONS', description: 'Confitería' },
-				{ id: 6, code: 'REWARDS', description: 'Recompensas' },
-				{ id: 7, code: 'USERS', description: 'Usuarios' },
-				{ id: 8, code: 'ROLES', description: 'Roles' },
-				{ id: 9, code: 'PERMISSIONS', description: 'Permisos' },
-				{ id: 10, code: 'ACTIONS', description: 'Acciones' },
-				{ id: 11, code: 'RESOURCES', description: 'Recursos' },
-				{ id: 12, code: 'JOB_POSITIONS', description: 'Cargos' },
-				{ id: 13, code: 'OPERATION_TYPES', description: 'Tipos de operación' },
-				{ id: 14, code: 'GENDERS', description: 'Géneros' },
-				{ id: 15, code: 'USER_TYPES', description: 'Tipos de usuario' },
-				{ id: 16, code: 'STATUSES', description: 'Estados' },
-				{ id: 17, code: 'CINEMAS', description: 'Cines' },
-				{ id: 18, code: 'ROOMS', description: 'Salas' },
-				{ id: 19, code: 'SEATS', description: 'Asientos' },
-				{ id: 20, code: 'PRICES', description: 'Precios' },
-				{ id: 21, code: 'DISCOUNTS', description: 'Descuentos' },
-				{ id: 22, code: 'TAXES', description: 'Impuestos' },
-				{ id: 23, code: 'PAYMENT_METHODS', description: 'Métodos de pago' },
-				{ id: 24, code: 'REWARDS_CATALOG', description: 'Catálogo de recompensas' },
-				{ id: 25, code: 'REWARDS_REDEEMED', description: 'Recompensas canjeadas' },
-				{ id: 26, code: 'REWARDS_POINTS', description: 'Puntos de recompensa' },
-				{ id: 27, code: 'REWARDS_POINTS_HISTORY', description: 'Historial de puntos de recompensa' },
-			],
-			{},
-		);
+		await queryInterface.bulkInsert('resources', [], {});
 
 		// 6. JOB POSITIONS (Cargos reales contractuales - RRHH)
 		await queryInterface.bulkInsert(

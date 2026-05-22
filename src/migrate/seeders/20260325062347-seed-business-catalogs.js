@@ -199,7 +199,6 @@ module.exports = {
 				{ id: 1, description: 'Pendiente de Pago' },
 				{ id: 2, description: 'Pagada / Completada' },
 				{ id: 3, description: 'Cancelada' },
-				{ id: 4, description: 'Reembolsada' },
 			],
 			{},
 		);

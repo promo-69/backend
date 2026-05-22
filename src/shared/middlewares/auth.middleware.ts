@@ -7,193 +7,243 @@ import { UserSession } from '@rules/api.type.js';
 import { tokenBlacklistService } from '@services/token-blacklist.service.js';
 
 interface AuthConfig {
-    cookieNames?: string[];
-    headerName?: string;
+	cookieNames?: string[];
+	headerName?: string;
 }
 
 export class AuthMiddleware {
-    private static readonly DEFAULT_CONFIG: AuthConfig = {
-        cookieNames: ['at', 'rt'],
-        headerName: 'Authorization',
-    };
+	private static readonly DEFAULT_CONFIG: AuthConfig = {
+		cookieNames: ['at', 'rt'],
+		headerName: 'Authorization',
+	};
 
-    private static config: AuthConfig = this.DEFAULT_CONFIG;
+	private static config: AuthConfig = this.DEFAULT_CONFIG;
 
-    static buildSession(_session: any): UserSession {
-        const session: Partial<UserSession> = {
-            userId: _session.userId || _session.sub,
-            documentNumber: _session.documentNumber,
-            firstName: _session.firstName,
-            lastName: _session.lastName,
-            email: _session?.email,
-            phoneNumber: _session?.phoneNumber,
-            permissions: Array.isArray(_session.permissions) ? _session.permissions : [],
-            roleCode: _session?.roleCode,
-            roleDesc: _session?.roleDesc,
-        };
+	static buildSession(_session: any): UserSession {
+		const session: Partial<UserSession> = {
+			userId: _session.userId || _session.sub,
+			documentNumber: _session.documentNumber,
+			firstName: _session.firstName,
+			lastName: _session.lastName,
+			email: _session?.email,
+			phoneNumber: _session?.phoneNumber,
+			permissions: Array.isArray(_session.permissions) ? _session.permissions : [],
+			roleCode: _session?.roleCode,
+			roleDesc: _session?.roleDesc,
+		};
 
-        return session as UserSession;
-    }
+		return session as UserSession;
+	}
 
-    static configure(config: Partial<AuthConfig>): void {
-        this.config = { ...this.DEFAULT_CONFIG, ...config };
+	static configure(config: Partial<AuthConfig>): void {
+		this.config = { ...this.DEFAULT_CONFIG, ...config };
 
-        if (!this.config.headerName && (!this.config.cookieNames || this.config.cookieNames.length === 0))
-            throw new ValidationError('Debe configurar al menos cookieNames o headerName', [], {
-                code: 'AUTH_CONFIG_INVALID',
-            });
-    }
+		if (!this.config.headerName && (!this.config.cookieNames || this.config.cookieNames.length === 0))
+			throw new ValidationError('Debe configurar al menos cookieNames o headerName', [], {
+				code: 'AUTH_CONFIG_INVALID',
+			});
+	}
 
-    private static extractToken(req: Request, tokenType: 'access' | 'refresh' = 'access'): string | null {
-        const security = AppConfig.load().security;
+	private static extractToken(req: Request, tokenType: 'access' | 'refresh' = 'access'): string | null {
+		const security = AppConfig.load().security;
 
-        const cookieName = tokenType === 'refresh' ? security.jwtCookieRefreshName : security.jwtCookieAccessName;
-        const cookieToken = req.cookies ? req.cookies[cookieName] : null;
+		const cookieName = tokenType === 'refresh' ? security.jwtCookieRefreshName : security.jwtCookieAccessName;
+		const cookieToken = req.cookies ? req.cookies[cookieName] : null;
 
-        if (cookieToken) return cookieToken;
+		if (cookieToken) return cookieToken;
 
-        const authHeader = req.header(this.config.headerName!);
+		const authHeader = req.header(this.config.headerName!);
 
-        if (authHeader?.startsWith('Bearer ')) return authHeader.slice(7);
+		if (authHeader?.startsWith('Bearer ')) return authHeader.slice(7);
 
-        return null;
-    }
+		return null;
+	}
 
-    private static async getValidatedSession(req: Request): Promise<{ session: UserSession; token: string }> {
-        const token = this.extractToken(req, 'access');
+	private static async validateToken(token: string): Promise<{ session: UserSession; token: string }> {
+		try {
+			if (!token) throw new AuthError('Token de autenticación no encontrado', { code: 'TOKEN_NOT_FOUND' });
 
-        try {
-            if (!token) throw new AuthError('Token de autenticación no encontrado', { code: 'TOKEN_NOT_FOUND' });
+			const payload = JWTUtil.verifyToken(token) as JWTPayload & UserSession & { iat: number };
 
-            const payload = JWTUtil.verifyToken(token) as JWTPayload & UserSession & { iat: number };
+			if (!payload || !payload.userId || !payload.type)
+				throw new AuthError('Token inválido', { code: 'TOKEN_INVALID' });
 
-            if (!payload || !payload.userId || !payload.type)
-                throw new AuthError('Token inválido', { code: 'TOKEN_INVALID' });
+			const isBlacklisted = await tokenBlacklistService.isBlacklisted(token);
+			if (isBlacklisted)
+				throw new AuthError('Sesión ha expirado o ha sido revocada por seguridad', { code: 'TOKEN_REVOKED' });
 
-            const isBlacklisted = await tokenBlacklistService.isBlacklisted(token);
-            if (isBlacklisted)
-                throw new AuthError('Sesión ha expirado o ha sido revocada por seguridad', { code: 'TOKEN_REVOKED' });
+			return {
+				session: JWTUtil.getPayload(token) as UserSession,
+				token,
+			};
+		} catch (error: any) {
+			if (error instanceof AuthError) throw error;
 
-            return {
-                session: JWTUtil.getPayload(token) as UserSession,
-                token,
-            };
-        } catch (error: any) {
-            if (error instanceof AuthError) throw error;
+			if (error.message === 'Token has expired')
+				throw new AuthError('El token de sesión ha expirado', { code: 'TOKEN_EXPIRED' });
 
-            if (error.message === 'Token has expired')
-                throw new AuthError('El token de sesión ha expirado', { code: 'TOKEN_EXPIRED' });
+			if (error.message === 'Invalid token type')
+				throw new AuthError('El tipo de token es inválido', { code: 'INVALID_TOKEN' });
 
-            if (error.message === 'Invalid token type')
-                throw new AuthError('El tipo de token es inválido', { code: 'INVALID_TOKEN' });
+			throw new AuthError(`Error de autenticación: ${error.message}`, { code: 'AUTH_FAILED' });
+		}
+	}
 
-            throw new AuthError(`Error de autenticación: ${error.message}`, { code: 'AUTH_FAILED' });
-        }
-    }
+	private static async getValidatedSession(req: Request): Promise<{ session: UserSession; token: string }> {
+		const token = this.extractToken(req, 'access');
+		return this.validateToken(token as string);
+	}
 
-    static async verifySession(req: Request, _res: Response, next: NextFunction): Promise<void> {
-        try {
-            const result = await AuthMiddleware.getValidatedSession(req);
+	private static extractTokenFromSocket(socket: any, tokenType: 'access' | 'refresh' = 'access'): string | null {
+		const security = AppConfig.load().security;
+		const cookieName = tokenType === 'refresh' ? security.jwtCookieRefreshName : security.jwtCookieAccessName;
 
-            req.session = result.session;
-            req.token = result.token;
+		let token: string | null = null;
 
-            next();
-        } catch (error) {
-            next(error);
-        }
-    }
+		const cookieHeader = socket.handshake?.headers?.cookie;
+		if (cookieHeader) {
+			const cookies = Object.fromEntries(
+				cookieHeader.split('; ').map((c: string) => {
+					const parts = c.split('=');
+					return [parts[0], parts.slice(1).join('=')];
+				}),
+			);
+			if (cookies[cookieName]) {
+				token = cookies[cookieName];
+			}
+		}
 
-    static async optionalAuth(req: Request, _res: Response, next: NextFunction): Promise<void> {
-        try {
-            const result = await AuthMiddleware.getValidatedSession(req);
+		if (token) return token;
 
-            req.session = result.session;
-            req.token = result.token;
-        } catch (error) {}
+		const authFallback = socket.handshake?.auth?.token || socket.handshake?.headers?.authorization;
+		if (typeof authFallback === 'string') {
+			if (authFallback.toLowerCase().startsWith('bearer ')) {
+				return authFallback.slice(7);
+			}
+			return authFallback;
+		}
 
-        next();
-    }
+		return null;
+	}
 
-    static verifyPermission(permission: string | string[]) {
-        return (req: Request, _res: Response, next: NextFunction): void => {
-            try {
-                if (!req.session) throw new SessionNotFoundError();
+	static async socketAuth(socket: any, next: (err?: any) => void): Promise<void> {
+		try {
+			const token = AuthMiddleware.extractTokenFromSocket(socket, 'access');
+			const result = await AuthMiddleware.validateToken(token as string);
 
-                // Bypass para SUPER_ADMIN
-                if (req.session.roleCode === 'SUPER_ADMIN') {
-                    return next();
-                }
+			if (!socket.data) socket.data = {};
+			socket.data.session = result.session;
 
-                const userPermissions = (req.session.permissions || []).map((p: any) => p.toUpperCase());
+			next();
+		} catch (error: any) {
+			next(error instanceof Error ? error : new Error('Authentication failed'));
+		}
+	}
 
-                let requiredPermissions: string[] = [];
-                if (typeof permission === 'string') requiredPermissions.push(permission.toUpperCase());
-                else if (Array.isArray(permission)) requiredPermissions = permission.map((p) => p.toUpperCase());
-                else
-                    throw new ValidationError('Formato de permisos inválido. Debe ser string o array de strings', [], {
-                        code: 'INVALID_PERMISSION_FORMAT',
-                    });
+	static async verifySession(req: Request, _res: Response, next: NextFunction): Promise<void> {
+		try {
+			const result = await AuthMiddleware.getValidatedSession(req);
 
-                const hasAllPermissions = requiredPermissions.every((perm) => userPermissions.includes(perm));
+			req.session = result.session;
+			req.token = result.token;
 
-                if (!hasAllPermissions)
-                    throw new ForbiddenError('Usuario no tiene los permisos necesarios para realizar esta acción', {
-                        code: 'INSUFFICIENT_PERMISSIONS',
-                    });
+			next();
+		} catch (error) {
+			next(error);
+		}
+	}
 
-                next();
-            } catch (error) {
-                next(error);
-            }
-        };
-    }
+	static async optionalAuth(req: Request, _res: Response, next: NextFunction): Promise<void> {
+		try {
+			const result = await AuthMiddleware.getValidatedSession(req);
 
-    static verifyRole(role: string | string[]) {
-        return (req: Request, _res: Response, next: NextFunction): void => {
-            try {
-                if (!req.session) throw new SessionNotFoundError();
+			req.session = result.session;
+			req.token = result.token;
+		} catch (error) {}
 
-                if (!req.session.roleCode)
-                    throw new ForbiddenError('Usuario no tiene rol asignado', { code: 'NO_ROLE_ASSIGNED' });
+		next();
+	}
 
-                const requiredRoles = Array.isArray(role) ? role : [role];
-                const userRole = req.session.roleCode.toUpperCase();
+	static verifyPermission(permission: string | string[]) {
+		return (req: Request, _res: Response, next: NextFunction): void => {
+			try {
+				if (!req.session) throw new SessionNotFoundError();
 
-                const hasRequiredRole = requiredRoles.some((r) => r.toUpperCase() === userRole);
+				// Bypass para SUPER_ADMIN
+				if (req.session.roleCode === 'SUPER_ADMIN') {
+					return next();
+				}
 
-                if (!hasRequiredRole)
-                    throw new ForbiddenError(`Usuario no tiene el rol necesario para realizar esta acción`, {
-                        code: 'INSUFFICIENT_ROLE',
-                    });
+				const userPermissions = (req.session.permissions || []).map((p: any) => p.toUpperCase());
 
-                next();
-            } catch (error) {
-                next(error);
-            }
-        };
-    }
+				let requiredPermissions: string[] = [];
+				if (typeof permission === 'string') requiredPermissions.push(permission.toUpperCase());
+				else if (Array.isArray(permission)) requiredPermissions = permission.map((p) => p.toUpperCase());
+				else
+					throw new ValidationError('Formato de permisos inválido. Debe ser string o array de strings', [], {
+						code: 'INVALID_PERMISSION_FORMAT',
+					});
 
-    static async preventAuthenticatedAccess(req: Request, _res: Response, next: NextFunction): Promise<void> {
-        try {
-            const token = this.extractToken(req, 'access');
+				const hasAllPermissions = requiredPermissions.every((perm) => userPermissions.includes(perm));
 
-            if (!token) return next();
+				if (!hasAllPermissions)
+					throw new ForbiddenError('Usuario no tiene los permisos necesarios para realizar esta acción', {
+						code: 'INSUFFICIENT_PERMISSIONS',
+					});
 
-            const session = JWTUtil.verifyToken(token) as JWTPayload & UserSession & { iat: number };
+				next();
+			} catch (error) {
+				next(error);
+			}
+		};
+	}
 
-            const isBlacklisted = await tokenBlacklistService.isBlacklisted(token);
+	static verifyRole(role: string | string[]) {
+		return (req: Request, _res: Response, next: NextFunction): void => {
+			try {
+				if (!req.session) throw new SessionNotFoundError();
 
-            if (session && !isBlacklisted)
-                return next(new ConflictError('Ya tienes una sesión activa', 'ACTIVE_SESSION_EXISTS'));
+				if (!req.session.roleCode)
+					throw new ForbiddenError('Usuario no tiene rol asignado', { code: 'NO_ROLE_ASSIGNED' });
 
-            next();
-        } catch (error) {
-            next();
-        }
-    }
+				const requiredRoles = Array.isArray(role) ? role : [role];
+				const userRole = req.session.roleCode.toUpperCase();
+
+				const hasRequiredRole = requiredRoles.some((r) => r.toUpperCase() === userRole);
+
+				if (!hasRequiredRole)
+					throw new ForbiddenError(`Usuario no tiene el rol necesario para realizar esta acción`, {
+						code: 'INSUFFICIENT_ROLE',
+					});
+
+				next();
+			} catch (error) {
+				next(error);
+			}
+		};
+	}
+
+	static async preventAuthenticatedAccess(req: Request, _res: Response, next: NextFunction): Promise<void> {
+		try {
+			const token = this.extractToken(req, 'access');
+
+			if (!token) return next();
+
+			const session = JWTUtil.verifyToken(token) as JWTPayload & UserSession & { iat: number };
+
+			const isBlacklisted = await tokenBlacklistService.isBlacklisted(token);
+
+			if (session && !isBlacklisted)
+				return next(new ConflictError('Ya tienes una sesión activa', 'ACTIVE_SESSION_EXISTS'));
+
+			next();
+		} catch (error) {
+			next();
+		}
+	}
 }
 
+export const socketAuth = AuthMiddleware.socketAuth.bind(AuthMiddleware);
 export const verifySession = AuthMiddleware.verifySession.bind(AuthMiddleware);
 export const optionalAuth = AuthMiddleware.optionalAuth.bind(AuthMiddleware);
 export const verifyPermission = AuthMiddleware.verifyPermission;
