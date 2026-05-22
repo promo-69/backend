@@ -594,6 +594,7 @@ module.exports = {
 				total_amount_base_currency: { type: Sequelize.DECIMAL(10, 2), allowNull: false },
 				generated_points: { type: Sequelize.INTEGER, allowNull: false },
 				order_status: { type: Sequelize.INTEGER, allowNull: false, defaultValue: 1 },
+				remarks: { type: Sequelize.TEXT, allowNull: true },
 				created_at: {
 					type: Sequelize.DATE,
 					allowNull: false,
@@ -711,7 +712,7 @@ module.exports = {
 				operation_type: { type: Sequelize.INTEGER, allowNull: false },
 				points: { type: Sequelize.INTEGER, allowNull: false },
 				points_balance: { type: Sequelize.INTEGER, allowNull: false, defaultValue: 0 },
-				remarks: { allowNull: true, type: DataTypes.TEXT },
+				remarks: { allowNull: true, type: Sequelize.TEXT },
 				created_at: {
 					type: Sequelize.DATE,
 					allowNull: false,

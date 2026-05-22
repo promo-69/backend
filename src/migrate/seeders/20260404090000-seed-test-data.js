@@ -36,7 +36,7 @@ module.exports = {
 				{
 					id: 1,
 					cinema: 1,
-					room_type: 1, // Tradicional
+					room_type: 1,
 					name: 'Sala 1',
 					grid_rows: 5,
 					grid_columns: 8,
@@ -44,7 +44,7 @@ module.exports = {
 				{
 					id: 2,
 					cinema: 1,
-					room_type: 1, // Tradicional
+					room_type: 1,
 					name: 'Sala 2',
 					grid_rows: 4,
 					grid_columns: 6,
@@ -56,9 +56,9 @@ module.exports = {
 		await queryInterface.bulkInsert(
 			'room_projection_types',
 			[
-				{ id: 1, room: 1, projection_type: 1 }, // Sala 1 - 2D Digital
-				{ id: 2, room: 1, projection_type: 2 }, // Sala 1 - 3D Digital
-				{ id: 3, room: 2, projection_type: 1 }, // Sala 2 - 2D Digital
+				{ id: 1, room: 1, projection_type: 1 },
+				{ id: 2, room: 1, projection_type: 2 },
+				{ id: 3, room: 2, projection_type: 1 },
 			],
 			{},
 		);
@@ -71,40 +71,40 @@ module.exports = {
 					room: 1,
 					row_identifier: 'A',
 					column_number: 1,
-					seat_category: 1, // General
-					seat_condition: 1, // Operativa
+					seat_category: 1,
+					seat_condition: 1,
 				},
 				{
 					id: 2,
 					room: 1,
 					row_identifier: 'A',
 					column_number: 2,
-					seat_category: 1, // General
-					seat_condition: 1, // Operativa
+					seat_category: 1,
+					seat_condition: 1,
 				},
 				{
 					id: 3,
 					room: 1,
 					row_identifier: 'A',
 					column_number: 3,
-					seat_category: 2, // VIP
-					seat_condition: 1, // Operativa
+					seat_category: 2,
+					seat_condition: 1,
 				},
 				{
 					id: 4,
 					room: 2,
 					row_identifier: 'A',
 					column_number: 1,
-					seat_category: 1, // General
-					seat_condition: 1, // Operativa
+					seat_category: 1,
+					seat_condition: 1,
 				},
 				{
 					id: 5,
 					room: 2,
 					row_identifier: 'A',
 					column_number: 2,
-					seat_category: 2, // VIP
-					seat_condition: 1, // Operativa
+					seat_category: 2,
+					seat_condition: 1,
 				},
 			],
 			{},
@@ -118,8 +118,8 @@ module.exports = {
 					id: 1,
 					title: 'La Aventura del Cine',
 					duration_minutes: 110,
-					age_classification: 1, // A
-					lifecycle_state: 2, // En Cartelera (Estreno)
+					age_classification: 1,
+					lifecycle_state: 2,
 					synopsis: 'Una historia sobre el amor por las salas de cine y la magia de la pantalla grande.',
 					trailer_url: 'https://example.com/trailer/la-aventura-del-cine',
 					release_date: '2026-05-01',
@@ -128,8 +128,8 @@ module.exports = {
 					id: 2,
 					title: 'Fantasía Urbana',
 					duration_minutes: 95,
-					age_classification: 2, // B
-					lifecycle_state: 3, // En Cartelera (Regular)
+					age_classification: 2,
+					lifecycle_state: 3,
 					synopsis: 'Aventuras fantásticas en el corazón de la ciudad, con mucho humor y corazón.',
 					trailer_url: 'https://example.com/trailer/fantasia-urbana',
 					release_date: '2026-04-15',
@@ -157,21 +157,21 @@ module.exports = {
 					room: 1,
 					start_time: '2026-05-01 18:00:00',
 					end_time: '2026-05-01 20:00:00',
-					booking_type: 1, // Película
+					booking_type: 1,
 				},
 				{
 					id: 2,
 					room: 2,
 					start_time: '2026-05-01 20:30:00',
 					end_time: '2026-05-01 22:05:00',
-					booking_type: 1, // Película
+					booking_type: 1,
 				},
 				{
 					id: 3,
 					room: 2,
 					start_time: '2026-06-02 14:00:00',
 					end_time: '2026-06-02 18:00:00',
-					booking_type: 3, // Alquiler Privado
+					booking_type: 3,
 				},
 			],
 			{},
@@ -185,7 +185,7 @@ module.exports = {
 					booking: 1,
 					movie: 1,
 					projection_type: 1,
-					currency: 1, // USD
+					currency: 1,
 					price: 12.5,
 					earned_loyalty_points: 25,
 				},
@@ -194,7 +194,7 @@ module.exports = {
 					booking: 2,
 					movie: 2,
 					projection_type: 1,
-					currency: 1, // USD
+					currency: 1,
 					price: 10.0,
 					earned_loyalty_points: 20,
 				},
@@ -211,7 +211,7 @@ module.exports = {
 					document_number: 'V-12345678',
 					first_name: 'María',
 					last_name: 'Pérez',
-					gender: 2, // Femenino
+					gender: 2,
 					phone_number: '+58 424-123-4567',
 					personal_email: 'maria.perez@example.com',
 					birth_date: '1992-08-10',
@@ -221,7 +221,7 @@ module.exports = {
 					document_number: 'V-87654321',
 					first_name: 'Admin',
 					last_name: 'Super',
-					gender: 1, // Masculino
+					gender: 1,
 					phone_number: '+58 212-555-0000',
 					personal_email: 'admin.super@cineflix.com',
 					birth_date: '1985-01-01',
@@ -236,8 +236,8 @@ module.exports = {
 				{
 					id: 1,
 					person: 1,
-					loyalty_level: 1, // Cuarzo
-					level_progress_points: 281, // Puntos acumulados en las compras simuladas
+					loyalty_level: 1,
+					level_progress_points: 281,
 					registration_date: '2026-04-01 12:00:00',
 				},
 			],
@@ -315,7 +315,7 @@ module.exports = {
 				{
 					id: 1,
 					name: 'IVA 16%',
-					rate: 16.00,
+					rate: 16.0,
 					is_percentage: true,
 				},
 			],
@@ -340,7 +340,7 @@ module.exports = {
 				{
 					id: 1,
 					currency: 2, // Bolívares (VES)
-					rate: 36.50,
+					rate: 36.5,
 					user: 2, // Empleado (Admin)
 				},
 			],
@@ -355,7 +355,7 @@ module.exports = {
 					description: 'Descuento Estudiantil (20% en boletería)',
 					operation_type: 2, // Resta (descuento)
 					is_percentage: true,
-					value: 20.00,
+					value: 20.0,
 					modifier_scope: 1, // Boletería
 					audience_category: 4, // Estudiante
 				},
@@ -373,7 +373,7 @@ module.exports = {
 					sku: 'PROD-POPCORN-LG',
 					product_category: 2, // Snacks
 					currency: 1, // USD
-					price: 5.00,
+					price: 5.0,
 					earned_loyalty_points: 10,
 				},
 				{
@@ -382,7 +382,7 @@ module.exports = {
 					sku: 'PROD-SODA-MD',
 					product_category: 1, // Bebidas
 					currency: 1, // USD
-					price: 2.50,
+					price: 2.5,
 					earned_loyalty_points: 5,
 				},
 				{
@@ -391,7 +391,7 @@ module.exports = {
 					sku: 'PROD-CHOCO-EXT',
 					product_category: 3, // Chocolatería y Dulces
 					currency: 1, // USD
-					price: 3.00,
+					price: 3.0,
 					earned_loyalty_points: 6,
 				},
 			],
@@ -408,7 +408,7 @@ module.exports = {
 					sku: 'CMB-DUO',
 					description: '1 Cotufa Grande + 2 Refrescos Medianos con descuento especial',
 					currency: 1, // USD
-					price: 8.50,
+					price: 8.5,
 					earned_loyalty_points: 18,
 				},
 			],
@@ -442,11 +442,11 @@ module.exports = {
 					inventory: 1,
 					operation_type: 3, // Entrada
 					quantity: 100,
-					unit_cost: 1.50,
+					unit_cost: 1.5,
 					currency: 1,
 					user: 2,
 					resulting_stock: 100,
-					resulting_unit_cost_base_currency: 1.50,
+					resulting_unit_cost_base_currency: 1.5,
 					remarks: 'Carga inicial de stock',
 				},
 				{
@@ -454,11 +454,11 @@ module.exports = {
 					inventory: 2,
 					operation_type: 3, // Entrada
 					quantity: 200,
-					unit_cost: 0.80,
+					unit_cost: 0.8,
 					currency: 1,
 					user: 2,
 					resulting_stock: 200,
-					resulting_unit_cost_base_currency: 0.80,
+					resulting_unit_cost_base_currency: 0.8,
 					remarks: 'Carga inicial de stock',
 				},
 				{
@@ -466,11 +466,11 @@ module.exports = {
 					inventory: 3,
 					operation_type: 3, // Entrada
 					quantity: 50,
-					unit_cost: 1.00,
+					unit_cost: 1.0,
 					currency: 1,
 					user: 2,
 					resulting_stock: 50,
-					resulting_unit_cost_base_currency: 1.00,
+					resulting_unit_cost_base_currency: 1.0,
 					remarks: 'Carga inicial de stock',
 				},
 			],
@@ -491,9 +491,9 @@ module.exports = {
 					employee: 1, // Admin aprobador
 					cinema: 1,
 					system_base_currency: 1, // USD
-					subtotal_base_currency: 250.00,
-					tax_amount_base_currency: 40.00,
-					total_amount_base_currency: 290.00,
+					subtotal_base_currency: 250.0,
+					tax_amount_base_currency: 40.0,
+					total_amount_base_currency: 290.0,
 					generated_points: 250,
 					order_status: 2, // Pagada / Completada
 				},
@@ -508,8 +508,8 @@ module.exports = {
 					id: 1,
 					order: 1,
 					tax: 1, // IVA 16%
-					applied_rate: 16.00,
-					tax_amount_base_currency: 40.00,
+					applied_rate: 16.0,
+					tax_amount_base_currency: 40.0,
 				},
 			],
 			{},
@@ -522,7 +522,7 @@ module.exports = {
 					id: 1,
 					order: 1,
 					payment_method: 1, // Efectivo Divisas
-					amount: 290.00,
+					amount: 290.0,
 					quoted_exchange_rate: 1, // Tasa USD base = 1
 					reference_number: 'PAY-RENTAL-001',
 					is_approved: true,
@@ -545,7 +545,7 @@ module.exports = {
 					employee: null, // Compra web por la cliente
 					cinema: 1,
 					system_base_currency: 1, // USD
-					subtotal_base_currency: 31.00,
+					subtotal_base_currency: 31.0,
 					tax_amount_base_currency: 4.96,
 					total_amount_base_currency: 35.96,
 					generated_points: 31,
@@ -562,7 +562,7 @@ module.exports = {
 					id: 2,
 					order: 2,
 					tax: 1, // IVA 16%
-					applied_rate: 16.00,
+					applied_rate: 16.0,
 					tax_amount_base_currency: 4.96,
 				},
 			],
@@ -579,8 +579,8 @@ module.exports = {
 					product: null,
 					combo: 1,
 					quantity: 1,
-					original_unit_price: 8.50,
-					unit_price: 8.50,
+					original_unit_price: 8.5,
+					unit_price: 8.5,
 					quoted_exchange_rate: 1,
 				},
 			],
@@ -595,8 +595,8 @@ module.exports = {
 					order: 2,
 					booking: 1, // Showtime 1 booking
 					seat: 1,
-					original_price: 12.50,
-					price: 10.00, // Con descuento
+					original_price: 12.5,
+					price: 10.0, // Con descuento
 					quoted_exchange_rate: 1,
 					qr_code: 'TICKET-QR-STUDENT-001',
 					validation_time: null,
@@ -606,8 +606,8 @@ module.exports = {
 					order: 2,
 					booking: 1,
 					seat: 2,
-					original_price: 12.50,
-					price: 12.50, // Normal
+					original_price: 12.5,
+					price: 12.5, // Normal
 					quoted_exchange_rate: 1,
 					qr_code: 'TICKET-QR-NORMAL-002',
 					validation_time: null,
@@ -628,7 +628,7 @@ module.exports = {
 					order_line: null,
 					rental_request: null,
 					rental_catering: null,
-					applied_amount_base_currency: 2.50, // Se descontaron 2.50$
+					applied_amount_base_currency: 2.5, // Se descontaron 2.50$
 				},
 			],
 			{},
@@ -684,7 +684,7 @@ module.exports = {
 					event_description: 'Presentación corporativa de tecnología',
 					status: 2, // Aceptada / Completada
 					currency: 1, // USD
-					price: 150.00, // Precio asignado por el administrador por el espacio
+					price: 150.0, // Precio asignado por el administrador por el espacio
 				},
 			],
 			{},
@@ -700,8 +700,8 @@ module.exports = {
 					product: 1, // Cotufas Grandes
 					combo: null,
 					quantity: 10,
-					original_unit_price: 5.00,
-					unit_price: 5.00,
+					original_unit_price: 5.0,
+					unit_price: 5.0,
 					quoted_exchange_rate: 1,
 				},
 				{
@@ -711,8 +711,8 @@ module.exports = {
 					product: 2, // Refresco Mediano
 					combo: null,
 					quantity: 20,
-					original_unit_price: 2.50,
-					unit_price: 2.50,
+					original_unit_price: 2.5,
+					unit_price: 2.5,
 					quoted_exchange_rate: 1,
 				},
 			],
