@@ -29,9 +29,11 @@
                                                 type: integer
                                             room:
                                                 type: integer
-                                            row:
+                                            row_identifier:
+                                                type: string
+                                            column_number:
                                                 type: integer
-                                            column:
+                                            seat_category:
                                                 type: integer
                                             seat_condition:
                                                 type: integer
@@ -63,13 +65,17 @@
                         items:
                             type: object
                             required:
-                                - row
-                                - column
+                                - rowIdentifier
+                                - columnNumber
+                                - seatCategory
                             properties:
-                                row:
+                                rowIdentifier:
+                                    type: string
+                                    example: A
+                                columnNumber:
                                     type: integer
                                     example: 1
-                                column:
+                                seatCategory:
                                     type: integer
                                     example: 1
                                 seatCondition:

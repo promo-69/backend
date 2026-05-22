@@ -7,9 +7,7 @@ class InventoryController extends ControllerBase {
     async findAll() {
         const session = this.getSession<any>();
         if (!session.cinemaId) {
-            throw new ValidationError(
-                'No se pudo determinar la sucursal del usuario. Si sos administrador, usá el endpoint de auditoría remota.',
-            );
+            throw new ValidationError('No se pudo determinar la sucursal del usuario.');
         }
         const data = await InventoryService.getStockByCinema(session.cinemaId, this.getQueryFilters());
         return data;

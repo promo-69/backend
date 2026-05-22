@@ -1,6 +1,6 @@
 import { ControllerBase } from '@bases/controller.base.js';
 import RoomsService from './_.service.js';
-import { SeatUseCases } from '@services/seats-use-cases.service.js';
+import SeatManagementService from '@services/seat-management.service.js';
 
 class RoomsController extends ControllerBase {
     constructor() {
@@ -68,7 +68,7 @@ class RoomsController extends ControllerBase {
     async createSeat() {
         const { id } = this.getParams();
         const body = this.getBody();
-        await SeatUseCases.create(Number(id), body);
+        await SeatManagementService.createSeats(Number(id), body);
         return this.created(null, 'Asiento(s) agregado(s) exitosamente');
     }
 }

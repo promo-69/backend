@@ -1,6 +1,6 @@
 import { ControllerBase } from '@bases/controller.base.js';
 import CinemasService from './_.service.js';
-import { EmployeeUseCases } from '@services/employee-use-cases.service.js';
+import EmployeeManagementService from '@services/employee-management.service.js';
 import { ValidationError } from '@errors/validation.error.js';
 
 class CinemasController extends ControllerBase {
@@ -57,7 +57,7 @@ class CinemasController extends ControllerBase {
     // GET /cinemas/:cinemaId/employees — usa caso de uso compartido
     async findEmployeesByCinema() {
         const { cinemaId } = this.getParams();
-        const data = await EmployeeUseCases.findAll(Number(cinemaId), this.getQueryFilters());
+        const data = await EmployeeManagementService.findAllEmployees(Number(cinemaId), this.getQueryFilters());
         return data;
     }
 
@@ -65,16 +65,15 @@ class CinemasController extends ControllerBase {
     async createEmployeeInCinema() {
         const { cinemaId } = this.getParams();
         const employeeData = this.getBody();
-        const session = { cinemaId: Number(cinemaId) };
-        const data = await EmployeeUseCases.createEmployee(employeeData, session);
+        const data = await EmployeeManagementService.createEmployee(employeeData, Number(cinemaId));
         return this.created(data, 'Empleado creado exitosamente');
     }
 
     // DELETE /cinemas/:cinemaId/employees/:employeeId
     async removeEmployeeFromCinema() {
         const { cinemaId, employeeId } = this.getParams();
-        await EmployeeUseCases.findById(Number(employeeId), Number(cinemaId));
-        await EmployeeUseCases.deleteEmployeeFromCinema(Number(employeeId));
+        await EmployeeManagementService.findEmployeeById(Number(employeeId), Number(cinemaId));
+        await EmployeeManagementService.deleteEmployee(Number(employeeId));
         return this.success(null, 'Empleado desactivado exitosamente');
     }
 }

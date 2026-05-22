@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import cinemasController from './_.controller.js';
 import { verifySession, verifyPermission } from '@middlewares/auth.middleware.js';
-import roomsRouter from './rooms.route.js';
-import inventoryRouter from './inventory.route.js';
+import roomsRouter from './rooms/rooms.route.js';
+import inventoryRouter from './inventory/inventory.route.js';
 
 const router = Router();
 

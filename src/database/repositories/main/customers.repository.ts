@@ -6,7 +6,6 @@ export interface CustomersAttributes {
     person: number;
     loyalty_level?: number;
     level_progress_points?: number;
-    current_points_balance?: number;
     registration_date?: Date;
     deleted_at?: Date;
 }
