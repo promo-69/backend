@@ -65,7 +65,10 @@ export class App {
 	}
 
 	private async setupBackgroundTasks(): Promise<void> {
+		Logger.natural(ANSI.info('----- [ Setting up Background Process ] ----'), { sepStart: true });
 		await startBackgroundProcesses();
+		Logger.natural(ANSI.success(`[+] All background proccess loaded`));
+		Logger.natural(ANSI.info(''.padEnd(44, '-')));
 	}
 
 	async initialize(): Promise<Express> {
@@ -164,6 +167,7 @@ export class App {
 		const routerEssentialApi = express.Router();
 		const router = express.Router();
 		const apiPrefix = `/api/v1`;
+		let routesCounter = 0;
 
 		// Health check global
 		routerEssentialApi.get('/health', (req: Request, res: Response) => {
@@ -235,6 +239,7 @@ export class App {
 						Logger.natural(
 							`Loaded: ${ANSI.link(`${this.appConfig.apiBaseUrl}${apiPrefix}/${moduleName}`)}${ANSI.getCode('reset')}`,
 						);
+						++routesCounter;
 					} catch (error: any) {
 						Logger.error(`Failed to load module ${moduleName}:`, error);
 					}
@@ -286,11 +291,12 @@ export class App {
 						Logger.natural(
 							`Loaded: ${ANSI.link(`${this.appConfig.apiBaseUrl}${apiPrefix}/${moduleName}`)}${ANSI.getCode('reset')}`,
 						);
+						++routesCounter;
 					}
 				}
 			}
 		} catch (error: any) {
-			Logger.error(`Loading modules macro`, error);
+			Logger.error(`Loading modules`, error);
 		}
 
 		this.app.use((req: Request, res: Response, next: NextFunction) => {
@@ -342,7 +348,7 @@ export class App {
 
 				Logger.natural(
 					ANSI.success(
-						`[+] Swagger UI loaded at ${ANSI.link(`${this.appConfig.apiBaseUrl}${this.appConfig.docs?.path}`)}${ANSI.getCode('reset')}`,
+						`Swagger UI loaded: ${ANSI.link(`${this.appConfig.apiBaseUrl}${this.appConfig.docs?.path}`)}${ANSI.getCode('reset')}`,
 					),
 				);
 			} catch (error: any) {
@@ -350,6 +356,7 @@ export class App {
 			}
 		}
 
+		if (routesCounter == 0 && !this.appConfig.enableDocs) Logger.natural('-');
 		Logger.natural(ANSI.success(`[+] All routes loaded`));
 		Logger.natural(ANSI.info(''.padEnd(44, '-')));
 	}

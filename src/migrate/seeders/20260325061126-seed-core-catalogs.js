@@ -96,7 +96,7 @@ module.exports = {
 			],
 			{},
 		);
-		await queryInterface.bulkInsert('resources', [], {});
+		//await queryInterface.bulkInsert('resources', [], {});
 
 		// 6. JOB POSITIONS (Cargos reales contractuales - RRHH)
 		await queryInterface.bulkInsert(

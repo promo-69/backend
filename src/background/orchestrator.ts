@@ -16,7 +16,6 @@ export async function startBackgroundProcesses(): Promise<void> {
 	};
 
 	try {
-		Logger.natural(ANSI.success('[+] Starting background auto-discovery...'), { sepStart: true });
 		const promises = [];
 
 		const subscribers = import.meta.glob(['./subscribers/*.subscriber.{ts,js}', '!./subscribers/__*.{ts,js}'], {
@@ -37,8 +36,8 @@ export async function startBackgroundProcesses(): Promise<void> {
 
 		await Promise.all(promises);
 
-		Logger.natural(ANSI.success('[+] Background processes successfully initialized.'));
+		if (promises.length == 0) Logger.natural('-');
 	} catch (error: any) {
-		Logger.error('[Background] Failed to start background processes:', error);
+		Logger.error('Failed to start background processes:', error);
 	}
 }
