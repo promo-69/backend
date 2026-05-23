@@ -166,16 +166,10 @@ module.exports = {
 		await queryInterface.bulkInsert(
 			'loyalty_levels',
 			[
-				{ id: 1, name: 'Cuarzo', required_points: 300 },
-				{ id: 2, name: 'Ámbar', required_points: 900 },
-				{ id: 3, name: 'Jade', required_points: 2100 },
-				{ id: 4, name: 'Ópalo', required_points: 4500 },
-				{ id: 5, name: 'Topacio', required_points: 9300 },
-				{ id: 6, name: 'Zafiro', required_points: 18900 },
-				{ id: 7, name: 'Esmeralda', required_points: 38100 },
-				{ id: 8, name: 'Rubí', required_points: 76500 },
-				{ id: 9, name: 'Diamante', required_points: 153300 },
-				{ id: 10, name: 'Obsidiana', required_points: 306900 },
+				{ id: 1, name: 'Bronce', required_points: 300 },
+				{ id: 2, name: 'Plata', required_points: 900 },
+				{ id: 3, name: 'Oro', required_points: 2100 },
+				{ id: 4, name: 'VIP', required_points: 4500 },
 			],
 			{},
 		);
