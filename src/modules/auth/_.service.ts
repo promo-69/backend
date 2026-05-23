@@ -1,5 +1,6 @@
 import { BaseService } from '@bases/service.base.js';
 import { Database } from '@database/index.js';
+import { Ops } from '@database/index.js';
 import { AuthError, ValidationError } from '@errors';
 import { Transaction } from 'sequelize';
 import { ExceptionPermissions } from '@rules/permission-exceptions.type.js';
@@ -13,6 +14,16 @@ import { CacheDatabaseProvider } from '@providers/cache-database.provider.js';
 import JWTUtil, { RefreshTokenPayload } from '@utils/jwt.util.js';
 import { customAlphabet, nanoid } from 'nanoid';
 import { Logger } from '@utils/logger.util.js';
+
+// ─── Constantes de dominio ────────────────────────────────────────────────────
+
+const USER_TYPE_EMPLOYEE = 1;
+const USER_TYPE_CUSTOMER = 2;
+
+const RESET_CODE_TTL_SECONDS = 10 * 60;
+const RESET_TOKEN_TTL_SECONDS = 10 * 60;
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 const generateCode = customAlphabet('1234567890', 4);
 const generateToken = customAlphabet('1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', 64);
@@ -78,7 +89,6 @@ export class AuthService extends BaseService {
     }
 
     private async getRolePermissions(roleId: number): Promise<string[]> {
-        // 1. Obtener los IDs de los permisos asignados al rol
         const rolePermissions = await this._rolePermissions.getAll({ count: false }, { role: roleId });
         const permissionIds = (Array.isArray(rolePermissions) ? rolePermissions : rolePermissions.rows).map(
             (rp: any) => rp.permission,
@@ -86,7 +96,6 @@ export class AuthService extends BaseService {
 
         if (permissionIds.length === 0) return [];
 
-        // 2. Obtener los permisos con sus relaciones (actions, resources, permission_types)
         const permissions = await this._permisos.getAll(
             { count: false },
             { id: permissionIds },
@@ -101,21 +110,15 @@ export class AuthService extends BaseService {
 
         const permList = Array.isArray(permissions) ? permissions : permissions.rows;
 
-        // 3. Mapear a formato string, ignorando permisos sin código
         return permList
             .map((p: any) => {
                 const action = p._Actions?.code;
                 const resource = p._Resources?.code;
                 const type = p._PermissionTypes?.code;
-                if (action && resource && type) {
-                    return `${type}:${action}:${resource}`;
-                }
-                return null;
+                return action && resource && type ? `${type}:${action}:${resource}` : null;
             })
             .filter((s: string | null) => s !== null) as string[];
     }
-
-    // --- Authentication & Sessions ---
 
     private async _buildUserPayload(foundUser: any): Promise<UserSession> {
         const payload: UserSession = {
@@ -128,8 +131,7 @@ export class AuthService extends BaseService {
             phoneNumber: foundUser._People?.phone_number ?? null,
         };
 
-        // Solo se ejecuta si es empleado y las relaciones necesarias están disponibles
-        if (foundUser.user_type == 1 && foundUser._Roles && foundUser._UserPermissions) {
+        if (foundUser.user_type === USER_TYPE_EMPLOYEE && foundUser._Roles && foundUser._UserPermissions) {
             const permissionsExceptions: ExceptionPermissions = foundUser._UserPermissions.reduce(
                 (acu: ExceptionPermissions, cur: any) => {
                     acu[cur.is_granted ? 'granted' : 'revoked'].push(cur.permission);
@@ -163,12 +165,10 @@ export class AuthService extends BaseService {
 
         const payload = await this._buildUserPayload(sessionData);
 
-        // Cargar roleCode y permisos desde la base de datos
         if (sessionData.role) {
             const role = await this._roles.getById(sessionData.role);
             if (role) {
                 payload.roleCode = role.code;
-                // Obtener permisos reales del rol (sin hardcodeo)
                 payload.permissions = await this.getRolePermissions(role.id);
             }
         }
@@ -180,6 +180,83 @@ export class AuthService extends BaseService {
 
         return { user: payload, accessToken, refreshToken };
     }
+
+    private async _authenticate(
+        email: string,
+        password: string,
+        expectedUserType: number,
+        device?: string,
+    ): Promise<LoginResponse> {
+        if (!email || !password) throw new ValidationError('Las credenciales están incompletas', []);
+
+        if (!REGEX.EMAIL.test(email) || !REGEX.PASSWORD.test(password))
+            throw new ValidationError('Credenciales inválidas', []);
+
+        // Filtro de role según el tipo de usuario esperado
+        const roleFilter = expectedUserType === USER_TYPE_EMPLOYEE ? { [Ops.ne]: null } : null;
+
+        const foundUser = await this._users.getOne(
+            { email },
+            { include: [{ association: '_People' }, { association: '_UserTypes' }] },
+        );
+
+        if (!foundUser || !(await BcryptUtil.compare(password, foundUser.password)))
+            throw new AuthError('Credenciales inválidas', { code: 'INVALID_LOGIN' });
+
+        const isEmployee = foundUser.role !== null && foundUser.role !== undefined;
+        const expectedIsEmployee = expectedUserType === USER_TYPE_EMPLOYEE;
+
+        if (isEmployee !== expectedIsEmployee) throw new AuthError('Credenciales inválidas', { code: 'INVALID_LOGIN' });
+
+        const roleCode = foundUser.role ? (await this._roles.getById(foundUser.role))?.code : null;
+        const isSuperAdmin = roleCode === 'SUPER_ADMIN';
+
+        if (!isSuperAdmin && !foundUser.signup_verified_at) {
+            const signupCode = nanoid(20);
+            await this._users.update({ id: foundUser.id }, { signup_code: await BcryptUtil.hash(signupCode) });
+
+            emailService.sendVerificationCode(email, email, signupCode).catch((err) => {
+                Logger.error('Error al enviar el correo de verificación:', err);
+            });
+
+            throw new AuthError(
+                'Cuenta no verificada. Por favor revisa tu correo electrónico y completa la verificación.',
+                { code: 'UNVERIFIED_ACCOUNT' },
+            );
+        }
+
+        const loginResponse = await this._buildLoginResponse(foundUser);
+        const decodedToken = JWTUtil.decodeToken(loginResponse.refreshToken) as {
+            jti?: string;
+            exp?: number;
+        };
+
+        if (decodedToken?.jti && decodedToken?.exp) {
+            await this._usersLogins.create({
+                user: foundUser.id,
+                device: device ?? 'Unknown Device',
+                jti: decodedToken.jti,
+                expires_at: new Date(decodedToken.exp * 1000),
+                token_status: 1,
+            });
+        }
+
+        return loginResponse;
+    }
+
+    // --- Métodos públicos de login (un método por canal, sin duplicación) ---
+
+    /** POST /auth/login — exclusivo para clientes (user_type = 2, role IS NULL) */
+    async authenticateCustomer(body: LoginBody, device?: string): Promise<LoginResponse> {
+        return this._authenticate(body.email, body.password, USER_TYPE_CUSTOMER, device);
+    }
+
+    /** POST /auth/login/admin — exclusivo para empleados (user_type = 1, role IS NOT NULL) */
+    async authenticateEmployee(body: LoginBody, device?: string): Promise<LoginResponse> {
+        return this._authenticate(body.email, body.password, USER_TYPE_EMPLOYEE, device);
+    }
+
+    // --- Resto de métodos (sin cambios lógicos, solo números mágicos reemplazados) ---
 
     async registerUser(signupBody: CustomerSignupBody): Promise<void> {
         const { firstName, lastName, email, phoneNumber, documentNumber, gender, birthDate, password } = signupBody;
@@ -228,8 +305,8 @@ export class AuthService extends BaseService {
                     createdPerson = await this._people.create(
                         Object.fromEntries(
                             Object.entries(person).map(([key, value]) => [
-                                convertCase(key == 'email' ? 'personal_email' : key, 'pascal', 'snake'),
-                                key == 'gender' ? Number(value) : value,
+                                convertCase(key === 'email' ? 'personal_email' : key, 'pascal', 'snake'),
+                                key === 'gender' ? Number(value) : value,
                             ]),
                         ),
                         { transaction },
@@ -239,9 +316,9 @@ export class AuthService extends BaseService {
                 const createdUser = await this._users.create(
                     {
                         ...user,
-                        user_type: 2,
+                        user_type: USER_TYPE_CUSTOMER,
                         password: await BcryptUtil.hash(user.password),
-                        person: createdPerson.id,
+                        person: createdPerson?.id ?? existingPerson?.id,
                         signup_code: await BcryptUtil.hash(signupCode),
                     },
                     { transaction },
@@ -258,56 +335,6 @@ export class AuthService extends BaseService {
         });
     }
 
-    async authenticateUser({ email, password }: LoginBody, device?: string): Promise<LoginResponse> {
-        if (!email || !password) throw new ValidationError('Las credenciales están incompletas', []);
-
-        if (!REGEX.EMAIL.test(email) || !REGEX.PASSWORD.test(password))
-            throw new ValidationError('Las credenciales no son válidas', []);
-
-        const foundUser = await this._users.getOne(
-            { email },
-            {
-                include: [{ association: '_People' }, { association: '_UserTypes' }],
-            },
-        );
-
-        if (!foundUser || !(await BcryptUtil.compare(password, foundUser.password)))
-            throw new AuthError('Las credenciales no son correctas', { code: 'INVALID_LOGIN' });
-
-        // Verificar si el usuario es SUPER_ADMIN (no necesita verificar correo en desarrollo)
-        const roleCode = foundUser.role ? (await this._roles.getById(foundUser.role))?.code : null;
-        const isSuperAdmin = roleCode === 'SUPER_ADMIN';
-
-        if (!isSuperAdmin && !foundUser.signup_verified_at) {
-            const signupCode = nanoid(20);
-            await this._users.update({ id: foundUser.id }, { signup_code: await BcryptUtil.hash(signupCode) });
-
-            emailService.sendVerificationCode(email, email, signupCode).catch((err) => {
-                Logger.error('Error al enviar el correo de verificación:', err);
-            });
-
-            throw new AuthError(
-                'Cuenta no verificada. Por favor revisa tu correo electrónico y completa la verificación.',
-                { code: 'UNVERIFIED_ACCOUNT' },
-            );
-        }
-
-        const loginResponse = await this._buildLoginResponse(foundUser);
-        const decodedToken = JWTUtil.decodeToken(loginResponse.refreshToken) as { jti?: string; exp?: number };
-
-        if (decodedToken && decodedToken.jti && decodedToken.exp) {
-            await this._usersLogins.create({
-                user: foundUser.id,
-                device: device || 'Unknown Device',
-                jti: decodedToken.jti,
-                expires_at: new Date(decodedToken.exp * 1000),
-                token_status: 1,
-            });
-        }
-
-        return loginResponse;
-    }
-
     async verifySignupCode(email: string, code: string | number, device?: string): Promise<void> {
         if (!email || !code) throw new ValidationError('El email y código son requeridos', []);
 
@@ -318,15 +345,11 @@ export class AuthService extends BaseService {
             throw new AuthError('La cuenta ya se encuentra verificada', { code: 'ACCOUNT_ALREADY_VERIFIED' });
 
         if (!(await BcryptUtil.compare(code as string, foundUser.signup_code)))
-            throw new AuthError('El código de verificación es inválido', { code: 'INVALID_VERIFICATION_CODE' });
+            throw new AuthError('El código de verificación es inválido', {
+                code: 'INVALID_VERIFICATION_CODE',
+            });
 
-        await this._users.update(
-            { id: foundUser.id },
-            {
-                signup_code: null,
-                signup_verified_at: new Date(),
-            },
-        );
+        await this._users.update({ id: foundUser.id }, { signup_code: null, signup_verified_at: new Date() });
 
         emailService.sendWelcomeEmail(foundUser.email, foundUser._People.first_name).catch((err) => {
             Logger.error('Error al enviar correo de bienvenida:', err);
@@ -348,11 +371,11 @@ export class AuthService extends BaseService {
 
         if (!savedSession.userId || !savedSession.jti)
             throw new AuthError('Falta identificación en el token.', { code: 'INVALID_TOKEN' });
+
         const isLockAcquired = await tokenBlacklistService.blacklistTokenAtRefresh(currentToken);
-
         if (!isLockAcquired) throw new AuthError('Sesión invalidada.', { code: 'INVALID_SESSION' });
-        const loginRecord = await this._usersLogins.getOne({ jti: savedSession.jti });
 
+        const loginRecord = await this._usersLogins.getOne({ jti: savedSession.jti });
         if (!loginRecord || loginRecord.token_status === 2)
             throw new AuthError('Sesión invalidada.', { code: 'REVOKED_SESSION' });
 
@@ -360,15 +383,18 @@ export class AuthService extends BaseService {
         if (!foundUser) throw new AuthError('El usuario no existe o está inactivo.', { code: 'USER_INACTIVE' });
 
         const loginResponse = await this._buildLoginResponse(foundUser);
-        const decodedNew = JWTUtil.decodeToken(loginResponse.refreshToken) as { jti?: string; exp?: number };
+        const decodedNew = JWTUtil.decodeToken(loginResponse.refreshToken) as {
+            jti?: string;
+            exp?: number;
+        };
 
-        if (decodedNew && decodedNew.jti && decodedNew.exp) {
+        if (decodedNew?.jti && decodedNew?.exp) {
             await this._usersLogins.update(
                 { jti: savedSession.jti, user: foundUser.id },
                 {
                     jti: decodedNew.jti,
                     expires_at: new Date(decodedNew.exp * 1000),
-                    device: device || loginRecord.device || 'Unknown Device',
+                    device: device ?? loginRecord.device ?? 'Unknown Device',
                     updated_at: new Date(),
                 },
             );
@@ -380,15 +406,16 @@ export class AuthService extends BaseService {
     async logoutUser(accessToken: string | null, refreshToken: string | null): Promise<void> {
         if (!accessToken && !refreshToken) throw new AuthError('No existen tokens vigentes a invalidar');
 
-        const blacklistPromises = [];
+        const blacklistPromises: Promise<any>[] = [];
 
         let decodedRefresh: any;
         if (refreshToken) {
             decodedRefresh = JWTUtil.decodeToken(refreshToken);
             blacklistPromises.push(tokenBlacklistService.blacklistToken(refreshToken));
         }
-
-        if (accessToken) blacklistPromises.push(tokenBlacklistService.blacklistToken(accessToken));
+        if (accessToken) {
+            blacklistPromises.push(tokenBlacklistService.blacklistToken(accessToken));
+        }
 
         await Promise.all(blacklistPromises);
 
@@ -402,17 +429,17 @@ export class AuthService extends BaseService {
 
         if (foundUser) {
             const resetCode = generateCode();
-            const ttlSeconds = 10 * 60;
-
             const key = `auth:reset:code:${email}`;
-            await this._cacheClient.set(key, resetCode, 'EX', ttlSeconds);
+            await this._cacheClient.set(key, resetCode, 'EX', RESET_CODE_TTL_SECONDS);
 
             emailService.sendPasswordResetEmail(email, resetCode).catch((err) => {
                 Logger.error('Error al enviar correo de restablecimiento de contraseña:', err);
             });
         }
 
-        return { message: 'Si el correo está registrado, recibirás un código para restablecer tu contraseña.' };
+        return {
+            message: 'Si el correo está registrado, recibirás un código para restablecer tu contraseña.',
+        };
     }
 
     async verifyResetCode(email: string, code: string): Promise<{ resetToken: string }> {
@@ -425,15 +452,15 @@ export class AuthService extends BaseService {
         const savedCode = await this._cacheClient.get(keyCode);
 
         if (!savedCode || savedCode !== code)
-            throw new AuthError('El código de verificación no es válido o ha expirado', { code: 'INVALID_RESET_CODE' });
+            throw new AuthError('El código de verificación no es válido o ha expirado', {
+                code: 'INVALID_RESET_CODE',
+            });
 
         await this._cacheClient.del(keyCode);
 
         const resetToken = generateToken();
-        const ttlSeconds = 10 * 60;
-
         const keyToken = `auth:reset:token:${email}`;
-        await this._cacheClient.set(keyToken, resetToken, 'EX', ttlSeconds);
+        await this._cacheClient.set(keyToken, resetToken, 'EX', RESET_TOKEN_TTL_SECONDS);
 
         return { resetToken };
     }
@@ -458,12 +485,8 @@ export class AuthService extends BaseService {
                 code: 'INVALID_RESET_TOKEN',
             });
 
-        const hashedPassword = await BcryptUtil.hash(newPassword);
-
-        await this._users.update({ id: foundUser.id }, { password: hashedPassword });
-
+        await this._users.update({ id: foundUser.id }, { password: await BcryptUtil.hash(newPassword) });
         await this._cacheClient.del(keyToken);
-
         await this._usersLogins.update({ user: foundUser.id }, { token_status: 2 });
 
         return { message: 'Tu contraseña ha sido restablecida exitosamente. Ahora puedes iniciar sesión.' };

@@ -1,0 +1,36 @@
+meta {
+  name: Admin Login
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/auth/admin-login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  x-client-channel: mobile
+}
+
+body:json {
+  {
+    "email": "admin@cineflix.com",
+    "password": "admin123456*"
+  }
+}
+
+script:post-response {
+  const resBody = res.getBody();
+  if (res.getStatus() === 200 && resBody && resBody.data && resBody.data.tokens) {
+    bru.setEnvVar('accessToken', resBody.data.tokens.accessToken);
+    console.log('Token de administrador guardado');
+  }
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  bru.setVar('baseUrl', baseUrl);
+}

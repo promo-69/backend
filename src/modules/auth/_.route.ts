@@ -8,6 +8,7 @@ const router = Router();
 router.post('/signup', preventAuthenticatedAccess, authController.signup);
 router.post('/verify-signup', preventAuthenticatedAccess, authController.verifySignup);
 router.post('/login', preventAuthenticatedAccess, authController.login);
+router.post('/login/admin', preventAuthenticatedAccess, authController.loginAdmin);
 router.post('/refresh', authController.refresh);
 router.post('/logout', verifySession, authController.logout);
 
