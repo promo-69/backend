@@ -5,7 +5,7 @@ meta {
 }
 
 post {
-  url: {{baseUrl}}/auth/admin-login
+  url: {{baseUrl}}/auth/login/admin
   body: json
   auth: none
 }
@@ -26,6 +26,7 @@ script:post-response {
   const resBody = res.getBody();
   if (res.getStatus() === 200 && resBody && resBody.data && resBody.data.tokens) {
     bru.setEnvVar('accessToken', resBody.data.tokens.accessToken);
+    bru.setEnvVar('refreshToken', resBody.data.tokens.refreshToken);
     console.log('Token de administrador guardado');
   }
 }

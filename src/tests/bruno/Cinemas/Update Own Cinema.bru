@@ -1,11 +1,11 @@
 meta {
-  name: Register Inventory Movements
+  name: Update Own Cinema
   type: http
-  seq: 3
+  seq: 5
 }
 
-post {
-  url: {{baseUrl}}/cinemas/{{testCinemaId}}/inventory/{{testInventoryId}}/movements
+patch {
+  url: {{baseUrl}}/cinemas
   body: json
   auth: bearer
 }
@@ -15,9 +15,12 @@ auth:bearer {
 }
 
 body:json {
-  [
-    { "operationType": 1, "quantity": 100, "remarks": "Reposición semanal" }
-  ]
+  {
+    "name": "My Cinema Updated",
+    "address": "789 Manager Ave",
+    "openingTime": "10:00",
+    "closingTime": "22:30"
+  }
 }
 
 script:pre-request {
