@@ -1,7 +1,9 @@
 /rooms/{id}/seats:
     get:
         summary: Get Seat Map
-        description: Retrieve the complete seat layout of a room.
+        description: |
+            Retrieve the complete seat layout of a room.
+            Required permission: **CRUD:READ:SEATS**
         tags:
             - Rooms
         security:
@@ -45,7 +47,9 @@
                 description: Internal server error
     post:
         summary: Create Seats
-        description: Add one or more seats to a room. The body is an array of seat objects.
+        description: |
+            Add one or more seats to a room. The body is an array of seat objects.
+            Required permission: **CRUD:CREATE:SEATS**
         tags:
             - Rooms
         security:

@@ -4,7 +4,10 @@ import { verifySession, verifyPermission } from '@middlewares/auth.middleware.js
 
 const router = Router({ mergeParams: true });
 
-router.get('/', verifySession, verifyPermission('CRUD:READ:INVENTORY'), cinemaInventoryController.findAll);
+// GET /cinemas/:cinemaId/inventory — auditoría remota (contexto explícito)
+router.get('/', verifySession, verifyPermission('CRUD:READ:CINEMAS-INVENTORY'), cinemaInventoryController.findAll);
+
+// POST /cinemas/:cinemaId/inventory/:id/movements — reabastecimiento desde almacén central
 router.post(
     '/:id/movements',
     verifySession,
