@@ -32,7 +32,22 @@ export class EmployeesService extends BaseService {
     private _formatEmployeeResponse(raw: any) {
         if (!raw) return null;
 
-        const { _People: people, _EmployeePositions: positions, deleted_at, person, ...employeeFields } = raw;
+        // Extraer campos de persona si están aplanados (prefijo '_People.')
+        const personFields: Record<string, any> = {};
+        const employeeFields: Record<string, any> = {};
+
+        for (const key in raw) {
+            if (key.startsWith('_People.')) {
+                const newKey = key.replace('_People.', '');
+                personFields[newKey] = raw[key];
+            } else if (key !== '_EmployeePositions' && key !== 'deleted_at') {
+                employeeFields[key] = raw[key];
+            }
+        }
+
+        const hasPersonFields = Object.keys(personFields).length > 0;
+        const people = raw._People || (hasPersonFields ? personFields : null);
+        const positions = raw._EmployeePositions ?? [];
 
         return {
             person: people
@@ -50,7 +65,7 @@ export class EmployeesService extends BaseService {
 
             employee: {
                 ...employeeFields,
-                positions: (positions ?? []).map((pos: any) => ({
+                positions: positions.map((pos: any) => ({
                     id: pos.id,
                     start_date: pos.start_date,
                     end_date: pos.end_date ?? null,
