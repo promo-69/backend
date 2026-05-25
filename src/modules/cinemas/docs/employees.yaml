@@ -1,7 +1,10 @@
 /cinemas/{cinemaId}/employees:
     get:
         summary: List Employees in a Cinema
-        description: Returns all employees with an active position in the specified cinema. Explicit context for general management.
+        description: |
+            Returns all employees with an active position in the specified cinema.
+            Explicit context for general management.
+            Required permission: **CRUD:READ:CINEMAS-EMPLOYEES**
         tags:
             - Cinemas
         security:
@@ -21,7 +24,10 @@
                 description: Internal server error
     post:
         summary: Create Employee in a Cinema
-        description: Creates a new employee and assigns them directly to the specified cinema. Explicit context for general management.
+        description: |
+            Creates a new employee and assigns them directly to the specified cinema.
+            Explicit context for general management.
+            Required permission: **CRUD:CREATE:EMPLOYEES**
         tags:
             - Cinemas
         security:
@@ -85,7 +91,9 @@
 /cinemas/{cinemaId}/employees/{employeeId}:
     delete:
         summary: Remove Employee from Cinema
-        description: Soft‑deletes an employee and closes their active position in the specified cinema.
+        description: |
+            Soft‑deletes an employee and closes their active position in the specified cinema.
+            Required permission: **CRUD:DELETE:EMPLOYEES**
         tags:
             - Cinemas
         security:

@@ -21,7 +21,7 @@ router.patch('/', verifySession, verifyPermission('CRUD:UPDATE_OWN:CINEMAS'), ci
 router.get(
     '/:cinemaId/employees',
     verifySession,
-    verifyPermission('CRUD:READ:EMPLOYEES'),
+    verifyPermission('CRUD:READ:CINEMAS-EMPLOYEES'),
     cinemasController.findEmployeesByCinema,
 );
 router.post(

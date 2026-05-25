@@ -1,10 +1,11 @@
 /employees/{id}/position:
-    put:
+    patch:
         summary: Change Employee Position
         description: |
             Closes the current active position (where end_date IS NULL) and
             creates a new position record for the employee. This maintains a
             full SCD Type 2 history.
+            Required permission: **FEAT:CHANGE:EMPLOYEES_POSITION**
         tags:
             - Employees
         security:
