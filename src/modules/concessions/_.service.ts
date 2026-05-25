@@ -178,7 +178,7 @@ export class ConcessionsService extends BaseService {
 
     // ==================== COMBOS ====================
 
-    async createCombo(body: CreateComboBody, rawFiles?: RawFiles) {
+    async createCombo(body: CreateComboBody, rawFiles?: RawFiles, cinemaId?: number) {
         const { name, sku, description } = body;
 
         const price = Number(body.price);
@@ -218,6 +218,7 @@ export class ConcessionsService extends BaseService {
                         price,
                         earned_loyalty_points: earnedLoyaltyPoints ?? null,
                         image_url: imageUrl ?? null,
+                        cinema: cinemaId,
                     },
                     { transaction },
                 );
@@ -326,8 +327,16 @@ export class ConcessionsService extends BaseService {
         });
     }
 
-    async findAllCombos(filters?: ProcessedQueryFilters) {
-        return this._combos.getAllFull(filters);
+    async findAllCombos(filters?: ProcessedQueryFilters & { cinemaId?: number }) {
+        const options: any = {
+            count: true,
+            relations: this._combos.relations,
+            ...filters,
+        };
+        if (filters?.cinemaId) {
+            options.where = { cinema: filters.cinemaId };
+        }
+        return this._combos.getAll(options);
     }
 
     async findComboById(id: number) {
