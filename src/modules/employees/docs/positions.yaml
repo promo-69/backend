@@ -1,5 +1,5 @@
 /employees/{id}/position:
-    put:
+    patch:
         summary: Change Employee Position
         description: |
             Closes the current active position (where end_date IS NULL) and

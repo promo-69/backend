@@ -47,7 +47,7 @@
                 description: Employee not found
             '500':
                 description: Internal server error
-    put:
+    patch:
         summary: Update Employee
         description: |
             Updates the employee's biographical data (in the people table)
