@@ -37,15 +37,7 @@
                                     items:
                                         type: object
                                         properties:
-                                            id:
-                                                type: integer
                                             person:
-                                                type: integer
-                                            level_progress_points:
-                                                type: integer
-                                            loyalty_level:
-                                                type: integer
-                                            _People:
                                                 type: object
                                                 properties:
                                                     id:
@@ -62,6 +54,25 @@
                                                     personal_email:
                                                         type: string
                                                         nullable: true
+                                            customer:
+                                                type: object
+                                                properties:
+                                                    id:
+                                                        type: integer
+                                                    loyalty_level:
+                                                        type: integer
+                                                    level_progress_points:
+                                                        type: integer
+                                                    loyalty:
+                                                        type: object
+                                                        properties:
+                                                            level_id:
+                                                                type: integer
+                                                            level_name:
+                                                                type: string
+                                                                nullable: true
+                                                            progress_points:
+                                                                type: integer
             '401':
                 description: Unauthorized
             '500':
@@ -121,12 +132,19 @@
                                 data:
                                     type: object
                                     properties:
-                                        id:
-                                            type: integer
                                         person:
-                                            type: integer
-                                        _People:
                                             type: object
+                                        customer:
+                                            type: object
+                                            properties:
+                                                id:
+                                                    type: integer
+                                                loyalty_level:
+                                                    type: integer
+                                                level_progress_points:
+                                                    type: integer
+                                                loyalty:
+                                                    type: object
             '400':
                 description: Validation error
             '401':

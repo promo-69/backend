@@ -74,6 +74,12 @@ export class AuthService extends BaseService {
     private get _rolePermissions() {
         return Database.repository('main', 'role-permissions') as any;
     }
+    private get _customers() {
+        return Database.repository('main', 'customers') as any;
+    }
+    private get _loyaltyLevels() {
+        return Database.repository('main', 'loyalty-levels') as any;
+    }
 
     private parsePermissions(permissions: any[]): string[] {
         return Array.from(
@@ -152,6 +158,25 @@ export class AuthService extends BaseService {
             payload.roleDesc = foundUser._Roles?.description;
             payload.roleCode = foundUser._Roles?.code;
             payload.permissions = this.parsePermissions(permissions);
+        }
+
+        if (foundUser.user_type === USER_TYPE_CUSTOMER) {
+            const customer = await this._customers.getOne(
+                { person: foundUser.person },
+                {
+                    attributes: ['id', 'loyalty_level', 'level_progress_points'],
+                },
+            );
+
+            if (customer) {
+                const level = await this._loyaltyLevels.getById(customer.loyalty_level, {
+                    attributes: ['id', 'name'],
+                });
+
+                payload.loyaltyLevelId = customer.loyalty_level ?? 1;
+                payload.loyaltyLevelName = level?.name ?? null;
+                payload.loyaltyPoints = customer.level_progress_points ?? 0;
+            }
         }
 
         return payload;

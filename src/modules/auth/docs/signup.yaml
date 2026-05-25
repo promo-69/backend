@@ -1,7 +1,11 @@
 /auth/signup:
     post:
-        summary: User Signup
-        description: Endpoint for creating a new user (customer) account.
+        summary: Customer Signup
+        description: |
+            Register a new customer account. Sends a verification code to the provided email.
+            If the person record already exists by documentNumber, biographical fields
+            (firstName, lastName, phoneNumber, gender, birthDate) are optional — the existing
+            record is reused. Otherwise they are required.
         tags:
             - Auth
         requestBody:
@@ -10,25 +14,42 @@
                 application/json:
                     schema:
                         type: object
+                        required:
+                            - documentNumber
+                            - email
+                            - password
                         properties:
+                            documentNumber:
+                                type: string
+                                example: '12345678'
+                            firstName:
+                                type: string
+                                example: John
+                            lastName:
+                                type: string
+                                example: Doe
                             email:
                                 type: string
                                 format: email
+                                example: john.doe@example.com
                             password:
                                 type: string
                                 format: password
-                            firstName:
+                                description: 'Between 8 and 20 characters, must include at least one letter, one number and one special character'
+                            phoneNumber:
                                 type: string
-                            lastName:
+                                example: '+584120000000'
+                            gender:
+                                type: integer
+                                description: Gender catalog ID
+                                example: 1
+                            birthDate:
                                 type: string
-                        required:
-                            - email
-                            - password
-                            - firstName
-                            - lastName
+                                format: date
+                                example: '1990-01-01'
         responses:
             '201':
-                description: User created successfully
+                description: User registered. Verification code sent to email.
                 content:
                     application/json:
                         schema:
@@ -36,8 +57,10 @@
                             properties:
                                 message:
                                     type: string
-                                    example: User account created successfully
+                                    example: Usuario registrado exitosamente. Por favor verifica tu correo electrónico con el código enviado.
             '400':
-                description: Bad request (validation errors)
+                description: Bad request (validation errors or incomplete data)
+            '409':
+                description: Email already registered
             '500':
                 description: Internal server error
