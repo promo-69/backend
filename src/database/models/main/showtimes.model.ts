@@ -22,6 +22,10 @@ export default class ShowtimesModel extends SequelizeModelBase {
 				allowNull: false,
 				type: DataTypes.INTEGER,
 			},
+			language: {
+				allowNull: false,
+				type: DataTypes.INTEGER,
+			},
 			currency: {
 				allowNull: false,
 				type: DataTypes.INTEGER,
@@ -37,7 +41,7 @@ export default class ShowtimesModel extends SequelizeModelBase {
 			deleted_at: {
 				allowNull: true,
 				type: DataTypes.DATE,
-			}
+			},
 		};
 	}
 
@@ -89,6 +93,17 @@ export default class ShowtimesModel extends SequelizeModelBase {
 				type: 'hasMany',
 				target: 'ProjectionTypes',
 				options: { foreignKey: 'projection_type', targetKey: 'id', as: '_Showtimes' },
+			},
+			{
+				type: 'belongsTo',
+				target: 'Languages',
+				options: { foreignKey: 'language', targetKey: 'id', as: '_Languages' },
+			},
+			{
+				inversed: true,
+				type: 'hasMany',
+				target: 'Languages',
+				options: { foreignKey: 'language', targetKey: 'id', as: '_Showtimes' },
 			},
 			{
 				type: 'belongsTo',

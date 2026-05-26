@@ -387,6 +387,7 @@ module.exports = {
 				booking: { type: Sequelize.INTEGER, allowNull: false },
 				movie: { type: Sequelize.INTEGER, allowNull: false },
 				projection_type: { type: Sequelize.INTEGER, allowNull: false },
+				language: { type: Sequelize.INTEGER, allowNull: false },
 				currency: { type: Sequelize.INTEGER, allowNull: false },
 				price: { type: Sequelize.DECIMAL(10, 2), allowNull: false },
 				earned_loyalty_points: { type: Sequelize.INTEGER, allowNull: true },
