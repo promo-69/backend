@@ -9,14 +9,26 @@ import { ANSI } from '@utils/ansi.util.js';
 import redisAdapterPkg from '@socket.io/redis-adapter';
 
 export class RealtimeProvider {
-	private static instance: RealtimeProvider;
+	private static _instance: RealtimeProvider;
 	private _io!: SocketIOServer | undefined;
 
 	private constructor() {}
 
 	static getInstance(): RealtimeProvider {
-		if (!this.instance) this.instance = new RealtimeProvider();
-		return this.instance;
+		if (AppConfig.isProduction()) {
+			if (!this._instance) this._instance = new RealtimeProvider();
+			return this._instance;
+		}
+
+		const REALTIME_PROVIDER_SYMBOL = Symbol.for('global.realtime.provider');
+		const globalWithRealtime = globalThis as typeof globalThis & {
+			[REALTIME_PROVIDER_SYMBOL]: RealtimeProvider;
+		};
+
+		if (!globalWithRealtime[REALTIME_PROVIDER_SYMBOL])
+			globalWithRealtime[REALTIME_PROVIDER_SYMBOL] = new RealtimeProvider();
+
+		return globalWithRealtime[REALTIME_PROVIDER_SYMBOL];
 	}
 
 	get io(): SocketIOServer {
@@ -25,6 +37,10 @@ export class RealtimeProvider {
 	}
 
 	async attach(server: http.Server): Promise<void> {
+		if (this._io) {
+			await this.close();
+		}
+
 		this._io = new SocketIOServer(server, {
 			cors: {
 				origin: AppConfig.load().corsOptions.origin,
@@ -58,4 +74,11 @@ export class RealtimeProvider {
 
 		this._io = undefined;
 	}
+}
+
+// Limpieza para Vite HMR
+if (import.meta.hot) {
+	import.meta.hot.dispose(async () => {
+		await RealtimeProvider.getInstance().close();
+	});
 }

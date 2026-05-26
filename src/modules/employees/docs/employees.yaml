@@ -81,6 +81,7 @@
                             - employeeCode
                             - jobPosition
                             - startDate
+                            - role
                         properties:
                             documentNumber:
                                 type: string
@@ -102,6 +103,10 @@
                                 type: string
                                 format: date
                                 example: '2026-01-15'
+                            role:
+                                type: integer
+                                description: Role ID for the employee user account
+                                example: 2
                             gender:
                                 type: integer
                                 nullable: true

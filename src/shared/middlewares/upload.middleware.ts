@@ -16,8 +16,8 @@ export interface UploadField {
 
 export class UploadMiddleware {
     private static readonly DEFAULT_CONFIG: UploadConfig = {
-        maxSizeMB: 5, // 5MB por defecto para imágenes
-        allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp'],
+        maxSizeMB: 5,
+        allowedMimeTypes: ['image/jpg', 'image/jpeg', 'image/png', 'image/webp'],
     };
 
     private static config: UploadConfig = this.DEFAULT_CONFIG;
@@ -63,9 +63,9 @@ export class UploadMiddleware {
      * @param options Opciones para sobreescribir mimes o tamaño en esta ruta específica
      */
     static single(fieldName: string, options?: Partial<UploadConfig>) {
-        return (req: Request, res: Response, next: NextFunction): void => {
-            const upload = this.createMulterInstance(options).single(fieldName);
+        const upload = this.createMulterInstance(options).single(fieldName);
 
+        return (req: Request, res: Response, next: NextFunction): void => {
             upload(req, res, (err: any) => {
                 if (err instanceof multer.MulterError) {
                     if (err.code === 'LIMIT_FILE_SIZE') {
@@ -93,9 +93,9 @@ export class UploadMiddleware {
      * 2. Cargar múltiples archivos en el mismo campo
      */
     static array(fieldName: string, maxCount: number, options?: Partial<UploadConfig>) {
-        return (req: Request, res: Response, next: NextFunction): void => {
-            const upload = this.createMulterInstance(options).array(fieldName, maxCount);
+        const upload = this.createMulterInstance(options).array(fieldName, maxCount);
 
+        return (req: Request, res: Response, next: NextFunction): void => {
             upload(req, res, (err: any) => {
                 if (err instanceof multer.MulterError) {
                     if (err.code === 'LIMIT_FILE_SIZE') {
@@ -125,9 +125,9 @@ export class UploadMiddleware {
      * @param options Opciones para sobreescribir mimes o tamaño en esta ruta específica
      */
     static fields(fields: UploadField[], options?: Partial<UploadConfig>) {
-        return (req: Request, res: Response, next: NextFunction): void => {
-            const upload = this.createMulterInstance(options).fields(fields);
+        const upload = this.createMulterInstance(options).fields(fields);
 
+        return (req: Request, res: Response, next: NextFunction): void => {
             upload(req, res, (err: any) => {
                 if (err instanceof multer.MulterError) {
                     if (err.code === 'LIMIT_FILE_SIZE') {

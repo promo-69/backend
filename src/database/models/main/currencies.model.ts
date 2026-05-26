@@ -29,7 +29,7 @@ export default class CurrenciesModel extends SequelizeModelBase {
 			deleted_at: {
 				allowNull: true,
 				type: DataTypes.DATE,
-			}
+			},
 		};
 	}
 
@@ -40,7 +40,7 @@ export default class CurrenciesModel extends SequelizeModelBase {
 			createdAt: false,
 			updatedAt: false,
 			deletedAt: 'deleted_at',
-			isBasicTable: false,
+			isBasicTable: true,
 			schema: 'public',
 			tableName: 'currencies',
 			appRawName: 'currencies',

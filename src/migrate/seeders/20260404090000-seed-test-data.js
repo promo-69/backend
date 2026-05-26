@@ -185,6 +185,7 @@ module.exports = {
 					booking: 1,
 					movie: 1,
 					projection_type: 1,
+					language: 1,
 					currency: 1,
 					price: 12.5,
 					earned_loyalty_points: 25,
@@ -194,6 +195,7 @@ module.exports = {
 					booking: 2,
 					movie: 2,
 					projection_type: 1,
+					language: 1,
 					currency: 1,
 					price: 10.0,
 					earned_loyalty_points: 20,
@@ -278,8 +280,8 @@ module.exports = {
 			{},
 		);
 
-		const mariaPassword = await bcrypt.hash('password123.', 10);
-		const adminPassword = await bcrypt.hash(process.env.SUPER_ADMIN_PASSWORD || 'admin123456*', 10);
+		const mariaPassword = await bcrypt.hash('Password123.', 10);
+		const adminPassword = await bcrypt.hash(process.env.SUPER_ADMIN_PASSWORD || 'Admin123456*', 10);
 
 		await queryInterface.bulkInsert(
 			'users',
@@ -598,7 +600,6 @@ module.exports = {
 					original_price: 12.5,
 					price: 10.0, // Con descuento
 					quoted_exchange_rate: 1,
-					qr_code: 'TICKET-QR-STUDENT-001',
 					validation_time: null,
 				},
 				{
@@ -609,7 +610,6 @@ module.exports = {
 					original_price: 12.5,
 					price: 12.5, // Normal
 					quoted_exchange_rate: 1,
-					qr_code: 'TICKET-QR-NORMAL-002',
 					validation_time: null,
 				},
 			],

@@ -15,12 +15,12 @@ const movieUpload = uploadFields(
 
 // Públicos
 router.get('/', optionalAuth, moviesController.findAll);
-router.get('/cartelera', optionalAuth, moviesController.findInCartelera);
+router.get('/showtimes', optionalAuth, moviesController.findWithShowtimes);
 router.get('/:id', optionalAuth, moviesController.findById);
 
 // Admin (protegidos con permisos)
-router.post('/', verifySession, verifyPermission('CRUD:CREATE:MOVIES'), movieUpload, moviesController.create);
-router.patch('/:id', verifySession, verifyPermission('CRUD:UPDATE:MOVIES'), movieUpload, moviesController.update);
+router.post('/', verifySession, verifyPermission('CRUD:UPDATE:MOVIES'), imageUpload, moviesController.create);
+router.patch('/:id', verifySession, verifyPermission('CRUD:UPDATE:MOVIES'), imageUpload, moviesController.update);
 router.delete('/:id', verifySession, verifyPermission('CRUD:DELETE:MOVIES'), moviesController.remove);
 
 export default router;
