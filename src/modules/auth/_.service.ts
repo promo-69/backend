@@ -11,6 +11,7 @@ import { convertCase } from '@utils/string-formatters.util.js';
 import { tokenBlacklistService } from '@services/token-blacklist.service.js';
 import { emailService } from '@services/email.service.js';
 import { CacheDatabaseProvider } from '@providers/cache-database.provider.js';
+import { QueueProvider } from '@providers/queue.provider.js';
 import JWTUtil, { RefreshTokenPayload } from '@utils/jwt.util.js';
 import { customAlphabet, nanoid } from 'nanoid';
 import { Logger } from '@utils/logger.util.js';
@@ -19,9 +20,8 @@ import { Logger } from '@utils/logger.util.js';
 
 const USER_TYPE_EMPLOYEE = 1;
 const USER_TYPE_CUSTOMER = 2;
-
-const RESET_CODE_TTL_SECONDS = 10 * 60;
-const RESET_TOKEN_TTL_SECONDS = 10 * 60;
+const RESET_CODE_TTL_SECONDS = 5 * 60;
+const RESET_TOKEN_TTL_SECONDS = 5 * 60;
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -359,7 +359,6 @@ export class AuthService extends BaseService {
 				return { createdUser, signupCode };
 			});
 		} catch (error: any) {
-			console.log(error);
 			throw new AuthError('No se pudo completar el registro del usuario', error?.());
 		}
 
@@ -367,6 +366,17 @@ export class AuthService extends BaseService {
 			.sendVerificationCode(email, created.signupCode, `${firstName}${lastName ? ' ' + lastName : ''}`)
 			.catch((err) => {
 				Logger.error('Error al enviar el correo de verificación:', err);
+			});
+
+		QueueProvider.getInstance()
+			.add(
+				'signup-verification-queue',
+				'expire-unverified-signup',
+				{ email, userId: created.createdUser.id, personId: created.createdUser.person },
+				{ delay: 600_000 },
+			)
+			.catch((err) => {
+				Logger.error('Error al encolar trabajo signup-verification-queue:', err);
 			});
 	}
 
@@ -463,9 +473,10 @@ export class AuthService extends BaseService {
 			throw new ValidationError('El tipo de cuenta es inválido', []);
 		if (!email) throw new ValidationError('El correo electrónico es requerido', []);
 
-		const foundUser = userType === USER_TYPE_EMPLOYEE
-			? await this._users.getByEmployeeEmail(email)
-			: await this._users.getByClientEmail(email);
+		const foundUser =
+			userType === USER_TYPE_EMPLOYEE
+				? await this._users.getByEmployeeEmail(email)
+				: await this._users.getByClientEmail(email);
 
 		if (foundUser) {
 			const resetCode = generateCode();
@@ -487,9 +498,10 @@ export class AuthService extends BaseService {
 			throw new ValidationError('El tipo de cuenta es inválido', []);
 		if (!email || !code) throw new ValidationError('El correo y el código son requeridos', []);
 
-		const foundUser = userType === USER_TYPE_EMPLOYEE
-			? await this._users.getByEmployeeEmail(email)
-			: await this._users.getByClientEmail(email);
+		const foundUser =
+			userType === USER_TYPE_EMPLOYEE
+				? await this._users.getByEmployeeEmail(email)
+				: await this._users.getByClientEmail(email);
 		if (!foundUser) throw new AuthError('El código o correo son inválidos', { code: 'INVALID_RESET_CODE' });
 
 		const keyCode = `auth:reset:code:${userType}:${email}`;
@@ -509,7 +521,12 @@ export class AuthService extends BaseService {
 		return { resetToken };
 	}
 
-	async resetPassword(userType: number, email: string, resetToken: string, newPassword: string): Promise<{ message: string }> {
+	async resetPassword(
+		userType: number,
+		email: string,
+		resetToken: string,
+		newPassword: string,
+	): Promise<{ message: string }> {
 		if (userType !== USER_TYPE_EMPLOYEE && userType !== USER_TYPE_CUSTOMER)
 			throw new ValidationError('El tipo de cuenta es inválido', []);
 		if (!email || !resetToken || !newPassword) throw new ValidationError('Todos los campos son requeridos', []);
@@ -520,9 +537,10 @@ export class AuthService extends BaseService {
 				[],
 			);
 
-		const foundUser = userType === USER_TYPE_EMPLOYEE
-			? await this._users.getByEmployeeEmail(email)
-			: await this._users.getByClientEmail(email);
+		const foundUser =
+			userType === USER_TYPE_EMPLOYEE
+				? await this._users.getByEmployeeEmail(email)
+				: await this._users.getByClientEmail(email);
 		if (!foundUser) throw new AuthError('El token o correo son inválidos', { code: 'INVALID_RESET_TOKEN' });
 
 		const keyToken = `auth:reset:token:${userType}:${email}`;

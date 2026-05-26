@@ -1,6 +1,7 @@
 import { type JobsOptions, Queue } from 'bullmq';
 import { CacheDatabaseProvider } from '@providers/cache-database.provider.js';
 import { AppConfig } from '@config/app.config.js';
+import { Logger } from '@utils/logger.util.js';
 
 export class QueueProvider {
     private static _instance: QueueProvider;
@@ -19,9 +20,13 @@ export class QueueProvider {
             [QUEUE_PROVIDER_SYMBOL]: QueueProvider;
         };
 
+<<<<<<< HEAD
         if (!globalWithQueue[QUEUE_PROVIDER_SYMBOL]) {
             globalWithQueue[QUEUE_PROVIDER_SYMBOL] = new QueueProvider();
         }
+=======
+		if (!globalWithQueue[QUEUE_PROVIDER_SYMBOL]) globalWithQueue[QUEUE_PROVIDER_SYMBOL] = new QueueProvider();
+>>>>>>> origin/dev
 
         return globalWithQueue[QUEUE_PROVIDER_SYMBOL];
     }
@@ -48,17 +53,22 @@ export class QueueProvider {
     async add<T = any>(queueName: string, taskName: string, data: T, options?: JobsOptions) {
         const queue = this.getQueue(queueName);
 
+<<<<<<< HEAD
         return await queue.add(taskName, data, options);
     }
+=======
+		Logger.info(`[QueueProvider] Encolando tarea: ${taskName} en la cola ${queueName}`);
+
+		return await queue.add(taskName, data, options);
+	}
+>>>>>>> origin/dev
 }
 
 // Limpieza para Vite HMR
 if (import.meta.hot) {
-    import.meta.hot.dispose(async () => {
-        const provider = QueueProvider.getInstance();
-        // @ts-ignore
-        for (const queue of provider.queues.values()) {
-            await queue.close();
-        }
-    });
+	import.meta.hot.dispose(async () => {
+		const provider = QueueProvider.getInstance();
+		// @ts-ignore
+		for (const queue of provider.queues.values()) await queue.close();
+	});
 }
