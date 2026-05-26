@@ -5,7 +5,7 @@ import { uploadFields } from '@middlewares/upload.middleware.js';
 
 const router = Router({ mergeParams: true });
 const imageUpload = uploadFields([{ name: 'image', maxCount: 1 }], {
-    maxSizeMB: 5,
+    maxSizeMB: 10,
     allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp'],
 });
 

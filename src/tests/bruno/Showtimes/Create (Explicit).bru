@@ -1,0 +1,44 @@
+meta {
+  name: Create Showtime (Explicit)
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/cinemas/{{testCinemaId}}/showtimes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtYWlsIjoiYWRtaW5AY2luZWZsaXguY29tIiwiZmlyc3ROYW1lIjoiQWRtaW4iLCJsYXN0TmFtZSI6IlN1cGVyIiwicGVyc29uYWxFbWFpbCI6ImFkbWluLnN1cGVyQGNpbmVmbGl4LmNvbSIsInBob25lTnVtYmVyIjoiKzU4IDIxMi01NTUtMDAwMCIsInJvbGVDb2RlIjoiU1VQRVJfQURNSU4iLCJwZXJtaXNzaW9ucyI6W10sInR5cGUiOiJhY2Nlc3MiLCJpYXQiOjE3Nzk4MTAzNDMsImp0aSI6InYzcDdYZW1OUDBCMXdQaXA2alU0aiIsImV4cCI6MTc3OTgxMDY0M30.xIQduS2AfA7a7DbnUZOsk7qAnmZFnZMiSFPT49p7OwA
+}
+
+body:json {
+  {
+    "room": 4,
+    "movie": 12,
+    "projection_type": 2,
+    "start_time": "2026-06-15T18:00:00Z",
+    "end_time": "2026-06-15T20:15:00Z",
+    "currency": 2,
+    "price": "5.00",
+    "earned_loyalty_points": 10
+  }
+}
+
+vars:pre-request {
+  testCinemaId: 1
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'https://backend-jog6.onrender.com/api/v1/test';
+  bru.setVar('baseUrl', baseUrl);
+}
+
+script:post-response {
+  const resBody = res.getBody();
+  if (res.getStatus() === 201 && resBody && resBody.data && resBody.data.showtime_id) {
+    bru.setEnvVar('testShowtimeId', resBody.data.showtime_id);
+  }
+}

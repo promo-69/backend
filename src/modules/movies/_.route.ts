@@ -4,19 +4,23 @@ import { optionalAuth, verifySession, verifyPermission } from '@middlewares/auth
 import { uploadFields } from '@middlewares/upload.middleware.js';
 
 const router = Router();
-const imageUpload = uploadFields(
-	[
-		{ name: 'banner', maxCount: 1 },
-		{ name: 'poster', maxCount: 1 },
-	],
-	{ maxSizeMB: 25 },
+
+const movieUpload = uploadFields(
+    [
+        { name: 'poster', maxCount: 1 },
+        { name: 'banner', maxCount: 1 },
+    ],
+    { maxSizeMB: 10 },
 );
 
+// Públicos
 router.get('/', optionalAuth, moviesController.findAll);
 router.get('/showtimes', optionalAuth, moviesController.findWithShowtimes);
 router.get('/:id', optionalAuth, moviesController.findById);
-router.post('/', verifySession, verifyPermission('CRUD:UPDATE:MOVIES'), imageUpload, moviesController.create);
-router.patch('/:id', verifySession, verifyPermission('CRUD:UPDATE:MOVIES'), imageUpload, moviesController.update);
+
+// Admin (protegidos con permisos)
+router.post('/', verifySession, verifyPermission('CRUD:CREATE:MOVIES'), movieUpload, moviesController.create);
+router.patch('/:id', verifySession, verifyPermission('CRUD:UPDATE:MOVIES'), movieUpload, moviesController.update);
 router.delete('/:id', verifySession, verifyPermission('CRUD:DELETE:MOVIES'), moviesController.remove);
 
 export default router;

@@ -17,12 +17,18 @@ auth:bearer {
 body:multipart-form {
   synopsis: Updated Bruno movie synopsis.
   lifecycleState: 3
+<<<<<<< HEAD
+  genres: [2, 3]
+  ~poster: @file(/path/to/optional_poster.jpg)
+  ~banner: @file(/path/to/optional_banner.jpg)
+=======
   ~poster: 
   ~banner: 
 }
 
 vars:pre-request {
   testMovieId: 2
+>>>>>>> 451b2c8fc5dedbf1ba59af82481e5c59b9dd0afa
 }
 
 script:pre-request {

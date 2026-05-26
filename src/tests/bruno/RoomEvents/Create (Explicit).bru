@@ -1,0 +1,29 @@
+meta {
+  name: Create Room Event (Explicit)
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/cinemas/{{testCinemaId}}/room-events
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "room": 2,
+    "event_type": 4,
+    "name": "Conferencia Anual Cineflix",
+    "organizer": "Cineflix Corp",
+    "description": "Reunión anual de accionistas.",
+    "start_time": "2026-08-01T09:00:00Z",
+    "end_time": "2026-08-01T13:00:00Z",
+    "currency": 2,
+    "price": "0.00"
+  }
+}
