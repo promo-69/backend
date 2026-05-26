@@ -21,7 +21,7 @@ export default class PaymentMethodsModel extends SequelizeModelBase {
 			deleted_at: {
 				allowNull: true,
 				type: DataTypes.DATE,
-			}
+			},
 		};
 	}
 
@@ -32,7 +32,7 @@ export default class PaymentMethodsModel extends SequelizeModelBase {
 			createdAt: false,
 			updatedAt: false,
 			deletedAt: 'deleted_at',
-			isBasicTable: false,
+			isBasicTable: true,
 			schema: 'public',
 			tableName: 'payment_methods',
 			appRawName: 'payment-methods',
