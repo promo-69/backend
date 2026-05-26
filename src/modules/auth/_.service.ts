@@ -26,7 +26,7 @@ const RESET_TOKEN_TTL_SECONDS = 5 * 60;
 // ─────────────────────────────────────────────────────────────────────────────
 
 const generateCode = customAlphabet('1234567890', 4);
-const generateToken = customAlphabet('1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', 64);
+const generateAccessToken = customAlphabet('1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', 64);
 
 interface LoginBody {
 	email: string;
@@ -207,7 +207,7 @@ export class AuthService extends BaseService {
 
 		if (cinema) payload.cinemaId = cinema;
 
-		const accessToken = JWTUtil.generateToken(payload);
+		const accessToken = JWTUtil.generateAccessToken(payload);
 		const refreshToken = JWTUtil.generateRefreshToken({ userId: sessionData.id });
 
 		return { user: payload, accessToken, refreshToken };
@@ -514,7 +514,7 @@ export class AuthService extends BaseService {
 
 		await this._cacheClient.del(keyCode);
 
-		const resetToken = generateToken();
+		const resetToken = generateAccessToken();
 		const keyToken = `auth:reset:token:${userType}:${email}`;
 		await this._cacheClient.set(keyToken, resetToken, 'EX', RESET_TOKEN_TTL_SECONDS);
 

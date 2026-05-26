@@ -64,7 +64,7 @@ export class JWTUtil {
 		}
 	}
 
-	static generateToken(payload: UserSession): string {
+	static generateAccessToken(payload: UserSession): string {
 		return jwt.sign(
 			{
 				...payload,
@@ -77,7 +77,7 @@ export class JWTUtil {
 		);
 	}
 
-	static verifyToken<T = JWTPayload>(token: string): T {
+	static verifyAccessToken<T = JWTPayload>(token: string): T {
 		try {
 			const decoded = jwt.verify(token, this.SECRET) as T;
 			if ((decoded as any).type !== 'access') throw new Error('Invalid token type');
@@ -126,6 +126,20 @@ export class JWTUtil {
 		}
 	}
 
+	static generateToken(payload: JWTPayload, secret: string, expiresIn: jwt.SignOptions['expiresIn']): string {
+		return jwt.sign(
+			{
+				...payload,
+				iat: Math.floor(Date.now() / 1000),
+			},
+			secret,
+			{ expiresIn },
+		);
+	}
+	static verifyToken<T = JWTPayload>(token: string, secret: string): T {
+		return jwt.verify(token, secret) as T;
+	}
+
 	// Método para extraer el token de un header Authorization
 	static extractToken(authHeader: string | undefined): string | null {
 		if (!authHeader) return null;
@@ -137,7 +151,7 @@ export class JWTUtil {
 	}
 
 	// Método para generar un token con expiración personalizada
-	static generateTokenWithExpiry(payload: JWTPayload, expiresIn: jwt.SignOptions['expiresIn']): string {
+	static generateAccessTokenWithExpiry(payload: JWTPayload, expiresIn: jwt.SignOptions['expiresIn']): string {
 		return jwt.sign(
 			{
 				...payload,
