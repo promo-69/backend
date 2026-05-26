@@ -10,10 +10,12 @@ export class ShowtimesService {
         return ShowtimeManagementService.findShowtimeById(id);
     }
 
-    async createShowtime(body: any, cinemaId?: number) {
+    async createShowtime(body: any, sessionCinemaId?: number) {
+        // Determinar el cinemaId: JWT > body > error
+        const cinemaId = sessionCinemaId ?? body.cinema;
         if (cinemaId === undefined) {
             throw new ValidationError(
-                'No se puede determinar la sucursal. Usa el endpoint explícito /cinemas/:cinemaId/showtimes para programar funciones como administrador.',
+                'No se puede determinar la sucursal. Especificá "cinema" en el cuerpo de la petición o iniciá sesión con una sucursal asignada.',
             );
         }
         return ShowtimeManagementService.createShowtime(body);
