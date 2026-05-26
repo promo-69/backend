@@ -102,7 +102,7 @@ module.exports = {
 				[
 					{
 						id: 1,
-						code: 'MOVIE',
+						code: 'MOVIES',
 						description: 'Recurso para la gestión de películas',
 					},
 				],

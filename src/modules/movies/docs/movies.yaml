@@ -94,6 +94,31 @@
             '500':
                 description: Internal server error
 
+/movies/showtimes:
+    get:
+        summary: Get Movies with Showtimes
+        description: Retrieve a paginated list of movies that currently have scheduled showtimes (cartelera).
+        tags:
+            - Movies
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: page
+              in: query
+              description: Page number for pagination
+              schema:
+                  type: integer
+            - name: limit
+              in: query
+              description: Number of items per page
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: List of movies with active showtimes retrieved successfully
+            '500':
+                description: Internal server error
+
 /movies/{id}:
     get:
         summary: Get Movie by ID
