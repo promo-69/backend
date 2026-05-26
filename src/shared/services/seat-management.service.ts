@@ -30,6 +30,8 @@ export class SeatManagementService {
             throw new ValidationError('Debe proporcionar al menos un asiento');
         }
 
+        // Validación de coordenadas (fuera de transacción, no toca BD)
+        const seatRecords: any[] = [];
         for (const seat of seats) {
             const row = seat.rowIdentifier ?? seat.row;
             const col = seat.columnNumber ?? seat.column;
@@ -40,18 +42,39 @@ export class SeatManagementService {
             if (rowIndex < 1 || rowIndex > room.grid_rows || Number(col) < 1 || Number(col) > room.grid_columns) {
                 throw new ValidationError(`Las coordenadas (${row},${col}) exceden la cuadrícula de la sala`);
             }
+            seatRecords.push({
+                room: roomId,
+                row_identifier: row,
+                column_number: col,
+                seat_category: seat.seatCategory ?? 1,
+                seat_condition: seat.seatCondition ?? 1,
+            });
         }
 
-        const seatRecords = seats.map((seat: any) => ({
-            room: roomId,
-            row_identifier: seat.rowIdentifier ?? seat.row,
-            column_number: seat.columnNumber ?? seat.column,
-            seat_category: seat.seatCategory ?? 1,
-            seat_condition: seat.seatCondition ?? 1,
-        }));
-
+        // Transacción con bloqueo para prevenir condiciones de carrera
         return this._seats.transaction(async (transaction: Transaction) => {
-            return this._seats.bulkCreate(seatRecords, { transaction });
+            const createdSeats: any[] = [];
+            for (const record of seatRecords) {
+                // Intentar crear el asiento; si ya existe, falla con ValidationError
+                const existing = await this._seats.getOne(
+                    {
+                        room: record.room,
+                        row_identifier: record.row_identifier,
+                        column_number: record.column_number,
+                        deleted_at: null,
+                    },
+                    { transaction, lock: transaction.LOCK.UPDATE },
+                );
+                if (existing) {
+                    throw new ConflictError(
+                        `Ya existe un asiento en la posición ${record.row_identifier}${record.column_number}`,
+                        'SEAT_POSITION_DUPLICATE',
+                    );
+                }
+                const seat = await this._seats.create(record, { transaction });
+                createdSeats.push(seat);
+            }
+            return createdSeats;
         });
     }
 }
