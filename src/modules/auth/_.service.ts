@@ -374,7 +374,6 @@ export class AuthService extends BaseService {
 		if (!email || !code) throw new ValidationError('El email y código son requeridos', []);
 
 		const foundUser = await this._users.getByClientEmail(email);
-		console.log({ email, code, foundUser });
 
 		if (!foundUser) throw new AuthError('Usuario no encontrado', { code: 'USER_NOT_FOUND' });
 
@@ -459,14 +458,18 @@ export class AuthService extends BaseService {
 		if (decodedRefresh?.jti) await this._usersLogins.update({ jti: decodedRefresh.jti }, { token_status: 2 });
 	}
 
-	async forgotPassword(email: string): Promise<{ message: string }> {
+	async forgotPassword(userType: number, email: string): Promise<{ message: string }> {
+		if (userType !== USER_TYPE_EMPLOYEE && userType !== USER_TYPE_CUSTOMER)
+			throw new ValidationError('El tipo de cuenta es inválido', []);
 		if (!email) throw new ValidationError('El correo electrónico es requerido', []);
 
-		const foundUser = await this._users.getByEmail(email);
+		const foundUser = userType === USER_TYPE_EMPLOYEE
+			? await this._users.getByEmployeeEmail(email)
+			: await this._users.getByClientEmail(email);
 
 		if (foundUser) {
 			const resetCode = generateCode();
-			const key = `auth:reset:code:${email}`;
+			const key = `auth:reset:code:${userType}:${email}`;
 			await this._cacheClient.set(key, resetCode, 'EX', RESET_CODE_TTL_SECONDS);
 
 			emailService.sendPasswordResetEmail(email, resetCode).catch((err) => {
@@ -479,13 +482,17 @@ export class AuthService extends BaseService {
 		};
 	}
 
-	async verifyResetCode(email: string, code: string): Promise<{ resetToken: string }> {
+	async verifyResetCode(userType: number, email: string, code: string): Promise<{ resetToken: string }> {
+		if (userType !== USER_TYPE_EMPLOYEE && userType !== USER_TYPE_CUSTOMER)
+			throw new ValidationError('El tipo de cuenta es inválido', []);
 		if (!email || !code) throw new ValidationError('El correo y el código son requeridos', []);
 
-		const foundUser = await this._users.getByEmail(email);
+		const foundUser = userType === USER_TYPE_EMPLOYEE
+			? await this._users.getByEmployeeEmail(email)
+			: await this._users.getByClientEmail(email);
 		if (!foundUser) throw new AuthError('El código o correo son inválidos', { code: 'INVALID_RESET_CODE' });
 
-		const keyCode = `auth:reset:code:${email}`;
+		const keyCode = `auth:reset:code:${userType}:${email}`;
 		const savedCode = await this._cacheClient.get(keyCode);
 
 		if (!savedCode || savedCode !== code)
@@ -496,13 +503,15 @@ export class AuthService extends BaseService {
 		await this._cacheClient.del(keyCode);
 
 		const resetToken = generateToken();
-		const keyToken = `auth:reset:token:${email}`;
+		const keyToken = `auth:reset:token:${userType}:${email}`;
 		await this._cacheClient.set(keyToken, resetToken, 'EX', RESET_TOKEN_TTL_SECONDS);
 
 		return { resetToken };
 	}
 
-	async resetPassword(email: string, resetToken: string, newPassword: string): Promise<{ message: string }> {
+	async resetPassword(userType: number, email: string, resetToken: string, newPassword: string): Promise<{ message: string }> {
+		if (userType !== USER_TYPE_EMPLOYEE && userType !== USER_TYPE_CUSTOMER)
+			throw new ValidationError('El tipo de cuenta es inválido', []);
 		if (!email || !resetToken || !newPassword) throw new ValidationError('Todos los campos son requeridos', []);
 
 		if (!REGEX.PASSWORD.test(newPassword))
@@ -511,10 +520,12 @@ export class AuthService extends BaseService {
 				[],
 			);
 
-		const foundUser = await this._users.getByEmail(email);
+		const foundUser = userType === USER_TYPE_EMPLOYEE
+			? await this._users.getByEmployeeEmail(email)
+			: await this._users.getByClientEmail(email);
 		if (!foundUser) throw new AuthError('El token o correo son inválidos', { code: 'INVALID_RESET_TOKEN' });
 
-		const keyToken = `auth:reset:token:${email}`;
+		const keyToken = `auth:reset:token:${userType}:${email}`;
 		const savedToken = await this._cacheClient.get(keyToken);
 
 		if (!savedToken || savedToken !== resetToken)

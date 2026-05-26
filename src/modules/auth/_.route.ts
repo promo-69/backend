@@ -13,8 +13,8 @@ router.post('/refresh', authController.refresh);
 router.post('/logout', verifySession, authController.logout);
 
 // --- Password Reset ---
-router.post('/forgot-password', preventAuthenticatedAccess, authController.forgotPassword);
-router.post('/verify-reset-code', preventAuthenticatedAccess, authController.verifyResetCode);
-router.post('/reset-password', preventAuthenticatedAccess, authController.resetPassword);
+router.post('/forgot-password/:accountType', preventAuthenticatedAccess, authController.forgotPassword);
+router.post('/verify-reset-code/:accountType', preventAuthenticatedAccess, authController.verifyResetCode);
+router.post('/reset-password/:accountType', preventAuthenticatedAccess, authController.resetPassword);
 
 export default router;
