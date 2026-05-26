@@ -37,7 +37,7 @@ export default class JobPositionsModel extends SequelizeModelBase {
 			createdAt: false,
 			updatedAt: false,
 			deletedAt: 'deleted_at',
-			isBasicTable: false,
+			isBasicTable: true,
 			schema: 'public',
 			tableName: 'job_positions',
 			appRawName: 'job-positions',

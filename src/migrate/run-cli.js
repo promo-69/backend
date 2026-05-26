@@ -46,6 +46,7 @@ if (metaCommands[commandArg]) {
 		const result = spawnSync('npx', ['sequelize-cli', cmd, ...cleanArgs.slice(1)], {
 			stdio: 'inherit',
 			env: process.env,
+			shell: true,
 		});
 
 		// Ignoramos el error en db:drop por si la BD no existe aún (comportamiento normal en resets)
@@ -58,6 +59,7 @@ if (metaCommands[commandArg]) {
 	const result = spawnSync('npx', ['sequelize-cli', ...cleanArgs], {
 		stdio: 'inherit',
 		env: process.env,
+		shell: true,
 	});
 	process.exit(result.status !== null ? result.status : 1);
 }

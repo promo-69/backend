@@ -598,7 +598,6 @@ module.exports = {
 					original_price: 12.5,
 					price: 10.0, // Con descuento
 					quoted_exchange_rate: 1,
-					qr_code: 'TICKET-QR-STUDENT-001',
 					validation_time: null,
 				},
 				{
@@ -609,7 +608,6 @@ module.exports = {
 					original_price: 12.5,
 					price: 12.5, // Normal
 					quoted_exchange_rate: 1,
-					qr_code: 'TICKET-QR-NORMAL-002',
 					validation_time: null,
 				},
 			],

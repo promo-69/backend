@@ -1,16 +1,29 @@
 import { type JobsOptions, Queue } from 'bullmq';
 import { CacheDatabaseProvider } from '@providers/cache-database.provider.js';
+import { AppConfig } from '@config/app.config.js';
 
 export class QueueProvider {
-	private static instance: QueueProvider;
+	private static _instance: QueueProvider;
 	private queues: Map<string, Queue> = new Map();
 
 	private constructor() {}
 
 	static getInstance(): QueueProvider {
-		if (!QueueProvider.instance) QueueProvider.instance = new QueueProvider();
+		if (AppConfig.isProduction()) {
+			if (!this._instance) this._instance = new QueueProvider();
+			return this._instance;
+		}
 
-		return QueueProvider.instance;
+		const QUEUE_PROVIDER_SYMBOL = Symbol.for('global.queue.provider');
+		const globalWithQueue = globalThis as typeof globalThis & {
+			[QUEUE_PROVIDER_SYMBOL]: QueueProvider;
+		};
+
+		if (!globalWithQueue[QUEUE_PROVIDER_SYMBOL]) {
+			globalWithQueue[QUEUE_PROVIDER_SYMBOL] = new QueueProvider();
+		}
+
+		return globalWithQueue[QUEUE_PROVIDER_SYMBOL];
 	}
 
 	getQueue(name: string): Queue {
@@ -37,4 +50,15 @@ export class QueueProvider {
 
 		return await queue.add(taskName, data, options);
 	}
+}
+
+// Limpieza para Vite HMR
+if (import.meta.hot) {
+	import.meta.hot.dispose(async () => {
+		const provider = QueueProvider.getInstance();
+		// @ts-ignore
+		for (const queue of provider.queues.values()) {
+			await queue.close();
+		}
+	});
 }

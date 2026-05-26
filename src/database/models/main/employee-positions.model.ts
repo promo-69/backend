@@ -37,7 +37,7 @@ export default class EmployeePositionsModel extends SequelizeModelBase {
 			deleted_at: {
 				allowNull: true,
 				type: DataTypes.DATE,
-			}
+			},
 		};
 	}
 
@@ -55,23 +55,23 @@ export default class EmployeePositionsModel extends SequelizeModelBase {
 		};
 	}
 
-    static override relations(): RelationsReturn {
-        return [
-            {
-                type: 'belongsTo',
-                target: 'Employees',
-                options: { foreignKey: 'employee', targetKey: 'id', as: '_Employees' },
-            },
-            {
-                type: 'belongsTo',
-                target: 'JobPositions',
-                options: { foreignKey: 'job_position', targetKey: 'id', as: '_JobPositions' },
-            },
-            {
-                type: 'belongsTo',
-                target: 'Cinemas',
-                options: { foreignKey: 'cinema', targetKey: 'id', as: '_Cinemas' },
-            },
-        ];
-    }
+	static override relations(): RelationsReturn {
+		return [
+			{
+				type: 'belongsTo',
+				target: 'Employees',
+				options: { foreignKey: 'employee', targetKey: 'id', as: '_Employees' },
+			},
+			{
+				type: 'belongsTo',
+				target: 'JobPositions',
+				options: { foreignKey: 'job_position', targetKey: 'id', as: '_JobPositions' },
+			},
+			{
+				type: 'belongsTo',
+				target: 'Cinemas',
+				options: { foreignKey: 'cinema', targetKey: 'id', as: '_Cinemas' },
+			},
+		];
+	}
 }

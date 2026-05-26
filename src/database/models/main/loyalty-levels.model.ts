@@ -32,7 +32,7 @@ export default class LoyaltyLevelsModel extends SequelizeModelBase {
 			createdAt: false,
 			updatedAt: false,
 			deletedAt: 'deleted_at',
-			isBasicTable: false,
+			isBasicTable: true,
 			schema: 'public',
 			tableName: 'loyalty_levels',
 			appRawName: 'loyalty-levels',

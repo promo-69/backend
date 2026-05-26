@@ -1,7 +1,8 @@
-import { SequelizeRepositoryBase } from '@repositories/bases/sequelize.repository.js';
+import { SequelizeGetAllOptions, SequelizeRepositoryBase } from '@repositories/bases/sequelize.repository.js';
 import PermissionsModel from '@database/models/main/permissions.model.js';
 import { ExceptionPermissions } from '@rules/permission-exceptions.type.js';
 import { Ops } from '@database/index.js';
+import { WhereCondition } from '@bases/repository.base.js';
 
 export interface PermissionsAttributes {
 	id?: number;
@@ -96,8 +97,11 @@ class PermissionsRepository extends SequelizeRepositoryBase<PermissionsAttribute
 		return this.getById(id, { relations: this._relations }) as Promise<PermissionsWithActionsResourcesTypes | null>;
 	}
 
-	async getAllFull(filters?: any): Promise<{ rows: PermissionsWithActionsResourcesTypes[]; count: number }> {
-		return this.getAll({ ...filters, count: true, relations: this._relations }) as Promise<{
+	async getAllFull(
+		options?: SequelizeGetAllOptions,
+		filters?: WhereCondition,
+	): Promise<{ rows: PermissionsWithActionsResourcesTypes[]; count: number }> {
+		return this.getAll({ ...options, count: true, relations: this._relations }, filters) as Promise<{
 			rows: PermissionsWithActionsResourcesTypes[];
 			count: number;
 		}>;
