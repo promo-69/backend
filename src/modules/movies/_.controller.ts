@@ -12,6 +12,12 @@ class MoviesController extends ControllerBase {
 		return data;
 	}
 
+	// GET /api/v1/movies/showtimes
+	async findWithShowtimes() {
+		const data = await MoviesService.getMoviesWithShowtimes(this.getQueryFilters());
+		return data;
+	}
+
 	// GET /api/v1/movies/:id  — HU-APP-WEB-07 detalle público
 	async findById() {
 		const { id } = this.getParams();
