@@ -19,7 +19,7 @@ router.get('/showtimes', optionalAuth, moviesController.findWithShowtimes);
 router.get('/:id', optionalAuth, moviesController.findById);
 
 // Admin (protegidos con permisos)
-router.post('/', verifySession, verifyPermission('CRUD:UPDATE:MOVIES'), movieUpload, moviesController.create);
+router.post('/', verifySession, verifyPermission('CRUD:CREATE:MOVIES'), movieUpload, moviesController.create);
 router.patch('/:id', verifySession, verifyPermission('CRUD:UPDATE:MOVIES'), movieUpload, moviesController.update);
 router.delete('/:id', verifySession, verifyPermission('CRUD:DELETE:MOVIES'), moviesController.remove);
 

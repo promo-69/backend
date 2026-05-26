@@ -6,10 +6,17 @@ class InventoryController extends ControllerBase {
     // GET /inventory — stock de la sede del usuario (cinemaId del JWT)
     async findAll() {
         const session = this.getSession<any>();
-        if (!session.cinemaId) {
-            throw new ValidationError('No se pudo determinar la sucursal del usuario.');
+        const query = this.getQuery();
+
+        const cinemaId = session?.cinemaId ?? (query.cinemaId ? Number(query.cinemaId) : undefined);
+
+        if (!cinemaId) {
+            throw new ValidationError(
+                'No se pudo determinar la sucursal. Especificá "cinemaId" en la query string o iniciá sesión con una sucursal asignada.',
+            );
         }
-        const data = await InventoryService.getStockByCinema(session.cinemaId, this.getQueryFilters());
+
+        const data = await InventoryService.getStockByCinema(cinemaId, this.getQueryFilters());
         return data;
     }
 

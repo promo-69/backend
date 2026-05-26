@@ -68,14 +68,9 @@ export class RoomEventManagementService {
         if (excludeBookingId) where.id = { [Op.ne]: excludeBookingId };
 
         const existingBooking = await this._roomBookings.getOne(where, { transaction });
-        if (existingBooking) throw new ConflictError('La sala ya está ocupada en ese horario', 'ROOM_ALREADY_BOOKED');
-
-        const existingShowtime = await this._showtimes.getOne(
-            { room: roomId, start_time: { [Op.lt]: endTime }, end_time: { [Op.gt]: startTime }, deleted_at: null },
-            { transaction, attributes: ['id'] },
-        );
-        if (existingShowtime)
-            throw new ConflictError('La sala tiene una función de cine programada en ese horario', 'ROOM_HAS_SHOWTIME');
+        if (existingBooking) {
+            throw new ConflictError('La sala ya está ocupada en ese horario', 'ROOM_ALREADY_BOOKED');
+        }
     }
 
     async createEvent(data: any) {

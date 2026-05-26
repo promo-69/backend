@@ -59,14 +59,18 @@ class ConcessionsController extends ControllerBase {
 
     async createCombo() {
         const session = this.getSession<any>();
-        if (!session.cinemaId) {
-            throw new ValidationError(
-                'No se puede determinar la sucursal. Usa el endpoint explícito /cinemas/:cinemaId/combos para crear combos como administrador.',
-            );
-        }
         const body = this.getBody();
         const req = this.getRequest();
-        const data = await ComboManagementService.createCombo(body, req.files as any, session.cinemaId);
+
+        // Permitir que el SUPER_ADMIN pase cinema en el body
+        const cinemaId = session?.cinemaId ?? body.cinema;
+        if (cinemaId === undefined) {
+            throw new ValidationError(
+                'No se puede determinar la sucursal. Especificá "cinema" en el cuerpo de la petición o iniciá sesión con una sucursal asignada.',
+            );
+        }
+
+        const data = await ComboManagementService.createCombo(body, req.files as any, Number(cinemaId));
         return this.created(data, 'Combo registrado exitosamente');
     }
 

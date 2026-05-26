@@ -13,9 +13,12 @@ export class RoomEventsService {
     }
 
     // Crea un evento alternativo. Si se recibe cinemaId (contexto implícito), se valida que no sea undefined.
-    async createEvent(body: any, cinemaId?: number) {
+    async createEvent(body: any, sessionCinemaId?: number) {
+        const cinemaId = sessionCinemaId ?? body.cinema;
         if (cinemaId === undefined) {
-            throw new ValidationError('No se puede determinar la sucursal.');
+            throw new ValidationError(
+                'No se puede determinar la sucursal. Especificá "cinema" en el cuerpo de la petición o iniciá sesión con una sucursal asignada.',
+            );
         }
         return RoomEventManagementService.createEvent(body);
     }
