@@ -1,15 +1,24 @@
 meta {
-  name: Get All Seats
+  name: Get Seat Map (via Room)
   type: http
   seq: 1
 }
 
 get {
-  url: {{baseUrl}}/seats
+  url: {{baseUrl}}/rooms/{{testRoomId}}/seats
   body: none
   auth: bearer
 }
 
 auth:bearer {
   token: {{accessToken}}
+}
+
+vars:pre-request {
+  testRoomId: 1
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  bru.setVar('baseUrl', baseUrl);
 }

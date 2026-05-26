@@ -24,20 +24,27 @@
                                     properties:
                                         id:
                                             type: integer
-                                        movie_id:
+                                        movie:
                                             type: integer
-                                        room_id:
+                                            description: Movie ID (FK)
+                                        room:
                                             type: integer
-                                        projection_type_id:
+                                            description: Room ID (FK)
+                                        projection_type:
                                             type: integer
+                                            description: Projection type ID (FK)
                                         start_time:
                                             type: string
                                             format: date-time
                                         end_time:
                                             type: string
                                             format: date-time
+                                            nullable: true
                                         price:
                                             type: number
+                                        currency:
+                                            type: integer
+                                            description: Currency ID (FK)
                                         earned_loyalty_points:
                                             type: integer
                                             nullable: true
@@ -47,7 +54,7 @@
                 description: Internal server error
     put:
         summary: Update Showtime
-        description: Update the schedule or price of an existing showtime.
+        description: Update the schedule or price of an existing showtime. Requires MGMT:DO:GENERAL_MANAGEMENT permission.
         tags:
             - Showtimes
         security:
@@ -99,7 +106,7 @@
                 description: Internal server error
     delete:
         summary: Cancel Showtime
-        description: Cancel a scheduled showtime. This is a soft delete — the record is marked as cancelled.
+        description: Cancel a scheduled showtime (soft delete). Requires MGMT:DO:GENERAL_MANAGEMENT permission.
         tags:
             - Showtimes
         security:

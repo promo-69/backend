@@ -1,7 +1,7 @@
 /auth/login:
     post:
-        summary: User Login
-        description: Endpoint for user authentication. Returns tokens based on client channel (cookie for web, bearer for mobile).
+        summary: Customer Login
+        description: Endpoint for customer authentication. Only users with user_type = 2 (customer) are allowed. Returns tokens based on client channel (cookie for web, bearer for mobile).
         tags:
             - Auth
         requestBody:
@@ -41,16 +41,33 @@
                                                     type: string
                                                 documentNumber:
                                                     type: string
-                                                cinemaId:
-                                                    type: string
                                                 email:
                                                     type: string
                                                 firstName:
                                                     type: string
                                                 lastName:
                                                     type: string
+                                                personalEmail:
+                                                    type: string
+                                                    nullable: true
+                                                phoneNumber:
+                                                    type: string
+                                                    nullable: true
+                                                loyaltyLevelId:
+                                                    type: integer
+                                                    nullable: true
+                                                    description: Customer loyalty level ID (e.g. 1=Bronze, 2=Silver...)
+                                                loyaltyLevelName:
+                                                    type: string
+                                                    nullable: true
+                                                    description: Customer loyalty level name
+                                                loyaltyPoints:
+                                                    type: integer
+                                                    nullable: true
+                                                    description: Customer accumulated loyalty points
                                         tokens:
                                             type: object
+                                            description: Only present when x-client-channel is 'mobile'. Omitted for 'web' (tokens go into cookies).
                                             properties:
                                                 accessToken:
                                                     type: string

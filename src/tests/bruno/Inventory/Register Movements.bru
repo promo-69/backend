@@ -15,14 +15,15 @@ auth:bearer {
 }
 
 body:json {
-  {
-    "movements": [
-      { "operationTypeCode": "REPLENISH", "quantity": 100, "remarks": "Weekly replenishment" }
-    ]
-  }
+  [
+    { "operationTypeCode": "REPLENISH", "quantity": 100, "remarks": "Weekly replenishment" }
+  ]
 }
 
 script:pre-request {
   const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
   bru.setVar('baseUrl', baseUrl);
+  if (!bru.getEnvVar('testInventoryId')) {
+    throw new Error('testInventoryId no está definido. Ejecuta primero la creación de inventario.');
+  }
 }

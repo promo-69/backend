@@ -1,7 +1,9 @@
 /inventory:
     get:
         summary: Get My Inventory
-        description: Returns the stock of all products in the cinema assigned to the authenticated user (JWT).
+        description: |
+            Returns the stock of all products in the cinema assigned to the authenticated user (JWT).
+            Required permission: **CRUD:READ:INVENTORY**
         tags:
             - Inventory
         security:
@@ -17,7 +19,9 @@
 /inventory/{id}:
     get:
         summary: Get Inventory Detail
-        description: Returns the inventory record with all its movements.
+        description: |
+            Returns the inventory record with all its movements.
+            Required permission: **CRUD:READ:INVENTORY**
         tags:
             - Inventory
         security:
@@ -41,7 +45,9 @@
 /inventory/{id}/movements:
     post:
         summary: Register Movements
-        description: Register one or more inventory movements. The body is an array of movement objects.
+        description: |
+            Register one or more inventory movements. The body is an array of movement objects.
+            Required permission: **CRUD:CREATE:INVENTORY_MOVEMENT**
         tags:
             - Inventory
         security:

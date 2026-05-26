@@ -71,7 +71,7 @@
                 description: Internal server error
     put:
         summary: Update Movie
-        description: Update movie metadata and optionally replace images. Requires admin role.
+        description: Update movie metadata and optionally replace images. Requires MGMT:DO:GENERAL_MANAGEMENT permission.
         tags:
             - Movies
         security:
@@ -136,7 +136,7 @@
                 description: Internal server error
     delete:
         summary: Delete Movie
-        description: Remove a movie from the catalog (soft delete). Requires admin role and no active future showtimes.
+        description: Remove a movie from the catalog (soft delete). Requires MGMT:DO:GENERAL_MANAGEMENT permission and no active future showtimes.
         tags:
             - Movies
         security:

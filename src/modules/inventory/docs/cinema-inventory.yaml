@@ -1,7 +1,9 @@
 /cinemas/{cinemaId}/inventory:
     get:
         summary: Get Inventory by Cinema
-        description: Returns the inventory of a specific cinema (remote audit).
+        description: |
+            Returns the inventory of a specific cinema (remote audit).
+            Required permission: **CRUD:READ:CINEMAS-INVENTORY**
         tags:
             - Inventory
         security:
@@ -23,7 +25,9 @@
 /cinemas/{cinemaId}/inventory/{id}/movements:
     post:
         summary: Register Inventory Movements for a Cinema
-        description: Register movements for a specific inventory record. The body is an array of movement objects.
+        description: |
+            Register movements for a specific inventory record. The body is an array of movement objects.
+            Required permission: **CRUD:CREATE:INVENTORY_MOVEMENT**
         tags:
             - Inventory
         security:

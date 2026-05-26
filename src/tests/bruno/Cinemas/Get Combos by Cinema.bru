@@ -1,11 +1,11 @@
 meta {
-  name: Get All Projection Types (catalog)
+  name: Get Combos by Cinema
   type: http
-  seq: 9
+  seq: …
 }
 
 get {
-  url: {{baseUrl}}/catalogs/projection-types
+  url: {{baseUrl}}/cinemas/{{testCinemaId}}/combos
   body: none
   auth: bearer
 }

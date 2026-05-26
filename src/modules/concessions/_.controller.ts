@@ -1,5 +1,7 @@
 import { ControllerBase } from '@bases/controller.base.js';
 import ConcessionsService from './_.service.js';
+import ComboManagementService from '@services/combo-management.service.js';
+import { ValidationError } from '@errors';
 
 class ConcessionsController extends ControllerBase {
     constructor() {
@@ -41,7 +43,11 @@ class ConcessionsController extends ControllerBase {
 
     // ----- Combos -----
     async findAllCombos() {
-        const data = await ConcessionsService.findAllCombos(this.getQueryFilters());
+        const session = this.getSession<any>();
+        const data = await ComboManagementService.findAllCombos({
+            ...this.getQueryFilters(),
+            cinemaId: session?.cinemaId,
+        });
         return data;
     }
 
@@ -52,9 +58,15 @@ class ConcessionsController extends ControllerBase {
     }
 
     async createCombo() {
+        const session = this.getSession<any>();
+        if (!session.cinemaId) {
+            throw new ValidationError(
+                'No se puede determinar la sucursal. Usa el endpoint explícito /cinemas/:cinemaId/combos para crear combos como administrador.',
+            );
+        }
         const body = this.getBody();
         const req = this.getRequest();
-        const data = await ConcessionsService.createCombo(body, req.files as any);
+        const data = await ComboManagementService.createCombo(body, req.files as any, session.cinemaId);
         return this.created(data, 'Combo registrado exitosamente');
     }
 

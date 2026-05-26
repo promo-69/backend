@@ -38,6 +38,10 @@ export interface UserSession {
 	email?: string;
 	personalEmail?: string;
 	phoneNumber?: string;
+	// Customer-only fields
+	loyaltyLevelId?: number;
+	loyaltyLevelName?: string;
+	loyaltyPoints?: number;
 }
 
 /**

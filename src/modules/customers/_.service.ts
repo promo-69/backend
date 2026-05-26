@@ -46,7 +46,6 @@ export class CustomersService extends BaseService {
                     level_id: customerFields.loyalty_level,
                     level_name: loyaltyLevel?.name ?? null,
                     progress_points: customerFields.level_progress_points,
-                    current_points_balance: customerFields.current_points_balance,
                 },
             },
         };
@@ -99,7 +98,6 @@ export class CustomersService extends BaseService {
                 {
                     person: person.id,
                     level_progress_points: 0,
-                    current_points_balance: 0,
                     loyalty_level: 1,
                 },
                 { transaction },
@@ -172,9 +170,8 @@ export class CustomersService extends BaseService {
         if (!customer) throw new NotFoundError('Cliente no encontrado');
 
         const newProgress = (customer.level_progress_points ?? 0) + delta;
-        const newBalance = (customer.current_points_balance ?? 0) + delta;
 
-        if (newProgress < 0 || newBalance < 0) {
+        if (newProgress < 0) {
             throw new ValidationError('Los puntos resultantes no pueden ser negativos', ['points']);
         }
 
@@ -194,7 +191,6 @@ export class CustomersService extends BaseService {
             customerId,
             {
                 level_progress_points: newProgress,
-                current_points_balance: newBalance,
                 loyalty_level: newLevelId,
             },
             { transaction },

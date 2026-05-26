@@ -1,4 +1,4 @@
-/auth/admin-login:
+/auth/login/admin:
     post:
         summary: Admin Login
         description: Endpoint for employee/administrator authentication. Only users with user_type = 1 (employee) are allowed. Returns tokens based on client channel (cookie for web, bearer for mobile).
@@ -41,12 +41,26 @@
                                                     type: string
                                                 email:
                                                     type: string
+                                                documentNumber:
+                                                    type: string
                                                 firstName:
                                                     type: string
                                                 lastName:
                                                     type: string
+                                                roleCode:
+                                                    type: string
+                                                roleDesc:
+                                                    type: string
+                                                cinemaId:
+                                                    type: string
+                                                    nullable: true
+                                                permissions:
+                                                    type: array
+                                                    items:
+                                                        type: string
                                         tokens:
                                             type: object
+                                            description: Only present when x-client-channel is 'mobile'. Omitted for 'web' (tokens go into cookies).
                                             properties:
                                                 accessToken:
                                                     type: string

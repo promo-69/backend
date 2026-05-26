@@ -5,6 +5,7 @@
             Retrieves a single employee's full record, including biographical
             data and position history. The employee must belong to the same
             cinema as the authenticated user.
+            Required permission: **CRUD:READ:EMPLOYEES**
         tags:
             - Employees
         security:
@@ -52,6 +53,7 @@
         description: |
             Updates the employee's biographical data (in the people table)
             and/or the employee code. At least one field must be provided.
+            Required permission: **CRUD:UPDATE:EMPLOYEES**
         tags:
             - Employees
         security:
@@ -103,6 +105,7 @@
             Performs a soft-delete on the employee, closes any active position
             (stamping the current date), and deactivates the associated user
             account.
+            Required permission: **CRUD:DELETE:EMPLOYEES**
         tags:
             - Employees
         security:

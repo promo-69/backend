@@ -74,6 +74,12 @@ export class AuthService extends BaseService {
     private get _rolePermissions() {
         return Database.repository('main', 'role-permissions') as any;
     }
+    private get _customers() {
+        return Database.repository('main', 'customers') as any;
+    }
+    private get _loyaltyLevels() {
+        return Database.repository('main', 'loyalty-levels') as any;
+    }
 
     private parsePermissions(permissions: any[]): string[] {
         return Array.from(
@@ -152,6 +158,25 @@ export class AuthService extends BaseService {
             payload.roleDesc = foundUser._Roles?.description;
             payload.roleCode = foundUser._Roles?.code;
             payload.permissions = this.parsePermissions(permissions);
+        }
+
+        if (foundUser.user_type === USER_TYPE_CUSTOMER) {
+            const customer = await this._customers.getOne(
+                { person: foundUser.person },
+                {
+                    attributes: ['id', 'loyalty_level', 'level_progress_points'],
+                },
+            );
+
+            if (customer) {
+                const level = await this._loyaltyLevels.getById(customer.loyalty_level, {
+                    attributes: ['id', 'name'],
+                });
+
+                payload.loyaltyLevelId = customer.loyalty_level ?? 1;
+                payload.loyaltyLevelName = level?.name ?? null;
+                payload.loyaltyPoints = customer.level_progress_points ?? 0;
+            }
         }
 
         return payload;
@@ -263,8 +288,9 @@ export class AuthService extends BaseService {
         const person = { firstName, lastName, email, phoneNumber, documentNumber, gender, birthDate };
         const user = { email, password };
 
-        if (!documentNumber || !email || !password)
+        if (!documentNumber || !email || !password) {
             throw new ValidationError('Los datos de registro están incompletos', []);
+        }
 
         this.validateRegexpFields([
             { value: documentNumber, regex: REGEX.DOCUMENT_NUMBER, message: 'El número de documento no es válido' },
@@ -278,14 +304,30 @@ export class AuthService extends BaseService {
         ]);
 
         const existingUserByEmail = await this._users.getByEmail(email);
-        if (existingUserByEmail) throw new AuthError('El usuario ya existe', { code: 'USER_ALREADY_EXISTS' });
+        if (existingUserByEmail) {
+            throw new AuthError('El usuario ya existe', { code: 'USER_ALREADY_EXISTS' });
+        }
 
         let existingPerson = await this._people.getByDocumentNumber(documentNumber);
 
-        if (!existingPerson) {
-            if (!firstName || !lastName || !phoneNumber || !gender || !birthDate)
+        // Validación de persona existente por documento
+        if (existingPerson) {
+            // Si el documento ya pertenece a otra persona (nombres diferentes), rechazar
+            if (existingPerson.first_name !== firstName || existingPerson.last_name !== lastName) {
+                throw new ValidationError('El número de documento ya está registrado.', ['documentNumber']);
+            }
+            // Opcional: actualizar teléfono y fecha de nacimiento si han cambiado
+            const updates: any = {};
+            if (phoneNumber && existingPerson.phone_number !== phoneNumber) updates.phone_number = phoneNumber;
+            if (birthDate && existingPerson.birth_date !== birthDate) updates.birth_date = birthDate;
+            if (Object.keys(updates).length > 0) {
+                await this._people.update(existingPerson.id, updates);
+            }
+        } else {
+            // Validar datos obligatorios para crear una nueva persona
+            if (!firstName || !lastName || !phoneNumber || !gender || !birthDate) {
                 throw new ValidationError('Los datos personales están incompletos para un nuevo registro', []);
-
+            }
             this.validateRegexpFields([
                 { value: firstName, regex: REGEX.PERSON_NAME, message: 'El nombre no es válido' },
                 { value: lastName, regex: REGEX.PERSON_NAME, message: 'El apellido no es válido' },
@@ -318,7 +360,7 @@ export class AuthService extends BaseService {
                         ...user,
                         user_type: USER_TYPE_CUSTOMER,
                         password: await BcryptUtil.hash(user.password),
-                        person: createdPerson?.id ?? existingPerson?.id,
+                        person: createdPerson?.id ?? existingPerson.id,
                         signup_code: await BcryptUtil.hash(signupCode),
                     },
                     { transaction },

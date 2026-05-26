@@ -1,7 +1,9 @@
 /rooms/{id}/projection-types:
     get:
         summary: Get Room Projection Types
-        description: Retrieve all projection types currently assigned to a room.
+        description: |
+            Retrieve all projection types currently assigned to a room.
+            Required permission: **CRUD:READ:ROOMS**
         tags:
             - Rooms
         security:
@@ -31,8 +33,6 @@
                                                 type: integer
                                             projection_type:
                                                 type: integer
-                                            status:
-                                                type: integer
             '401':
                 description: Unauthorized
             '404':
@@ -41,7 +41,9 @@
                 description: Internal server error
     post:
         summary: Add Projection Type To Room
-        description: Assign an additional projection type to an existing room.
+        description: |
+            Assign an additional projection type to an existing room.
+            Required permission: **CRUD:UPDATE:ROOMS**
         tags:
             - Rooms
         security:

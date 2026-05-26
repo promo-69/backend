@@ -1,11 +1,11 @@
 meta {
-  name: Get All Projection Types (catalog)
+  name: Remove Employee from Cinema
   type: http
   seq: 9
 }
 
-get {
-  url: {{baseUrl}}/catalogs/projection-types
+delete {
+  url: {{baseUrl}}/cinemas/{{testCinemaId}}/employees/{{testEmployeeId}}
   body: none
   auth: bearer
 }

@@ -1,0 +1,30 @@
+meta {
+  name: Create Combo in Cinema
+  type: http
+  seq: …
+}
+
+post {
+  url: {{baseUrl}}/cinemas/{{testCinemaId}}/combos
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:multipart-form {
+  ~name: Test Combo Cinema
+  ~sku: TST-CMB-CINEMA-001
+  ~description: Combo creado desde contexto explícito
+  ~currencyId: 1
+  ~price: 12.00
+  ~products: [{"productId": {{testProductId}}, "quantity": 2}]
+  ~image: @file(/path/to/your/combo-image.jpg)
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  bru.setVar('baseUrl', baseUrl);
+}

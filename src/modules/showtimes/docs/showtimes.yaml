@@ -1,7 +1,7 @@
 /showtimes:
     get:
         summary: List Showtimes
-        description: Retrieve all scheduled showtimes in the system.
+        description: Retrieve all scheduled showtimes in the system. Public endpoint.
         tags:
             - Showtimes
         responses:
@@ -13,37 +13,47 @@
                             type: object
                             properties:
                                 data:
-                                    type: array
-                                    items:
-                                        type: object
-                                        properties:
-                                            id:
-                                                type: integer
-                                            movie_id:
-                                                type: integer
-                                            room_id:
-                                                type: integer
-                                            projection_type_id:
-                                                type: integer
-                                            start_time:
-                                                type: string
-                                                format: date-time
-                                            end_time:
-                                                type: string
-                                                format: date-time
-                                            price:
-                                                type: number
-                                            earned_loyalty_points:
-                                                type: integer
-                                                nullable: true
+                                    type: object
+                                    properties:
+                                        rows:
+                                            type: array
+                                            items:
+                                                type: object
+                                                properties:
+                                                    id:
+                                                        type: integer
+                                                    movie:
+                                                        type: integer
+                                                        description: Movie ID (FK)
+                                                    room:
+                                                        type: integer
+                                                        description: Room ID (FK)
+                                                    projection_type:
+                                                        type: integer
+                                                        description: Projection type ID (FK)
+                                                    start_time:
+                                                        type: string
+                                                        format: date-time
+                                                    end_time:
+                                                        type: string
+                                                        format: date-time
+                                                        nullable: true
+                                                    price:
+                                                        type: number
+                                                    currency:
+                                                        type: integer
+                                                    earned_loyalty_points:
+                                                        type: integer
+                                                        nullable: true
+                                        count:
+                                            type: integer
             '500':
                 description: Internal server error
     post:
         summary: Create Showtime
         description: |
-            Schedule a new showtime for a movie in a room.
-            If the movie was in "Coming Soon" state, it automatically transitions
-            to "Now Showing" state.
+            Schedule a new showtime for a movie in a room. Requires MGMT:DO:GENERAL_MANAGEMENT permission.
+            If the movie was in "Coming Soon" state, it automatically transitions to "Now Showing".
         tags:
             - Showtimes
         security:
@@ -106,6 +116,7 @@
                                         end_time:
                                             type: string
                                             format: date-time
+                                            nullable: true
             '400':
                 description: Bad request (validation errors)
             '401':
