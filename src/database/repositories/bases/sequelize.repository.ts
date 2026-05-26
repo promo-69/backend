@@ -26,8 +26,8 @@ import { Op } from 'sequelize';
 
 export interface RelationConfig {
 	association: string;
-	attributes?: string[];
-	nested?: RelationConfig | RelationConfig[] | null;
+	attributes?: (string | [string, string])[];
+	nested?: RelationConfig[];
 	required?: boolean;
 	where?: WhereCondition;
 	separate?: boolean;
@@ -273,7 +273,7 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
 				return result.toJSON() as T;
 			} catch (error: any) {
 				throw new DatabaseError(
-					`Sequelize 'create' operation failed`,
+					`Ha ocurrido un error con la consulta a la base de datos (1)`,
 					'create',
 					{
 						data,
@@ -354,7 +354,7 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
 				return created.map((r) => r.toJSON()) as T[];
 			} catch (error: any) {
 				throw new DatabaseError(
-					`Sequelize 'bulkCreate' operation failed`,
+					`Ha ocurrido un error con la consulta a la base de datos (2)`,
 					'bulkCreate',
 					{
 						dataCount: data.length,
@@ -399,7 +399,7 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
 				}
 			} catch (error: any) {
 				throw new DatabaseError(
-					`Sequelize 'find' operation failed`,
+					`Ha ocurrido un error con la consulta a la base de datos (2.1)`,
 					'findAll',
 					{
 						filter,
@@ -437,7 +437,7 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
 				return JSON.parse(JSON.stringify(result)) as unknown as T | null;
 			} catch (error: any) {
 				throw new DatabaseError(
-					`Sequelize 'findById' operation failed`,
+					`Ha ocurrido un error con la consulta a la base de datos (2.3)`,
 					'findById',
 					{
 						id,
@@ -468,7 +468,7 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
 				return JSON.parse(JSON.stringify(result)) as unknown as T | null;
 			} catch (error: any) {
 				throw new DatabaseError(
-					`Sequelize 'findOne' operation failed`,
+					`Ha ocurrido un error con la consulta a la base de datos (2.2)`,
 					'findOne',
 					{
 						filter,
@@ -500,7 +500,7 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
 				return affectedRows;
 			} catch (error: any) {
 				throw new DatabaseError(
-					`Sequelize 'update' operation failed`,
+					`Ha ocurrido un error con la consulta a la base de datos (3)`,
 					'update',
 					{
 						criteria,
@@ -529,7 +529,7 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
 				return affectedRows;
 			} catch (error: any) {
 				throw new DatabaseError(
-					`Sequelize 'delete' operation failed`,
+					`Ha ocurrido un error con la consulta a la base de datos (4)`,
 					'delete',
 					{
 						criteria,
@@ -557,7 +557,7 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
 				return 1;
 			} catch (error: any) {
 				throw new DatabaseError(
-					`Sequelize 'restore' operation failed`,
+					`Ha ocurrido un error con la consulta a la base de datos (5)`,
 					'restore',
 					{
 						criteria,
@@ -583,7 +583,7 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
 				return count;
 			} catch (error: any) {
 				throw new DatabaseError(
-					`Sequelize 'count' operation failed`,
+					`Ha ocurrido un error con la consulta a la base de datos (6)`,
 					'count',
 					{
 						filter,

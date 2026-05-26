@@ -168,6 +168,7 @@ export abstract class BaseRepository<T, ID = string | number, M = unknown> {
 		const { pagination, order } = options;
 		const _options: Record<string, unknown> = { ...pagination };
 
+		_options.order = [['id', 'DESC']];
 		if (order && order.length) _options.order = order;
 
 		return _options;
