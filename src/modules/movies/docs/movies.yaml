@@ -1,25 +1,34 @@
 /movies:
     get:
-        summary: Get All Movies
-        description: Retrieve a paginated list of all movies in the catalog, including their related genres, languages, and projection types.
+        summary: List All Movies
+        description: Retrieve all movies in the catalog with optional filters and pagination. Public endpoint.
         tags:
             - Movies
-        security:
-            - bearerAuth: []
         parameters:
-            - name: page
-              in: query
-              description: Page number for pagination
+            - in: query
+              name: page
               schema:
                   type: integer
-            - name: limit
-              in: query
-              description: Number of items per page
+                  default: 1
+              description: Page number
+            - in: query
+              name: per_page
               schema:
                   type: integer
+                  default: 10
+              description: Items per page
+            - in: query
+              name: sort
+              schema:
+                  type: string
+              description: Sort expression (e.g. title:asc)
+            - in: query
+              name: filter
+              schema:
+                  type: string
+              description: Filter expression (e.g. lifecycle_state:1)
         responses:
             '200':
-<<<<<<< HEAD
                 description: A paginated list of movies
                 content:
                     application/json:
@@ -101,18 +110,11 @@
                                         count:
                                             type: integer
                                             example: 15
-=======
-                description: List of movies retrieved successfully
->>>>>>> 451b2c8fc5dedbf1ba59af82481e5c59b9dd0afa
             '500':
                 description: Internal server error
     post:
         summary: Create Movie
-<<<<<<< HEAD
         description: Register a new movie in the catalog. Requires admin permission.
-=======
-        description: Register a new movie in the catalog. Requires SUPER_ADMIN or GENERAL_MANAGER role. Supports multipart/form-data for uploading poster and banner images.
->>>>>>> 451b2c8fc5dedbf1ba59af82481e5c59b9dd0afa
         tags:
             - Movies
         security:
@@ -123,41 +125,6 @@
                 multipart/form-data:
                     schema:
                         type: object
-                        properties:
-                            title:
-                                type: string
-                            durationMinutes:
-                                type: integer
-                            ageClassification:
-                                type: integer
-                            lifecycleState:
-                                type: integer
-                            synopsis:
-                                type: string
-                            releaseDate:
-                                type: string
-                                format: date
-                            trailerUrl:
-                                type: string
-                                format: uri
-                            genres:
-                                type: array
-                                items:
-                                    type: integer
-                            languages:
-                                type: array
-                                items:
-                                    type: integer
-                            projectionTypes:
-                                type: array
-                                items:
-                                    type: integer
-                            poster:
-                                type: string
-                                format: binary
-                            banner:
-                                type: string
-                                format: binary
                         required:
                             - title
                             - durationMinutes
@@ -166,149 +133,70 @@
                             - synopsis
                             - releaseDate
                             - genres
-                            - languages
-                            - projectionTypes
+                        properties:
+                            title:
+                                type: string
+                                example: Zootopia 2
+                            durationMinutes:
+                                type: integer
+                                example: 120
+                            ageClassification:
+                                type: integer
+                                example: 1
+                            lifecycleState:
+                                type: integer
+                                example: 1
+                            synopsis:
+                                type: string
+                                example: A new adventure in the animal city.
+                            releaseDate:
+                                type: string
+                                format: date
+                                example: '2026-06-15'
+                            trailerUrl:
+                                type: string
+                                format: url
+                                example: 'https://www.youtube.com/watch?v=5AwtptT8X8k'
+                            genres:
+                                type: string
+                                description: JSON array of genre IDs (e.g. "[1,2]")
+                                example: '[1, 2]'
+                            poster:
+                                type: string
+                                format: binary
+                                description: Poster image file (JPEG, PNG, WebP)
+                            banner:
+                                type: string
+                                format: binary
+                                description: Banner image file (JPEG, PNG, WebP)
         responses:
             '201':
                 description: Movie created successfully
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                    example: true
+                                message:
+                                    type: string
+                                    example: Película registrada exitosamente en el catálogo.
+                                data:
+                                    type: object
+                                    properties:
+                                        movie_id:
+                                            type: integer
+                                            example: 10
+                                        title:
+                                            type: string
+                                            example: Zootopia 2
             '400':
                 description: Validation error
             '401':
                 description: Unauthorized
-            '403':
-                description: Forbidden (insufficient permissions)
             '409':
-                description: Conflict (Movie title already exists)
-            '500':
-                description: Internal server error
-
-/movies/showtimes:
-    get:
-        summary: Get Movies with Showtimes
-        description: Retrieve a paginated list of movies that currently have scheduled showtimes (cartelera).
-        tags:
-            - Movies
-        security:
-            - bearerAuth: []
-        parameters:
-            - name: page
-              in: query
-              description: Page number for pagination
-              schema:
-                  type: integer
-            - name: limit
-              in: query
-              description: Number of items per page
-              schema:
-                  type: integer
-        responses:
-            '200':
-                description: List of movies with active showtimes retrieved successfully
-            '500':
-                description: Internal server error
-
-/movies/{id}:
-    get:
-        summary: Get Movie by ID
-        description: Retrieve detailed information about a specific movie, including relationships.
-        tags:
-            - Movies
-        security:
-            - bearerAuth: []
-        parameters:
-            - name: id
-              in: path
-              required: true
-              schema:
-                  type: integer
-        responses:
-            '200':
-                description: Movie found
-            '404':
-                description: Movie not found
-            '500':
-                description: Internal server error
-    patch:
-        summary: Update Movie
-        description: Update movie details. Requires SUPER_ADMIN or GENERAL_MANAGER role. Supports multipart/form-data.
-        tags:
-            - Movies
-        security:
-            - bearerAuth: []
-        parameters:
-            - name: id
-              in: path
-              required: true
-              schema:
-                  type: integer
-        requestBody:
-            required: true
-            content:
-                multipart/form-data:
-                    schema:
-                        type: object
-                        properties:
-                            lifecycleState:
-                                type: integer
-                            synopsis:
-                                type: string
-                            trailerUrl:
-                                type: string
-                                format: uri
-                            genres:
-                                type: array
-                                items:
-                                    type: integer
-                            languages:
-                                type: array
-                                items:
-                                    type: integer
-                            projectionTypes:
-                                type: array
-                                items:
-                                    type: integer
-                            poster:
-                                type: string
-                                format: binary
-                            banner:
-                                type: string
-                                format: binary
-        responses:
-            '200':
-                description: Movie updated successfully
-            '400':
-                description: Validation error or no fields provided
-            '401':
-                description: Unauthorized
-            '403':
-                description: Forbidden (insufficient permissions)
-            '404':
-                description: Movie not found
-            '500':
-                description: Internal server error
-    delete:
-        summary: Delete Movie
-        description: Soft-delete a movie from the catalog. Cannot delete a movie that has active future showtimes. Requires SUPER_ADMIN or GENERAL_MANAGER role.
-        tags:
-            - Movies
-        security:
-            - bearerAuth: []
-        parameters:
-            - name: id
-              in: path
-              required: true
-              schema:
-                  type: integer
-        responses:
-            '200':
-                description: Movie deleted successfully
-            '401':
-                description: Unauthorized
-            '403':
-                description: Forbidden (insufficient permissions)
-            '404':
-                description: Movie not found
-            '409':
-                description: Conflict (Movie has active future showtimes)
+                description: Conflict — duplicate title
             '500':
                 description: Internal server error
