@@ -1,6 +1,7 @@
 import { type JobsOptions, Queue } from 'bullmq';
 import { CacheDatabaseProvider } from '@providers/cache-database.provider.js';
 import { AppConfig } from '@config/app.config.js';
+import { Logger } from '@utils/logger.util.js';
 
 export class QueueProvider {
 	private static _instance: QueueProvider;
@@ -19,9 +20,7 @@ export class QueueProvider {
 			[QUEUE_PROVIDER_SYMBOL]: QueueProvider;
 		};
 
-		if (!globalWithQueue[QUEUE_PROVIDER_SYMBOL]) {
-			globalWithQueue[QUEUE_PROVIDER_SYMBOL] = new QueueProvider();
-		}
+		if (!globalWithQueue[QUEUE_PROVIDER_SYMBOL]) globalWithQueue[QUEUE_PROVIDER_SYMBOL] = new QueueProvider();
 
 		return globalWithQueue[QUEUE_PROVIDER_SYMBOL];
 	}
@@ -48,6 +47,8 @@ export class QueueProvider {
 	async add<T = any>(queueName: string, taskName: string, data: T, options?: JobsOptions) {
 		const queue = this.getQueue(queueName);
 
+		Logger.info(`[QueueProvider] Encolando tarea: ${taskName} en la cola ${queueName}`);
+
 		return await queue.add(taskName, data, options);
 	}
 }
@@ -57,8 +58,6 @@ if (import.meta.hot) {
 	import.meta.hot.dispose(async () => {
 		const provider = QueueProvider.getInstance();
 		// @ts-ignore
-		for (const queue of provider.queues.values()) {
-			await queue.close();
-		}
+		for (const queue of provider.queues.values()) await queue.close();
 	});
 }
