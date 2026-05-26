@@ -1,9 +1,17 @@
-/auth/verify-reset-code:
+/auth/verify-reset-code/{accountType}:
     post:
         summary: Verify Reset Code
         description: Endpoint to verify the password reset code sent to the user's email.
         tags:
             - Auth
+        parameters:
+            - in: path
+              name: accountType
+              required: true
+              schema:
+                  type: string
+                  example: client
+              description: The type of account (e.g., admin, client)
         requestBody:
             required: true
             content:

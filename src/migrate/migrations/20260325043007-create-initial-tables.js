@@ -130,7 +130,7 @@ module.exports = {
 				updated_at: { type: Sequelize.DATE, allowNull: true },
 				deleted_at: { type: Sequelize.DATE, allowNull: true },
 			});
-			await addUnique('users', ['email'], 'idx_users_email_uq');
+			await addUnique('users', ['email', 'user_type'], 'idx_users_email_user_type_uq');
 
 			await createTable('users_logins', {
 				id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true, allowNull: false },

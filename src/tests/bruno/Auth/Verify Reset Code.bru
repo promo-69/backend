@@ -5,16 +5,20 @@ meta {
 }
 
 post {
-  url: {{baseUrl}}/auth/verify-reset-code
+  url: {{baseUrl}}/auth/verify-reset-code/{{userType}}
   body: json
   auth: none
 }
 
 body:json {
   {
-    "email": "user@example.com",
-    "code": "123456"
+    "email": "aliriofreytez1@gmail.com",
+    "code": "7033"
   }
+}
+
+vars:pre-request {
+  userType: client
 }
 
 script:post-response {

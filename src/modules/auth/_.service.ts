@@ -225,7 +225,7 @@ export class AuthService extends BaseService {
 			throw new ValidationError('Credenciales inválidas', []);
 
 		const foundUser = await this._users.getOne(
-			{ email },
+			{ email, user_type: expectedUserType },
 			{ include: [{ association: '_People' }, { association: '_UserTypes' }] },
 		);
 
@@ -240,19 +240,11 @@ export class AuthService extends BaseService {
 		const roleCode = foundUser.role ? (await this._roles.getById(foundUser.role))?.code : null;
 		const isSuperAdmin = roleCode === 'SUPER_ADMIN';
 
-		if (!isSuperAdmin && !foundUser.signup_verified_at) {
-			const signupCode = nanoid(20);
-			await this._users.update({ id: foundUser.id }, { signup_code: await BcryptUtil.hash(signupCode) });
-
-			emailService.sendVerificationCode(email, email, signupCode).catch((err) => {
-				Logger.error('Error al enviar el correo de verificación:', err);
-			});
-
+		if (!isSuperAdmin && !expectedIsEmployee && !foundUser.signup_verified_at)
 			throw new AuthError(
 				'Cuenta no verificada. Por favor revisa tu correo electrónico y completa la verificación.',
 				{ code: 'UNVERIFIED_ACCOUNT' },
 			);
-		}
 
 		const loginResponse = await this._buildLoginResponse(foundUser);
 		const decodedToken = JWTUtil.decodeToken(loginResponse.refreshToken) as {
@@ -292,9 +284,8 @@ export class AuthService extends BaseService {
 		const person = { firstName, lastName, email, phoneNumber, documentNumber, gender, birthDate };
 		const user = { email, password };
 
-		if (!documentNumber || !email || !password) {
+		if (!documentNumber || !email || !password)
 			throw new ValidationError('Los datos de registro están incompletos', []);
-		}
 
 		this.validateRegexpFields([
 			{ value: documentNumber, regex: REGEX.DOCUMENT_NUMBER, message: 'El número de documento no es válido' },
@@ -307,26 +298,21 @@ export class AuthService extends BaseService {
 			},
 		]);
 
-		const existingUserByEmail = await this._users.getByEmail(email);
-		if (existingUserByEmail) {
-			throw new AuthError('El usuario ya existe', { code: 'USER_ALREADY_EXISTS' });
-		}
+		const existingUserByEmail = await this._users.getByClientEmail(email);
+		if (existingUserByEmail) throw new AuthError('El usuario ya existe', { code: 'USER_ALREADY_EXISTS' });
 
 		let existingPerson = await this._people.getByDocumentNumber(documentNumber);
 
 		// Validación de persona existente por documento
 		if (existingPerson) {
 			// Si el documento ya pertenece a otra persona (nombres diferentes), rechazar
-			if (existingPerson.first_name !== firstName || existingPerson.last_name !== lastName) {
+			if (existingPerson.first_name !== firstName || existingPerson.last_name !== lastName)
 				throw new ValidationError('El número de documento ya está registrado.', ['documentNumber']);
-			}
 			// Opcional: actualizar teléfono y fecha de nacimiento si han cambiado
 			const updates: any = {};
 			if (phoneNumber && existingPerson.phone_number !== phoneNumber) updates.phone_number = phoneNumber;
 			if (birthDate && existingPerson.birth_date !== birthDate) updates.birth_date = birthDate;
-			if (Object.keys(updates).length > 0) {
-				await this._people.update(existingPerson.id, updates);
-			}
+			if (Object.keys(updates).length > 0) await this._people.update(existingPerson.id, updates);
 		} else {
 			// Validar datos obligatorios para crear una nueva persona
 			if (!firstName || !lastName || !phoneNumber || !gender || !birthDate) {
@@ -344,7 +330,7 @@ export class AuthService extends BaseService {
 		let created;
 		try {
 			created = await this._users.transaction(async (transaction: Transaction) => {
-				const signupCode = nanoid(20);
+				const signupCode = generateCode();
 
 				let createdPerson;
 				if (!existingPerson) {
@@ -373,18 +359,22 @@ export class AuthService extends BaseService {
 				return { createdUser, signupCode };
 			});
 		} catch (error: any) {
+			console.log(error);
 			throw new AuthError('No se pudo completar el registro del usuario', error?.());
 		}
 
-		emailService.sendVerificationCode(email, email, created.signupCode).catch((err) => {
-			Logger.error('Error al enviar el correo de verificación:', err);
-		});
+		emailService
+			.sendVerificationCode(email, created.signupCode, `${firstName}${lastName ? ' ' + lastName : ''}`)
+			.catch((err) => {
+				Logger.error('Error al enviar el correo de verificación:', err);
+			});
 	}
 
 	async verifySignupCode(email: string, code: string | number, device?: string): Promise<void> {
 		if (!email || !code) throw new ValidationError('El email y código son requeridos', []);
 
-		const foundUser = await this._users.getByEmail(email);
+		const foundUser = await this._users.getByClientEmail(email);
+
 		if (!foundUser) throw new AuthError('Usuario no encontrado', { code: 'USER_NOT_FOUND' });
 
 		if (foundUser.signup_verified_at)
@@ -468,14 +458,18 @@ export class AuthService extends BaseService {
 		if (decodedRefresh?.jti) await this._usersLogins.update({ jti: decodedRefresh.jti }, { token_status: 2 });
 	}
 
-	async forgotPassword(email: string): Promise<{ message: string }> {
+	async forgotPassword(userType: number, email: string): Promise<{ message: string }> {
+		if (userType !== USER_TYPE_EMPLOYEE && userType !== USER_TYPE_CUSTOMER)
+			throw new ValidationError('El tipo de cuenta es inválido', []);
 		if (!email) throw new ValidationError('El correo electrónico es requerido', []);
 
-		const foundUser = await this._users.getByEmail(email);
+		const foundUser = userType === USER_TYPE_EMPLOYEE
+			? await this._users.getByEmployeeEmail(email)
+			: await this._users.getByClientEmail(email);
 
 		if (foundUser) {
 			const resetCode = generateCode();
-			const key = `auth:reset:code:${email}`;
+			const key = `auth:reset:code:${userType}:${email}`;
 			await this._cacheClient.set(key, resetCode, 'EX', RESET_CODE_TTL_SECONDS);
 
 			emailService.sendPasswordResetEmail(email, resetCode).catch((err) => {
@@ -488,13 +482,17 @@ export class AuthService extends BaseService {
 		};
 	}
 
-	async verifyResetCode(email: string, code: string): Promise<{ resetToken: string }> {
+	async verifyResetCode(userType: number, email: string, code: string): Promise<{ resetToken: string }> {
+		if (userType !== USER_TYPE_EMPLOYEE && userType !== USER_TYPE_CUSTOMER)
+			throw new ValidationError('El tipo de cuenta es inválido', []);
 		if (!email || !code) throw new ValidationError('El correo y el código son requeridos', []);
 
-		const foundUser = await this._users.getByEmail(email);
+		const foundUser = userType === USER_TYPE_EMPLOYEE
+			? await this._users.getByEmployeeEmail(email)
+			: await this._users.getByClientEmail(email);
 		if (!foundUser) throw new AuthError('El código o correo son inválidos', { code: 'INVALID_RESET_CODE' });
 
-		const keyCode = `auth:reset:code:${email}`;
+		const keyCode = `auth:reset:code:${userType}:${email}`;
 		const savedCode = await this._cacheClient.get(keyCode);
 
 		if (!savedCode || savedCode !== code)
@@ -505,13 +503,15 @@ export class AuthService extends BaseService {
 		await this._cacheClient.del(keyCode);
 
 		const resetToken = generateToken();
-		const keyToken = `auth:reset:token:${email}`;
+		const keyToken = `auth:reset:token:${userType}:${email}`;
 		await this._cacheClient.set(keyToken, resetToken, 'EX', RESET_TOKEN_TTL_SECONDS);
 
 		return { resetToken };
 	}
 
-	async resetPassword(email: string, resetToken: string, newPassword: string): Promise<{ message: string }> {
+	async resetPassword(userType: number, email: string, resetToken: string, newPassword: string): Promise<{ message: string }> {
+		if (userType !== USER_TYPE_EMPLOYEE && userType !== USER_TYPE_CUSTOMER)
+			throw new ValidationError('El tipo de cuenta es inválido', []);
 		if (!email || !resetToken || !newPassword) throw new ValidationError('Todos los campos son requeridos', []);
 
 		if (!REGEX.PASSWORD.test(newPassword))
@@ -520,10 +520,12 @@ export class AuthService extends BaseService {
 				[],
 			);
 
-		const foundUser = await this._users.getByEmail(email);
+		const foundUser = userType === USER_TYPE_EMPLOYEE
+			? await this._users.getByEmployeeEmail(email)
+			: await this._users.getByClientEmail(email);
 		if (!foundUser) throw new AuthError('El token o correo son inválidos', { code: 'INVALID_RESET_TOKEN' });
 
-		const keyToken = `auth:reset:token:${email}`;
+		const keyToken = `auth:reset:token:${userType}:${email}`;
 		const savedToken = await this._cacheClient.get(keyToken);
 
 		if (!savedToken || savedToken !== resetToken)

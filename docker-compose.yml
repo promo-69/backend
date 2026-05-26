@@ -18,6 +18,7 @@ services:
         env_file:
             - .env
         environment:
+            - NODE_OPTIONS=--dns-result-order=ipv4first
             - RUNNING_IN_DOCKER=true
             - IS_DOCKER=true
             - DB_POSTGRESQL_MAIN_HOST=db
