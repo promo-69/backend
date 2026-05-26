@@ -1,4 +1,4 @@
-import { SequelizeRepositoryBase } from '@repositories/bases/sequelize.repository.js';
+import { type RelationConfig, SequelizeRepositoryBase } from '@repositories/bases/sequelize.repository.js';
 import MoviesModel from '@database/models/main/movies.model.js';
 
 export interface MoviesAttributes {
@@ -23,6 +23,16 @@ export interface MovieFull extends MoviesAttributes {
 		genre: number;
 		_Genre: { description: string };
 	}>;
+	_MovieLanguages?: Array<{
+		id: number;
+		language: number;
+		_Language: { description: string };
+	}>;
+	_MovieProjectionTypes?: Array<{
+		id: number;
+		projection_type: number;
+		_ProjectionType: { description: string };
+	}>;
 }
 
 class MoviesRepository extends SequelizeRepositoryBase<MoviesAttributes, number> {
@@ -30,25 +40,52 @@ class MoviesRepository extends SequelizeRepositoryBase<MoviesAttributes, number>
 		super(MoviesModel);
 	}
 
-	private get _relations() {
+	private get _relations(): RelationConfig[] {
 		return [
 			{
-				association: '_AgeClassification',
-				attributes: ['description'],
-				required: true,
+				association: '_AgeClassifications',
+				attributes: [['description', 'desc']],
+				required: false,
 			},
 			{
-				association: '_LifecycleState',
-				attributes: ['description'],
-				required: true,
+				association: '_LifecycleStates',
+				attributes: [['description', 'desc']],
+				required: false,
 			},
 			{
 				association: '_MovieGenres',
 				attributes: ['id', 'genre'],
 				required: false,
+				separate: true,
 				nested: [
 					{
-						association: '_Genre',
+						association: '_Genres',
+						attributes: [['description', 'desc']],
+						required: true,
+					},
+				],
+			},
+			{
+				association: '_MovieLanguages',
+				attributes: ['id', 'language'],
+				required: false,
+				separate: true,
+				nested: [
+					{
+						association: '_Languages',
+						attributes: ['description'],
+						required: true,
+					},
+				],
+			},
+			{
+				association: '_MovieProjectionTypes',
+				attributes: ['id', 'projection_type'],
+				required: false,
+				separate: true,
+				nested: [
+					{
+						association: '_ProjectionTypes',
 						attributes: ['description'],
 						required: true,
 					},
@@ -61,7 +98,7 @@ class MoviesRepository extends SequelizeRepositoryBase<MoviesAttributes, number>
 		return this.getOne({ id }, { relations: this._relations }) as Promise<MovieFull | null>;
 	}
 
-	async getAllOnBillboard(filters?: any): Promise<{ rows: MovieFull[]; count: number }> {
+	async getAllFull(filters?: any): Promise<{ rows: MovieFull[]; count: number }> {
 		return this.getAll({ ...filters, count: true, relations: this._relations }) as Promise<{
 			rows: MovieFull[];
 			count: number;

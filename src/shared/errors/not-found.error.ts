@@ -1,8 +1,8 @@
 import { AppError, type AppErrorOptions } from '@errors/app.error.js';
 
 export class NotFoundError extends AppError {
-	constructor(resource: string = 'Resource', identifier?: any, options: Partial<AppErrorOptions> = {}) {
-		const message = identifier ? `${resource} with identifier '${identifier}' not found` : `${resource} not found`;
+	constructor(resource: string = 'Recurso', identifier?: any, options: Partial<AppErrorOptions> = {}) {
+		const message = identifier ? `${resource} con el identificador '${identifier}' no encontrado` : resource;
 
 		super({
 			statusCode: 404,
