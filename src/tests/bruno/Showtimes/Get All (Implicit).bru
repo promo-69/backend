@@ -1,13 +1,17 @@
 meta {
-  name: Get Showtimes
+  name: Get All Showtimes (Implicit)
   type: http
-  seq: 2
+  seq: 1
 }
 
 get {
   url: {{baseUrl}}/showtimes
   body: none
-  auth: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
 }
 
 script:pre-request {

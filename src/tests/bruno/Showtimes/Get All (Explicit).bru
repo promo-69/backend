@@ -1,11 +1,11 @@
 meta {
-  name: Get Showtime By ID
+  name: Get All Showtimes (Explicit)
   type: http
-  seq: 3
+  seq: 6
 }
 
 get {
-  url: {{baseUrl}}/showtimes/{{testShowtimeId}}
+  url: {{baseUrl}}/cinemas/{{testCinemaId}}/showtimes
   body: none
   auth: bearer
 }

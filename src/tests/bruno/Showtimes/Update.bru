@@ -4,7 +4,7 @@ meta {
   seq: 4
 }
 
-put {
+patch {
   url: {{baseUrl}}/showtimes/{{testShowtimeId}}
   body: json
   auth: bearer
@@ -16,9 +16,8 @@ auth:bearer {
 
 body:json {
   {
-    "startTime": "2026-06-01T20:00:00Z",
-    "price": 14.00,
-    "currencyId": 1
+    "price": "6.00",
+    "earned_loyalty_points": 15
   }
 }
 
