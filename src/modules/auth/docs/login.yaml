@@ -1,7 +1,7 @@
 /auth/login:
     post:
         summary: User Login
-        description: Endpoint for user authentication. Returns tokens based on client channel (cookie for web, bearer for mobile).
+        description: Endpoint para autenticar un cliente. Si la solicitud llega con cookie, los tokens se entregan en cookies seguras; si llega con bearer, se devuelven en la respuesta y en el header Authorization.
         tags:
             - Auth
         requestBody:

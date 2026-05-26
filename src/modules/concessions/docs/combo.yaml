@@ -38,15 +38,24 @@
                                         image_url:
                                             type: string
                                             nullable: true
-                                        products:
+                                        _ComboProducts:
                                             type: array
                                             items:
                                                 type: object
                                                 properties:
-                                                    productId:
+                                                    id:
+                                                        type: integer
+                                                    product:
                                                         type: integer
                                                     quantity:
                                                         type: integer
+                                                    _Product:
+                                                        type: object
+                                                        properties:
+                                                            name:
+                                                                type: string
+                                                            sku:
+                                                                type: string
             '404':
                 description: Combo not found
             '500':

@@ -6,11 +6,23 @@ class PriceModifiersController extends ControllerBase {
 		super();
 	}
 
+	// GET /api/v1/price-modifiers
+	async list() {
+		const filters = this.getQueryFilters();
+		return PriceModifiersService.listPriceModifiers(filters);
+	}
+
+	// GET /api/v1/price-modifiers/:id
+	async getById() {
+		const { id } = this.getParams();
+		return PriceModifiersService.getPriceModifierById(Number(id));
+	}
+
 	// POST /api/v1/price-modifiers
 	async create() {
 		const body = this.getBody();
-		await PriceModifiersService.createPriceModifier(body);
-		return this.created(null, 'Regla de precio creada exitosamente.');
+		const created = await PriceModifiersService.createPriceModifier(body);
+		return this.created(created, 'Regla de precio creada exitosamente.');
 	}
 
 	// PUT /api/v1/price-modifiers/:id

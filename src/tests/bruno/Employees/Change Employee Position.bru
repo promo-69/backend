@@ -23,6 +23,12 @@ body:json {
   }
 }
 
+script:post-response {
+  const resBody = res.getBody();
+  if (res.getStatus() !== 200) throw new Error(`Expected status 200 but got ${res.getStatus()}`);
+  if (!resBody?.data?.id) throw new Error('Change Employee Position response invalid: missing data.id');
+}
+
 script:pre-request {
   const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
   bru.setVar('baseUrl', baseUrl);

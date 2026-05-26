@@ -14,6 +14,13 @@ auth:bearer {
   token: {{accessToken}}
 }
 
+script:post-response {
+  const resBody = res.getBody();
+  if (res.getStatus() !== 200) throw new Error(`Expected status 200 but got ${res.getStatus()}`);
+  if (!resBody?.data?.employee?.id) throw new Error('Get Employee By ID response invalid: missing employee.id');
+  if (String(resBody.data.employee.id) !== bru.getEnvVar('testEmployeeId')) throw new Error('Get Employee By ID response invalid: returned employee id does not match testEmployeeId');
+}
+
 script:pre-request {
   const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
   bru.setVar('baseUrl', baseUrl);

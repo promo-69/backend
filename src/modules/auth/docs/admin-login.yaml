@@ -1,7 +1,7 @@
-/auth/admin-login:
+/auth/login/admin:
     post:
         summary: Admin Login
-        description: Endpoint for employee/administrator authentication. Only users with user_type = 1 (employee) are allowed. Returns tokens based on client channel (cookie for web, bearer for mobile).
+        description: Endpoint para autenticar empleados. El usuario debe pertenecer al tipo de usuario empleado. Si la petición entra con cookie, los tokens se entregan en cookies seguras; si entra con bearer, se devuelven en la respuesta y en el header Authorization.
         tags:
             - Auth
         requestBody:
@@ -28,6 +28,9 @@
                         schema:
                             type: object
                             properties:
+                                success:
+                                    type: boolean
+                                    example: true
                                 message:
                                     type: string
                                     example: Autenticación exitosa

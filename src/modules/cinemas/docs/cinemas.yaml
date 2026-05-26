@@ -12,6 +12,12 @@
                         schema:
                             type: object
                             properties:
+                                success:
+                                    type: boolean
+                                    example: true
+                                message:
+                                    type: string
+                                    example: Sucursales obtenidas exitosamente
                                 data:
                                     type: array
                                     items:
@@ -29,6 +35,8 @@
                                                 type: string
                                             closing_time:
                                                 type: string
+                                metadata:
+                                    type: object
             '500':
                 description: Internal server error
     post:
@@ -67,6 +75,34 @@
         responses:
             '201':
                 description: Cinema created
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                    example: true
+                                message:
+                                    type: string
+                                    example: Sucursal registrada exitosamente
+                                data:
+                                    type: object
+                                    properties:
+                                        id:
+                                            type: integer
+                                        name:
+                                            type: string
+                                        address:
+                                            type: string
+                                        phone:
+                                            type: string
+                                        opening_time:
+                                            type: string
+                                        closing_time:
+                                            type: string
+                                metadata:
+                                    type: object
             '400':
                 description: Validation error
             '401':
@@ -100,6 +136,21 @@
         responses:
             '200':
                 description: Cinema updated
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                    example: true
+                                message:
+                                    type: string
+                                    example: Sucursal actualizada exitosamente
+                                data:
+                                    nullable: true
+                                metadata:
+                                    type: object
             '400':
                 description: Validation error
             '401':

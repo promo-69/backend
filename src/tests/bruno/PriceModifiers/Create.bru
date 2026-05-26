@@ -1,7 +1,7 @@
 meta {
   name: Create PriceModifiers
   type: http
-  seq: 3
+  seq: 1
 }
 
 post {
@@ -16,6 +16,26 @@ auth:bearer {
 
 body:json {
   {
-    "exampleField": "example_value"
+    "description": "Descuento martes para boletería",
+    "modifierScope": 1,
+    "operationType": 2,
+    "isPercentage": true,
+    "value": 15,
+    "audienceCategory": 1,
+    "weekDay": 3,
+    "seatCategory": 2,
+    "projectionType": 1
+  }
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  bru.setVar('baseUrl', baseUrl);
+}
+
+script:post-response {
+  const resBody = res.getBody();
+  if (res.getStatus() === 201 && resBody && resBody.data && resBody.data.id) {
+    bru.setEnvVar('testPriceModifierId', resBody.data.id);
   }
 }

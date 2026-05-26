@@ -15,11 +15,9 @@ auth:bearer {
 }
 
 body:json {
-  {
-    "movements": [
-      { "operationTypeCode": "REPLENISH", "quantity": 100, "remarks": "Weekly replenishment" }
-    ]
-  }
+  [
+    { "operationType": 1, "quantity": 100, "remarks": "Weekly replenishment" }
+  ]
 }
 
 script:pre-request {

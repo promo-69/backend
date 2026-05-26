@@ -112,6 +112,14 @@
                                 type: string
                                 format: binary
                                 description: New banner image
+                            posterUrl:
+                                type: string
+                                format: uri
+                                description: Optional remote poster URL to use when no poster file is uploaded.
+                            bannerUrl:
+                                type: string
+                                format: uri
+                                description: Optional remote banner URL to use when no banner file is uploaded.
         responses:
             '200':
                 description: Movie updated successfully

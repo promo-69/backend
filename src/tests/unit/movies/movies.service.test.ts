@@ -9,6 +9,7 @@ type MockRepo = {
 	getById?: jest.Mock<any>;
 	create?: jest.Mock<any>;
 	update?: jest.Mock<any>;
+	delete?: jest.Mock<any>;
 	transaction?: jest.Mock<any>;
 	bulkCreate?: jest.Mock<any>;
 	deleteByMovie?: jest.Mock<any>;
@@ -30,6 +31,7 @@ describe('MoviesService Unit Suite', () => {
 			getByTitle: jest.fn(),
 			create: jest.fn(),
 			update: jest.fn(),
+			delete: jest.fn(),
 			transaction: jest.fn().mockImplementation(async (cb: any) => cb({})),
 		};
 
@@ -67,14 +69,11 @@ describe('MoviesService Unit Suite', () => {
 	describe('createMovie', () => {
 		const validBody = {
 			title: 'Avatar',
-			duration_minutes: 120,
-			age_classification: 1,
-			lifecycle_state: 1,
-			synopsis: 'Blue aliens',
-			release_date: '2009-12-18',
-			genres: [1, 2],
-		};
-
+				durationMinutes: 120,
+				ageClassification: 1,
+				lifecycleState: 1,
+				synopsis: 'Blue aliens',
+				releaseDate: '2009-12-18',
 		it('should throw ValidationError if duration_minutes is invalid', async () => {
 			await expect(MoviesService.createMovie({ ...validBody, duration_minutes: 0 })).rejects.toThrow(
 				ValidationError,
@@ -137,7 +136,7 @@ describe('MoviesService Unit Suite', () => {
 
 			await MoviesService.deleteMovie(1);
 
-			expect(mockMovies.update).toHaveBeenCalledWith(1, { status: 4 });
+			expect(mockMovies.delete).toHaveBeenCalledWith(1);
 		});
 	});
 });

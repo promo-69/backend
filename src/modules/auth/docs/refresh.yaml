@@ -1,7 +1,7 @@
 /auth/refresh:
     post:
         summary: Refresh Session
-        description: Endpoint to refresh the access token using the refresh token. Supports both cookie and bearer authentication.
+        description: Endpoint para renovar la sesión usando el refresh token. Si la solicitud llega con refresh token en cookie, los nuevos tokens se entregan en cookies seguras; si llega con bearer, se devuelven en la respuesta y en el header Authorization.
         tags:
             - Auth
         security:

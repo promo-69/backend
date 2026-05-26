@@ -5,227 +5,260 @@ import { movieImagesService } from '@services/movie-images.service.js';
 import { imageStorageService } from '@services/image-storage.service.js';
 import { Logger } from '@utils/logger.util.js';
 import { type ProcessedQueryFilters } from '@rules/api-query.type.js';
-import { type Transaction } from 'sequelize';
+import { Op, type Transaction } from 'sequelize';
 
 interface CreateMovieBody {
-    title: string;
-    durationMinutes: number | string;
-    ageClassification: number | string;
-    lifecycleState: number | string;
-    synopsis: string;
-    posterUrl?: string;
-    bannerUrl?: string;
-    trailerUrl?: string;
-    releaseDate: string;
-    genres: number[] | string;
+	title: string;
+	durationMinutes: number | string;
+	ageClassification: number | string;
+	lifecycleState: number | string;
+	synopsis: string;
+	posterUrl?: string;
+	bannerUrl?: string;
+	trailerUrl?: string;
+	releaseDate: string;
+	genres: number[] | string;
 }
 
 interface UpdateMovieBody {
-    lifecycleState?: number | string;
-    synopsis?: string;
-    posterUrl?: string;
-    bannerUrl?: string;
-    trailerUrl?: string;
-    genres?: number[] | string;
+	lifecycleState?: number | string;
+	synopsis?: string;
+	posterUrl?: string;
+	bannerUrl?: string;
+	trailerUrl?: string;
+	genres?: number[] | string;
 }
 
 export class MoviesService extends BaseService {
-    constructor() {
-        super();
-    }
+	constructor() {
+		super();
+	}
 
-    private get _movies() {
-        return Database.repository('main', 'movies') as any;
-    }
-    private get _movieGenres() {
-        return Database.repository('main', 'movie-genres') as any;
-    }
-    private get _genres() {
-        return Database.repository('main', 'genres') as any;
-    }
-    private get _ageClassifications() {
-        return Database.repository('main', 'age-classifications') as any;
-    }
+	private get _movies() {
+		return Database.repository('main', 'movies') as any;
+	}
+	private get _movieGenres() {
+		return Database.repository('main', 'movie-genres') as any;
+	}
+	private get _genres() {
+		return Database.repository('main', 'genres') as any;
+	}
+	private get _ageClassifications() {
+		return Database.repository('main', 'age-classifications') as any;
+	}
 
-    async getBillboard(filters?: ProcessedQueryFilters) {
-        return this._movies.getAllOnBillboard(filters);
-    }
+	async getBillboard(filters?: ProcessedQueryFilters) {
+		return this._movies.getAllOnBillboard(filters);
+	}
 
-    async getMovieDetail(id: number) {
-        const movie = await this._movies.getFull(id);
-        if (!movie) throw new NotFoundError('Película no encontrada');
-        return movie;
-    }
+	async getMovieDetail(id: number) {
+		if (!Number.isInteger(id) || id <= 0) throw new ValidationError('ID de película inválido', ['id']);
 
-    async createMovie(
-        body: CreateMovieBody,
-        rawFiles?: Express.Multer.File[] | { [fieldname: string]: Express.Multer.File[] },
-    ) {
-        const { title, synopsis, releaseDate, trailerUrl } = body;
+		const movie = await this._movies.getFull(id);
+		if (!movie) throw new NotFoundError('Película no encontrada');
+		return movie;
+	}
 
-        const durationMinutes = Number(body.durationMinutes);
-        const ageClassification = Number(body.ageClassification);
-        const lifecycleState = Number(body.lifecycleState);
-        const genres: number[] = typeof body.genres === 'string' ? JSON.parse(body.genres) : (body.genres as number[]);
+	async createMovie(
+		body: CreateMovieBody,
+		rawFiles?: Express.Multer.File[] | { [fieldname: string]: Express.Multer.File[] },
+	) {
+		const { title, synopsis, releaseDate, trailerUrl } = body;
 
-        this.validateRequired(
-            { title, durationMinutes, ageClassification, lifecycleState, synopsis, releaseDate } as any,
-            ['title', 'durationMinutes', 'ageClassification', 'lifecycleState', 'synopsis', 'releaseDate'],
-        );
+		const durationMinutes = Number(body.durationMinutes);
+		const ageClassification = Number(body.ageClassification);
+		const lifecycleState = Number(body.lifecycleState);
 
-        if (!Array.isArray(genres) || genres.length === 0)
-            throw new ValidationError('Debe especificar al menos un género', ['genres']);
+		let genres: number[];
+		if (typeof body.genres === 'string') {
+			try {
+				genres = JSON.parse(body.genres);
+			} catch {
+				throw new ValidationError('El campo genres debe ser un JSON válido', ['genres']);
+			}
+		} else {
+			genres = body.genres as number[];
+		}
 
-        if (!Number.isInteger(durationMinutes) || durationMinutes <= 0)
-            throw new ValidationError('La duración debe ser un entero mayor a 0', ['durationMinutes']);
+		this.validateRequired(
+			{ title, durationMinutes, ageClassification, lifecycleState, synopsis, releaseDate } as any,
+			['title', 'durationMinutes', 'ageClassification', 'lifecycleState', 'synopsis', 'releaseDate'],
+		);
 
-        movieImagesService.validateTrailerUrl(trailerUrl);
+		if (Number.isNaN(Date.parse(releaseDate)))
+			throw new ValidationError('La fecha de estreno no es válida', ['releaseDate']);
 
-        const existing = await this._movies.getByTitle(title);
-        if (existing) throw new ConflictError('Ya existe una película con ese título', 'MOVIE_TITLE_DUPLICATE');
+		if (!Array.isArray(genres) || genres.length === 0)
+			throw new ValidationError('Debe especificar al menos un género', ['genres']);
 
-        const ageClass = await this._ageClassifications.getById(ageClassification);
-        if (!ageClass) throw new ValidationError('La clasificación de edad indicada no existe', ['ageClassification']);
+		if (!Number.isInteger(durationMinutes) || durationMinutes <= 0)
+			throw new ValidationError('La duración debe ser un entero mayor a 0', ['durationMinutes']);
 
-        for (const genreId of genres) {
-            const genre = await this._genres.getById(genreId);
-            if (!genre) throw new ValidationError(`El género con ID ${genreId} no existe en el catálogo`, ['genres']);
-        }
+		movieImagesService.validateTrailerUrl(trailerUrl);
 
-        const imageFiles = movieImagesService.extractFromRequest(rawFiles);
-        const { posterUrl, bannerUrl, posterFileId, bannerFileId } =
-            await movieImagesService.uploadMovieImages(imageFiles);
+		const existing = await this._movies.getByTitle(title);
+		if (existing) throw new ConflictError('Ya existe una película con ese título', 'MOVIE_TITLE_DUPLICATE');
 
-        try {
-            const createdMovie = await this._movies.transaction(async (transaction: Transaction) => {
-                const movie = await this._movies.create(
-                    {
-                        title,
-                        duration_minutes: durationMinutes,
-                        age_classification: ageClassification,
-                        lifecycle_state: lifecycleState,
-                        synopsis,
-                        poster_url: posterUrl ?? body.posterUrl ?? null,
-                        banner_url: bannerUrl ?? body.bannerUrl ?? null,
-                        trailer_url: trailerUrl ?? null,
-                        release_date: releaseDate,
-                    },
-                    { transaction },
-                );
+		const ageClass = await this._ageClassifications.getById(ageClassification);
+		if (!ageClass) throw new ValidationError('La clasificación de edad indicada no existe', ['ageClassification']);
 
-                const genreRecords = genres.map((gId: number) => ({
-                    movie: movie.id,
-                    genre: gId,
-                    status: 1,
-                }));
+		for (const genreId of genres) {
+			const genre = await this._genres.getById(genreId);
+			if (!genre) throw new ValidationError(`El género con ID ${genreId} no existe en el catálogo`, ['genres']);
+		}
 
-                await this._movieGenres.bulkCreate(genreRecords, { transaction });
+		const imageFiles = movieImagesService.extractFromRequest(rawFiles);
+		const { posterUrl, bannerUrl, posterFileId, bannerFileId } =
+			await movieImagesService.uploadMovieImages(imageFiles);
 
-                return movie;
-            });
+		try {
+			const createdMovie = await this._movies.transaction(async (transaction: Transaction) => {
+				const movie = await this._movies.create(
+					{
+						title,
+						duration_minutes: durationMinutes,
+						age_classification: ageClassification,
+						lifecycle_state: lifecycleState,
+						synopsis,
+						poster_url: posterUrl ?? body.posterUrl ?? null,
+						banner_url: bannerUrl ?? body.bannerUrl ?? null,
+						trailer_url: trailerUrl ?? null,
+						release_date: releaseDate,
+					},
+					{ transaction },
+				);
 
-            return { movie_id: createdMovie.id, title: createdMovie.title };
-        } catch (error) {
-            await movieImagesService.rollbackUploadedImages([posterFileId, bannerFileId]);
-            throw error;
-        }
-    }
+				const genreRecords = genres.map((gId: number) => ({
+					movie: movie.id,
+					genre: gId,
+					status: 1,
+				}));
 
-    async updateMovie(
-        id: number,
-        body: UpdateMovieBody,
-        rawFiles?: Express.Multer.File[] | { [fieldname: string]: Express.Multer.File[] },
-    ) {
-        const movie = await this._movies.getFull(id);
-        if (!movie) throw new NotFoundError('Película no encontrada');
+				await this._movieGenres.bulkCreate(genreRecords, { transaction });
 
-        const previousPosterUrl: string | null = movie.poster_url ?? null;
-        const previousBannerUrl: string | null = movie.banner_url ?? null;
+				return movie;
+			});
 
-        const { synopsis, trailerUrl } = body;
-        const lifecycleState = body.lifecycleState !== undefined ? Number(body.lifecycleState) : undefined;
-        const genres: number[] | undefined =
-            body.genres === undefined
-                ? undefined
-                : typeof body.genres === 'string'
-                  ? JSON.parse(body.genres)
-                  : (body.genres as number[]);
+			return { movie_id: createdMovie.id, title: createdMovie.title };
+		} catch (error) {
+			await movieImagesService.rollbackUploadedImages([posterFileId, bannerFileId]);
+			throw error;
+		}
+	}
 
-        movieImagesService.validateTrailerUrl(trailerUrl);
+	async updateMovie(
+		id: number,
+		body: UpdateMovieBody,
+		rawFiles?: Express.Multer.File[] | { [fieldname: string]: Express.Multer.File[] },
+	) {
+		if (!Number.isInteger(id) || id <= 0) throw new ValidationError('ID de película inválido', ['id']);
 
-        const updateData: Record<string, any> = {};
-        if (lifecycleState !== undefined) updateData.lifecycle_state = lifecycleState;
-        if (synopsis !== undefined) updateData.synopsis = synopsis;
-        if (trailerUrl !== undefined) updateData.trailer_url = trailerUrl;
+		const movie = await this._movies.getFull(id);
+		if (!movie) throw new NotFoundError('Película no encontrada');
 
-        if (Object.keys(updateData).length === 0 && genres === undefined && !rawFiles)
-            throw new ValidationError('No se proporcionaron datos para actualizar', []);
+		const previousPosterUrl: string | null = movie.poster_url ?? null;
+		const previousBannerUrl: string | null = movie.banner_url ?? null;
 
-        if (genres !== undefined) {
-            for (const genreId of genres) {
-                const genre = await this._genres.getById(genreId);
-                if (!genre) throw new ValidationError(`El género con ID ${genreId} no existe`, ['genres']);
-            }
-        }
+		const { synopsis, trailerUrl, posterUrl: bodyPosterUrl, bannerUrl: bodyBannerUrl } = body;
+		const lifecycleState = body.lifecycleState !== undefined ? Number(body.lifecycleState) : undefined;
 
-        const imageFiles = movieImagesService.extractFromRequest(rawFiles);
-        const { posterUrl, bannerUrl, posterFileId, bannerFileId } =
-            await movieImagesService.uploadMovieImages(imageFiles);
+		let genres: number[] | undefined;
+		if (body.genres === undefined) {
+			genres = undefined;
+		} else if (typeof body.genres === 'string') {
+			try {
+				genres = JSON.parse(body.genres);
+			} catch {
+				throw new ValidationError('El campo genres debe ser un JSON válido', ['genres']);
+			}
+		} else {
+			genres = body.genres as number[];
+		}
 
-        if (posterUrl) updateData.poster_url = posterUrl;
-        if (bannerUrl) updateData.banner_url = bannerUrl;
+		movieImagesService.validateTrailerUrl(trailerUrl);
 
-        try {
-            await this._movies.transaction(async (transaction: Transaction) => {
-                if (Object.keys(updateData).length > 0) await this._movies.update(id, updateData, { transaction });
+		const updateData: Record<string, any> = {};
+		if (lifecycleState !== undefined) updateData.lifecycle_state = lifecycleState;
+		if (synopsis !== undefined) updateData.synopsis = synopsis;
+		if (trailerUrl !== undefined) updateData.trailer_url = trailerUrl;
 
-                if (genres !== undefined) {
-                    await this._movieGenres.deleteByMovie(id, { transaction });
-                    if (genres.length > 0) {
-                        const records = genres.map((gId: number) => ({ movie: id, genre: gId }));
-                        await this._movieGenres.bulkCreate(records, { transaction });
-                    }
-                }
-            });
-        } catch (error) {
-            await movieImagesService.rollbackUploadedImages([posterFileId, bannerFileId]);
-            throw error;
-        }
+		const hasRemoteImageUpdate = bodyPosterUrl !== undefined || bodyBannerUrl !== undefined;
+		if (Object.keys(updateData).length === 0 && genres === undefined && !rawFiles && !hasRemoteImageUpdate)
+			throw new ValidationError('No se proporcionaron datos para actualizar', []);
 
-        if (posterUrl && previousPosterUrl) {
-            imageStorageService
-                .deleteImageByUrl(previousPosterUrl)
-                .catch((err) => Logger.error('updateMovie: failed to delete old poster', err));
-        }
-        if (bannerUrl && previousBannerUrl) {
-            imageStorageService
-                .deleteImageByUrl(previousBannerUrl)
-                .catch((err) => Logger.error('updateMovie: failed to delete old banner', err));
-        }
+		if (genres !== undefined) {
+			for (const genreId of genres) {
+				const genre = await this._genres.getById(genreId);
+				if (!genre) throw new ValidationError(`El género con ID ${genreId} no existe`, ['genres']);
+			}
+		}
 
-        return this._movies.getFull(id);
-    }
+		const imageFiles = movieImagesService.extractFromRequest(rawFiles);
+		const { posterUrl, bannerUrl, posterFileId, bannerFileId } =
+			await movieImagesService.uploadMovieImages(imageFiles);
 
-    async deleteMovie(id: number) {
-        const movie = await this._movies.getFull(id);
-        if (!movie) throw new NotFoundError('Película no encontrada');
+		if (posterUrl) updateData.poster_url = posterUrl;
+		else if (bodyPosterUrl !== undefined) updateData.poster_url = bodyPosterUrl;
 
-        let activeShowtimes = 0;
-        try {
-            activeShowtimes = await Database.repository('main', 'showtimes').count({ movie: id } as any);
-        } catch {
-            /* módulo showtimes aún no implementado */
-        }
+		if (bannerUrl) updateData.banner_url = bannerUrl;
+		else if (bodyBannerUrl !== undefined) updateData.banner_url = bodyBannerUrl;
 
-        if (activeShowtimes > 0)
-            throw new ConflictError(
-                'No se puede retirar la película porque tiene funciones futuras activas.',
-                'MOVIE_HAS_ACTIVE_SHOWTIMES',
-            );
+		try {
+			await this._movies.transaction(async (transaction: Transaction) => {
+				if (Object.keys(updateData).length > 0) await this._movies.update(id, updateData, { transaction });
 
-        await this._movies.delete(id);
-        return null;
-    }
+				if (genres !== undefined) {
+					await this._movieGenres.deleteByMovie(id, { transaction });
+					if (genres.length > 0) {
+						const records = genres.map((gId: number) => ({ movie: id, genre: gId }));
+						await this._movieGenres.bulkCreate(records, { transaction });
+					}
+				}
+			});
+		} catch (error) {
+			await movieImagesService.rollbackUploadedImages([posterFileId, bannerFileId]);
+			throw error;
+		}
+
+		if (posterUrl && previousPosterUrl) {
+			imageStorageService
+				.deleteImageByUrl(previousPosterUrl)
+				.catch((err) => Logger.error('updateMovie: failed to delete old poster', err));
+		}
+		if (bannerUrl && previousBannerUrl) {
+			imageStorageService
+				.deleteImageByUrl(previousBannerUrl)
+				.catch((err) => Logger.error('updateMovie: failed to delete old banner', err));
+		}
+
+		return this._movies.getFull(id);
+	}
+
+	async deleteMovie(id: number) {
+		if (!Number.isInteger(id) || id <= 0) throw new ValidationError('ID de película inválido', ['id']);
+
+		const movie = await this._movies.getFull(id);
+		if (!movie) throw new NotFoundError('Película no encontrada');
+
+		let activeShowtimes = 0;
+		try {
+			activeShowtimes = await Database.repository('main', 'showtimes').count({
+				movie: id,
+				start_time: { [Op.gt]: new Date() },
+			} as any);
+		} catch {
+			/* módulo showtimes aún no implementado */
+		}
+
+		if (activeShowtimes > 0)
+			throw new ConflictError(
+				'No se puede retirar la película porque tiene funciones futuras activas.',
+				'MOVIE_HAS_ACTIVE_SHOWTIMES',
+			);
+
+		await this._movies.delete(id);
+		return null;
+	}
 }
 
 export default new MoviesService();

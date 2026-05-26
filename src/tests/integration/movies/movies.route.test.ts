@@ -102,11 +102,11 @@ describe('Movies Route Integration Suite', () => {
 	describe('POST /api/movies', () => {
 		const validBody = {
 			title: 'Avatar',
-			duration_minutes: 120,
-			age_classification: 1,
-			lifecycle_state: 1,
+			durationMinutes: 120,
+			ageClassification: 1,
+			lifecycleState: 1,
 			synopsis: 'Blue aliens',
-			release_date: '2009-12-18',
+			releaseDate: '2009-12-18',
 			genres: [1],
 		};
 

@@ -1,4 +1,5 @@
 import { BaseService } from '@bases/service.base.js';
+import type { GetAllOptions } from '@bases/repository.base.js';
 import { Database } from '@database/index.js';
 import { NotFoundError, ValidationError } from '@errors';
 
@@ -56,6 +57,36 @@ export class PriceModifiersService extends BaseService {
 			);
 	}
 
+	_validateImmutableFieldsForUpdate(body: Record<string, any>): void {
+		const immutableFields = [
+			'modifierScope',
+			'audienceCategory',
+			'weekDay',
+			'seatCategory',
+			'projectionType',
+			'productCategory',
+			'product',
+			'combo',
+		];
+
+		const violations = immutableFields.filter((field) => body[field] !== undefined);
+		if (violations.length > 0)
+			throw new ValidationError(
+				`No se pueden modificar los siguientes campos luego de la creación: ${violations.join(', ')}`,
+				violations,
+			);
+	}
+
+	async listPriceModifiers(filters: GetAllOptions = {}) {
+		return this._priceModifiers.getAll(filters);
+	}
+
+	async getPriceModifierById(id: number) {
+		const modifier = await this._priceModifiers.getById(id);
+		if (!modifier) throw new NotFoundError('Regla de precio no encontrada');
+		return modifier;
+	}
+
 	// --- HU-OPERATIVA-14/15: Crear regla de precio ---
 	async createPriceModifier(body: CreatePriceModifierBody) {
 		const { description, modifierScope, operationType, isPercentage, value } = body;
@@ -68,15 +99,32 @@ export class PriceModifiersService extends BaseService {
 			'value',
 		]);
 
+		if (typeof modifierScope !== 'number')
+			throw new ValidationError('El alcance del modificador debe ser un número', ['modifierScope']);
+
+		if (typeof operationType !== 'number')
+			throw new ValidationError('El tipo de operación debe ser un número', ['operationType']);
+
+		if (typeof isPercentage !== 'boolean')
+			throw new ValidationError('El indicador de porcentaje debe ser booleano', ['isPercentage']);
+
 		if (typeof value !== 'number' || value <= 0)
 			throw new ValidationError('El valor debe ser un número positivo', ['value']);
 
 		if (isPercentage && value > 100) throw new ValidationError('Un porcentaje no puede superar el 100%', ['value']);
 
+		if (![1, 2, 3].includes(modifierScope))
+			throw new ValidationError('El alcance del modificador no es válido', ['modifierScope']);
+
+		if (body.weekDay !== undefined && body.weekDay !== null) {
+			if (typeof body.weekDay !== 'number' || body.weekDay < 1 || body.weekDay > 7)
+				throw new ValidationError('El día de la semana debe estar entre 1 y 7', ['weekDay']);
+		}
+
 		this._validateScopeLogic(modifierScope, body);
 
-		await this._priceModifiers.create({
-			description,
+		const created = await this._priceModifiers.create({
+			description: description.trim(),
 			modifier_scope: modifierScope,
 			operation_type: operationType,
 			is_percentage: isPercentage,
@@ -90,13 +138,15 @@ export class PriceModifiersService extends BaseService {
 			combo: body.combo ?? null,
 		});
 
-		return null;
+		return created;
 	}
 
 	// --- HU-OPERATIVA-15 (Edición): Actualizar regla ---
 	async updatePriceModifier(id: number, body: UpdatePriceModifierBody) {
 		const modifier = await this._priceModifiers.getOne({ id });
 		if (!modifier) throw new NotFoundError('Regla de precio no encontrada');
+
+		this._validateImmutableFieldsForUpdate(body);
 
 		const { description, value, isPercentage, operationType } = body;
 		const updateData: Record<string, any> = {};
@@ -107,17 +157,29 @@ export class PriceModifiersService extends BaseService {
 			updateData.description = description.trim();
 		}
 
+		const effectiveIsPercentage = isPercentage ?? modifier.is_percentage;
+		const effectiveValue = value !== undefined ? value : modifier.value;
+
 		if (value !== undefined) {
 			if (typeof value !== 'number' || value <= 0)
 				throw new ValidationError('El valor debe ser un número positivo', ['value']);
-			const effectiveIsPercentage = isPercentage ?? modifier.is_percentage;
-			if (effectiveIsPercentage && value > 100)
-				throw new ValidationError('Un porcentaje no puede superar el 100%', ['value']);
 			updateData.value = value;
 		}
 
-		if (isPercentage !== undefined) updateData.is_percentage = isPercentage;
-		if (operationType !== undefined) updateData.operation_type = operationType;
+		if (isPercentage !== undefined) {
+			if (typeof isPercentage !== 'boolean')
+				throw new ValidationError('El indicador de porcentaje debe ser booleano', ['isPercentage']);
+			updateData.is_percentage = isPercentage;
+		}
+
+		if (operationType !== undefined) {
+			if (typeof operationType !== 'number')
+				throw new ValidationError('El tipo de operación debe ser un número', ['operationType']);
+			updateData.operation_type = operationType;
+		}
+
+		if (effectiveIsPercentage && effectiveValue > 100)
+			throw new ValidationError('Un porcentaje no puede superar el 100%', ['value']);
 
 		if (Object.keys(updateData).length === 0)
 			throw new ValidationError('No se proporcionaron datos para actualizar', []);

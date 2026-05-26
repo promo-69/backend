@@ -25,15 +25,7 @@
                                 data:
                                     type: object
                                     properties:
-                                        id:
-                                            type: integer
                                         person:
-                                            type: integer
-                                        level_progress_points:
-                                            type: integer
-                                        loyalty_level:
-                                            type: integer
-                                        _People:
                                             type: object
                                             properties:
                                                 id:
@@ -46,6 +38,7 @@
                                                     type: string
                                                 gender:
                                                     type: integer
+                                                    nullable: true
                                                 phone_number:
                                                     type: string
                                                     nullable: true
@@ -56,6 +49,31 @@
                                                     type: string
                                                     format: date
                                                     nullable: true
+                                        customer:
+                                            type: object
+                                            properties:
+                                                id:
+                                                    type: integer
+                                                person:
+                                                    type: integer
+                                                level_progress_points:
+                                                    type: integer
+                                                loyalty_level:
+                                                    type: integer
+                                                current_points_balance:
+                                                    type: integer
+                                                loyalty:
+                                                    type: object
+                                                    properties:
+                                                        level_id:
+                                                            type: integer
+                                                        level_name:
+                                                            type: string
+                                                            nullable: true
+                                                        progress_points:
+                                                            type: integer
+                                                        current_points_balance:
+                                                            type: integer
             '401':
                 description: Unauthorized
             '404':

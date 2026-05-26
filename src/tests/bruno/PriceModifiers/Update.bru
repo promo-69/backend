@@ -5,7 +5,7 @@ meta {
 }
 
 put {
-  url: {{baseUrl}}/price-modifiers/1
+  url: {{baseUrl}}/price-modifiers/{{testPriceModifierId}}
   body: json
   auth: bearer
 }
@@ -16,6 +16,14 @@ auth:bearer {
 
 body:json {
   {
-    "exampleField": "updated_value"
+    "description": "Descuento martes actualizado",
+    "value": 12,
+    "isPercentage": true,
+    "operationType": 2
   }
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  bru.setVar('baseUrl', baseUrl);
 }

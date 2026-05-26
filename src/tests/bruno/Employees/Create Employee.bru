@@ -30,9 +30,9 @@ body:json {
 
 script:post-response {
   const resBody = res.getBody();
-  if (res.getStatus() === 201 && resBody?.data?.employee?.id) {
-    bru.setEnvVar('testEmployeeId', resBody.data.employee.id);
-  }
+  if (res.getStatus() !== 201) throw new Error(`Expected status 201 but got ${res.getStatus()}`);
+  if (!resBody?.data?.employee?.id) throw new Error('Create Employee response invalid: missing employee.id');
+  bru.setEnvVar('testEmployeeId', String(resBody.data.employee.id));
 }
 
 script:pre-request {

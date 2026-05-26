@@ -21,12 +21,12 @@
               name: sort
               schema:
                   type: string
-              description: Sort expression (e.g., title:asc)
+              description: Not directly supported by the API; use order.<field>=asc|desc instead (e.g. order.title=asc).
             - in: query
               name: filter
               schema:
                   type: string
-              description: Filter expression (e.g., lifecycle_state:1)
+              description: Not directly supported by the API; use qc.<field>=<value> instead (e.g. qc.lifecycle_state=1).
         responses:
             '200':
                 description: A paginated list of movies
@@ -159,6 +159,14 @@
                                 type: string
                                 format: binary
                                 description: Banner image file (JPEG, PNG, WebP)
+                            posterUrl:
+                                type: string
+                                format: uri
+                                description: Optional remote poster URL to use when no poster file is uploaded.
+                            bannerUrl:
+                                type: string
+                                format: uri
+                                description: Optional remote banner URL to use when no banner file is uploaded.
         responses:
             '201':
                 description: Movie created successfully

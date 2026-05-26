@@ -1,7 +1,7 @@
 /auth/logout:
     post:
         summary: User Logout
-        description: Endpoint to logout the user and invalidate the session. Supports both cookie and bearer authentication.
+        description: Endpoint para cerrar sesión y revocar tokens. Si se recibe cookie, las cookies se eliminan; si se recibe bearer, solo se revocan los tokens en servidor.
         tags:
             - Auth
         security:

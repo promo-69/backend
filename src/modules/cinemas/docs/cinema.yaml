@@ -18,6 +18,12 @@
                         schema:
                             type: object
                             properties:
+                                success:
+                                    type: boolean
+                                    example: true
+                                message:
+                                    type: string
+                                    example: Sucursal obtenida exitosamente
                                 data:
                                     type: object
                                     properties:
@@ -33,6 +39,8 @@
                                             type: string
                                         closing_time:
                                             type: string
+                                metadata:
+                                    type: object
             '404':
                 description: Cinema not found
             '500':
@@ -72,6 +80,21 @@
         responses:
             '200':
                 description: Cinema updated
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                    example: true
+                                message:
+                                    type: string
+                                    example: Sucursal actualizada exitosamente
+                                data:
+                                    nullable: true
+                                metadata:
+                                    type: object
             '400':
                 description: Validation error
             '401':
@@ -96,6 +119,21 @@
         responses:
             '200':
                 description: Cinema deleted
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                    example: true
+                                message:
+                                    type: string
+                                    example: Sucursal eliminada exitosamente
+                                data:
+                                    nullable: true
+                                metadata:
+                                    type: object
             '401':
                 description: Unauthorized
             '404':

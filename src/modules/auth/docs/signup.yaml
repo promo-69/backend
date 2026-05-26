@@ -1,7 +1,7 @@
 /auth/signup:
     post:
         summary: User Signup
-        description: Endpoint for creating a new user (customer) account.
+        description: Endpoint para crear una nueva cuenta de cliente. Devuelve un mensaje indicando que el registro fue exitoso y que se debe verificar el correo.
         tags:
             - Auth
         requestBody:
@@ -17,27 +17,46 @@
                             password:
                                 type: string
                                 format: password
+                            documentNumber:
+                                type: string
                             firstName:
                                 type: string
                             lastName:
                                 type: string
+                            phoneNumber:
+                                type: string
+                            gender:
+                                type: string
+                                description: Identificador numérico de género
+                            birthDate:
+                                type: string
+                                format: date
                         required:
                             - email
                             - password
+                            - documentNumber
                             - firstName
                             - lastName
+                            - phoneNumber
+                            - gender
+                            - birthDate
         responses:
             '201':
-                description: User created successfully
+                description: Usuario registrado exitosamente
                 content:
                     application/json:
                         schema:
                             type: object
                             properties:
+                                success:
+                                    type: boolean
+                                    example: true
                                 message:
                                     type: string
-                                    example: User account created successfully
+                                    example: Usuario registrado exitosamente. Por favor verifica tu correo electrónico con el código enviado.
             '400':
                 description: Bad request (validation errors)
+            '401':
+                description: Unauthorized
             '500':
                 description: Internal server error

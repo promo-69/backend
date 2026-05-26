@@ -21,13 +21,7 @@
                                     items:
                                         type: object
                                         properties:
-                                            id:
-                                                type: integer
                                             person:
-                                                type: integer
-                                            employee_code:
-                                                type: string
-                                            people:
                                                 type: object
                                                 properties:
                                                     id:
@@ -40,16 +34,66 @@
                                                         type: string
                                                     gender:
                                                         type: integer
+                                                        nullable: true
                                                     phone_number:
                                                         type: string
+                                                        nullable: true
                                                     personal_email:
                                                         type: string
+                                                        nullable: true
                                                     birth_date:
                                                         type: string
                                                         format: date
-                                            _User:
+                                                        nullable: true
+                                            employee:
+                                                type: object
+                                                properties:
+                                                    id:
+                                                        type: integer
+                                                    person:
+                                                        type: integer
+                                                    employee_code:
+                                                        type: string
+                                                    positions:
+                                                        type: array
+                                                        items:
+                                                            type: object
+                                                            properties:
+                                                                id:
+                                                                    type: integer
+                                                                start_date:
+                                                                    type: string
+                                                                    format: date
+                                                                end_date:
+                                                                    type: string
+                                                                    format: date
+                                                                    nullable: true
+                                                                salary_base:
+                                                                    type: number
+                                                                    nullable: true
+                                                                is_active:
+                                                                    type: boolean
+                                                                job_position:
+                                                                    type: object
+                                                                    nullable: true
+                                                                cinema:
+                                                                    type: object
+                                                                    nullable: true
+                                            user:
                                                 type: object
                                                 nullable: true
+                                                properties:
+                                                    id:
+                                                        type: integer
+                                                    email:
+                                                        type: string
+                                                        format: email
+                                                    user_type:
+                                                        type: integer
+                                                    signup_verified_at:
+                                                        type: string
+                                                        format: date-time
+                                                        nullable: true
             '401':
                 description: Unauthorized
             '500':
@@ -59,9 +103,10 @@
         description: |
             Registers a new employee. If the person already exists by document
             number, the existing record is reused; otherwise a new person is
-            created. The cinema is taken from the authenticated user's JWT.
-            Optionally, if email and password are provided, a user account is
-            created for the employee.
+            created. The cinema is taken from the authenticated user's JWT,
+            or from the request body when the session does not include a
+            cinema context. Optionally, if email and password are provided,
+            a user account is created for the employee.
         tags:
             - Employees
         security:
@@ -137,12 +182,79 @@
                                 data:
                                     type: object
                                     properties:
-                                        id:
-                                            type: integer
-                                        employee_code:
-                                            type: string
-                                        _People:
+                                        person:
                                             type: object
+                                            properties:
+                                                id:
+                                                    type: integer
+                                                document_number:
+                                                    type: string
+                                                first_name:
+                                                    type: string
+                                                last_name:
+                                                    type: string
+                                                gender:
+                                                    type: integer
+                                                    nullable: true
+                                                phone_number:
+                                                    type: string
+                                                    nullable: true
+                                                personal_email:
+                                                    type: string
+                                                    nullable: true
+                                                birth_date:
+                                                    type: string
+                                                    format: date
+                                                    nullable: true
+                                        employee:
+                                            type: object
+                                            properties:
+                                                id:
+                                                    type: integer
+                                                person:
+                                                    type: integer
+                                                employee_code:
+                                                    type: string
+                                                positions:
+                                                    type: array
+                                                    items:
+                                                        type: object
+                                                        properties:
+                                                            id:
+                                                                type: integer
+                                                            start_date:
+                                                                type: string
+                                                                format: date
+                                                            end_date:
+                                                                type: string
+                                                                format: date
+                                                                nullable: true
+                                                            salary_base:
+                                                                type: number
+                                                                nullable: true
+                                                            is_active:
+                                                                type: boolean
+                                                            job_position:
+                                                                type: object
+                                                                nullable: true
+                                                            cinema:
+                                                                type: object
+                                                                nullable: true
+                                        user:
+                                            type: object
+                                            nullable: true
+                                            properties:
+                                                id:
+                                                    type: integer
+                                                email:
+                                                    type: string
+                                                    format: email
+                                                user_type:
+                                                    type: integer
+                                                signup_verified_at:
+                                                    type: string
+                                                    format: date-time
+                                                    nullable: true
             '400':
                 description: Bad request (validation errors)
             '401':

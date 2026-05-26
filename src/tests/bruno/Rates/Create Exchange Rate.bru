@@ -31,8 +31,9 @@ script:pre-request {
 }
 
 script:post-response {
+  if (res.getStatus() !== 201) throw new Error(`Expected status 201 but got ${res.getStatus()}`);
   const resBody = res.getBody();
-  if (res.getStatus() === 201 && resBody && resBody.data && resBody.data.id) {
+  if (resBody && resBody.data && resBody.data.id) {
     bru.setEnvVar('testExchangeRateId', resBody.data.id);
   }
 }

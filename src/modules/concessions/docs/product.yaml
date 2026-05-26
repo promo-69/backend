@@ -39,10 +39,8 @@
                                         _ProductCategory:
                                             type: object
                                             properties:
-                                                id:
-                                                    type: integer
-                                                    name:
-                                                        type: string
+                                                description:
+                                                    type: string
             '404':
                 description: Product not found
             '500':

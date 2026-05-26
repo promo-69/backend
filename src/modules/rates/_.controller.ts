@@ -17,13 +17,15 @@ class RatesController extends ControllerBase {
 
 	async createCurrency() {
 		const body = this.getBody();
-		return RatesService.createCurrency(body);
+		const created = await RatesService.createCurrency(body);
+		return this.created(created, 'Currency created successfully');
 	}
 
 	async updateCurrency() {
 		const { id } = this.getParams();
 		const body = this.getBody();
-		return RatesService.updateCurrency(Number(id), body);
+		const updated = await RatesService.updateCurrency(Number(id), body);
+		return this.updated(updated, 'Currency updated successfully');
 	}
 
 	async deleteCurrency() {
@@ -44,7 +46,8 @@ class RatesController extends ControllerBase {
 	async createExchangeRate() {
 		const body = this.getBody();
 		const session = this.getSession<any>();
-		return RatesService.createExchangeRate(body, session?.userId);
+		const created = await RatesService.createExchangeRate(body, session?.userId);
+		return this.created(created, 'Exchange rate created successfully');
 	}
 
 	async deleteExchangeRate() {
@@ -55,7 +58,11 @@ class RatesController extends ControllerBase {
 
 	async getExchangeRateHistoryByCurrency() {
 		const { currencyId } = this.getParams();
-		return RatesService.getExchangeRateHistoryByCurrency(Number(currencyId), this.getQueryFilters(), this.getQuery());
+		return RatesService.getExchangeRateHistoryByCurrency(
+			Number(currencyId),
+			this.getQueryFilters(),
+			this.getQuery(),
+		);
 	}
 }
 

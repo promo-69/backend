@@ -37,9 +37,7 @@
                                             _ProductCategory:
                                                 type: object
                                                 properties:
-                                                    id:
-                                                        type: integer
-                                                    name:
+                                                    description:
                                                         type: string
             '500':
                 description: Internal server error
