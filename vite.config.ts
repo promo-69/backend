@@ -7,7 +7,7 @@ const __dirname = path.dirname(__filename);
 
 export default defineConfig(({ mode }) => {
 	const env = loadEnv(mode, process.cwd(), '');
-    const isDocker = String(env.IS_DOCKER ?? '').toLowerCase() === 'true';
+	const isDocker = String(env.IS_DOCKER ?? '').toLowerCase() === 'true';
 
 	return {
 		server: {
@@ -39,6 +39,11 @@ export default defineConfig(({ mode }) => {
 				'@providers': path.resolve(__dirname, 'src/shared/providers'),
 				'@templates': path.resolve(__dirname, 'src/shared/templates'),
 				'@tests': path.resolve(__dirname, 'tests'),
+				'@background': path.resolve(__dirname, 'src/background'),
+				'@workers': path.resolve(__dirname, 'src/background/workers'),
+				'@crons': path.resolve(__dirname, 'src/background/crons'),
+				'@subscribers': path.resolve(__dirname, 'src/background/subscribers'),
+				'@tasks': path.resolve(__dirname, 'src/background/tasks'),
 			},
 		},
 		define: {
@@ -51,13 +56,33 @@ export default defineConfig(({ mode }) => {
 			target: 'node18',
 			rollupOptions: {
 				input: path.resolve(__dirname, 'src/index.ts'),
-				external: ['pg', 'sequelize', 'pg-hstore', 'pdfmake', 'pdfmake/src/printer.js', 'swagger-ui-express', 'socket.io', '@socket.io/redis-adapter', 'bullmq'],
+				external: [
+					'pg',
+					'sequelize',
+					'pg-hstore',
+					'pdfmake',
+					'pdfmake/src/printer.js',
+					'swagger-ui-express',
+					'socket.io',
+					'@socket.io/redis-adapter',
+					'bullmq',
+				],
 			},
 		},
 		// SSR Configuration (Force bundle for everything except natively compiled binaries)
 		ssr: {
 			noExternal: true,
-			external: ['pg', 'sequelize', 'pg-hstore', 'pdfmake', 'pdfmake/src/printer.js', 'swagger-ui-express', 'socket.io', '@socket.io/redis-adapter', 'bullmq'],
+			external: [
+				'pg',
+				'sequelize',
+				'pg-hstore',
+				'pdfmake',
+				'pdfmake/src/printer.js',
+				'swagger-ui-express',
+				'socket.io',
+				'@socket.io/redis-adapter',
+				'bullmq',
+			],
 			target: 'node',
 		},
 		// Optimize purely for Dev
