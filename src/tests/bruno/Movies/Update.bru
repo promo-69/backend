@@ -4,21 +4,22 @@ meta {
   seq: 5
 }
 
-put {
+patch {
   url: {{baseUrl}}/movies/{{testMovieId}}
   body: multipartForm
   auth: bearer
 }
 
+auth:bearer {
+  token: {{accessToken}}
+}
+
 body:multipart-form {
   synopsis: Updated Bruno movie synopsis.
   lifecycleState: 3
+  genres: [2, 3]
   ~poster: @file(/path/to/optional_poster.jpg)
   ~banner: @file(/path/to/optional_banner.jpg)
-}
-
-auth:bearer {
-  token: {{accessToken}}
 }
 
 script:pre-request {

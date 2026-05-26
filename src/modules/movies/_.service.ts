@@ -46,23 +46,120 @@ export class MoviesService extends BaseService {
     private get _ageClassifications() {
         return Database.repository('main', 'age-classifications') as any;
     }
+    private get _movieLanguages() {
+        return Database.repository('main', 'movie-languages') as any;
+    }
+    private get _languages() {
+        return Database.repository('main', 'languages') as any;
+    }
+    private get _movieProjectionTypes() {
+        return Database.repository('main', 'movie-projection-types') as any;
+    }
+    private get _projectionTypes() {
+        return Database.repository('main', 'projection-types') as any;
+    }
+
+    /**
+     * Enriquece un objeto movie (o array de movies) con los nombres de las relaciones.
+     */
+    private async _enrichMovie(movie: any) {
+        if (!movie) return null;
+
+        // Clasificación de edad
+        const ageClass = movie.age_classification
+            ? await this._ageClassifications.getById(movie.age_classification, { attributes: ['id', 'description'] })
+            : null;
+        movie.age_classification = ageClass || movie.age_classification;
+
+        // Estado de ciclo de vida
+        const lifecycle = movie.lifecycle_state
+            ? await Database.repository('main', 'movie-lifecycle-states').getById(movie.lifecycle_state, {
+                  attributes: ['id', 'description'],
+              })
+            : null;
+        movie.lifecycle_state = lifecycle || movie.lifecycle_state;
+
+        // Géneros
+        if (movie.id) {
+            const genreLinks = await this._movieGenres.getAll(
+                { count: false, attributes: ['genre'] },
+                { movie: movie.id },
+            );
+            const genreIds = (Array.isArray(genreLinks) ? genreLinks : genreLinks.rows).map((g: any) => g.genre);
+            if (genreIds.length > 0) {
+                const genres = await this._genres.getAll(
+                    { count: false, attributes: ['id', 'description'] },
+                    { id: genreIds },
+                );
+                movie.genres = Array.isArray(genres) ? genres : genres.rows;
+            } else {
+                movie.genres = [];
+            }
+        }
+
+        // Lenguajes
+        if (movie.id) {
+            const langLinks = await this._movieLanguages.getAll(
+                { count: false, attributes: ['language'] },
+                { movie: movie.id },
+            );
+            const langIds = (Array.isArray(langLinks) ? langLinks : langLinks.rows).map((l: any) => l.language);
+            if (langIds.length > 0) {
+                const languages = await this._languages.getAll(
+                    { count: false, attributes: ['id', 'description'] },
+                    { id: langIds },
+                );
+                movie.languages = Array.isArray(languages) ? languages : languages.rows;
+            } else {
+                movie.languages = [];
+            }
+        }
+
+        // Tipos de proyección
+        if (movie.id) {
+            const projLinks = await this._movieProjectionTypes.getAll(
+                { count: false, attributes: ['projection_type'] },
+                { movie: movie.id },
+            );
+            const projIds = (Array.isArray(projLinks) ? projLinks : projLinks.rows).map((p: any) => p.projection_type);
+            if (projIds.length > 0) {
+                const projTypes = await this._projectionTypes.getAll(
+                    { count: false, attributes: ['id', 'description'] },
+                    { id: projIds },
+                );
+                movie.projection_types = Array.isArray(projTypes) ? projTypes : projTypes.rows;
+            } else {
+                movie.projection_types = [];
+            }
+        }
+
+        // Eliminar prefijos de asociaciones si existen
+        delete movie._MovieGenres;
+        delete movie._MovieLanguages;
+        delete movie._MovieProjectionTypes;
+
+        return movie;
+    }
+
+    // --- Métodos públicos ---
 
     async getBillboard(filters?: ProcessedQueryFilters) {
-        return this._movies.getAllOnBillboard(filters);
+        const result = await this._movies.getAllOnBillboard(filters);
+        if (Array.isArray(result)) {
+            return Promise.all(result.map((m) => this._enrichMovie(m)));
+        }
+        result.rows = await Promise.all(result.rows.map((m: any) => this._enrichMovie(m)));
+        return result;
     }
 
     async getMovieDetail(id: number) {
         const movie = await this._movies.getFull(id);
         if (!movie) throw new NotFoundError('Película no encontrada');
-        return movie;
+        return this._enrichMovie(movie);
     }
 
-    async createMovie(
-        body: CreateMovieBody,
-        rawFiles?: Express.Multer.File[] | { [fieldname: string]: Express.Multer.File[] },
-    ) {
+    async createMovie(body: CreateMovieBody, rawFiles?: any) {
         const { title, synopsis, releaseDate, trailerUrl } = body;
-
         const durationMinutes = Number(body.durationMinutes);
         const ageClassification = Number(body.ageClassification);
         const lifecycleState = Number(body.lifecycleState);
@@ -72,25 +169,14 @@ export class MoviesService extends BaseService {
             { title, durationMinutes, ageClassification, lifecycleState, synopsis, releaseDate } as any,
             ['title', 'durationMinutes', 'ageClassification', 'lifecycleState', 'synopsis', 'releaseDate'],
         );
-
         if (!Array.isArray(genres) || genres.length === 0)
             throw new ValidationError('Debe especificar al menos un género', ['genres']);
-
         if (!Number.isInteger(durationMinutes) || durationMinutes <= 0)
             throw new ValidationError('La duración debe ser un entero mayor a 0', ['durationMinutes']);
 
         movieImagesService.validateTrailerUrl(trailerUrl);
-
         const existing = await this._movies.getByTitle(title);
         if (existing) throw new ConflictError('Ya existe una película con ese título', 'MOVIE_TITLE_DUPLICATE');
-
-        const ageClass = await this._ageClassifications.getById(ageClassification);
-        if (!ageClass) throw new ValidationError('La clasificación de edad indicada no existe', ['ageClassification']);
-
-        for (const genreId of genres) {
-            const genre = await this._genres.getById(genreId);
-            if (!genre) throw new ValidationError(`El género con ID ${genreId} no existe en el catálogo`, ['genres']);
-        }
 
         const imageFiles = movieImagesService.extractFromRequest(rawFiles);
         const { posterUrl, bannerUrl, posterFileId, bannerFileId } =
@@ -113,52 +199,43 @@ export class MoviesService extends BaseService {
                     { transaction },
                 );
 
-                const genreRecords = genres.map((gId: number) => ({
-                    movie: movie.id,
-                    genre: gId,
-                    status: 1,
-                }));
-
+                const genreRecords = genres.map((gId: number) => ({ movie: movie.id, genre: gId }));
                 await this._movieGenres.bulkCreate(genreRecords, { transaction });
 
                 return movie;
             });
 
-            return { movie_id: createdMovie.id, title: createdMovie.title };
+            return this.getMovieDetail(createdMovie.id);
         } catch (error) {
             await movieImagesService.rollbackUploadedImages([posterFileId, bannerFileId]);
             throw error;
         }
     }
 
-    async updateMovie(
-        id: number,
-        body: UpdateMovieBody,
-        rawFiles?: Express.Multer.File[] | { [fieldname: string]: Express.Multer.File[] },
-    ) {
+    async updateMovie(id: number, body: UpdateMovieBody & { imageFiles?: any }) {
         const movie = await this._movies.getFull(id);
         if (!movie) throw new NotFoundError('Película no encontrada');
 
         const previousPosterUrl: string | null = movie.poster_url ?? null;
         const previousBannerUrl: string | null = movie.banner_url ?? null;
 
-        const { synopsis, trailerUrl } = body;
-        const lifecycleState = body.lifecycleState !== undefined ? Number(body.lifecycleState) : undefined;
+        const { synopsis, trailerUrl, lifecycleState, genres: rawGenres, imageFiles: rawImageFiles } = body;
+        const lifecycleStateNum = lifecycleState !== undefined ? Number(lifecycleState) : undefined;
         const genres: number[] | undefined =
-            body.genres === undefined
+            rawGenres === undefined
                 ? undefined
-                : typeof body.genres === 'string'
-                  ? JSON.parse(body.genres)
-                  : (body.genres as number[]);
+                : typeof rawGenres === 'string'
+                  ? JSON.parse(rawGenres)
+                  : (rawGenres as number[]);
 
         movieImagesService.validateTrailerUrl(trailerUrl);
 
         const updateData: Record<string, any> = {};
-        if (lifecycleState !== undefined) updateData.lifecycle_state = lifecycleState;
+        if (lifecycleStateNum !== undefined) updateData.lifecycle_state = lifecycleStateNum;
         if (synopsis !== undefined) updateData.synopsis = synopsis;
         if (trailerUrl !== undefined) updateData.trailer_url = trailerUrl;
 
-        if (Object.keys(updateData).length === 0 && genres === undefined && !rawFiles)
+        if (Object.keys(updateData).length === 0 && genres === undefined && !rawImageFiles)
             throw new ValidationError('No se proporcionaron datos para actualizar', []);
 
         if (genres !== undefined) {
@@ -168,10 +245,9 @@ export class MoviesService extends BaseService {
             }
         }
 
-        const imageFiles = movieImagesService.extractFromRequest(rawFiles);
+        const imageFiles = movieImagesService.extractFromRequest(rawImageFiles);
         const { posterUrl, bannerUrl, posterFileId, bannerFileId } =
             await movieImagesService.uploadMovieImages(imageFiles);
-
         if (posterUrl) updateData.poster_url = posterUrl;
         if (bannerUrl) updateData.banner_url = bannerUrl;
 
@@ -203,7 +279,7 @@ export class MoviesService extends BaseService {
                 .catch((err) => Logger.error('updateMovie: failed to delete old banner', err));
         }
 
-        return this._movies.getFull(id);
+        return this.getMovieDetail(id);
     }
 
     async deleteMovie(id: number) {
@@ -212,7 +288,7 @@ export class MoviesService extends BaseService {
 
         let activeShowtimes = 0;
         try {
-            activeShowtimes = await Database.repository('main', 'showtimes').count({ movie: id } as any);
+            activeShowtimes = await Database.repository('main', 'showtimes').count({ movie: id, deleted_at: null });
         } catch {
             /* módulo showtimes aún no implementado */
         }

@@ -35,9 +35,19 @@
                                         duration_minutes:
                                             type: integer
                                         age_classification:
-                                            type: integer
+                                            type: object
+                                            properties:
+                                                id:
+                                                    type: integer
+                                                description:
+                                                    type: string
                                         lifecycle_state:
-                                            type: integer
+                                            type: object
+                                            properties:
+                                                id:
+                                                    type: integer
+                                                description:
+                                                    type: string
                                         synopsis:
                                             type: string
                                         trailer_url:
@@ -52,26 +62,40 @@
                                         release_date:
                                             type: string
                                             format: date
-                                        deleted_at:
-                                            type: string
-                                            format: date-time
-                                            nullable: true
-                                        _MovieGenres:
+                                        genres:
                                             type: array
                                             items:
                                                 type: object
                                                 properties:
                                                     id:
                                                         type: integer
-                                                    genre:
+                                                    description:
+                                                        type: string
+                                        languages:
+                                            type: array
+                                            items:
+                                                type: object
+                                                properties:
+                                                    id:
                                                         type: integer
+                                                    description:
+                                                        type: string
+                                        projection_types:
+                                            type: array
+                                            items:
+                                                type: object
+                                                properties:
+                                                    id:
+                                                        type: integer
+                                                    description:
+                                                        type: string
             '404':
                 description: Movie not found
             '500':
                 description: Internal server error
-    put:
+    patch:
         summary: Update Movie
-        description: Update movie metadata and optionally replace images. Requires MGMT:DO:GENERAL_MANAGEMENT permission.
+        description: Update movie metadata and optionally replace images. Requires admin permission.
         tags:
             - Movies
         security:
@@ -136,7 +160,7 @@
                 description: Internal server error
     delete:
         summary: Delete Movie
-        description: Remove a movie from the catalog (soft delete). Requires MGMT:DO:GENERAL_MANAGEMENT permission and no active future showtimes.
+        description: Remove a movie from the catalog (soft delete). Requires admin permission and no active future showtimes.
         tags:
             - Movies
         security:

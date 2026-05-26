@@ -53,9 +53,19 @@
                                                     duration_minutes:
                                                         type: integer
                                                     age_classification:
-                                                        type: integer
+                                                        type: object
+                                                        properties:
+                                                            id:
+                                                                type: integer
+                                                            description:
+                                                                type: string
                                                     lifecycle_state:
-                                                        type: integer
+                                                        type: object
+                                                        properties:
+                                                            id:
+                                                                type: integer
+                                                            description:
+                                                                type: string
                                                     synopsis:
                                                         type: string
                                                     trailer_url:
@@ -70,15 +80,33 @@
                                                     release_date:
                                                         type: string
                                                         format: date
-                                                    _MovieGenres:
+                                                    genres:
                                                         type: array
                                                         items:
                                                             type: object
                                                             properties:
                                                                 id:
                                                                     type: integer
-                                                                genre:
+                                                                description:
+                                                                    type: string
+                                                    languages:
+                                                        type: array
+                                                        items:
+                                                            type: object
+                                                            properties:
+                                                                id:
                                                                     type: integer
+                                                                description:
+                                                                    type: string
+                                                    projection_types:
+                                                        type: array
+                                                        items:
+                                                            type: object
+                                                            properties:
+                                                                id:
+                                                                    type: integer
+                                                                description:
+                                                                    type: string
                                         count:
                                             type: integer
                                             example: 15
@@ -86,7 +114,7 @@
                 description: Internal server error
     post:
         summary: Create Movie
-        description: Register a new movie in the catalog. Requires MGMT:DO:GENERAL_MANAGEMENT permission.
+        description: Register a new movie in the catalog. Requires admin permission.
         tags:
             - Movies
         security:
