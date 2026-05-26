@@ -14,7 +14,11 @@ auth:bearer {
   token: {{accessToken}}
 }
 
+vars:pre-request {
+  testCinemaId: 1
+}
+
 script:pre-request {
-  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  const baseUrl = bru.getEnvVar('baseUrl') || 'https://backend-jog6.onrender.com/api/v1/test';
   bru.setVar('baseUrl', baseUrl);
 }
