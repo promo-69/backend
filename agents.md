@@ -13,6 +13,7 @@
 - **Economía de Tokens**: NUNCA me expliques el código ni me des respuestas conversacionales largas. Ve directo al grano.
 - **Aplicación Directa**: A menos que yo te pida explícitamente que me respondas con el código en el chat, SIEMPRE aplica los cambios directamente en los archivos del proyecto.
 - **Implementación Asegurada**: Busca siempre la mejor opción de rendimiento y seguridad. Utiliza transacciones de Sequelize cuando modifiques múltiples tablas y respeta los Unique Constraints de la base de datos.
+- **Estándares de Importación (Path Aliases)**: Siempre que sea posible y lógico, debes usar los alias de ruta configurados en el proyecto (ej. `@config/`, `@core/`, `@database/`, `@shared/`, `@modules/`, etc.) definidos en `vite.config.js` / `tsconfig.json`. Evita el uso de rutas relativas largas (`../../../`).
 
 ## 3. Arquitectura y Patrones de Diseño
 
@@ -28,6 +29,13 @@
 - **Diferencia Estricta entre Utilidades y Servicios Compartidos**:
     - **Utilidades (`shared/utils`)**: Funciones puras, genéricas y agnósticas al dominio (ej. formateadores, generadores UUID). **NUNCA** manejan estado, ni repositorios, ni APIs externas.
     - **Servicios Compartidos (`shared/services`)**: Contienen lógica de negocio transversal (ej. `TokenBlacklistService`, `EmailNotificationService`). Sí están acoplados al dominio de Cineflix y sí interactúan con infraestructura.
+- **Procesamiento en Segundo Plano y Eventos (`src/background/`)**:
+  Es el ecosistema paralelo a la API HTTP. Maneja todo lo que ocurre fuera del ciclo Request-Response de forma asíncrona, garantizando que el hilo principal de Express no se bloquee.
+    - **`orchestrator.ts`**: Es el orquestador principal. Su única responsabilidad es arrancar, registrar y agrupar todos los workers, crons y subscribers al iniciar el servidor. No tiene lógica de negocio.
+    - **`workers/`**: Consumidores de colas (BullMQ). Se quedan a la espera de trabajos encolados (ej. `order-expiration-queue`). **REGLA ESTRICTA**: Los workers no hacen consultas directas a la base de datos ni contienen lógica de negocio compleja. Su trabajo es extraer el payload de la cola y llamar al método del Servicio (`shared/services` o modular) correspondiente.
+    - **`crons/`**: Tareas programadas basadas en tiempo (Cron Jobs). Al igual que los workers, solo actúan como "gatillos" temporales que ejecutan Servicios.
+    - **`subscribers/`**: Escuchadores pasivos del patrón Pub/Sub (ej. Redis Pub/Sub o Event Emitters nativos). Permiten desacoplar procesos secundarios reaccionando a eventos del sistema.
+    - **`tasks/`**: Contienen la definición estandarizada de las tareas y la estructura del payload (contratos) que los productores enviarán a las colas.
 
 - **Seguridad Omnicanal**: El sistema implementa OAuth 2.0 y JWT con rotación de refresh tokens. Se apoya en Redis para manejar una lista negra global de sesiones. El middleware de autenticación extrae tokens tanto de Cookies (web) como de Headers (móvil).
 - **Documentación Limpia (Zero JSDoc)**: Tienes estrictamente prohibido usar `swagger-jsdoc` o ensuciar los controladores/rutas con comentarios. Utiliza un enfoque modular con archivos YAML separados integrados dinámicamente desde `src/docs/`.

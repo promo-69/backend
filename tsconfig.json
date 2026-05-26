@@ -39,7 +39,12 @@
 			"@constants/*": ["shared/constants/*"],
 			"@providers/*": ["shared/providers/*"],
 			"@tests/*": ["tests/*"],
-			"@templates/*": ["shared/templates/*"]
+			"@templates/*": ["shared/templates/*"],
+			"@background/*": ["background/*"],
+			"@workers/*": ["background/workers/*"],
+			"@crons/*": ["background/crons/*"],
+			"@subscribers/*": ["background/subscribers/*"],
+			"@tasks/*": ["background/tasks/*"]
 		}
 	},
 	"include": ["src/**/*.ts", "src/**/*.d.ts", "src/database/models/models.js"],

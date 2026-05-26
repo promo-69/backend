@@ -595,6 +595,9 @@ module.exports = {
 				generated_points: { type: Sequelize.INTEGER, allowNull: false },
 				order_status: { type: Sequelize.INTEGER, allowNull: false, defaultValue: 1 },
 				remarks: { type: Sequelize.TEXT, allowNull: true },
+				qr_code: { type: Sequelize.STRING(500), allowNull: true },
+				tickets_validated_at: { type: Sequelize.DATE, allowNull: true },
+				concessions_validated_at: { type: Sequelize.DATE, allowNull: true },
 				created_at: {
 					type: Sequelize.DATE,
 					allowNull: false,
@@ -666,12 +669,10 @@ module.exports = {
 				original_price: { type: Sequelize.DECIMAL(10, 2), allowNull: false },
 				price: { type: Sequelize.DECIMAL(10, 2), allowNull: false },
 				quoted_exchange_rate: { type: Sequelize.INTEGER, allowNull: false },
-				qr_code: { type: Sequelize.STRING(500), allowNull: false },
 				validation_time: { type: Sequelize.DATE, allowNull: true },
 				deleted_at: { type: Sequelize.DATE, allowNull: true },
 			});
 			await addUnique('tickets', ['booking', 'seat'], 'idx_tickets_booking_seat_uq');
-			await addUnique('tickets', ['qr_code'], 'idx_tickets_qr_code_uq');
 			await addIndex('tickets', ['order'], 'idx_tickets_order');
 
 			await createTable('applied_price_modifiers', {
