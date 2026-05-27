@@ -107,7 +107,7 @@ export class ShowtimeManagementService {
             );
 
             // Insertar showtime manualmente usando la instancia sequelize del transaction
-            const [showtimeRow] = await transaction.sequelize.query(
+            const [showtimeRow] = await (transaction as any).sequelize.query(
                 `INSERT INTO showtimes (booking, movie, projection_type, currency, price, earned_loyalty_points)
                  VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
                 {
@@ -167,19 +167,19 @@ export class ShowtimeManagementService {
         // 3. Consultar los datos relacionados por lotes
         const [movies, projTypes, currencies] = await Promise.all([
             movieIds.length > 0
-                ? Database.repository('main', 'movies').getAll(
+                ? (Database.repository('main', 'movies') as any).getAll(
                       { count: false, attributes: ['id', 'title'] },
                       { id: movieIds },
                   )
                 : [],
             projTypeIds.length > 0
-                ? Database.repository('main', 'projection-types').getAll(
+                ? (Database.repository('main', 'projection-types') as any).getAll(
                       { count: false, attributes: ['id', 'description'] },
                       { id: projTypeIds },
                   )
                 : [],
             currencyIds.length > 0
-                ? Database.repository('main', 'currencies').getAll(
+                ? (Database.repository('main', 'currencies') as any).getAll(
                       { count: false, attributes: ['id', 'code'] },
                       { id: currencyIds },
                   )
@@ -195,9 +195,9 @@ export class ShowtimeManagementService {
 
         // 5. Formatear la respuesta
         const rows = showtimesList.map((s: any) => {
-            const movie = movieMap.get(s.movie) || {};
-            const projection = projMap.get(s.projection_type) || {};
-            const currency = currencyMap.get(s.currency) || {};
+            const movie = movieMap.get(s.movie) || ({} as any);
+            const projection = projMap.get(s.projection_type) || ({} as any);
+            const currency = currencyMap.get(s.currency) || ({} as any);
             return {
                 id: s.id,
                 movie: { id: movie.id, title: movie.title },

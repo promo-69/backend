@@ -63,7 +63,7 @@ export class AuthMiddleware {
 		try {
 			if (!token) throw new AuthError('Token de autenticación no encontrado', { code: 'TOKEN_NOT_FOUND' });
 
-			const payload = JWTUtil.verifyToken(token) as JWTPayload & UserSession & { iat: number };
+			const payload = JWTUtil.verifyAccessToken(token) as JWTPayload & UserSession & { iat: number };
 
 			if (!payload || !payload.userId || !payload.type)
 				throw new AuthError('Token inválido', { code: 'TOKEN_INVALID' });
@@ -229,7 +229,7 @@ export class AuthMiddleware {
 
 			if (!token) return next();
 
-			const session = JWTUtil.verifyToken(token) as JWTPayload & UserSession & { iat: number };
+			const session = JWTUtil.verifyAccessToken(token) as JWTPayload & UserSession & { iat: number };
 
 			const isBlacklisted = await tokenBlacklistService.isBlacklisted(token);
 

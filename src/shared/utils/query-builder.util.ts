@@ -30,6 +30,8 @@ export class QueryBuilder {
 		if (limit > this.NO_LIMIT) {
 			pagination.limit = Math.max(limit, 1);
 			pagination.offset = pagination.offset * pagination.limit;
+		} else if (pagination?.limit != null) {
+			delete pagination.limit;
 		}
 
 		// 2. Procesar ordenamiento (SOLO si hay parámetros order.*)

@@ -1,0 +1,27 @@
+meta {
+  name: Checkout Order
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/orders/checkout
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "queue_id": "{{queueId}}",
+    "concessions": [
+      { "line_type": 1, "product": 1, "quantity": 1 }
+    ],
+    "tickets": [
+      { "seat": 1, "showtime": 1 }
+    ]
+  }
+}
