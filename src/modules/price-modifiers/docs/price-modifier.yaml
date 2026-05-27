@@ -35,6 +35,65 @@
                                             type: boolean
                                         value:
                                             type: number
+                                            audience_category:
+                                                type: integer
+                                                nullable: true
+                                            week_day:
+                                                type: integer
+                                                nullable: true
+                                            seat_category:
+                                                type: integer
+                                                nullable: true
+                                            projection_type:
+                                                type: integer
+                                                nullable: true
+                                            product_category:
+                                                type: integer
+                                                nullable: true
+                                            product:
+                                                type: integer
+                                                nullable: true
+                                            combo:
+                                                type: integer
+                                                nullable: true
+                                            cinema:
+                                                type: integer
+                                                nullable: true
+                                            start_date:
+                                                type: string
+                                                format: date
+                                                nullable: true
+                                            end_date:
+                                                type: string
+                                                format: date
+                                                nullable: true
+                                            start_time:
+                                                type: string
+                                                nullable: true
+                                            end_time:
+                                                type: string
+                                                nullable: true
+                                            line_type:
+                                                type: integer
+                                                nullable: true
+                                            booking_type:
+                                                type: integer
+                                                nullable: true
+                                            movie:
+                                                type: integer
+                                                nullable: true
+                                            room_type:
+                                                type: integer
+                                                nullable: true
+                                            currency:
+                                                type: integer
+                                                nullable: true
+                                            target_currency:
+                                                type: integer
+                                                nullable: true
+                                            target_currency_condition:
+                                                type: boolean
+                                                nullable: true
             '401':
                 description: Unauthorized
             '404':
