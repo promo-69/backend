@@ -1,0 +1,22 @@
+meta {
+  name: Update Room Event
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}/room-events/{{testRoomEventId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "organizer": "Gaming Corp (Oficial)",
+    "price": "12.00"
+  }
+}

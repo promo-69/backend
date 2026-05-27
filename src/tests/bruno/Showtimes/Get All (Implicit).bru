@@ -1,17 +1,21 @@
 meta {
-  name: Cancel Showtime
+  name: Get All Showtimes (Implicit)
   type: http
-  seq: 5
+  seq: 1
 }
 
-delete {
-  url: {{baseUrl}}/showtimes/{{testShowtimeId}}
+get {
+  url: {{baseUrl}}/showtimes
   body: none
   auth: bearer
 }
 
 auth:bearer {
   token: {{accessToken}}
+}
+
+vars:pre-request {
+  baseUrl: https://backend-jog6.onrender.com/api/v1/test
 }
 
 script:pre-request {

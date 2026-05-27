@@ -1,60 +1,9 @@
 /showtimes/{id}:
     get:
-        summary: Get Showtime By ID
-        description: Retrieve a single showtime by its ID.
-        tags:
-            - Showtimes
-        parameters:
-            - in: path
-              name: id
-              required: true
-              schema:
-                  type: integer
-              description: Showtime ID
-        responses:
-            '200':
-                description: Showtime found
-                content:
-                    application/json:
-                        schema:
-                            type: object
-                            properties:
-                                data:
-                                    type: object
-                                    properties:
-                                        id:
-                                            type: integer
-                                        movie:
-                                            type: integer
-                                            description: Movie ID (FK)
-                                        room:
-                                            type: integer
-                                            description: Room ID (FK)
-                                        projection_type:
-                                            type: integer
-                                            description: Projection type ID (FK)
-                                        start_time:
-                                            type: string
-                                            format: date-time
-                                        end_time:
-                                            type: string
-                                            format: date-time
-                                            nullable: true
-                                        price:
-                                            type: number
-                                        currency:
-                                            type: integer
-                                            description: Currency ID (FK)
-                                        earned_loyalty_points:
-                                            type: integer
-                                            nullable: true
-            '404':
-                description: Showtime not found
-            '500':
-                description: Internal server error
-    put:
-        summary: Update Showtime
-        description: Update the schedule or price of an existing showtime. Requires MGMT:DO:GENERAL_MANAGEMENT permission.
+        summary: Get Showtime by ID
+        description: |
+            Retrieve a single showtime with full details.
+            Required permission: **CRUD:READ:SHOWTIMES**
         tags:
             - Showtimes
         security:
@@ -65,48 +14,44 @@
               required: true
               schema:
                   type: integer
-              description: Showtime ID
+        responses:
+            '200':
+                description: Showtime details
+            '404':
+                description: Showtime not found
+    patch:
+        summary: Update Showtime
+        description: |
+            Partially update a showtime.
+            Required permission: **CRUD:UPDATE:SHOWTIMES**
+        tags:
+            - Showtimes
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: path
+              name: id
+              required: true
+              schema:
+                  type: integer
         requestBody:
-            required: true
             content:
                 application/json:
                     schema:
                         type: object
                         properties:
-                            startTime:
-                                type: string
-                                format: date-time
-                                example: '2026-06-01T20:00:00Z'
                             price:
                                 type: number
-                                example: 14.00
-                            currencyId:
+                            earned_loyalty_points:
                                 type: integer
-                                example: 1
         responses:
             '200':
-                description: Showtime updated successfully
-                content:
-                    application/json:
-                        schema:
-                            type: object
-                            properties:
-                                message:
-                                    type: string
-                                    example: Función actualizada exitosamente
-            '400':
-                description: Bad request (validation errors)
-            '401':
-                description: Unauthorized
-            '404':
-                description: Showtime not found
-            '409':
-                description: Conflict — room schedule overlap
-            '500':
-                description: Internal server error
+                description: Showtime updated
     delete:
-        summary: Cancel Showtime
-        description: Cancel a scheduled showtime (soft delete). Requires MGMT:DO:GENERAL_MANAGEMENT permission.
+        summary: Delete Showtime
+        description: |
+            Cancel a showtime and free the room.
+            Required permission: **CRUD:DELETE:SHOWTIMES**
         tags:
             - Showtimes
         security:
@@ -117,21 +62,8 @@
               required: true
               schema:
                   type: integer
-              description: Showtime ID
         responses:
             '200':
-                description: Showtime cancelled successfully
-                content:
-                    application/json:
-                        schema:
-                            type: object
-                            properties:
-                                message:
-                                    type: string
-                                    example: Función cancelada exitosamente
-            '401':
-                description: Unauthorized
-            '404':
-                description: Showtime not found
-            '500':
-                description: Internal server error
+                description: Showtime cancelled
+            '409':
+                description: Showtime has tickets

@@ -1,0 +1,15 @@
+meta {
+  name: Get All Room Events (Implicit)
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/room-events
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

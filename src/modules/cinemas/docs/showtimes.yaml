@@ -1,27 +1,37 @@
-/showtimes:
+/cinemas/{cinemaId}/showtimes:
     get:
-        summary: List Showtimes (Implicit)
+        summary: List Showtimes by Cinema (Explicit)
         description: |
-            Returns all showtimes for the authenticated user's cinema.
-            Required permission: **CRUD:READ:SHOWTIMES**
+            Returns all showtimes for a specific cinema.
+            Required permission: **CRUD:READ:CINEMAS-SHOWTIMES**
         tags:
             - Showtimes
         security:
             - bearerAuth: []
+        parameters:
+            - in: path
+              name: cinemaId
+              required: true
+              schema:
+                  type: integer
         responses:
             '200':
                 description: List of showtimes
-            '401':
-                description: Unauthorized
     post:
-        summary: Create Showtime (Implicit)
+        summary: Create Showtime for Cinema (Explicit)
         description: |
-            Schedule a new showtime in the authenticated user's cinema.
-            Required permission: **CRUD:CREATE:SHOWTIMES**
+            Schedule a new showtime in a specific cinema.
+            Required permission: **CRUD:CREATE:CINEMAS-SHOWTIMES**
         tags:
             - Showtimes
         security:
             - bearerAuth: []
+        parameters:
+            - in: path
+              name: cinemaId
+              required: true
+              schema:
+                  type: integer
         requestBody:
             required: true
             content:
@@ -65,7 +75,3 @@
         responses:
             '201':
                 description: Showtime created
-            '400':
-                description: Validation error
-            '409':
-                description: Room already booked

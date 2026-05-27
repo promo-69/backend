@@ -1,7 +1,7 @@
-/movies:
+/movies/cartelera:
     get:
-        summary: List All Movies
-        description: Retrieve all movies in the catalog with optional filters and pagination. Public endpoint.
+        summary: Get Billboard
+        description: Retrieve movies currently on the billboard (public cartelera). Same data as the main list but dedicated to public display.
         tags:
             - Movies
         parameters:
@@ -17,19 +17,9 @@
                   type: integer
                   default: 10
               description: Items per page
-            - in: query
-              name: sort
-              schema:
-                  type: string
-              description: Sort expression (e.g. title:asc)
-            - in: query
-              name: filter
-              schema:
-                  type: string
-              description: Filter expression (e.g. lifecycle_state:1)
         responses:
             '200':
-                description: A paginated list of movies
+                description: Billboard list
                 content:
                     application/json:
                         schema:
@@ -38,6 +28,9 @@
                                 success:
                                     type: boolean
                                     example: true
+                                message:
+                                    type: string
+                                    example: Cartelera obtenida exitosamente
                                 data:
                                     type: object
                                     properties:
@@ -109,94 +102,6 @@
                                                                     type: string
                                         count:
                                             type: integer
-                                            example: 15
-            '500':
-                description: Internal server error
-    post:
-        summary: Create Movie
-        description: Register a new movie in the catalog. Requires admin permission.
-        tags:
-            - Movies
-        security:
-            - bearerAuth: []
-        requestBody:
-            required: true
-            content:
-                multipart/form-data:
-                    schema:
-                        type: object
-                        required:
-                            - title
-                            - durationMinutes
-                            - ageClassification
-                            - lifecycleState
-                            - synopsis
-                            - releaseDate
-                            - genres
-                        properties:
-                            title:
-                                type: string
-                                example: Zootopia 2
-                            durationMinutes:
-                                type: integer
-                                example: 120
-                            ageClassification:
-                                type: integer
-                                example: 1
-                            lifecycleState:
-                                type: integer
-                                example: 1
-                            synopsis:
-                                type: string
-                                example: A new adventure in the animal city.
-                            releaseDate:
-                                type: string
-                                format: date
-                                example: '2026-06-15'
-                            trailerUrl:
-                                type: string
-                                format: url
-                                example: 'https://www.youtube.com/watch?v=5AwtptT8X8k'
-                            genres:
-                                type: string
-                                description: JSON array of genre IDs (e.g. "[1,2]")
-                                example: '[1, 2]'
-                            poster:
-                                type: string
-                                format: binary
-                                description: Poster image file (JPEG, PNG, WebP)
-                            banner:
-                                type: string
-                                format: binary
-                                description: Banner image file (JPEG, PNG, WebP)
-        responses:
-            '201':
-                description: Movie created successfully
-                content:
-                    application/json:
-                        schema:
-                            type: object
-                            properties:
-                                success:
-                                    type: boolean
-                                    example: true
-                                message:
-                                    type: string
-                                    example: Película registrada exitosamente en el catálogo.
-                                data:
-                                    type: object
-                                    properties:
-                                        movie_id:
-                                            type: integer
-                                            example: 10
-                                        title:
-                                            type: string
-                                            example: Zootopia 2
-            '400':
-                description: Validation error
-            '401':
-                description: Unauthorized
-            '409':
-                description: Conflict — duplicate title
+                                            example: 3
             '500':
                 description: Internal server error

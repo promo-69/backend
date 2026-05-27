@@ -7,11 +7,7 @@ meta {
 get {
   url: {{baseUrl}}/movies
   body: none
-  auth: bearer
-}
-
-auth:bearer {
-  token: {{accessToken}}
+  auth: none
 }
 
 script:pre-request {

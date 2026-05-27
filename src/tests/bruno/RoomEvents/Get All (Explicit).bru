@@ -1,0 +1,15 @@
+meta {
+  name: Get All Room Events (Explicit)
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/cinemas/{{testCinemaId}}/room-events
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

@@ -1,17 +1,21 @@
 meta {
-  name: Cancel Showtime
+  name: Get All Showtimes (Explicit)
   type: http
-  seq: 5
+  seq: 6
 }
 
-delete {
-  url: {{baseUrl}}/showtimes/{{testShowtimeId}}
+get {
+  url: {{baseUrl}}/cinemas/{{testCinemaId}}/showtimes
   body: none
   auth: bearer
 }
 
 auth:bearer {
   token: {{accessToken}}
+}
+
+vars:pre-request {
+  testCinemaId: 1
 }
 
 script:pre-request {

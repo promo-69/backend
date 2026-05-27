@@ -1,0 +1,15 @@
+meta {
+  name: Get Room Event By Id
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/room-events/{{testRoomEventId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
