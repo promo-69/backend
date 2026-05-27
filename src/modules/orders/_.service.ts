@@ -105,7 +105,7 @@ export class OrdersService extends BaseService {
 	}
 
 	async processCheckout(body: any, session: any) {
-		const { queue_id, concessions } = body;
+		const { queue_id, concessions, tickets = [] } = body;
 		if (!queue_id) throw new ValidationError('Queue ID is required', []);
 
 		// 1. Busca la llave única del usuario
@@ -122,331 +122,365 @@ export class OrdersService extends BaseService {
 
 		if (quoteData.status === 'en proceso') throw new ConflictError('La cotización ya ha sido procesada.');
 
-		// 3. Obtener tickets DIRECTAMENTE de la sesión en Redis (Seguridad)
-		const tickets = quoteData.tickets || [];
+		// Validar asientos pre-seleccionados con Redis
 		const hasTickets = tickets.length > 0;
+		if (hasTickets) {
+			for (const ticket of tickets) {
+				const lockKey = `lock:booking:${ticket.booking}:seat:${ticket.seat}`;
+				const lockedUserId = await this._redis.get(lockKey);
+				if (!lockedUserId || lockedUserId !== String(session.userId)) {
+					throw new ConflictError(
+						'Uno de los asientos seleccionados ya no está disponible o expiró su tiempo de reserva',
+					);
+				}
+			}
+		}
+
 		const hasConcessions = concessions && concessions.length > 0;
 
 		if (!hasTickets && !hasConcessions) throw new ValidationError('El carrito está completamente vacío.', []);
 
 		let createdOrder: any = null;
 
-		await this._orders.transaction(async (transaction: Transaction) => {
-			const requiredProducts: Record<number, number> = {};
+		try {
+			await this._orders.transaction(async (transaction: Transaction) => {
+				const requiredProducts: Record<number, number> = {};
 
-			if (hasConcessions) {
-				for (const item of concessions) {
-					if (item.line_type === 1 && item.product) {
-						// Es un producto directo
-						requiredProducts[item.product] = (requiredProducts[item.product] || 0) + item.quantity;
-					} else if (item.line_type === 2 && item.combo) {
-						// Es un Combo: Explosión de Materiales (BOM)
-						const comboParts = await this._comboProducts.getAll(
-							{ count: false, operation: { transaction } },
-							{ combo: item.combo },
-						);
-						for (const part of comboParts) {
-							requiredProducts[part.product] =
-								(requiredProducts[part.product] || 0) + part.quantity * item.quantity;
+				if (hasConcessions) {
+					for (const item of concessions) {
+						if (item.line_type === 1 && item.product) {
+							// Es un producto directo
+							requiredProducts[item.product] = (requiredProducts[item.product] || 0) + item.quantity;
+						} else if (item.line_type === 2 && item.combo) {
+							// Es un Combo: Explosión de Materiales (BOM)
+							const comboParts = await this._comboProducts.getAll(
+								{ count: false, operation: { transaction } },
+								{ combo: item.combo },
+							);
+							for (const part of comboParts) {
+								requiredProducts[part.product] =
+									(requiredProducts[part.product] || 0) + part.quantity * item.quantity;
+							}
 						}
 					}
 				}
-			}
 
-			// ORDEN ESTRICTO: Para evitar Deadlocks en PostgreSQL, siempre bloqueamos IDs en orden ascendente
-			const productIds = Object.keys(requiredProducts)
-				.map(Number)
-				.sort((a, b) => a - b);
+				// ORDEN ESTRICTO: Para evitar Deadlocks en PostgreSQL, siempre bloqueamos IDs en orden ascendente
+				const productIds = Object.keys(requiredProducts)
+					.map(Number)
+					.sort((a, b) => a - b);
 
-			if (productIds.length > 0) {
-				// Bloqueo pesimista (FOR UPDATE)
-				const inventories = await this._inventories.getAll(
-					{
-						count: false,
-						order: [['product', 'ASC']],
-						operation: { transaction, lock: transaction.LOCK.UPDATE },
-					},
-					{
-						cinema: quoteData.cinema,
-						product: productIds,
-					},
-				);
-
-				if (inventories.length !== productIds.length)
-					throw new NotFoundError('Uno o más productos no existen en el inventario de esta sucursal.');
-
-				for (const inv of inventories) {
-					const requiredQty = requiredProducts[inv.product];
-
-					// Consultar stock comprometido en órdenes PENDING (order_status = 1) o APPROVED válidas
-					const pendingLines = await this._orderLines.getAll(
+				if (productIds.length > 0) {
+					// Bloqueo pesimista (FOR UPDATE)
+					const inventories = await this._inventories.getAll(
 						{
 							count: false,
-							relations: [
-								{
-									association: '_Orders',
-									required: true,
-									where: { [Ops.and]: [{ order_status: [1] }] },
-								},
-							],
-							operation: { transaction },
+							order: [['product', 'ASC']],
+							operation: { transaction, lock: transaction.LOCK.UPDATE },
 						},
-						{ product: inv.product },
+						{
+							cinema: quoteData.cinema,
+							product: productIds,
+						},
 					);
 
-					let pendingQty = 0;
-					for (const line of pendingLines) pendingQty += line.quantity;
+					if (inventories.length !== productIds.length)
+						throw new NotFoundError('Uno o más productos no existen en el inventario de esta sucursal.');
 
-					// Fórmula maestra de negocio: Stock Físico - Stock Mínimo de Seguridad - Stock Reservado
-					const availableStock = inv.stock - inv.minimum_stock - pendingQty;
+					for (const inv of inventories) {
+						const requiredQty = requiredProducts[inv.product];
 
-					if (availableStock < requiredQty)
-						throw new ConflictError(
-							`Inventario insuficiente para producto ID ${inv.product}. Disponible real: ${Math.max(0, availableStock)}`,
+						// Consultar stock comprometido en órdenes PENDING (order_status = 1) o APPROVED válidas
+						const pendingLines = await this._orderLines.getAll(
+							{
+								count: false,
+								relations: [
+									{
+										association: '_Orders',
+										required: true,
+										where: { [Ops.and]: [{ order_status: [1] }] },
+									},
+								],
+								operation: { transaction },
+							},
+							{ product: inv.product },
 						);
+
+						let pendingQty = 0;
+						for (const line of pendingLines) pendingQty += line.quantity;
+
+						// Fórmula maestra de negocio: Stock Físico - Stock Mínimo de Seguridad - Stock Reservado
+						const availableStock = inv.stock - inv.minimum_stock - pendingQty;
+
+						if (availableStock < requiredQty)
+							throw new ConflictError(
+								`Inventario insuficiente para producto ID ${inv.product}. Disponible real: ${Math.max(0, availableStock)}`,
+							);
+					}
 				}
-			}
 
-			let subtotalBase = 0;
-			let taxesBase = 0;
+				let subtotalBase = 0;
+				let taxesBase = 0;
 
-			const exchangeRateValue = Number(quoteData.exchange_rates?.rate || 1);
-			const exchangeRateId = quoteData.exchange_rates?.id || 1;
-			const orderTaxesCollector: Record<number, { rate: number; amount: number }> = {};
+				const exchangeRateValue = Number(quoteData.exchange_rates?.rate || 1);
+				const exchangeRateId = quoteData.exchange_rates?.id || 1;
+				const orderTaxesCollector: Record<number, { rate: number; amount: number }> = {};
 
-			// Traer reglas activas para el cine
-			const activeModifiers = await this._priceModifiers.getAll(
-				{ count: false, operation: { transaction } },
-				{ cinema: [quoteData.cinema, null] },
-			);
-			const activeTaxes = await this._taxRules.getAll(
-				{ count: false, relations: [{ association: '_Taxes' }], operation: { transaction } },
-				{ cinema: [quoteData.cinema, null] },
-			);
+				// Traer reglas activas para el cine
+				const activeModifiers = await this._priceModifiers.getAll(
+					{ count: false, operation: { transaction } },
+					{ cinema: [quoteData.cinema, null] },
+				);
+				const activeTaxes = await this._taxRules.getAll(
+					{ count: false, relations: [{ association: '_Taxes' }], operation: { transaction } },
+					{ cinema: [quoteData.cinema, null] },
+				);
 
-			// Cálculos Confitería
-			if (hasConcessions) {
-				for (const item of concessions) {
-					const basePrice =
-						item.line_type === 1
-							? Number((await this._products.getById(item.product, { transaction })).price)
-							: Number((await this._combos.getById(item.combo, { transaction })).price);
+				// Cálculos Confitería
+				if (hasConcessions) {
+					for (const item of concessions) {
+						const basePrice =
+							item.line_type === 1
+								? Number((await this._products.getById(item.product, { transaction })).price)
+								: Number((await this._combos.getById(item.combo, { transaction })).price);
 
-					let finalUnitPrice = basePrice;
+						let finalUnitPrice = basePrice;
 
-					// Aplicar Modificadores (Scope 2: Confitería)
-					const modifiers = activeModifiers.filter(
-						(m: any) =>
-							m.modifier_scope === 2 &&
-							(m.product === item.product || m.combo === item.combo || m.product === null),
-					);
-					item.appliedModifiers = [];
-					for (const mod of modifiers) {
-						const opType = (await (Database.repository('main', 'operation-types') as any).getById(
-							mod.operation_type,
-							{ transaction },
-						)) as any;
-						const modValue = mod.is_percentage ? basePrice * (Number(mod.value) / 100) : Number(mod.value);
-						const netChange = opType.is_increment ? modValue : -modValue;
-						finalUnitPrice += netChange;
-						item.appliedModifiers.push({
-							price_modifier: mod.id,
-							applied_amount_base_currency: netChange * item.quantity * exchangeRateValue,
-						});
-					}
-
-					finalUnitPrice = Math.max(0, finalUnitPrice);
-					subtotalBase += finalUnitPrice * item.quantity;
-
-					// Aplicar Impuestos
-					const itemTaxes = activeTaxes.filter(
-						(t: any) =>
-							t.tax_scope === 2 &&
-							(t.product === item.product || t.combo === item.combo || t.product === null),
-					);
-					for (const rule of itemTaxes) {
-						const taxAmount = finalUnitPrice * item.quantity * (Number(rule.applied_rate) / 100);
-						taxesBase += taxAmount;
-						if (!orderTaxesCollector[rule.tax])
-							orderTaxesCollector[rule.tax] = { rate: Number(rule.applied_rate), amount: 0 };
-						orderTaxesCollector[rule.tax].amount += taxAmount * exchangeRateValue;
-					}
-
-					item.originalPrice = basePrice;
-					item.finalPrice = finalUnitPrice;
-				}
-			}
-
-			// Cálculos Boletos
-			if (hasTickets) {
-				for (const ticket of tickets) {
-					const bookingDb = (await (Database.repository('main', 'room-bookings') as any).getById(
-						ticket.booking,
-						{ transaction, relations: [{ association: '_Showtimes' }] },
-					)) as any;
-					const basePrice = bookingDb._Showtimes ? Number(bookingDb._Showtimes?.price || 0) : 0; // Asumiendo precio en subclase
-					let finalUnitPrice = basePrice;
-
-					// Aplicar Modificadores (Scope 1: Boletería)
-					const modifiers = activeModifiers.filter((m: any) => m.modifier_scope === 1);
-					ticket.appliedModifiers = [];
-					for (const mod of modifiers) {
-						const opType = (await (Database.repository('main', 'operation-types') as any).getById(
-							mod.operation_type,
-							{ transaction },
-						)) as any;
-						const modValue = mod.is_percentage ? basePrice * (Number(mod.value) / 100) : Number(mod.value);
-						const netChange = opType.is_increment ? modValue : -modValue;
-						finalUnitPrice += netChange;
-						ticket.appliedModifiers.push({
-							price_modifier: mod.id,
-							applied_amount_base_currency: netChange * exchangeRateValue,
-						});
-					}
-
-					finalUnitPrice = Math.max(0, finalUnitPrice);
-					subtotalBase += finalUnitPrice;
-
-					// Aplicar Impuestos
-					const ticketTaxes = activeTaxes.filter((t: any) => t.tax_scope === 1);
-					for (const rule of ticketTaxes) {
-						const taxAmount = finalUnitPrice * (Number(rule.applied_rate) / 100);
-						taxesBase += taxAmount;
-						if (!orderTaxesCollector[rule.tax])
-							orderTaxesCollector[rule.tax] = { rate: Number(rule.applied_rate), amount: 0 };
-						orderTaxesCollector[rule.tax].amount += taxAmount * exchangeRateValue;
-					}
-
-					ticket.originalPrice = basePrice;
-					ticket.finalPrice = finalUnitPrice;
-				}
-			}
-
-			// Convertir a moneda base usando la tasa de cambio congelada
-			const totalBase = (subtotalBase + taxesBase) * exchangeRateValue;
-
-			// Crear Orden PENDIENTE
-			createdOrder = await this._orders.create(
-				{
-					customer: session.userId,
-					cinema: quoteData.cinema,
-					system_base_currency: quoteData.exchange_rates?.currency || 1,
-					subtotal_base_currency: subtotalBase * exchangeRateValue,
-					tax_amount_base_currency: taxesBase * exchangeRateValue,
-					total_amount_base_currency: totalBase,
-					generated_points: Math.floor(totalBase), // Regla básica de CinePuntos
-					order_status: 1, // PENDING
-				},
-				{ transaction },
-			);
-
-			// Guardar Impuestos Recolectados
-			const taxesToInsert = Object.keys(orderTaxesCollector).map((taxId) => ({
-				order: createdOrder.id,
-				tax: Number(taxId),
-				applied_rate: orderTaxesCollector[Number(taxId)].rate,
-				tax_amount_base_currency: orderTaxesCollector[Number(taxId)].amount,
-			}));
-			if (taxesToInsert.length > 0) {
-				await this._orderTaxes.bulkCreate(taxesToInsert, { transaction });
-			}
-
-			// Líneas de Confitería
-			if (hasConcessions) {
-				const linesToInsert = concessions.map((concession: any) => ({
-					order: createdOrder.id,
-					line_type: concession.line_type,
-					product: concession.product || null,
-					combo: concession.combo || null,
-					quantity: concession.quantity,
-					original_unit_price: concession.originalPrice,
-					unit_price: concession.finalPrice,
-					quoted_exchange_rate: exchangeRateId,
-				}));
-
-				const createdLines = await this._orderLines.bulkCreate(linesToInsert, { transaction });
-
-				const modifiersToInsert: any[] = [];
-				for (let i = 0; i < concessions.length; i++) {
-					const concession = concessions[i];
-					const createdLine = createdLines[i];
-
-					if (concession.appliedModifiers && concession.appliedModifiers.length > 0) {
-						for (const mod of concession.appliedModifiers) {
-							modifiersToInsert.push({
-								order: createdOrder.id,
-								order_line: createdLine.id,
-								price_modifier: mod.price_modifier,
-								applied_amount_base_currency: mod.applied_amount_base_currency,
+						// Aplicar Modificadores (Scope 2: Confitería)
+						const modifiers = activeModifiers.filter(
+							(m: any) =>
+								m.modifier_scope === 2 &&
+								(m.product === item.product || m.combo === item.combo || m.product === null),
+						);
+						item.appliedModifiers = [];
+						for (const mod of modifiers) {
+							const opType = (await (Database.repository('main', 'operation-types') as any).getById(
+								mod.operation_type,
+								{ transaction },
+							)) as any;
+							const modValue = mod.is_percentage
+								? basePrice * (Number(mod.value) / 100)
+								: Number(mod.value);
+							const netChange = opType.is_increment ? modValue : -modValue;
+							finalUnitPrice += netChange;
+							item.appliedModifiers.push({
+								price_modifier: mod.id,
+								applied_amount_base_currency: netChange * item.quantity * exchangeRateValue,
 							});
 						}
+
+						finalUnitPrice = Math.max(0, finalUnitPrice);
+						subtotalBase += finalUnitPrice * item.quantity;
+
+						// Aplicar Impuestos
+						const itemTaxes = activeTaxes.filter(
+							(t: any) =>
+								t.tax_scope === 2 &&
+								(t.product === item.product || t.combo === item.combo || t.product === null),
+						);
+						for (const rule of itemTaxes) {
+							const taxAmount = finalUnitPrice * item.quantity * (Number(rule.applied_rate) / 100);
+							taxesBase += taxAmount;
+							if (!orderTaxesCollector[rule.tax])
+								orderTaxesCollector[rule.tax] = { rate: Number(rule.applied_rate), amount: 0 };
+							orderTaxesCollector[rule.tax].amount += taxAmount * exchangeRateValue;
+						}
+
+						item.originalPrice = basePrice;
+						item.finalPrice = finalUnitPrice;
 					}
 				}
 
-				if (modifiersToInsert.length > 0) {
-					await this._appliedPriceModifiers.bulkCreate(modifiersToInsert, { transaction });
-				}
-			}
+				// Cálculos Boletos
+				if (hasTickets) {
+					for (const ticket of tickets) {
+						const bookingDb = (await (Database.repository('main', 'room-bookings') as any).getById(
+							ticket.booking,
+							{ transaction, relations: [{ association: '_Showtimes' }] },
+						)) as any;
+						const basePrice = bookingDb._Showtimes ? Number(bookingDb._Showtimes?.price || 0) : 0; // Asumiendo precio en subclase
+						let finalUnitPrice = basePrice;
 
-			// Líneas de Boletos
-			if (hasTickets) {
-				const ticketsToInsert = tickets.map((ticket: any) => ({
-					order: createdOrder.id,
-					booking: ticket.booking,
-					seat: ticket.seat,
-					original_price: ticket.originalPrice,
-					price: ticket.finalPrice,
-					quoted_exchange_rate: exchangeRateId,
-					qr_code: randomUUID(), // Temporal, se reemplazará por JWT al confirmar pago
-				}));
-
-				const createdTickets = await this._tickets.bulkCreate(ticketsToInsert, { transaction });
-
-				const modifiersToInsert: any[] = [];
-				for (let i = 0; i < tickets.length; i++) {
-					const ticket = tickets[i];
-					const createdTicket = createdTickets[i];
-
-					if (ticket.appliedModifiers && ticket.appliedModifiers.length > 0) {
-						for (const mod of ticket.appliedModifiers) {
-							modifiersToInsert.push({
-								order: createdOrder.id,
-								ticket: createdTicket.id,
-								price_modifier: mod.price_modifier,
-								applied_amount_base_currency: mod.applied_amount_base_currency,
+						// Aplicar Modificadores (Scope 1: Boletería)
+						const modifiers = activeModifiers.filter((m: any) => m.modifier_scope === 1);
+						ticket.appliedModifiers = [];
+						for (const mod of modifiers) {
+							const opType = (await (Database.repository('main', 'operation-types') as any).getById(
+								mod.operation_type,
+								{ transaction },
+							)) as any;
+							const modValue = mod.is_percentage
+								? basePrice * (Number(mod.value) / 100)
+								: Number(mod.value);
+							const netChange = opType.is_increment ? modValue : -modValue;
+							finalUnitPrice += netChange;
+							ticket.appliedModifiers.push({
+								price_modifier: mod.id,
+								applied_amount_base_currency: netChange * exchangeRateValue,
 							});
 						}
+
+						finalUnitPrice = Math.max(0, finalUnitPrice);
+						subtotalBase += finalUnitPrice;
+
+						// Aplicar Impuestos
+						const ticketTaxes = activeTaxes.filter((t: any) => t.tax_scope === 1);
+						for (const rule of ticketTaxes) {
+							const taxAmount = finalUnitPrice * (Number(rule.applied_rate) / 100);
+							taxesBase += taxAmount;
+							if (!orderTaxesCollector[rule.tax])
+								orderTaxesCollector[rule.tax] = { rate: Number(rule.applied_rate), amount: 0 };
+							orderTaxesCollector[rule.tax].amount += taxAmount * exchangeRateValue;
+						}
+
+						ticket.originalPrice = basePrice;
+						ticket.finalPrice = finalUnitPrice;
 					}
 				}
 
-				if (modifiersToInsert.length > 0) {
-					await this._appliedPriceModifiers.bulkCreate(modifiersToInsert, { transaction });
+				// Convertir a moneda base usando la tasa de cambio congelada
+				const totalBase = (subtotalBase + taxesBase) * exchangeRateValue;
+
+				// Crear Orden PENDIENTE
+				createdOrder = await this._orders.create(
+					{
+						customer: session.userId,
+						cinema: quoteData.cinema,
+						system_base_currency: quoteData.exchange_rates?.currency || 1,
+						subtotal_base_currency: subtotalBase * exchangeRateValue,
+						tax_amount_base_currency: taxesBase * exchangeRateValue,
+						total_amount_base_currency: totalBase,
+						generated_points: Math.floor(totalBase), // Regla básica de CinePuntos
+						order_status: 1, // PENDING
+					},
+					{ transaction },
+				);
+
+				// Guardar Impuestos Recolectados
+				const taxesToInsert = Object.keys(orderTaxesCollector).map((taxId) => ({
+					order: createdOrder.id,
+					tax: Number(taxId),
+					applied_rate: orderTaxesCollector[Number(taxId)].rate,
+					tax_amount_base_currency: orderTaxesCollector[Number(taxId)].amount,
+				}));
+				if (taxesToInsert.length > 0) {
+					await this._orderTaxes.bulkCreate(taxesToInsert, { transaction });
+				}
+
+				// Líneas de Confitería
+				if (hasConcessions) {
+					const linesToInsert = concessions.map((concession: any) => ({
+						order: createdOrder.id,
+						line_type: concession.line_type,
+						product: concession.product || null,
+						combo: concession.combo || null,
+						quantity: concession.quantity,
+						original_unit_price: concession.originalPrice,
+						unit_price: concession.finalPrice,
+						quoted_exchange_rate: exchangeRateId,
+					}));
+
+					const createdLines = await this._orderLines.bulkCreate(linesToInsert, { transaction });
+
+					const modifiersToInsert: any[] = [];
+					for (let i = 0; i < concessions.length; i++) {
+						const concession = concessions[i];
+						const createdLine = createdLines[i];
+
+						if (concession.appliedModifiers && concession.appliedModifiers.length > 0) {
+							for (const mod of concession.appliedModifiers) {
+								modifiersToInsert.push({
+									order: createdOrder.id,
+									order_line: createdLine.id,
+									price_modifier: mod.price_modifier,
+									applied_amount_base_currency: mod.applied_amount_base_currency,
+								});
+							}
+						}
+					}
+
+					if (modifiersToInsert.length > 0) {
+						await this._appliedPriceModifiers.bulkCreate(modifiersToInsert, { transaction });
+					}
+				}
+
+				// Líneas de Boletos
+				if (hasTickets) {
+					const ticketsToInsert = tickets.map((ticket: any) => ({
+						order: createdOrder.id,
+						booking: ticket.booking,
+						seat: ticket.seat,
+						original_price: ticket.originalPrice,
+						price: ticket.finalPrice,
+						quoted_exchange_rate: exchangeRateId,
+						qr_code: randomUUID(), // Temporal, se reemplazará por JWT al confirmar pago
+					}));
+
+					const createdTickets = await this._tickets.bulkCreate(ticketsToInsert, { transaction });
+
+					const modifiersToInsert: any[] = [];
+					for (let i = 0; i < tickets.length; i++) {
+						const ticket = tickets[i];
+						const createdTicket = createdTickets[i];
+
+						if (ticket.appliedModifiers && ticket.appliedModifiers.length > 0) {
+							for (const mod of ticket.appliedModifiers) {
+								modifiersToInsert.push({
+									order: createdOrder.id,
+									ticket: createdTicket.id,
+									price_modifier: mod.price_modifier,
+									applied_amount_base_currency: mod.applied_amount_base_currency,
+								});
+							}
+						}
+					}
+
+					if (modifiersToInsert.length > 0) {
+						await this._appliedPriceModifiers.bulkCreate(modifiersToInsert, { transaction });
+					}
+				}
+			});
+
+			// 4. Disparar el Delayed Job para limpiar órdenes abandonadas (10 minutos)
+			QueueProvider.getInstance()
+				.add(
+					'order-expiration-queue',
+					'expire-pending-order',
+					{ orderId: createdOrder.id, queueId: queue_id },
+					{ delay: 600_000 },
+				)
+				.catch((err) => console.error(err));
+
+			// 5. Actualizar el estado de la cotización en Redis a 'en proceso' y extender TTL a 10 min
+			quoteData.status = 'en proceso';
+			const ttl = await this._redis.ttl(userQueueKey);
+			if (ttl > 0) {
+				await this._redis.set(userQueueKey, JSON.stringify(quoteData), 'EX', ttl);
+			}
+
+			// Emitir seat_sold_final a las salas correspondientes
+			if (hasTickets) {
+				const uniqueBookings = [...new Set(tickets.map((t: any) => t.booking))];
+				for (const bookingId of uniqueBookings) {
+					RealtimeService.emitToRoom(`booking_${bookingId}`, 'seat_sold_final', {
+						seats: tickets.filter((t: any) => t.booking === bookingId).map((t: any) => t.seat),
+					});
 				}
 			}
-		});
 
-		// 4. Disparar el Delayed Job para limpiar órdenes abandonadas (10 minutos)
-		QueueProvider.getInstance()
-			.add(
-				'order-expiration-queue',
-				'expire-pending-order',
-				{ orderId: createdOrder.id, queueId: queue_id },
-				{ delay: 600_000 },
-			)
-			.catch((err) => console.error(err));
-
-		// 5. Actualizar el estado de la cotización en Redis a 'en proceso'
-		quoteData.status = 'en proceso';
-		const ttl = await this._redis.ttl(userQueueKey);
-		if (ttl > 0) {
-			await this._redis.set(userQueueKey, JSON.stringify(quoteData), 'EX', ttl);
+			return {
+				order_id: createdOrder.id,
+				subtotal_base_currency: createdOrder.subtotal_base_currency,
+				total_amount_base_currency: createdOrder.total_amount_base_currency,
+			};
+		} catch (error) {
+			quoteData.status = 'pending';
+			const currentTtl = await this._redis.ttl(userQueueKey);
+			if (currentTtl > 0) {
+				await this._redis.set(userQueueKey, JSON.stringify(quoteData), 'EX', currentTtl);
+			}
+			throw error;
 		}
-
-		return {
-			order_id: createdOrder.id,
-			subtotal_base_currency: createdOrder.subtotal_base_currency,
-			total_amount_base_currency: createdOrder.total_amount_base_currency,
-		};
 	}
 
 	async registerPayment(body: any, session: any) {
@@ -455,23 +489,50 @@ export class OrdersService extends BaseService {
 		let orderData: any = null;
 
 		await this._orders.transaction(async (transaction: Transaction) => {
-			const order = await this._orders.getOne(
+			// Lock the order first without relations to avoid PostgreSQL FOR UPDATE on LEFT JOIN errors
+			const lockedOrder = await this._orders.getOne(
 				{ id: order_id },
 				{
 					transaction,
 					lock: transaction.LOCK.UPDATE,
+				},
+			);
+			if (!lockedOrder) throw new NotFoundError('Orden no encontrada');
+			if (lockedOrder.order_status !== 1) throw new BadRequestError('La orden no admite pagos en este momento');
+
+			// Then fetch the order with all necessary relations
+			const order = await this._orders.getOne(
+				{ id: order_id },
+				{
+					transaction,
 					relations: [
-						{ association: '_OrderLines', required: false },
+						{ association: '_Cinemas', required: false },
+						{
+							association: '_OrderLines',
+							required: false,
+							nested: [
+								{ association: '_Products', required: false },
+								{ association: '_Combos', required: false },
+							],
+						},
 						{
 							association: '_Tickets',
 							required: false,
-							include: [{ association: '_RoomBookings', required: false }],
+							nested: [
+								{
+									association: '_RoomBookings',
+									required: false,
+									nested: [
+										{ association: '_Movies', required: false },
+										{ association: '_Rooms', required: false },
+									],
+								},
+								{ association: '_Seats', required: false },
+							],
 						},
 					],
 				},
 			);
-			if (!order) throw new NotFoundError('Order not found');
-			if (order.order_status !== 1) throw new BadRequestError('Order is not in pending status');
 
 			// Calculate amount in base currency using exchange rates
 			let exchangeRateValue = 1;
@@ -509,9 +570,9 @@ export class OrdersService extends BaseService {
 
 			if (totalPaid >= Number(order.total_amount_base_currency)) {
 				// Generación y Expiración Dinámica del JWT (Regla 4)
-				const secret = AppConfig.load().security.jwtSecret;
-				const tickets = (order as any)._Tickets;
-				const concessions = (order as any)._OrderLines;
+				const secret = AppConfig.load().security.jwtCommonSecret;
+				const tickets = (order as any)._Tickets || [];
+				const concessions = (order as any)._OrderLines || [];
 
 				const hasTickets = tickets && tickets.length > 0;
 				const hasConcessions = concessions && concessions.length > 0;
@@ -534,7 +595,51 @@ export class OrdersService extends BaseService {
 					expiresInSeconds = Math.max(expiresInSeconds, Math.max(c_exp - Math.floor(Date.now() / 1000), 0));
 				}
 
-				const payload: any = { order_id };
+				const cinemaName = (order as any)._Cinemas?.name || 'Cine Central';
+				let bkg: any = undefined;
+
+				if (hasTickets) {
+					const firstTicket = tickets[0];
+					const roomBooking = firstTicket._RoomBookings;
+					let dateFormatted = '';
+					if (roomBooking?.start_time) {
+						const d = new Date(roomBooking.start_time);
+						dateFormatted =
+							d.getFullYear() +
+							'-' +
+							String(d.getMonth() + 1).padStart(2, '0') +
+							'-' +
+							String(d.getDate()).padStart(2, '0') +
+							' ' +
+							String(d.getHours()).padStart(2, '0') +
+							':' +
+							String(d.getMinutes()).padStart(2, '0');
+					}
+					bkg = {
+						title: roomBooking?._Movies?.title || roomBooking?.name || 'Evento',
+						room: roomBooking?._Rooms?.name || 'Sala',
+						date: dateFormatted,
+						sts: tickets.map(
+							(t: any) => `${t._Seats?.row_identifier || ''}-${t._Seats?.column_number || ''}`,
+						),
+					};
+				}
+
+				let cnc: any[] | undefined = undefined;
+				if (hasConcessions) {
+					cnc = concessions.map((c: any) => ({
+						n: c.line_type === 1 ? c._Products?.name : c._Combos?.name,
+						q: c.quantity,
+					}));
+				}
+
+				const payload: any = {
+					sub: order_id,
+					cin: cinemaName,
+				};
+				if (bkg) payload.bkg = bkg;
+				if (cnc) payload.cnc = cnc;
+
 				if (t_exp) payload.t_exp = t_exp;
 				if (c_exp) payload.c_exp = c_exp;
 
@@ -549,8 +654,14 @@ export class OrdersService extends BaseService {
 		});
 
 		if (orderData && orderData.order_status === 2) {
-			// Trigger WS and Email
-			// RealtimeService.emitToRoom(...)
+			// Liberar la sesión del usuario para permitir nuevas compras
+			const userQueueKey = `queue:usr:${session.userId}`;
+			await this._redis.del(userQueueKey);
+
+			RealtimeService.emitToRoom(`order_${order_id}`, 'payment_success', {
+				orderId: order_id,
+				qrCode: orderData.qr_code,
+			});
 			QueueProvider.getInstance()
 				.add('order-email-queue', 'send-order-email', {
 					orderId: order_id,
@@ -560,7 +671,7 @@ export class OrdersService extends BaseService {
 				.catch((err) => console.error(err));
 		}
 
-		return { success: true, status: orderData ? 'PAID' : 'PENDING' };
+		return orderData;
 	}
 
 	async getOrderById(id: number) {
@@ -588,7 +699,7 @@ export class OrdersService extends BaseService {
 
 	async getTicketsByQr(qrCode: string) {
 		const order = await this._orders.getOne({ qr_code: qrCode });
-		if (!order) throw new NotFoundError('Invalid QR code');
+		if (!order) throw new NotFoundError('Código QR inválido');
 
 		// Regla 1: Usar relations en lugar de include
 		const tickets = await this._tickets.getAll(
@@ -608,32 +719,32 @@ export class OrdersService extends BaseService {
 		const { validation_type } = body; // 1 = CONCESSIONS, 2 = TICKETS
 
 		// Regla 5: Validación Condicional Estricta
-		const secret = AppConfig.load().security.jwtSecret;
+		const secret = AppConfig.load().security.jwtCommonSecret;
 		let payload: any;
 		try {
 			payload = JWTUtil.verifyToken(qrCode, secret);
 		} catch (error) {
-			throw new BadRequestError('Invalid or expired QR code token');
+			throw new BadRequestError('Código QR inválido o expirado');
 		}
 
 		if (validation_type === 1) {
 			if (!payload.c_exp || Math.floor(Date.now() / 1000) > payload.c_exp) {
-				throw new BadRequestError('Concessions QR has expired or is invalid');
+				throw new BadRequestError('Código QR de confetería expirado o inválido');
 			}
 		} else if (validation_type === 2) {
 			if (!payload.t_exp || Math.floor(Date.now() / 1000) > payload.t_exp) {
-				throw new BadRequestError('Tickets QR has expired or is invalid');
+				throw new BadRequestError('Código QR de boletos expirado o inválido');
 			}
 		}
 
 		const order = await this._orders.getOne({ qr_code: qrCode });
-		if (!order) throw new NotFoundError('Invalid QR code');
+		if (!order) throw new NotFoundError('Código QR inválido');
 
 		if (validation_type === 1) {
-			if (order.concessions_validated_at) throw new ConflictError('Concessions already validated');
+			if (order.concessions_validated_at) throw new ConflictError('Confitería ya validada');
 			await this._orders.update({ id: order.id }, { concessions_validated_at: new Date() });
 		} else if (validation_type === 2) {
-			if (order.tickets_validated_at) throw new ConflictError('Tickets already validated');
+			if (order.tickets_validated_at) throw new ConflictError('Boletos ya validados');
 			await this._orders.update({ id: order.id }, { tickets_validated_at: new Date() });
 		} else {
 			throw new ValidationError('Invalid validation type', []);
@@ -643,14 +754,11 @@ export class OrdersService extends BaseService {
 	}
 
 	async handleQuoteExpiration(queueId: string, userId: number) {
-		// Emit WS event
 		RealtimeService.emitToRoom(`queue_${queueId}`, 'quote_expired', { queueId });
 	}
 
 	async handleSeatExpiration(showtimeId: number, seatId: number, queueId: string) {
-		// Emit WS event
 		RealtimeService.emitToRoom(`showtime_${showtimeId}`, 'seat_unlocked', { seatId, showtimeId });
-		// Also emit to the user's private queue so they know they lost it
 		if (queueId) RealtimeService.emitToRoom(`queue_${queueId}`, 'seat_lock_expired', { seatId, showtimeId });
 	}
 
@@ -659,18 +767,38 @@ export class OrdersService extends BaseService {
 			const order = await this._orders.getOne({ id: orderId }, { transaction, lock: transaction.LOCK.UPDATE });
 
 			if (order && order.order_status === 1) {
-				// If still PENDING
-				// Cancel order
-				await this._orders.update({ id: orderId }, { order_status: 3 }, { transaction }); // CANCELLED status (assuming 3 is cancelled)
-
-				// Regla 6: Lógica Compensatoria Real (Soft Delete en tickets)
+				await this._orders.update({ id: orderId }, { order_status: 3 }, { transaction }); // Cancelado
 				await this._tickets.delete({ order: orderId }, { transaction });
 
-				Logger.info(`[OrdersService] Orden ${orderId} expiró y fue cancelada.`);
-
-				// Notify frontend
+				Logger.info(` Orden ${orderId} expiró y fue cancelada.`);
 				RealtimeService.emitToRoom(`queue_${queueId}`, 'order_expired', { orderId });
 			}
 		});
+	}
+
+	async lockSeat(bookingId: number, seatId: number, userId: number, socketId?: string) {
+		const lockKey = `lock:booking:${bookingId}:seat:${seatId}`;
+		const success = await this._redis.set(lockKey, String(userId), 'EX', 480, 'NX');
+
+		if (!success) throw new ConflictError('El asiento ya se encuentra bloqueado por otro usuario.');
+
+		if (socketId) RealtimeService.emitToSocket(socketId, 'seat_lock_success', { bookingId, seatId });
+
+		RealtimeService.emitToRoom(`booking_${bookingId}`, 'seat_locked_by_other', { bookingId, seatId });
+
+		return true;
+	}
+
+	async unlockSeat(bookingId: number, seatId: number, userId: number) {
+		const lockKey = `lock:booking:${bookingId}:seat:${seatId}`;
+		const lockedUserId = await this._redis.get(lockKey);
+
+		if (lockedUserId === String(userId)) {
+			await this._redis.del(lockKey);
+			RealtimeService.emitToRoom(`booking_${bookingId}`, 'seat_unlocked', { bookingId, seatId });
+			return true;
+		}
+
+		return false;
 	}
 }
