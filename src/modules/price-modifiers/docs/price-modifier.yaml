@@ -1,4 +1,105 @@
 /price-modifiers/{id}:
+    get:
+        summary: Get Price Modifier by Id
+        description: Retrieve a single price modifier rule by its identifier.
+        tags:
+            - Price Modifiers
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Price modifier retrieved successfully
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                data:
+                                    type: object
+                                    properties:
+                                        id:
+                                            type: integer
+                                        description:
+                                            type: string
+                                        modifier_scope:
+                                            type: integer
+                                        operation_type:
+                                            type: integer
+                                        is_percentage:
+                                            type: boolean
+                                        value:
+                                            type: number
+                                            audience_category:
+                                                type: integer
+                                                nullable: true
+                                            week_day:
+                                                type: integer
+                                                nullable: true
+                                            seat_category:
+                                                type: integer
+                                                nullable: true
+                                            projection_type:
+                                                type: integer
+                                                nullable: true
+                                            product_category:
+                                                type: integer
+                                                nullable: true
+                                            product:
+                                                type: integer
+                                                nullable: true
+                                            combo:
+                                                type: integer
+                                                nullable: true
+                                            cinema:
+                                                type: integer
+                                                nullable: true
+                                            start_date:
+                                                type: string
+                                                format: date
+                                                nullable: true
+                                            end_date:
+                                                type: string
+                                                format: date
+                                                nullable: true
+                                            start_time:
+                                                type: string
+                                                nullable: true
+                                            end_time:
+                                                type: string
+                                                nullable: true
+                                            line_type:
+                                                type: integer
+                                                nullable: true
+                                            booking_type:
+                                                type: integer
+                                                nullable: true
+                                            movie:
+                                                type: integer
+                                                nullable: true
+                                            room_type:
+                                                type: integer
+                                                nullable: true
+                                            currency:
+                                                type: integer
+                                                nullable: true
+                                            target_currency:
+                                                type: integer
+                                                nullable: true
+                                            target_currency_condition:
+                                                type: boolean
+                                                nullable: true
+            '401':
+                description: Unauthorized
+            '404':
+                description: Price modifier not found
+            '500':
+                description: Internal server error
     put:
         summary: Update Price Modifier
         description: Update the description, value, percentage flag or operation type of an existing price modifier. Scope and qualifier fields cannot be changed after creation.

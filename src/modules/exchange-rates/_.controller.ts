@@ -29,11 +29,7 @@ class ExchangeRatesController extends ControllerBase {
 
 	async getExchangeRateHistoryByCurrency() {
 		const { currencyId } = this.getParams();
-		return ExchangeRatesService.getExchangeRateHistoryByCurrency(
-			Number(currencyId),
-			this.getQueryFilters(),
-			this.getQuery(),
-		);
+		return ExchangeRatesService.getExchangeRateHistoryByCurrency(Number(currencyId), this.getQueryFilters(), this.getQuery());
 	}
 }
 

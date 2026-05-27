@@ -35,6 +35,8 @@ module.exports = {
 			{ code: 'ROOMS', description: 'Salas' },
 			{ code: 'SEATS', description: 'Asientos' },
 			{ code: 'ROOM-EVENTS', description: 'Eventos alternativos' },
+			{ code: 'EXCHANGE-RATES', description: 'Tipos de cambio' },
+			{ code: 'PRICE-MODIFIERS', description: 'Reglas de precios' },
 		];
 		await queryInterface.bulkInsert('resources', resources, { ignoreDuplicates: true });
 
@@ -121,6 +123,17 @@ module.exports = {
 			['CRUD', 'CREATE', 'ROOM-EVENTS'],
 			['CRUD', 'UPDATE', 'ROOM-EVENTS'],
 			['CRUD', 'DELETE', 'ROOM-EVENTS'],
+
+			// Exchange Rates
+			['CRUD', 'READ', 'EXCHANGE-RATES'],
+			['CRUD', 'CREATE', 'EXCHANGE-RATES'],
+			['CRUD', 'DELETE', 'EXCHANGE-RATES'],
+
+			// Price Modifiers
+			['CRUD', 'READ', 'PRICE-MODIFIERS'],
+			['CRUD', 'CREATE', 'PRICE-MODIFIERS'],
+			['CRUD', 'UPDATE', 'PRICE-MODIFIERS'],
+			['CRUD', 'DELETE', 'PRICE-MODIFIERS'],
 		];
 
 		const permissionValues = permissionList
