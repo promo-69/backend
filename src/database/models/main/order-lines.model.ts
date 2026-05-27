@@ -45,7 +45,7 @@ export default class OrderLinesModel extends SequelizeModelBase {
 			deleted_at: {
 				allowNull: true,
 				type: DataTypes.DATE,
-			}
+			},
 		};
 	}
 

@@ -34,18 +34,10 @@ export default class TicketsModel extends SequelizeModelBase {
 				allowNull: false,
 				type: DataTypes.INTEGER,
 			},
-			qr_code: {
-				allowNull: false,
-				type: DataTypes.STRING(500),
-			},
-			validation_time: {
-				allowNull: true,
-				type: DataTypes.DATE,
-			},
 			deleted_at: {
 				allowNull: true,
 				type: DataTypes.DATE,
-			}
+			},
 		};
 	}
 

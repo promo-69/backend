@@ -5,7 +5,7 @@ meta {
 }
 
 post {
-  url: {{baseUrl}}/api/v1/orders/checkout
+  url: {{baseUrl}}/orders/checkout
   body: json
   auth: bearer
 }
@@ -18,10 +18,12 @@ body:json {
   {
     "queue_id": "{{queueId}}",
     "concessions": [
-      { "line_type": 1, "product": 1, "quantity": 1 }
-    ],
-    "tickets": [
-      { "seat": 1, "showtime": 1 }
+      { "line_type": 1, "product": 1, "quantity": 1 },
+      { "line_type": 1, "product": 2, "quantity": 3 }
     ]
   }
+}
+
+vars:pre-request {
+  queueId: f921135f-7315-4a03-a110-2778cb14cdab
 }

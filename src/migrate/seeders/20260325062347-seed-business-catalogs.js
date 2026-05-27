@@ -191,8 +191,9 @@ module.exports = {
 			'order_statuses',
 			[
 				{ id: 1, description: 'Pendiente de Pago' },
-				{ id: 2, description: 'Pagada / Completada' },
+				{ id: 2, description: 'Pagada' },
 				{ id: 3, description: 'Cancelada' },
+				{ id: 4, description: 'Completada' },
 			],
 			{},
 		);
