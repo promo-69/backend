@@ -116,7 +116,7 @@ class BasicTablesService extends BaseService {
 
 		const { limit, offset } = filters.pagination;
 		const total = catalogs.length;
-		const data = catalogs.slice(offset, offset + limit);
+		const data = catalogs.slice(offset, offset + (limit ?? 0));
 
 		return {
 			data,

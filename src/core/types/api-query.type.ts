@@ -46,7 +46,7 @@ export type ApiQueryParams = QueryPaginationParams &
 export interface ProcessedQueryFilters {
 	pagination: {
 		offset: number;
-		limit: number;
+		limit?: number;
 	};
 	order: Array<[string, 'asc' | 'desc']>;
 	qc: Record<string, any>;
