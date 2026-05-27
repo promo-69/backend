@@ -1,0 +1,168 @@
+tags:
+  - name: Orders
+    description: "Operaciones transaccionales y de compra"
+paths:
+  /api/v1/orders/quote:
+    post:
+      summary: "Generar Cotización (Punto de inicio)"
+      description: "Genera un queue_id temporal bloqueando tasas de cambio"
+      tags:
+        - Orders
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - cinema
+              properties:
+                cinema:
+                  type: integer
+      responses:
+        '201':
+          description: "Cotización creada"
+  /api/v1/orders/checkout:
+    post:
+      summary: "Procesar Checkout"
+      description: "Verifica inventario físico y crea la orden PENDING"
+      tags:
+        - Orders
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - queue_id
+              properties:
+                queue_id:
+                  type: string
+                concessions:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      line_type:
+                        type: integer
+                      product:
+                        type: integer
+                      combo:
+                        type: integer
+                      quantity:
+                        type: integer
+      responses:
+        '201':
+          description: "Orden creada"
+  /api/v1/orders/payments:
+    post:
+      summary: "Registrar Pago"
+      description: "Registra pago para una orden PENDING"
+      tags:
+        - Orders
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - order_id
+                - payment_method
+                - amount
+                - currency
+              properties:
+                order_id:
+                  type: integer
+                payment_method:
+                  type: integer
+                amount:
+                  type: string
+                currency:
+                  type: integer
+                reference_number:
+                  type: string
+      responses:
+        '201':
+          description: "Pago registrado"
+  /api/v1/orders/{id}:
+    get:
+      summary: "Obtener Orden"
+      tags:
+        - Orders
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: "Detalle de orden"
+  /api/v1/orders/qr/{qrCode}/concessions:
+    get:
+      summary: "Ver dulcería de orden por QR"
+      tags:
+        - Orders
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: qrCode
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "Concesiones de la orden"
+  /api/v1/orders/qr/{qrCode}/tickets:
+    get:
+      summary: "Ver boletos de orden por QR"
+      tags:
+        - Orders
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: qrCode
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "Boletos de la orden"
+  /api/v1/orders/validate-qr/{qrCode}:
+    post:
+      summary: "Validar QR (Consumir beneficios)"
+      tags:
+        - Orders
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: qrCode
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - validation_type
+              properties:
+                validation_type:
+                  type: integer
+                  description: "1 = CONCESSIONS, 2 = TICKETS"
+      responses:
+        '200':
+          description: "Beneficio consumido"

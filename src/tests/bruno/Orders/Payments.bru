@@ -1,0 +1,25 @@
+meta {
+  name: Pay Order
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/orders/payments
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "order_id": 1,
+    "payment_method": 3,
+    "amount": "116.00",
+    "currency": 1,
+    "reference_number": "TX-123456"
+  }
+}

@@ -3,6 +3,8 @@ import { PasswordResetEmailTemplate } from '@templates/emails/password-reset.tem
 import { VerificationTokenEmailTemplate } from '@templates/emails/verification-token.template.js';
 import { WelcomeEmailTemplate } from '@templates/emails/welcome.template.js';
 
+import { OrderInvoiceEmailTemplate } from '../templates/emails/order-invoice.template.js';
+
 class EmailService {
 	private get provider() {
 		return EmailProvider.getInstance();
@@ -39,6 +41,14 @@ class EmailService {
 	async sendPasswordResetEmail(to: string, resetToken: string): Promise<boolean> {
 		const subject = `Restablecimiento de Contraseña`;
 		const html = PasswordResetEmailTemplate(resetToken);
+		return this.provider.sendMail(to, subject, html);
+	}
+	/**
+	 * Envía la factura de compra y el código QR
+	 */
+	async sendOrderInvoiceEmail(to: string, orderId: number, qrCode: string): Promise<boolean> {
+		const subject = `Factura de Compra #${orderId} - Cineflix`;
+		const html = OrderInvoiceEmailTemplate(orderId, qrCode);
 		return this.provider.sendMail(to, subject, html);
 	}
 }

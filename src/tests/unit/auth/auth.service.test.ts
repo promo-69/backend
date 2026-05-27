@@ -86,7 +86,7 @@ describe('AuthService Suite', () => {
 
 			mockUsers.getByEmail.mockResolvedValueOnce(fakeUserObj);
 
-			jest.spyOn(JWTUtil, 'generateToken').mockReturnValue('mocked_access_token');
+			jest.spyOn(JWTUtil, 'generateAccessToken').mockReturnValue('mocked_access_token');
 			jest.spyOn(JWTUtil, 'generateRefreshToken').mockReturnValue('mocked_refresh_token');
 			jest.spyOn(JWTUtil, 'decodeToken').mockReturnValue({ jti: 'test-jti', exp: 9999999999 });
 

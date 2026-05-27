@@ -1,0 +1,21 @@
+meta {
+  name: Validate QR
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/v1/orders/validate-qr/qr-code-abc-123
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "validation_type": 1
+  }
+}

@@ -1,5 +1,5 @@
 import { Database } from '@database/index.js';
-import { NotFoundError, ValidationError } from '@errors';
+import { ConflictError, NotFoundError, ValidationError } from '@errors';
 import { Transaction } from 'sequelize';
 
 export class SeatManagementService {
