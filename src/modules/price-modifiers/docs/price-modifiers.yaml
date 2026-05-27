@@ -1,4 +1,40 @@
 /price-modifiers:
+    get:
+        summary: List Price Modifiers
+        description: Retrieve a list of active price modifier rules.
+        tags:
+            - Price Modifiers
+        security:
+            - bearerAuth: []
+        responses:
+            '200':
+                description: Price modifiers retrieved successfully
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                data:
+                                    type: array
+                                    items:
+                                        type: object
+                                        properties:
+                                            id:
+                                                type: integer
+                                            description:
+                                                type: string
+                                            modifier_scope:
+                                                type: integer
+                                            operation_type:
+                                                type: integer
+                                            is_percentage:
+                                                type: boolean
+                                            value:
+                                                type: number
+            '401':
+                description: Unauthorized
+            '500':
+                description: Internal server error
     post:
         summary: Create Price Modifier
         description: |

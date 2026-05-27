@@ -58,7 +58,7 @@ export class PriceModifiersService extends BaseService {
 
 	// --- HU-OPERATIVA-14/15: Crear regla de precio ---
 	async createPriceModifier(body: CreatePriceModifierBody) {
-		const { description, modifierScope, operationType, isPercentage, value } = body;
+		const { description, modifierScope, operationType, isPercentage, value, weekDay } = body;
 
 		this.validateRequired({ description, modifierScope, operationType, isPercentage, value } as any, [
 			'description',
@@ -73,16 +73,19 @@ export class PriceModifiersService extends BaseService {
 
 		if (isPercentage && value > 100) throw new ValidationError('Un porcentaje no puede superar el 100%', ['value']);
 
+		if (weekDay !== undefined && weekDay !== null && (typeof weekDay !== 'number' || weekDay < 1 || weekDay > 7))
+			throw new ValidationError('weekDay debe ser un número entre 1 y 7', ['weekDay']);
+
 		this._validateScopeLogic(modifierScope, body);
 
-		await this._priceModifiers.create({
+		const createdModifier = await this._priceModifiers.create({
 			description,
 			modifier_scope: modifierScope,
 			operation_type: operationType,
 			is_percentage: isPercentage,
 			value,
 			audience_category: body.audienceCategory ?? null,
-			week_day: body.weekDay ?? null,
+			week_day: weekDay ?? null,
 			seat_category: body.seatCategory ?? null,
 			projection_type: body.projectionType ?? null,
 			product_category: body.productCategory ?? null,
@@ -90,7 +93,7 @@ export class PriceModifiersService extends BaseService {
 			combo: body.combo ?? null,
 		});
 
-		return null;
+		return createdModifier;
 	}
 
 	// --- HU-OPERATIVA-15 (Edición): Actualizar regla ---
@@ -124,6 +127,16 @@ export class PriceModifiersService extends BaseService {
 
 		await this._priceModifiers.update(id, updateData);
 		return null;
+	}
+
+	async listPriceModifiers() {
+		return this._priceModifiers.getAll({ count: false });
+	}
+
+	async getPriceModifierById(id: number) {
+		const modifier = await this._priceModifiers.getOne({ id });
+		if (!modifier) throw new NotFoundError('Regla de precio no encontrada');
+		return modifier;
 	}
 
 	// --- HU-OPERATIVA-14/15 (Desactivación): Soft delete ---
