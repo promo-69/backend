@@ -4,201 +4,203 @@ import { ConflictError, NotFoundError, ValidationError } from '@errors';
 import { Transaction, Op } from 'sequelize';
 
 export class SeatsService extends BaseService {
-    constructor() {
-        super();
-    }
+	constructor() {
+		super();
+	}
 
-    private get _seats() {
-        return Database.repository('main', 'seats') as any;
-    }
-    private get _rooms() {
-        return Database.repository('main', 'rooms') as any;
-    }
-    private get _tickets() {
-        return Database.repository('main', 'tickets') as any;
-    }
-    private get _showtimes() {
-        return Database.repository('main', 'showtimes') as any;
-    }
+	private get _seats() {
+		return Database.repository('main', 'seats') as any;
+	}
+	private get _rooms() {
+		return Database.repository('main', 'rooms') as any;
+	}
+	private get _tickets() {
+		return Database.repository('main', 'tickets') as any;
+	}
+	private get _showtimes() {
+		return Database.repository('main', 'showtimes') as any;
+	}
 
-    private async _getActiveSeat(seatId: number, transaction?: Transaction, lock?: boolean) {
-        const seat = await this._seats.getById(seatId, {
-            transaction,
-            lock: lock ? transaction?.LOCK?.UPDATE : undefined,
-        });
-        if (!seat) throw new NotFoundError('Asiento no encontrado');
-        return seat;
-    }
+	private async _getActiveSeat(seatId: number, transaction?: Transaction, lock?: boolean) {
+		const seat = await this._seats.getById(seatId, {
+			transaction,
+			lock: lock ? transaction?.LOCK?.UPDATE : undefined,
+		});
+		if (!seat) throw new NotFoundError('Asiento no encontrado');
+		return seat;
+	}
 
-    /**
-     * Verifica si el asiento tiene tickets vendidos para funciones futuras.
-     * Filtra por showtimes con start_time > NOW() y no cancelados.
-     */
-    private async _hasFutureTickets(seatId: number, transaction?: Transaction): Promise<boolean> {
-        // Obtener los IDs de showtimes futuros
-        const futureShowtimes = await this._showtimes.getAll(
-            {
-                count: false,
-                attributes: ['id'],
-                where: {
-                    start_time: { [Op.gt]: new Date() },
-                    deleted_at: null,
-                },
-            },
-            {},
-            { transaction },
-        );
-        const showtimeIds = (Array.isArray(futureShowtimes) ? futureShowtimes : futureShowtimes.rows).map(
-            (s: any) => s.id,
-        );
+	/**
+	 * Verifica si el asiento tiene tickets vendidos para funciones futuras.
+	 * Filtra por showtimes con start_time > NOW() y no cancelados.
+	 */
+	private async _hasFutureTickets(seatId: number, transaction?: Transaction): Promise<boolean> {
+		// Obtener los IDs de showtimes futuros
+		const futureShowtimes = await this._showtimes.getAll(
+			{
+				count: false,
+				attributes: ['id'],
+				where: {
+					start_time: { [Op.gt]: new Date() },
+					deleted_at: null,
+				},
+			},
+			{},
+			{ transaction },
+		);
+		const showtimeIds = (Array.isArray(futureShowtimes) ? futureShowtimes : futureShowtimes.rows).map(
+			(s: any) => s.id,
+		);
 
-        if (showtimeIds.length === 0) return false;
+		if (showtimeIds.length === 0) return false;
 
-        // Contar tickets para este asiento en esos showtimes
-        const count = await this._tickets.count(
-            {
-                seat: seatId,
-                showtime: showtimeIds,
-                deleted_at: null,
-            },
-            { transaction },
-        );
-        return count > 0;
-    }
+		// Contar tickets para este asiento en esos showtimes
+		const count = await this._tickets.count(
+			{
+				seat: seatId,
+				deleted_at: null,
+			},
+			{
+				transaction,
+				relations: [{ as: '_RoomBookings', where: { showtime: { [Op.in]: showtimeIds } } }],
+			},
+		);
 
-    // --- Crear asiento(s) (objeto único o array) ---
-    async createSeats(roomId: number, body: any) {
-        const seats = Array.isArray(body) ? body : [body];
+		return count > 0;
+	}
 
-        if (seats.length === 0) throw new ValidationError('Debe enviar al menos un asiento', []);
+	// --- Crear asiento(s) (objeto único o array) ---
+	async createSeats(roomId: number, body: any) {
+		const seats = Array.isArray(body) ? body : [body];
 
-        const room = await this._rooms.getFull(roomId);
-        if (!room) throw new NotFoundError('Sala no encontrada');
+		if (seats.length === 0) throw new ValidationError('Debe enviar al menos un asiento', []);
 
-        const gridRows = room.grid_rows;
-        const gridColumns = room.grid_columns;
+		const room = await this._rooms.getFull(roomId);
+		if (!room) throw new NotFoundError('Sala no encontrada');
 
-        const errors: string[] = [];
-        const toCreate: any[] = [];
+		const gridRows = room.grid_rows;
+		const gridColumns = room.grid_columns;
 
-        for (const seatData of seats) {
-            const { rowIdentifier, columnNumber, seatCategory, seatCondition } = seatData;
+		const errors: string[] = [];
+		const toCreate: any[] = [];
 
-            this.validateRequired({ rowIdentifier, columnNumber, seatCategory, seatCondition }, [
-                'rowIdentifier',
-                'columnNumber',
-                'seatCategory',
-                'seatCondition',
-            ]);
+		for (const seatData of seats) {
+			const { rowIdentifier, columnNumber, seatCategory, seatCondition } = seatData;
 
-            // Validar posición dentro del grid
-            const rowIndex = rowIdentifier.charCodeAt(0) - 'A'.charCodeAt(0) + 1; // A=1, B=2, ...
-            if (rowIndex < 1 || rowIndex > gridRows) {
-                errors.push(
-                    `Fila "${rowIdentifier}" fuera del rango (A-${String.fromCharCode('A'.charCodeAt(0) + gridRows - 1)})`,
-                );
-                continue;
-            }
-            if (columnNumber < 1 || columnNumber > gridColumns) {
-                errors.push(`Columna ${columnNumber} fuera del rango (1-${gridColumns})`);
-                continue;
-            }
+			this.validateRequired({ rowIdentifier, columnNumber, seatCategory, seatCondition }, [
+				'rowIdentifier',
+				'columnNumber',
+				'seatCategory',
+				'seatCondition',
+			]);
 
-            // Verificar duplicado
-            const existing = await this._seats.getOne({
-                room: roomId,
-                row_identifier: rowIdentifier,
-                column_number: columnNumber,
-            });
-            if (existing) {
-                errors.push(`Ya existe un asiento en ${rowIdentifier}${columnNumber}`);
-                continue;
-            }
+			// Validar posición dentro del grid
+			const rowIndex = rowIdentifier.charCodeAt(0) - 'A'.charCodeAt(0) + 1; // A=1, B=2, ...
+			if (rowIndex < 1 || rowIndex > gridRows) {
+				errors.push(
+					`Fila "${rowIdentifier}" fuera del rango (A-${String.fromCharCode('A'.charCodeAt(0) + gridRows - 1)})`,
+				);
+				continue;
+			}
+			if (columnNumber < 1 || columnNumber > gridColumns) {
+				errors.push(`Columna ${columnNumber} fuera del rango (1-${gridColumns})`);
+				continue;
+			}
 
-            toCreate.push({
-                room: roomId,
-                row_identifier: rowIdentifier,
-                column_number: columnNumber,
-                seat_category: seatCategory,
-                seat_condition: seatCondition,
-            });
-        }
+			// Verificar duplicado
+			const existing = await this._seats.getOne({
+				room: roomId,
+				row_identifier: rowIdentifier,
+				column_number: columnNumber,
+			});
+			if (existing) {
+				errors.push(`Ya existe un asiento en ${rowIdentifier}${columnNumber}`);
+				continue;
+			}
 
-        if (errors.length > 0) {
-            throw new ValidationError(`Errores de validación: ${errors.join('; ')}`, []);
-        }
+			toCreate.push({
+				room: roomId,
+				row_identifier: rowIdentifier,
+				column_number: columnNumber,
+				seat_category: seatCategory,
+				seat_condition: seatCondition,
+			});
+		}
 
-        await this._seats.transaction(async (transaction: Transaction) => {
-            for (const data of toCreate) {
-                await this._seats.create(data, { transaction });
-            }
-        });
+		if (errors.length > 0) {
+			throw new ValidationError(`Errores de validación: ${errors.join('; ')}`, []);
+		}
 
-        return null;
-    }
+		await this._seats.transaction(async (transaction: Transaction) => {
+			for (const data of toCreate) {
+				await this._seats.create(data, { transaction });
+			}
+		});
 
-    // --- GET /seats/:id ---
-    async findById(seatId: number) {
-        const seat = await this._seats.getById(seatId, {
-            relations: [
-                { association: '_Rooms', attributes: ['id', 'name', 'cinema'] },
-                { association: '_SeatCategories', attributes: ['id', 'name'] },
-                { association: '_SeatConditions', attributes: ['id', 'name'] },
-            ],
-        });
-        if (!seat) throw new NotFoundError('Asiento no encontrado');
-        return seat;
-    }
+		return null;
+	}
 
-    // --- PATCH /seats/:id (concurrencia + validación de tickets futuros) ---
-    async updateSeat(seatId: number, body: { seatCondition?: number; seatCategory?: number }) {
-        const { seatCondition, seatCategory } = body;
+	// --- GET /seats/:id ---
+	async findById(seatId: number) {
+		const seat = await this._seats.getById(seatId, {
+			relations: [
+				{ association: '_Rooms', attributes: ['id', 'name', 'cinema'] },
+				{ association: '_SeatCategories', attributes: ['id', 'name'] },
+				{ association: '_SeatConditions', attributes: ['id', 'name'] },
+			],
+		});
+		if (!seat) throw new NotFoundError('Asiento no encontrado');
+		return seat;
+	}
 
-        if (seatCondition === undefined && seatCategory === undefined) {
-            throw new ValidationError('Debe enviar al menos seatCondition o seatCategory', []);
-        }
+	// --- PATCH /seats/:id (concurrencia + validación de tickets futuros) ---
+	async updateSeat(seatId: number, body: { seatCondition?: number; seatCategory?: number }) {
+		const { seatCondition, seatCategory } = body;
 
-        await this._seats.transaction(async (transaction: Transaction) => {
-            const seat = await this._getActiveSeat(seatId, transaction, true); // lock
+		if (seatCondition === undefined && seatCategory === undefined)
+			throw new ValidationError('Debe enviar al menos seatCondition o seatCategory', []);
 
-            if (seatCondition !== undefined && seatCondition !== 1) {
-                const hasFuture = await this._hasFutureTickets(seatId, transaction);
-                if (hasFuture) {
-                    throw new ConflictError(
-                        'No se puede modificar el asiento porque tiene boletos vendidos en funciones futuras.',
-                        'SEAT_HAS_FUTURE_TICKETS',
-                    );
-                }
-            }
+		await this._seats.transaction(async (transaction: Transaction) => {
+			await this._getActiveSeat(seatId, transaction, true); // lock
 
-            const updateData: any = {};
-            if (seatCondition !== undefined) updateData.seat_condition = seatCondition;
-            if (seatCategory !== undefined) updateData.seat_category = seatCategory;
+			if (seatCondition !== undefined && seatCondition !== 1) {
+				const hasFuture = await this._hasFutureTickets(seatId, transaction);
+				if (hasFuture) {
+					throw new ConflictError(
+						'No se puede modificar el asiento porque tiene boletos vendidos en funciones futuras.',
+						'SEAT_HAS_FUTURE_TICKETS',
+					);
+				}
+			}
 
-            await this._seats.update(seatId, updateData, { transaction });
-        });
+			const updateData: any = {};
+			if (seatCondition !== undefined) updateData.seat_condition = seatCondition;
+			if (seatCategory !== undefined) updateData.seat_category = seatCategory;
 
-        return null;
-    }
+			return await this._seats.update(seatId, updateData, { transaction });
+		});
 
-    // --- DELETE /seats/:id (concurrencia + validación de tickets futuros) ---
-    async deleteSeat(seatId: number) {
-        await this._seats.transaction(async (transaction: Transaction) => {
-            const seat = await this._getActiveSeat(seatId, transaction, true); // lock
+		return await this._getActiveSeat(seatId);
+	}
 
-            const hasFuture = await this._hasFutureTickets(seatId, transaction);
-            if (hasFuture) {
-                throw new ConflictError(
-                    'No se puede eliminar el asiento porque tiene boletos vendidos en funciones futuras.',
-                    'SEAT_HAS_FUTURE_TICKETS',
-                );
-            }
+	// --- DELETE /seats/:id (concurrencia + validación de tickets futuros) ---
+	async deleteSeat(seatId: number) {
+		await this._seats.transaction(async (transaction: Transaction) => {
+			const seat = await this._getActiveSeat(seatId, transaction, true); // lock
 
-            await this._seats.delete(seatId, { transaction });
-        });
+			const hasFuture = await this._hasFutureTickets(seatId, transaction);
+			if (hasFuture) {
+				throw new ConflictError(
+					'No se puede eliminar el asiento porque tiene boletos vendidos en funciones futuras.',
+					'SEAT_HAS_FUTURE_TICKETS',
+				);
+			}
 
-        return null;
-    }
+			await this._seats.delete(seatId, { transaction });
+		});
+
+		return null;
+	}
 }
 
 export default new SeatsService();
