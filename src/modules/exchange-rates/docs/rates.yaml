@@ -2,20 +2,20 @@
     get:
         summary: List exchange rates
         tags:
-            - Exchange Rates
+        - Exchange Rates
         security:
-            - bearerAuth: []
+        -   bearerAuth: []
         parameters:
-            - in: query
-              name: page
-              schema:
-                  type: integer
-                  minimum: 1
-            - in: query
-              name: limit
-              schema:
-                  type: integer
-                  minimum: 1
+        -   in: query
+            name: page
+            schema:
+                type: integer
+                minimum: 1
+        -   in: query
+            name: limit
+            schema:
+                type: integer
+                minimum: 1
         responses:
             '200':
                 description: Exchange rate list returned
@@ -28,9 +28,9 @@
     post:
         summary: Create an exchange rate record
         tags:
-            - Exchange Rates
+        - Exchange Rates
         security:
-            - bearerAuth: []
+        -   bearerAuth: []
         requestBody:
             required: true
             content:
@@ -38,8 +38,8 @@
                     schema:
                         type: object
                         required:
-                            - currency
-                            - rate
+                        - currency
+                        - rate
                         properties:
                             currency:
                                 type: integer
@@ -61,15 +61,15 @@
     get:
         summary: Get exchange rate by id
         tags:
-            - Exchange Rates
+        - Exchange Rates
         security:
-            - bearerAuth: []
+        -   bearerAuth: []
         parameters:
-            - in: path
-              name: id
-              required: true
-              schema:
-                  type: integer
+        -   in: path
+            name: id
+            required: true
+            schema:
+                type: integer
         responses:
             '200':
                 description: Exchange rate details returned
@@ -82,15 +82,15 @@
     delete:
         summary: Delete exchange rate
         tags:
-            - Exchange Rates
+        - Exchange Rates
         security:
-            - bearerAuth: []
+        -   bearerAuth: []
         parameters:
-            - in: path
-              name: id
-              required: true
-              schema:
-                  type: integer
+        -   in: path
+            name: id
+            required: true
+            schema:
+                type: integer
         responses:
             '204':
                 description: Exchange rate deleted
@@ -100,25 +100,25 @@
     get:
         summary: Get exchange rate history for a currency
         tags:
-            - Exchange Rates
+        - Exchange Rates
         security:
-            - bearerAuth: []
+        -   bearerAuth: []
         parameters:
-            - in: path
-              name: currencyId
-              required: true
-              schema:
-                  type: integer
-            - in: query
-              name: startDate
-              schema:
-                  type: string
-                  format: date-time
-            - in: query
-              name: endDate
-              schema:
-                  type: string
-                  format: date-time
+        -   in: path
+            name: currencyId
+            required: true
+            schema:
+                type: integer
+        -   in: query
+            name: startDate
+            schema:
+                type: string
+                format: date-time
+        -   in: query
+            name: endDate
+            schema:
+                type: string
+                format: date-time
         responses:
             '200':
                 description: Exchange rate history returned
