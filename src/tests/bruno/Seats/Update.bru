@@ -21,6 +21,10 @@ body:json {
   }
 }
 
+vars:pre-request {
+  testSeatId: 1
+}
+
 script:pre-request {
   const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
   bru.setVar('baseUrl', baseUrl);

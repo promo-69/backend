@@ -345,6 +345,10 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
 					returning: true,
 				};
 
+				if (ignoreDuplicates) {
+					bulkOptions.ignoreDuplicates = true;
+				}
+
 				if (updateOnDuplicate) {
 					bulkOptions.updateOnDuplicate = updateOnDuplicate;
 				}
@@ -354,7 +358,7 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
 				return created.map((r) => r.toJSON()) as T[];
 			} catch (error: any) {
 				throw new DatabaseError(
-					`Ha ocurrido un error con la consulta a la base de datos (2)`,
+					`Ha ocurrido un error con la consulta a la base de datos (1.2)`,
 					'bulkCreate',
 					{
 						dataCount: data.length,
@@ -426,7 +430,7 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
 		return this.executeWithLogging('findById', async () => {
 			try {
 				this.validateId(id, true);
-				const options: FindOptions = { raw: true };
+				const options: FindOptions = { raw: false };
 
 				if (operationOptions?.attributes) options.attributes = operationOptions.attributes;
 				if (operationOptions?.relations) options.include = this.getFkRelation(operationOptions.relations);

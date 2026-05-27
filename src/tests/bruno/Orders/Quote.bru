@@ -5,7 +5,7 @@ meta {
 }
 
 post {
-  url: {{baseUrl}}/api/v1/orders/quote
+  url: {{baseUrl}}/orders/quote
   body: json
   auth: bearer
 }
@@ -17,5 +17,14 @@ auth:bearer {
 body:json {
   {
     "cinema": 1
+  }
+}
+
+script:post-response {
+  if (res.status === 200) {
+    const data = res.getBody();
+    if (data.data && data.data.queue_id) {
+      bru.setEnvVar("queueId", data.data.queue_id);
+    }
   }
 }

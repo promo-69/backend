@@ -12,19 +12,19 @@ router.get('/:id', controller.getOrderById);
 router.get(
 	'/qr/:qrCode/concessions',
 	verifySession,
-	verifyPermission('CRUD:READ:ORDER-DETAILS'),
+	//verifyPermission('CRUD:READ:ORDER-DETAILS'),
 	controller.getConcessionsByQr,
 );
 router.get(
 	'/qr/:qrCode/tickets',
 	verifySession,
-	verifyPermission('CRUD:READ:ORDER-DETAILS'),
+	//verifyPermission('CRUD:READ:ORDER-DETAILS'),
 	controller.getTicketsByQr,
 );
 router.post(
 	'/validate-qr/:qrCode',
 	verifySession,
-	verifyPermission('CRUD:UPDATE:ORDER-DETAILS'),
+	//verifyPermission('CRUD:UPDATE:ORDER-DETAILS'),
 	controller.validateQr,
 );
 

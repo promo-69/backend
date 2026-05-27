@@ -151,7 +151,7 @@ module.exports = {
 		}
 
 		// 5. Asignar todos los permisos al rol admin
-		const [roleRows] = await queryInterface.sequelize.query(`SELECT id FROM roles WHERE code = 'ADMIN'`);
+		const [roleRows] = await queryInterface.sequelize.query(`SELECT id FROM roles WHERE code = 'SUPER_ADMIN'`);
 		if (roleRows.length > 0) {
 			const adminRoleId = roleRows[0].id;
 
