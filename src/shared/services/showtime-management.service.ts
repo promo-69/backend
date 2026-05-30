@@ -127,7 +127,7 @@ export class ShowtimeManagementService {
                 attributes: ['id', 'title', 'duration_minutes', 'poster_url', 'lifecycle_state'],
                 relations: [
                     { association: '_LifecycleStates', attributes: ['id', 'description'], required: false },
-                    { association: '_AgeClassifications', attributes: ['id', 'code', 'description'], required: false },
+                    { association: '_AgeClassifications', attributes: ['id', 'description'], required: false }, // ✅ se quitó 'code'
                     { association: '_Genres', attributes: ['id', 'description'], required: false },
                 ],
             },
@@ -188,8 +188,7 @@ export class ShowtimeManagementService {
                         age_classification: movie._AgeClassifications
                             ? {
                                   id: movie._AgeClassifications.id,
-                                  code: movie._AgeClassifications.code,
-                                  description: movie._AgeClassifications.description,
+                                  description: movie._AgeClassifications.description, // ✅ se quitó code
                               }
                             : null,
                         genres: Array.isArray(movie._Genres)
@@ -245,7 +244,6 @@ export class ShowtimeManagementService {
                         association: '_Rooms',
                         attributes: ['id', 'name', 'cinema', 'grid_rows', 'grid_columns'],
                         required: true,
-                        nested: [{ association: '_RoomTypes', attributes: ['id', 'description'], required: false }],
                     },
                 ],
                 order: [['start_time', 'ASC']],
@@ -336,9 +334,6 @@ export class ShowtimeManagementService {
                         room: {
                             id: room.id,
                             name: room.name,
-                            type: room._RoomTypes
-                                ? { id: room._RoomTypes.id, description: room._RoomTypes.description }
-                                : null,
                             total_seats: totalSeats,
                             available_seats: Math.max(0, totalSeats - soldSeats),
                         },

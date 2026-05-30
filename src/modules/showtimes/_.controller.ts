@@ -10,10 +10,13 @@ class ShowtimesController extends ControllerBase {
      * Público — sin autenticación requerida.
      */
     async getBillboard() {
-        const data = await ShowtimesService.getBillboard();
-        return this.success(data, 'Cartelera obtenida exitosamente');
+        try {
+            const data = await ShowtimesService.getBillboard();
+            return this.success(data, 'Cartelera obtenida exitosamente');
+        } catch (error) {
+            return this.error(error, 'Error al obtener la cartelera');
+        }
     }
-
     /**
      * GET /showtimes
      * Lista de funciones disponibles (futuras por defecto).
