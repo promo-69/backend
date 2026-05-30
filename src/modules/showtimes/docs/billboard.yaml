@@ -1,0 +1,121 @@
+/cinemas/{cinemaId}/showtimes/billboard:
+    get:
+        summary: 'PÚBLICO — Cartelera por sucursal'
+        tags:
+            - Cartelera
+        security: []
+        parameters:
+            - in: path
+              name: cinemaId
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Cartelera de la sucursal
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                count:
+                                    type: integer
+                                rows:
+                                    type: array
+                                    items:
+                                        type: object
+                                        properties:
+                                            movie:
+                                                type: object
+                                                properties:
+                                                    id:
+                                                        type: integer
+                                                    title:
+                                                        type: string
+                                                    duration_minutes:
+                                                        type: integer
+                                                    poster_url:
+                                                        type: string
+                                                        nullable: true
+                                                    lifecycle:
+                                                        type: object
+                                                        nullable: true
+                                                        properties:
+                                                            id:
+                                                                type: integer
+                                                            description:
+                                                                type: string
+                                                    age_classification:
+                                                        type: object
+                                                        nullable: true
+                                                        properties:
+                                                            id:
+                                                                type: integer
+                                                            code:
+                                                                type: string
+                                                            description:
+                                                                type: string
+                                                    genres:
+                                                        type: array
+                                                        items:
+                                                            type: object
+                                                            properties:
+                                                                id:
+                                                                    type: integer
+                                                                description:
+                                                                    type: string
+                                            showtimes:
+                                                type: array
+                                                items:
+                                                    type: object
+                                                    properties:
+                                                        id:
+                                                            type: integer
+                                                        booking:
+                                                            type: object
+                                                            properties:
+                                                                id:
+                                                                    type: integer
+                                                                start_time:
+                                                                    type: string
+                                                                    format: date-time
+                                                                end_time:
+                                                                    type: string
+                                                                    format: date-time
+                                                                room:
+                                                                    type: object
+                                                                    properties:
+                                                                        id:
+                                                                            type: integer
+                                                                        name:
+                                                                            type: string
+                                                        projection_type:
+                                                            type: object
+                                                            properties:
+                                                                id:
+                                                                    type: integer
+                                                                description:
+                                                                    type: string
+                                                        language:
+                                                            type: object
+                                                            properties:
+                                                                id:
+                                                                    type: integer
+                                                                description:
+                                                                    type: string
+                                                        currency:
+                                                            type: object
+                                                            properties:
+                                                                id:
+                                                                    type: integer
+                                                                code:
+                                                                    type: string
+                                                                symbol:
+                                                                    type: string
+                                                        price:
+                                                            type: number
+                                                        earned_loyalty_points:
+                                                            type: integer
+                                                            nullable: true
+            '404':
+                description: Sucursal no encontrada

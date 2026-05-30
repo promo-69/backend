@@ -11,7 +11,7 @@ get {
 }
 
 auth:bearer {
-  token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtYWlsIjoiYWRtaW5AY2luZWZsaXguY29tIiwiZmlyc3ROYW1lIjoiQWRtaW4iLCJsYXN0TmFtZSI6IlN1cGVyIiwicGVyc29uYWxFbWFpbCI6ImFkbWluLnN1cGVyQGNpbmVmbGl4LmNvbSIsInBob25lTnVtYmVyIjoiKzU4IDIxMi01NTUtMDAwMCIsInJvbGVDb2RlIjoiU1VQRVJfQURNSU4iLCJwZXJtaXNzaW9ucyI6W10sInR5cGUiOiJhY2Nlc3MiLCJpYXQiOjE3Nzk4MTAwMDcsImp0aSI6IkRtQWxFMFFZVFNBZk9wUmRHWDFqaiIsImV4cCI6MTc3OTgxMDMwN30.CxOPwfmkvEvrYFsIuEabd1MK7tmUx3hkyeWGZqJn4D0
+  token: {{accessToken}}
 }
 
 vars:pre-request {
@@ -19,6 +19,6 @@ vars:pre-request {
 }
 
 script:pre-request {
-  const baseUrl = bru.getEnvVar('baseUrl') || 'https://backend-jog6.onrender.com/api/v1/test';
+  const baseUrl = bru.getEnvVar('baseUrl') || 'https://127.0.0.1/api/v1';
   bru.setVar('baseUrl', baseUrl);
 }

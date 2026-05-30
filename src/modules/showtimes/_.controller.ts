@@ -2,8 +2,7 @@ import { ControllerBase } from '@bases/controller.base.js';
 import ShowtimesService from './_.service.js';
 
 class ShowtimesController extends ControllerBase {
-    // ENDPOINTS PÚBLICOS
-    // =========================================================================
+    // Endpoints públicos
 
     /**
      * GET /showtimes/billboard
@@ -44,10 +43,7 @@ class ShowtimesController extends ControllerBase {
         return this.success(data, 'Función obtenida');
     }
 
-    // =========================================================================
-    // ENDPOINTS PRIVADOS (backoffice)
-    // =========================================================================
-
+    // Endpoints privados (backoffice)
     /**
      * POST /showtimes
      * Crear función (requiere sesión + permiso CRUD:CREATE:SHOWTIMES).
