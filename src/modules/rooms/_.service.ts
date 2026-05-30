@@ -21,8 +21,53 @@ export class RoomsService extends BaseService {
     private get _roomProjectionTypes() {
         return Database.repository('main', 'room-projection-types') as any;
     }
+    private get _roomBookings() {
+        return Database.repository('main', 'room-bookings') as any;
+    }
     private get _showtimes() {
         return Database.repository('main', 'showtimes') as any;
+    }
+
+    /**
+     * Cuenta funciones activas (no eliminadas) en una sala.
+     * showtimes no tiene columna 'room' — el vínculo es showtimes.booking → room_bookings.id → room_bookings.room.
+     */
+    private async _countActiveShowtimesInRoom(roomId: number, transaction?: Transaction): Promise<number> {
+        const bookings = await this._roomBookings.getAll(
+            { count: false, attributes: ['id'] },
+            { room: roomId, deleted_at: null },
+            ...(transaction ? [{ transaction }] : []),
+        );
+        const bookingList = Array.isArray(bookings) ? bookings : bookings.rows;
+        if (bookingList.length === 0) return 0;
+        const bookingIds = bookingList.map((b: any) => b.id);
+        return this._showtimes.count(
+            { booking: bookingIds, deleted_at: null },
+            ...(transaction ? [{ transaction }] : []),
+        );
+    }
+
+    /**
+     * Cuenta funciones futuras en una sala para tipos de proyección específicos.
+     * Misma lógica de join que _countActiveShowtimesInRoom pero filtrada por fecha y tipo.
+     */
+    private async _countFutureShowtimesByProjectionType(
+        roomId: number,
+        projectionTypeIds: number[],
+        transaction?: Transaction,
+    ): Promise<number> {
+        const bookings = await this._roomBookings.getAll(
+            { count: false, attributes: ['id'] },
+            { room: roomId, start_time: { [Op.gt]: new Date() }, deleted_at: null },
+            ...(transaction ? [{ transaction }] : []),
+        );
+        const bookingList = Array.isArray(bookings) ? bookings : bookings.rows;
+        if (bookingList.length === 0) return 0;
+        const bookingIds = bookingList.map((b: any) => b.id);
+        return this._showtimes.count(
+            { booking: bookingIds, projection_type: projectionTypeIds, deleted_at: null },
+            ...(transaction ? [{ transaction }] : []),
+        );
     }
 
     /** Capacidad total real = número de asientos activos */
@@ -125,14 +170,11 @@ export class RoomsService extends BaseService {
 
                 const typesToRemove = currentTypeIds.filter((ptId: number) => !projectionTypes.includes(ptId));
                 if (typesToRemove.length > 0) {
-                    const futureCount = await this._showtimes.count(
-                        {
-                            room: id,
-                            start_time: { [Op.gt]: new Date() },
-                            projection_type: typesToRemove,
-                            deleted_at: null,
-                        },
-                        { transaction },
+                    // FIX: showtimes no tiene columna 'room' — se resuelve vía room_bookings
+                    const futureCount = await this._countFutureShowtimesByProjectionType(
+                        id,
+                        typesToRemove,
+                        transaction,
                     );
                     if (futureCount > 0)
                         throw new ValidationError(
@@ -161,7 +203,8 @@ export class RoomsService extends BaseService {
             const room = await this._rooms.getById(id, { transaction, lock: transaction.LOCK.UPDATE });
             if (!room) throw new NotFoundError('Sala no encontrada');
 
-            const activeShowtimes = await this._showtimes.count({ room: id, deleted_at: null }, { transaction });
+            // FIX: showtimes no tiene columna 'room' — se resuelve vía room_bookings
+            const activeShowtimes = await this._countActiveShowtimesInRoom(id, transaction);
             if (activeShowtimes > 0)
                 throw new ConflictError(
                     'No se puede clausurar la sala porque tiene funciones activas',
