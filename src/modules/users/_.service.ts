@@ -165,6 +165,11 @@ export class UsersService extends BaseService {
 			throw new ValidationError('Todos los IDs de permisos deben ser números enteros positivos.', []);
 	}
 
+	private ensureNotSuperAdmin(userId: number) {
+		if (userId === 1)
+			throw new ValidationError('No se puede modificar el rol o permisos del superadministrador.', []);
+	}
+
 	async getUserRole(userId: number) {
 		const user = await this._users.getById(userId, { attributes: ['id', 'role'] });
 		if (!user) throw new NotFoundError('Usuario', userId.toString());
@@ -178,6 +183,7 @@ export class UsersService extends BaseService {
 	}
 
 	async assignUserRole(userId: number, body: Record<string, any>) {
+		this.ensureNotSuperAdmin(userId);
 		const { roleId } = body;
 		if (roleId === undefined || roleId === null) throw new ValidationError('El rol es requerido.', []);
 		this.validatePositiveInteger(roleId, 'roleId');
@@ -192,6 +198,7 @@ export class UsersService extends BaseService {
 	}
 
 	async removeUserRole(userId: number) {
+		this.ensureNotSuperAdmin(userId);
 		const user = await this._users.getById(userId);
 		if (!user) throw new NotFoundError('Usuario', userId.toString());
 		if (!user.role) throw new ValidationError('El usuario no tiene un rol asignado.', []);
@@ -221,6 +228,7 @@ export class UsersService extends BaseService {
 	}
 
 	async assignUserPermissions(userId: number, body: Record<string, any>) {
+		this.ensureNotSuperAdmin(userId);
 		const { permissions } = body;
 		this.validatePermissionsArray(permissions);
 
@@ -262,6 +270,7 @@ export class UsersService extends BaseService {
 	}
 
 	async removeUserPermissions(userId: number, body: Record<string, any>) {
+		this.ensureNotSuperAdmin(userId);
 		const { permissions } = body;
 		this.validatePermissionsArray(permissions);
 
