@@ -1,4 +1,5 @@
 import { BaseService } from '@bases/service.base.js';
+import type { Transaction } from 'sequelize';
 import { Database } from '@database/index.js';
 import { AuthError, ValidationError, NotFoundError } from '@errors/index.js';
 import { BcryptUtil } from '@utils/bcrypt.util.js';
@@ -20,6 +21,15 @@ export class UsersService extends BaseService {
 	}
 	private get _usersLogins() {
 		return Database.repository('main', 'users-logins') as any;
+	}
+	private get _roles() {
+		return Database.repository('main', 'roles') as any;
+	}
+	private get _permissions() {
+		return Database.repository('main', 'permissions') as any;
+	}
+	private get _userPermissions() {
+		return Database.repository('main', 'user-permissions') as any;
 	}
 	private get _cacheClient() {
 		return CacheDatabaseProvider.getInstance().client;
@@ -137,6 +147,129 @@ export class UsersService extends BaseService {
 
 			return { message: 'Usuario desbaneado (acceso reactivado) exitosamente.' };
 		}
+	}
+
+	private validatePositiveInteger(value: any, fieldName: string) {
+		if (typeof value !== 'number' || !Number.isInteger(value) || value <= 0)
+			throw new ValidationError(`El campo ${fieldName} debe ser un número entero positivo.`, []);
+	}
+
+	private validatePermissionsArray(value: any) {
+		if (!Array.isArray(value) || value.length === 0)
+			throw new ValidationError('Se debe enviar al menos un permiso.', []);
+
+		const invalidItems = value.filter(
+			(permission: any) => typeof permission !== 'number' || !Number.isInteger(permission) || permission <= 0,
+		);
+		if (invalidItems.length > 0)
+			throw new ValidationError('Todos los IDs de permisos deben ser números enteros positivos.', []);
+	}
+
+	async getUserRole(userId: number) {
+		const user = await this._users.getById(userId, { attributes: ['id', 'role'] });
+		if (!user) throw new NotFoundError('Usuario', userId.toString());
+
+		if (!user.role) return null;
+
+		const role = await this._roles.getById(user.role);
+		if (!role) throw new NotFoundError('Rol', user.role.toString());
+
+		return role;
+	}
+
+	async assignUserRole(userId: number, body: Record<string, any>) {
+		const { roleId } = body;
+		if (roleId === undefined || roleId === null) throw new ValidationError('El rol es requerido.', []);
+		this.validatePositiveInteger(roleId, 'roleId');
+
+		const user = await this._users.getByIdIncludingDeleted(userId);
+		if (!user) throw new NotFoundError('Usuario', userId.toString());
+
+		const role = await this._roles.getById(roleId);
+		if (!role) throw new NotFoundError('Rol', roleId.toString());
+
+		await this._users.update({ id: userId }, { role: roleId });
+	}
+
+	async removeUserRole(userId: number) {
+		const user = await this._users.getById(userId);
+		if (!user) throw new NotFoundError('Usuario', userId.toString());
+		if (!user.role) throw new ValidationError('El usuario no tiene un rol asignado.', []);
+
+		await this._users.update({ id: userId }, { role: null });
+	}
+
+	async getUserPermissions(userId: number) {
+		const user = await this._users.getById(userId);
+		if (!user) throw new NotFoundError('Usuario', userId.toString());
+
+		const result = await this._userPermissions.getAll(
+			{
+				count: true,
+				relations: [
+					{
+						association: '_Permissions',
+						attributes: ['id', 'action', 'resource', 'permission_type'],
+						required: true,
+					},
+				],
+			},
+			{ user: userId },
+		);
+
+		return result.rows;
+	}
+
+	async assignUserPermissions(userId: number, body: Record<string, any>) {
+		const { permissions } = body;
+		this.validatePermissionsArray(permissions);
+
+		const user = await this._users.getByIdIncludingDeleted(userId);
+		if (!user) throw new NotFoundError('Usuario', userId.toString());
+
+		const existingPermissions = await this._permissions.getAll({ count: false }, { id: permissions });
+		const existingIds = Array.isArray(existingPermissions) ? existingPermissions.map((item: any) => item.id) : [];
+		const missingPermissions = permissions.filter((permissionId: any) => !existingIds.includes(permissionId));
+		if (missingPermissions.length > 0) throw new NotFoundError('Permiso(s)', missingPermissions.join(', '));
+
+		await this._userPermissions.transaction(async (transaction: Transaction) => {
+			for (const permissionId of permissions) {
+				const existingRecord = await this._userPermissions.getOne(
+					{ user: userId, permission: permissionId },
+					{ paranoid: false, transaction },
+				);
+
+				if (existingRecord) {
+					if ((existingRecord as any).deleted_at !== null) {
+						await this._userPermissions.restore({ id: (existingRecord as any).id }, { transaction });
+					}
+
+					if ((existingRecord as any).is_granted !== true) {
+						await this._userPermissions.update(
+							{ id: (existingRecord as any).id },
+							{ is_granted: true },
+							{ transaction },
+						);
+					}
+				} else {
+					await this._userPermissions.create(
+						{ user: userId, permission: permissionId, is_granted: true },
+						{ transaction },
+					);
+				}
+			}
+		});
+	}
+
+	async removeUserPermissions(userId: number, body: Record<string, any>) {
+		const { permissions } = body;
+		this.validatePermissionsArray(permissions);
+
+		const user = await this._users.getById(userId);
+		if (!user) throw new NotFoundError('Usuario', userId.toString());
+
+		const deletedRows = await this._userPermissions.delete({ user: userId, permission: permissions });
+		if (!deletedRows) throw new NotFoundError('Permiso(s) no encontrado(s) para el usuario', userId.toString());
 	}
 }
 

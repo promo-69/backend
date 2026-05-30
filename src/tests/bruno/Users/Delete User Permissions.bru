@@ -1,0 +1,31 @@
+meta {
+  name: Delete User Permissions
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{baseUrl}}/users/{{testUserId}}/permissions
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "permissions": [{{testPermissionId}}]
+  }
+}
+
+vars:pre-request {
+  testUserId: 2
+  testPermissionId: 53
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  bru.setVar('baseUrl', baseUrl);
+}

@@ -12,6 +12,12 @@ router.patch('/me/security', verifySession, usersController.updateMySecurity);
 
 // --- Exclusivo para Gerencia
 router.get('/', ...managerMiddleware, usersController.getAllUsers);
+router.get('/:id/role', ...managerMiddleware, usersController.getUserRole);
+router.post('/:id/role', ...managerMiddleware, usersController.assignUserRole);
+router.delete('/:id/role', ...managerMiddleware, usersController.removeUserRole);
+router.get('/:id/permissions', ...managerMiddleware, usersController.getUserPermissions);
+router.post('/:id/permissions', ...managerMiddleware, usersController.assignUserPermissions);
+router.delete('/:id/permissions', ...managerMiddleware, usersController.removeUserPermissions);
 router.patch('/:id/status', ...managerMiddleware, usersController.changeUserStatus);
 
 export default router;

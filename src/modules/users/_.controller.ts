@@ -38,6 +38,42 @@ class UsersController extends ControllerBase {
 		const result = await UsersService.changeUserStatus(Number(id), Number(status));
 		return this.success(null, result.message);
 	}
+
+	async getUserRole() {
+		const { id } = this.getParams();
+		const data = await UsersService.getUserRole(Number(id));
+		return this.success(data, 'Rol de usuario recuperado correctamente.');
+	}
+
+	async assignUserRole() {
+		const { id } = this.getParams();
+		await UsersService.assignUserRole(Number(id), this.getBody());
+		return this.success(null, 'Rol asignado al usuario correctamente.');
+	}
+
+	async removeUserRole() {
+		const { id } = this.getParams();
+		await UsersService.removeUserRole(Number(id));
+		return this.success(null, 'Rol removido del usuario correctamente.');
+	}
+
+	async getUserPermissions() {
+		const { id } = this.getParams();
+		const data = await UsersService.getUserPermissions(Number(id));
+		return this.success(data, 'Permisos de usuario recuperados correctamente.');
+	}
+
+	async assignUserPermissions() {
+		const { id } = this.getParams();
+		await UsersService.assignUserPermissions(Number(id), this.getBody());
+		return this.success(null, 'Permisos asignados al usuario correctamente.');
+	}
+
+	async removeUserPermissions() {
+		const { id } = this.getParams();
+		await UsersService.removeUserPermissions(Number(id), this.getBody());
+		return this.success(null, 'Permisos removidos del usuario correctamente.');
+	}
 }
 
 export default new UsersController();
