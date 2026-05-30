@@ -1,0 +1,35 @@
+meta {
+  name: Create Permission
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/permissions
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "action": 1,
+    "resource": 1,
+    "permission_type": 2
+  }
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  bru.setVar('baseUrl', baseUrl);
+}
+
+script:post-response {
+  const resBody = res.getBody();
+  if (res.getStatus() === 200 && resBody && resBody.data && resBody.data.id) {
+    bru.setEnvVar('testPermissionId', resBody.data.id);
+  }
+}

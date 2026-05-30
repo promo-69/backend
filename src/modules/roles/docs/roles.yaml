@@ -1,0 +1,179 @@
+/roles:
+    get:
+        summary: Get all roles
+        description: |
+            Retrieve all roles.
+            Required permission: **CRUD:READ:ROLES**
+        tags:
+            - Roles
+        security:
+            - bearerAuth: []
+        responses:
+            '200':
+                description: List of roles
+    post:
+        summary: Create a new role
+        description: |
+            Create a role that can be assigned to users.
+            Required permission: **CRUD:CREATE:ROLES**
+        tags:
+            - Roles
+        security:
+            - bearerAuth: []
+        requestBody:
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        required:
+                            - code
+                            - name
+                            - description
+                        properties:
+                            code:
+                                type: string
+                            name:
+                                type: string
+                            description:
+                                type: string
+        responses:
+            '200':
+                description: Role created successfully
+/roles/{id}:
+    get:
+        summary: Get role by ID
+        description: |
+            Retrieve a role by its ID.
+            Required permission: **CRUD:READ:ROLES**
+        tags:
+            - Roles
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: path
+              name: id
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Role details
+            '404':
+                description: Role not found
+    patch:
+        summary: Update a role
+        description: |
+            Update role fields.
+            Required permission: **CRUD:UPDATE:ROLES**
+        tags:
+            - Roles
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: path
+              name: id
+              required: true
+              schema:
+                  type: integer
+        requestBody:
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            code:
+                                type: string
+                            name:
+                                type: string
+                            description:
+                                type: string
+        responses:
+            '200':
+                description: Role updated successfully
+            '404':
+                description: Role not found
+    delete:
+        summary: Delete a role
+        description: |
+            Perform logical deletion of a role.
+            Required permission: **CRUD:DELETE:ROLES**
+        tags:
+            - Roles
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: path
+              name: id
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Role deleted successfully
+            '404':
+                description: Role not found
+/roles/{id}/permissions:
+    post:
+        summary: Assign permissions to a role
+        description: |
+            Attach permissions to a role.
+            Required permission: **CRUD:UPDATE:ROLES**
+        tags:
+            - Roles
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: path
+              name: id
+              required: true
+              schema:
+                  type: integer
+        requestBody:
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        required:
+                            - permissions
+                        properties:
+                            permissions:
+                                type: array
+                                items:
+                                    type: integer
+        responses:
+            '200':
+                description: Permissions assigned successfully
+            '404':
+                description: Role not found
+    delete:
+        summary: Remove permissions from a role
+        description: |
+            Remove permissions from a role.
+            Required permission: **CRUD:UPDATE:ROLES**
+        tags:
+            - Roles
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: path
+              name: id
+              required: true
+              schema:
+                  type: integer
+        requestBody:
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        required:
+                            - permissions
+                        properties:
+                            permissions:
+                                type: array
+                                items:
+                                    type: integer
+        responses:
+            '200':
+                description: Permissions removed successfully
+            '404':
+                description: Role not found
