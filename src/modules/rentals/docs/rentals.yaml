@@ -1,0 +1,242 @@
+/rentals/requests:
+    get:
+        summary: List Rental Requests (Manager)
+        description: |
+            Lists and paginates rental requests for the authenticated manager's cinema.
+            The cinema is derived from the JWT (`cinemaId`), not from a query parameter.
+            Required permission: **CRUD:READ:RENTALS**
+        tags:
+            - Rentals
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: query
+              name: page
+              schema:
+                  type: integer
+                  default: 1
+            - in: query
+              name: limit
+              schema:
+                  type: integer
+                  default: 10
+        responses:
+            '200':
+                description: Paginated list of rental requests
+            '401':
+                description: Unauthorized
+            '403':
+                description: Insufficient permissions
+
+    post:
+        summary: Submit Rental Request (Public)
+        description: |
+            Public endpoint. The client submits a form to request a room rental.
+            Registered with status **1 — Pendiente de Revisión**. Does NOT block the room yet.
+
+            **No `cinema` field required** — the cinema is derived from `room → rooms.cinema`.
+
+            ### Two flows depending on authentication:
+
+            **A) Authenticated customer (Bearer token)**
+            Contact data is taken from the customer's own profile (`people` record).
+            Fields `document_number`, `contact_name`, `contact_email`, `contact_phone` are ignored.
+
+            **B) Anonymous (no token) — e.g. walk-in, phone booking**
+            `document_number`, `contact_name`, and `contact_email` are required.
+            The system automatically creates a `people` record and a `customers` record
+            for the requester (no user account, no password). This follows the same
+            structural pattern as employees and registered customers: all personal data
+            lives in `people` as the single source of truth.
+        tags:
+            - Rentals
+        security: []
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        required:
+                            - room
+                            - event_type
+                            - event_name
+                            - event_date
+                            - requested_start_time
+                            - requested_end_time
+                        properties:
+                            room:
+                                type: integer
+                                example: 3
+                            event_type:
+                                type: integer
+                                description: ID from booking_types (3 = Alquiler Privado)
+                                example: 3
+                            event_name:
+                                type: string
+                                example: Acto de Grado 2026
+                            event_description:
+                                type: string
+                                example: Uso de micrófonos requerido.
+                            event_date:
+                                type: string
+                                format: date
+                                example: '2026-08-20'
+                            requested_start_time:
+                                type: string
+                                format: date-time
+                                example: '2026-08-20T08:00:00Z'
+                            requested_end_time:
+                                type: string
+                                format: date-time
+                                example: '2026-08-20T12:00:00Z'
+                            attendees:
+                                type: integer
+                                example: 150
+                            document_number:
+                                type: string
+                                description: Required for anonymous requests (no Bearer token)
+                                example: V-12345678
+                            contact_name:
+                                type: string
+                                description: Required for anonymous requests
+                                example: Instituto Andes
+                            contact_email:
+                                type: string
+                                format: email
+                                description: Required for anonymous requests
+                                example: eventos@andes.edu
+                            contact_phone:
+                                type: string
+                                description: Optional for anonymous requests
+                                example: '+584120000000'
+        responses:
+            '201':
+                description: Request submitted successfully
+            '400':
+                description: Validation error (missing fields, invalid times, etc.)
+
+/rentals/requests/me:
+    get:
+        summary: My Rental Requests (Authenticated Customer)
+        description: |
+            Authenticated customer queries the real-time status of their own rental requests.
+            Required permission: **VIEW:ACCESS:RENTALS-MY**
+        tags:
+            - Rentals
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: query
+              name: page
+              schema:
+                  type: integer
+                  default: 1
+            - in: query
+              name: limit
+              schema:
+                  type: integer
+                  default: 10
+        responses:
+            '200':
+                description: Customer's own rental request history
+            '401':
+                description: Unauthorized
+
+/rentals/requests/{id}:
+    get:
+        summary: Get Rental Request Detail (Manager)
+        description: |
+            Returns the full administrative detail of a rental request.
+            Shows all contact info (from `people` via `customers`), estimated attendees,
+            room, cinema, requested schedule and event type so the manager can evaluate
+            before approving, setting a price and generating a proforma.
+            Required permission: **CRUD:READ:RENTALS**
+        tags:
+            - Rentals
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: path
+              name: id
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Rental request detail
+            '401':
+                description: Unauthorized
+            '403':
+                description: Insufficient permissions
+            '404':
+                description: Rental request not found in this cinema
+
+/rentals/requests/{id}/status:
+    patch:
+        summary: Update Rental Request Status (Manager)
+        description: |
+            The manager approves, rejects or cancels a rental request.
+
+            **Approving (status: 2 — Pendiente de Pago)**
+            - `currency` and `price` are **required**.
+            - Atomically inserts a row in `room_bookings`. The PostgreSQL GiST exclusion
+              index prevents any time overlap — if the room is already booked, a `409`
+              is returned.
+            - A BullMQ job is enqueued with a 48-hour TTL. If the proforma is not paid
+              in time, the worker automatically cancels the request and deletes the booking.
+
+            **Rejecting (status: 4 — Rechazada)**
+            - Only from status 1 (Pendiente de Revisión). No room is blocked.
+
+            **Cancelling (status: 5 — Cancelada)**
+            - Allowed from any non-terminal status. Releases the room booking if one exists.
+
+            Required permission: **CRUD:UPDATE:RENTALS**
+        tags:
+            - Rentals
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: path
+              name: id
+              required: true
+              schema:
+                  type: integer
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        required:
+                            - status
+                        properties:
+                            status:
+                                type: integer
+                                description: |
+                                    2 = Pendiente de Pago (approve — requires price + currency)
+                                    4 = Rechazada (reject)
+                                    5 = Cancelada (cancel)
+                                example: 2
+                            currency:
+                                type: integer
+                                description: Required when status = 2
+                                example: 1
+                            price:
+                                type: string
+                                description: Required when status = 2. Proforma price.
+                                example: '500.00'
+        responses:
+            '200':
+                description: Status updated. Message varies by action.
+            '400':
+                description: Validation error
+            '401':
+                description: Unauthorized
+            '403':
+                description: Insufficient permissions
+            '404':
+                description: Rental request not found in this cinema
+            '409':
+                description: Room already booked in that time slot (GiST exclusion constraint)

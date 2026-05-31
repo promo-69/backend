@@ -1,0 +1,17 @@
+meta {
+  name: Cartelera Global (Pública)
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/showtimes/billboard
+  body: none
+  auth: none
+}
+
+docs {
+  Endpoint público — no requiere token.
+  Devuelve todas las películas en cartelera con sus funciones futuras agrupadas.
+  Puede llamarse sin sesión (web/app antes del login).
+}

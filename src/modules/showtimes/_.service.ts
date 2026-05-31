@@ -2,6 +2,19 @@ import ShowtimeManagementService from '@services/showtime-management.service.js'
 import { ValidationError } from '@errors';
 
 export class ShowtimesService {
+    // --- Endpoints públicos (cartelera) ---
+
+    async getBillboard(cinemaId?: number) {
+        return ShowtimeManagementService.getBillboard(cinemaId);
+    }
+
+    async getMovieShowtimesByCinema(movieId: number, cinemaId: number) {
+        if (!movieId || !cinemaId) throw new ValidationError('Se requieren movieId y cinemaId');
+        return ShowtimeManagementService.getMovieShowtimesByCinema(movieId, cinemaId);
+    }
+
+    // --- Endpoints internos (backoffice) ---
+
     async findAllShowtimes(filters?: any) {
         return ShowtimeManagementService.findAllShowtimes(filters);
     }
@@ -11,7 +24,6 @@ export class ShowtimesService {
     }
 
     async createShowtime(body: any, sessionCinemaId?: number) {
-        // Determinar el cinemaId: JWT > body > error
         const cinemaId = sessionCinemaId ?? body.cinema;
         if (cinemaId === undefined) {
             throw new ValidationError(
@@ -27,6 +39,19 @@ export class ShowtimesService {
 
     async deleteShowtime(id: number) {
         return ShowtimeManagementService.deleteShowtime(id);
+    }
+
+    async getSeatMap(showtimeId: number) {
+        return ShowtimeManagementService.getSeatMap(showtimeId);
+    }
+
+    async getBillboardFiltered(filters: {
+        cinemaId?: number;
+        movieId?: number;
+        projectionType?: string | number;
+        language?: string | number;
+    }) {
+        return ShowtimeManagementService.getBillboardFiltered(filters);
     }
 }
 

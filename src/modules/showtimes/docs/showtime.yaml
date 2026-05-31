@@ -22,7 +22,8 @@
     patch:
         summary: Update Showtime
         description: |
-            Partially update a showtime.
+            Partially update a showtime. Supports updating schedule (room, start_time, end_time),
+            pricing and other attributes. Changing the schedule will re-validate room availability.
             Required permission: **CRUD:UPDATE:SHOWTIMES**
         tags:
             - Showtimes
@@ -40,6 +41,23 @@
                     schema:
                         type: object
                         properties:
+                            room:
+                                type: integer
+                                description: Nueva sala (dispara re-validación de solapamiento)
+                            start_time:
+                                type: string
+                                format: date-time
+                                description: Nueva hora de inicio
+                            end_time:
+                                type: string
+                                format: date-time
+                                description: Nueva hora de fin
+                            projection_type:
+                                type: integer
+                            language:
+                                type: integer
+                            currency:
+                                type: integer
                             price:
                                 type: number
                             earned_loyalty_points:
@@ -47,6 +65,12 @@
         responses:
             '200':
                 description: Showtime updated
+            '400':
+                description: Validation error
+            '404':
+                description: Showtime not found
+            '409':
+                description: Room already booked in the new time slot
     delete:
         summary: Delete Showtime
         description: |

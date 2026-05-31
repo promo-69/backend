@@ -1,25 +1,156 @@
 /showtimes:
     get:
-        summary: List Showtimes (Implicit)
+        summary: 'PÚBLICO — Listar funciones disponibles'
         description: |
-            Returns all showtimes for the authenticated user's cinema.
-            Required permission: **CRUD:READ:SHOWTIMES**
+            Devuelve las funciones cuya hora de fin es posterior al momento actual.
+
+            **Sin autenticación requerida.**
+            Filtros disponibles:
+            - `date` (YYYY-MM-DD) – funciones de un día específico.
+            - `startDate` y `endDate` (YYYY-MM-DD) – rango de fechas (ambos obligatorios si se usan).
+            - `movieId` – filtrar por película.
+            - `page`, `limit` – paginación.
         tags:
             - Showtimes
-        security:
-            - bearerAuth: []
+        security: []
+        parameters:
+            - in: query
+              name: date
+              schema:
+                  type: string
+                  format: date
+              description: Fecha exacta (YYYY-MM-DD). No usar junto con startDate/endDate.
+            - in: query
+              name: startDate
+              schema:
+                  type: string
+                  format: date
+              description: Fecha de inicio del rango (YYYY-MM-DD). Requiere endDate.
+            - in: query
+              name: endDate
+              schema:
+                  type: string
+                  format: date
+              description: Fecha de fin del rango (YYYY-MM-DD). Requiere startDate.
+            - in: query
+              name: movieId
+              schema:
+                  type: integer
+              description: Filtrar por ID de película
+            - in: query
+              name: page
+              schema:
+                  type: integer
+              default: 1
+            - in: query
+              name: limit
+              schema:
+                  type: integer
+              default: 10
         responses:
             '200':
-                description: List of showtimes
-            '401':
-                description: Unauthorized
+                description: Lista paginada de funciones
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                message:
+                                    type: string
+                                data:
+                                    type: object
+                                    properties:
+                                        count:
+                                            type: integer
+                                        rows:
+                                            type: array
+                                            items:
+                                                type: object
+                                                properties:
+                                                    id:
+                                                        type: integer
+                                                    booking:
+                                                        type: object
+                                                        properties:
+                                                            id:
+                                                                type: integer
+                                                            start_time:
+                                                                type: string
+                                                                format: date-time
+                                                            end_time:
+                                                                type: string
+                                                                format: date-time
+                                                            room:
+                                                                type: object
+                                                                properties:
+                                                                    id:
+                                                                        type: integer
+                                                                    name:
+                                                                        type: string
+                                                    movie:
+                                                        type: object
+                                                        properties:
+                                                            id:
+                                                                type: integer
+                                                            title:
+                                                                type: string
+                                                            duration_minutes:
+                                                                type: integer
+                                                    projection_type:
+                                                        type: object
+                                                        properties:
+                                                            id:
+                                                                type: integer
+                                                            description:
+                                                                type: string
+                                                    language:
+                                                        type: object
+                                                        properties:
+                                                            id:
+                                                                type: integer
+                                                            description:
+                                                                type: string
+                                                    currency:
+                                                        type: object
+                                                        properties:
+                                                            id:
+                                                                type: integer
+                                                            code:
+                                                                type: string
+                                                            symbol:
+                                                                type: string
+                                                    price:
+                                                        type: number
+                                                    earned_loyalty_points:
+                                                        type: integer
+                                metadata:
+                                    type: object
+                                    properties:
+                                        total:
+                                            type: integer
+                                        per_page:
+                                            type: integer
+                                        current_page:
+                                            type: integer
+                                        total_pages:
+                                            type: integer
+                                        next_page:
+                                            type: integer
+                                            nullable: true
+                                        prev_page:
+                                            type: integer
+                                            nullable: true
+            '400':
+                description: Parámetros de query inválidos (fechas mal formadas, rangos incorrectos, etc.)
+
     post:
-        summary: Create Showtime (Implicit)
+        summary: 'PRIVADO — Crear función'
         description: |
-            Schedule a new showtime in the authenticated user's cinema.
-            Required permission: **CRUD:CREATE:SHOWTIMES**
+            Requiere token y permiso `CRUD:CREATE:SHOWTIMES`.
         tags:
-            - Showtimes
+            - Showtimes Admin
         security:
             - bearerAuth: []
         requestBody:
@@ -32,40 +163,349 @@
                             - room
                             - movie
                             - projection_type
+                            - language
                             - start_time
                             - end_time
                             - currency
+                            - price
                         properties:
                             room:
                                 type: integer
-                                example: 4
                             movie:
                                 type: integer
-                                example: 12
                             projection_type:
                                 type: integer
-                                example: 2
+                            language:
+                                type: integer
                             start_time:
                                 type: string
                                 format: date-time
-                                example: '2026-06-15T18:00:00Z'
                             end_time:
                                 type: string
                                 format: date-time
-                                example: '2026-06-15T20:15:00Z'
                             currency:
                                 type: integer
-                                example: 2
                             price:
                                 type: number
-                                example: 5.00
                             earned_loyalty_points:
                                 type: integer
-                                example: 10
+                                nullable: true
         responses:
             '201':
-                description: Showtime created
+                description: Función creada
             '400':
-                description: Validation error
+                description: Validación fallida (datos faltantes, horario inválido, etc.)
+            '401':
+                description: Sin autenticación
+            '403':
+                description: Sin permiso
             '409':
-                description: Room already booked
+                description: La sala ya está ocupada en ese horario
+
+/showtimes/{id}:
+    get:
+        summary: 'PÚBLICO — Detalle de una función'
+        tags:
+            - Showtimes
+        security: []
+        parameters:
+            - in: path
+              name: id
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Detalle de la función
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                message:
+                                    type: string
+                                data:
+                                    type: object
+                                    properties:
+                                        id:
+                                            type: integer
+                                        booking:
+                                            type: object
+                                            properties:
+                                                id:
+                                                    type: integer
+                                                start_time:
+                                                    type: string
+                                                    format: date-time
+                                                end_time:
+                                                    type: string
+                                                    format: date-time
+                                                room:
+                                                    type: object
+                                                    properties:
+                                                        id:
+                                                            type: integer
+                                                        name:
+                                                            type: string
+                                        movie:
+                                            type: object
+                                            properties:
+                                                id:
+                                                    type: integer
+                                                title:
+                                                    type: string
+                                                duration_minutes:
+                                                    type: integer
+                                        projection_type:
+                                            type: object
+                                            properties:
+                                                id:
+                                                    type: integer
+                                                description:
+                                                    type: string
+                                        language:
+                                            type: object
+                                            properties:
+                                                id:
+                                                    type: integer
+                                                description:
+                                                    type: string
+                                        currency:
+                                            type: object
+                                            properties:
+                                                id:
+                                                    type: integer
+                                                code:
+                                                    type: string
+                                                symbol:
+                                                    type: string
+                                        price:
+                                            type: number
+                                        earned_loyalty_points:
+                                            type: integer
+                                            nullable: true
+            '404':
+                description: Función no encontrada
+
+    patch:
+        summary: 'PRIVADO — Actualizar función'
+        tags:
+            - Showtimes Admin
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: path
+              name: id
+              required: true
+              schema:
+                  type: integer
+        requestBody:
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            room:
+                                type: integer
+                            start_time:
+                                type: string
+                                format: date-time
+                            end_time:
+                                type: string
+                                format: date-time
+                            projection_type:
+                                type: integer
+                            language:
+                                type: integer
+                            currency:
+                                type: integer
+                            price:
+                                type: number
+                            earned_loyalty_points:
+                                type: integer
+        responses:
+            '200':
+                description: Función actualizada
+            '400':
+                description: Datos inválidos
+            '401':
+                description: Sin autenticación
+            '403':
+                description: Sin permiso
+            '404':
+                description: Función no encontrada
+            '409':
+                description: La sala ya está ocupada en el nuevo horario
+
+    delete:
+        summary: 'PRIVADO — Cancelar función'
+        tags:
+            - Showtimes Admin
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: path
+              name: id
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Función cancelada
+            '401':
+                description: Sin autenticación
+            '403':
+                description: Sin permiso
+            '404':
+                description: Función no encontrada
+            '409':
+                description: No se puede cancelar — existen boletos vendidos
+
+/cinemas/{cinemaId}/showtimes:
+    get:
+        summary: 'PÚBLICO — Funciones disponibles en una sucursal'
+        tags:
+            - Showtimes por sucursal
+        security: []
+        parameters:
+            - in: path
+              name: cinemaId
+              required: true
+              schema:
+                  type: integer
+            - in: query
+              name: date
+              schema:
+                  type: string
+                  format: date
+              description: Fecha exacta (YYYY-MM-DD). No usar junto con startDate/endDate.
+            - in: query
+              name: startDate
+              schema:
+                  type: string
+                  format: date
+              description: Fecha de inicio del rango (YYYY-MM-DD). Requiere endDate.
+            - in: query
+              name: endDate
+              schema:
+                  type: string
+                  format: date
+              description: Fecha de fin del rango (YYYY-MM-DD). Requiere startDate.
+            - in: query
+              name: movieId
+              schema:
+                  type: integer
+              description: Filtrar por ID de película
+            - in: query
+              name: page
+              schema:
+                  type: integer
+              default: 1
+            - in: query
+              name: limit
+              schema:
+                  type: integer
+              default: 10
+        responses:
+            '200':
+                description: Lista de funciones de la sucursal (mismo esquema que GET /showtimes)
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                data:
+                                    type: object
+                                    properties:
+                                        count:
+                                            type: integer
+                                        rows:
+                                            type: array
+                                            items:
+                                                type: object
+            '404':
+                description: Sucursal no encontrada
+
+    post:
+        summary: 'PRIVADO — Crear función en la sucursal'
+        tags:
+            - Showtimes Admin
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: path
+              name: cinemaId
+              required: true
+              schema:
+                  type: integer
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        required:
+                            - room
+                            - movie
+                            - projection_type
+                            - language
+                            - start_time
+                            - end_time
+                            - currency
+                            - price
+                        properties:
+                            room:
+                                type: integer
+                            movie:
+                                type: integer
+                            projection_type:
+                                type: integer
+                            language:
+                                type: integer
+                            start_time:
+                                type: string
+                                format: date-time
+                            end_time:
+                                type: string
+                                format: date-time
+                            currency:
+                                type: integer
+                            price:
+                                type: number
+                            earned_loyalty_points:
+                                type: integer
+                                nullable: true
+        responses:
+            '201':
+                description: Función creada
+            '400': {}
+            '401': {}
+            '403': {}
+            '409': {}
+
+/cinemas/{cinemaId}/showtimes/{id}:
+    get:
+        summary: 'PÚBLICO — Detalle de una función en la sucursal'
+        tags:
+            - Showtimes por sucursal
+        security: []
+        parameters:
+            - in: path
+              name: cinemaId
+              required: true
+              schema:
+                  type: integer
+            - in: path
+              name: id
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Detalle de la función (mismo esquema que GET /showtimes/{id})
+            '404':
+                description: Función no encontrada

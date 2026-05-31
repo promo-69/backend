@@ -71,6 +71,14 @@ class RoomsController extends ControllerBase {
         await SeatManagementService.createSeats(Number(id), body);
         return this.created(null, 'Asiento(s) agregado(s) exitosamente');
     }
+
+    // PUT /rooms/:id/seat-grid — Configurar grilla de asientos (regenerar todos)
+    async configureSeatGrid() {
+        const { id } = this.getParams();
+        const body = this.getBody();
+        await RoomsService.configureSeatGrid(Number(id), body);
+        return this.success(null, 'Distribución de asientos actualizada exitosamente');
+    }
 }
 
 export default new RoomsController();
