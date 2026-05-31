@@ -119,6 +119,31 @@
             '500':
                 description: Internal server error
 
+/movies/upcoming:
+    get:
+        summary: Get Upcoming Movies
+        description: Retrieve a paginated list of movies with lifecycle_state = 1 (Próximamente), including related genres, languages, and projection types.
+        tags:
+            - Movies
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: page
+              in: query
+              description: Page number for pagination
+              schema:
+                  type: integer
+            - name: limit
+              in: query
+              description: Number of items per page
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: List of upcoming movies retrieved successfully
+            '500':
+                description: Internal server error
+
 /movies/{id}:
     get:
         summary: Get Movie by ID

@@ -14,6 +14,7 @@ const imageUpload = uploadFields(
 
 router.get('/', optionalAuth, moviesController.findAll);
 router.get('/showtimes', optionalAuth, moviesController.findWithShowtimes);
+router.get('/upcoming', optionalAuth, moviesController.upcoming);
 router.get('/:id', optionalAuth, moviesController.findById);
 router.post('/', verifySession, verifyPermission('CRUD:UPDATE:MOVIES'), imageUpload, moviesController.create);
 router.patch('/:id', verifySession, verifyPermission('CRUD:UPDATE:MOVIES'), imageUpload, moviesController.update);

@@ -18,6 +18,12 @@ class MoviesController extends ControllerBase {
 		return data;
 	}
 
+	// GET /api/v1/movies/upcoming  — Películas con lifecycle_state = 1
+	async upcoming() {
+		const data = await MoviesService.getUpcoming(this.getQueryFilters());
+		return this.success(data, 'Películas obtenidas exitosamente');
+	}
+
 	// GET /api/v1/movies/:id  — HU-APP-WEB-07 detalle público
 	async findById() {
 		const { id } = this.getParams();

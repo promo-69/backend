@@ -71,6 +71,10 @@ export class MoviesService extends BaseService {
 		return this._movies.getWithShowtimes(filters);
 	}
 
+	async getUpcoming(filters?: ProcessedQueryFilters) {
+		return this._movies.getUpcoming(filters);
+	}
+
 	async getMovieDetail(id: number) {
 		const movie = await this._movies.getFull(id);
 		if (!movie) throw new NotFoundError('Película no encontrada');
