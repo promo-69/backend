@@ -143,6 +143,18 @@ class MoviesRepository extends SequelizeRepositoryBase<MoviesAttributes, number>
 		};
 	}
 
+	async getUpcoming(filters?: any): Promise<{ rows: MovieFull[]; count: number }> {
+		const result = (await this.getAll(
+			{ ...filters, count: true, relations: this._relations },
+			{ lifecycle_state: 1 },
+		)) as { rows: any[]; count: number };
+
+		return {
+			count: result.count,
+			rows: this.parseResponse(result.rows) as MovieFull[],
+		};
+	}
+
 	async getByTitle(title: string): Promise<MoviesAttributes | null> {
 		const result = await this.getOne({ title });
 		return this.parseResponse(result) as MoviesAttributes | null;
