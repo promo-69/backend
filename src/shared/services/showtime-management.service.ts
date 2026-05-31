@@ -1,4 +1,4 @@
-import { Database } from '@database/index.js';
+import { Database, Ops } from '@database/index.js';
 import { ConflictError, NotFoundError, ValidationError } from '@errors';
 import { Transaction, Op } from 'sequelize';
 
@@ -40,11 +40,10 @@ export class ShowtimeManagementService {
     ) {
         const where: any = {
             room: roomId,
-            start_time: { [Op.lt]: endTime },
-            end_time: { [Op.gt]: startTime },
-            deleted_at: null,
+            start_time: { [Ops.lt]: endTime },
+            end_time: { [Ops.gt]: startTime },
         };
-        if (excludeBookingId) where.id = { [Op.ne]: excludeBookingId };
+        if (excludeBookingId) where.id = { [Ops.ne]: excludeBookingId };
 
         const conflict = await this._roomBookings.getOne(where, { transaction });
         if (conflict) throw new ConflictError('La sala ya está ocupada en ese horario', 'ROOM_ALREADY_BOOKED');
@@ -57,7 +56,7 @@ export class ShowtimeManagementService {
         const now = new Date();
 
         const activeBookingsWhere: any = {
-            end_time: { [Op.gt]: now },
+            end_time: { [Ops.gt]: now },
             deleted_at: null,
         };
 
@@ -127,7 +126,7 @@ export class ShowtimeManagementService {
                 attributes: ['id', 'title', 'duration_minutes', 'poster_url', 'lifecycle_state'],
                 relations: [
                     { association: '_LifecycleStates', attributes: ['id', 'description'], required: false },
-                    { association: '_AgeClassifications', attributes: ['id', 'description'], required: false }, // ✅ se quitó 'code'
+                    { association: '_AgeClassifications', attributes: ['id', 'description'], required: false },
                     { association: '_Genres', attributes: ['id', 'description'], required: false },
                 ],
             },
@@ -188,7 +187,7 @@ export class ShowtimeManagementService {
                         age_classification: movie._AgeClassifications
                             ? {
                                   id: movie._AgeClassifications.id,
-                                  description: movie._AgeClassifications.description, // ✅ se quitó code
+                                  description: movie._AgeClassifications.description,
                               }
                             : null,
                         genres: Array.isArray(movie._Genres)
@@ -248,7 +247,7 @@ export class ShowtimeManagementService {
                 ],
                 order: [['start_time', 'ASC']],
             },
-            { end_time: { [Op.gt]: now }, deleted_at: null },
+            { end_time: { [Ops.gt]: now }, deleted_at: null },
         );
 
         const bookingList: any[] = Array.isArray(bookings) ? bookings : bookings.rows;
@@ -377,22 +376,61 @@ export class ShowtimeManagementService {
         const price = Number(data.price);
         const earnedLoyaltyPoints = data.earned_loyalty_points ?? data.earnedLoyaltyPoints ?? null;
 
-        if (!roomId || !movieId || !projTypeId || !languageId || !startTime || !endTime || !currencyId) {
-            throw new ValidationError(
-                'Faltan datos obligatorios para programar la función (room, movie, projection_type, language, start_time, end_time, currency)',
-            );
-        }
+        // ── Validaciones de campos obligatorios ───────────────────────────
+        if (!roomId) throw new ValidationError('La sala (room) es obligatoria');
+        if (!movieId) throw new ValidationError('La película (movie) es obligatoria');
+        if (!projTypeId) throw new ValidationError('El tipo de proyección (projection_type) es obligatorio');
+        if (!languageId) throw new ValidationError('El idioma (language) es obligatorio');
+        if (!startTime) throw new ValidationError('La hora de inicio (start_time) es obligatoria');
+        if (!endTime) throw new ValidationError('La hora de fin (end_time) es obligatoria');
+        if (!currencyId) throw new ValidationError('La moneda (currency) es obligatoria');
         if (isNaN(price) || price <= 0) throw new ValidationError('El precio debe ser un número positivo');
+
         const start = new Date(startTime);
         const end = new Date(endTime);
+        if (isNaN(start.getTime())) throw new ValidationError('start_time no es una fecha válida');
+        if (isNaN(end.getTime())) throw new ValidationError('end_time no es una fecha válida');
         if (end <= start) throw new ValidationError('La hora de fin debe ser posterior a la de inicio');
+        if (start < new Date()) throw new ValidationError('No se puede programar una función en el pasado');
+
+        // ── Validaciones de existencia (fuera de transacción — solo lectura) ──
+        const [movie, room, language, currency] = await Promise.all([
+            this._movies.getById(movieId, { attributes: ['id', 'title', 'lifecycle_state', 'deleted_at'] }),
+            (Database.repository('main', 'rooms') as any).getById(roomId, { attributes: ['id', 'name', 'deleted_at'] }),
+            (Database.repository('main', 'languages') as any).getById(languageId, {
+                attributes: ['id', 'description'],
+            }),
+            (Database.repository('main', 'currencies') as any).getById(currencyId, { attributes: ['id', 'code'] }),
+        ]);
+
+        if (!movie) throw new ValidationError(`No existe ninguna película con id ${movieId}`);
+        if (!room) throw new ValidationError(`No existe ninguna sala con id ${roomId}`);
+        if (!language) throw new ValidationError(`No existe ningún idioma con id ${languageId}`);
+        if (!currency) throw new ValidationError(`No existe ninguna moneda con id ${currencyId}`);
+
+        // Verificar que la sala admite ese tipo de proyección
+        const roomProjectionType = await (Database.repository('main', 'room-projection-types') as any).getOne({
+            room: roomId,
+            projection_type: projTypeId,
+        });
+        if (!roomProjectionType) {
+            const projType = await (Database.repository('main', 'projection-types') as any).getById(projTypeId, {
+                attributes: ['id', 'description'],
+            });
+            const projDesc = projType?.description ?? `id ${projTypeId}`;
+            throw new ValidationError(
+                `La sala "${room.name}" no admite el tipo de proyección "${projDesc}". Verificá los tipos habilitados para esta sala.`,
+            );
+        }
 
         const result = await this._roomBookings.transaction(async (transaction: Transaction) => {
             await this._checkOverlap(roomId, start, end, undefined, transaction);
 
-            const bookingType: any = await this._bookingTypes.getById(1, { transaction });
-            if (!bookingType)
-                throw new ValidationError('Falta el tipo de reserva para películas en booking_types (id=1)');
+            const bookingType: any = await this._bookingTypes.getOne(
+                { code: BOOKING_TYPE_CODE_SHOWTIME },
+                { transaction },
+            );
+            if (!bookingType) throw new ValidationError('Falta el tipo de reserva SHOWTIME en booking_types');
 
             const booking: any = await this._roomBookings.create(
                 { room: roomId, start_time: start, end_time: end, booking_type: bookingType.id },
@@ -412,8 +450,8 @@ export class ShowtimeManagementService {
                 { transaction },
             );
 
-            const movie: any = await this._movies.getById(movieId, { transaction });
-            if (movie && movie.lifecycle_state !== 2) {
+            const movieRecord: any = await this._movies.getById(movieId, { transaction });
+            if (movieRecord && movieRecord.lifecycle_state !== 2) {
                 await this._movies.update(movieId, { lifecycle_state: 2 }, { transaction });
             }
 
@@ -438,7 +476,7 @@ export class ShowtimeManagementService {
 
     async findAllShowtimes(filters?: any) {
         const now = new Date();
-        const { date, cinemaId, onlyFuture = true, movieId, ...rest } = filters ?? {};
+        const { date, startDate, endDate, cinemaId, onlyFuture = true, movieId, ...rest } = filters ?? {};
 
         let targetBookingIds: number[] | undefined;
         const bookingWhere: any = { deleted_at: null };
@@ -447,13 +485,21 @@ export class ShowtimeManagementService {
             bookingWhere.end_time = { [Op.gt]: now };
         }
 
-        if (date) {
+        // Manejar rangos de fechas
+        if (startDate && endDate) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+                throw new ValidationError('startDate y endDate deben ser fechas válidas (YYYY-MM-DD)');
+            }
+            bookingWhere.start_time = { [Op.between]: [start, end] };
+        } else if (date) {
             const dayStart = new Date(`${date}T00:00:00.000Z`);
             const dayEnd = new Date(`${date}T23:59:59.999Z`);
             bookingWhere.start_time = { [Op.between]: [dayStart, dayEnd] };
         }
 
-        const needsBookingFilter = cinemaId || date || onlyFuture;
+        const needsBookingFilter = cinemaId || date || startDate || onlyFuture;
         if (needsBookingFilter) {
             const bookingQueryOptions: any = {
                 count: false,
@@ -473,7 +519,6 @@ export class ShowtimeManagementService {
 
         const showtimeWhere: any = { deleted_at: null };
         if (targetBookingIds) showtimeWhere.booking = targetBookingIds;
-        if (movieId) showtimeWhere.movie = movieId;
 
         const rawResult = await this._showtimesRepo.getAll(
             {

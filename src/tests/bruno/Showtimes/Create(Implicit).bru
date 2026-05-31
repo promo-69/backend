@@ -1,0 +1,51 @@
+meta {
+  name: Create Showtime (Implicit)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/showtimes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "room": 4,
+    "movie": 12,
+    "projection_type": 2,
+    "language": 1,
+    "start_time": "2026-08-15T18:00:00Z",
+    "end_time": "2026-08-15T20:15:00Z",
+    "currency": 1,
+    "price": 10.00,
+    "earned_loyalty_points": 20
+  }
+}
+
+script:post-response {
+  const body = res.getBody();
+  if (res.getStatus() === 201 && body?.data?.showtime_id) {
+    bru.setEnvVar("testShowtimeId", body.data.showtime_id);
+    bru.setEnvVar("testBookingId", body.data.booking_id);
+  }
+}
+
+docs {
+  Crea una función usando el cinemaId del JWT (cinema implícito).
+  Campos obligatorios: room, movie, projection_type, language, start_time, end_time, currency, price.
+
+  Validaciones del servidor:
+  - La película debe existir
+  - La sala debe existir
+  - El idioma debe existir
+  - La moneda debe existir
+  - La sala debe tener habilitado ese projection_type (room_projection_types)
+  - start_time debe ser en el futuro
+  - No puede haber solapamiento de horario en la misma sala
+}

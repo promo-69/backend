@@ -1,0 +1,25 @@
+meta {
+  name: Get Rental Request Detail (Manager)
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/rentals/requests/{{rentalRequestId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+vars:pre-request {
+  rentalRequestId: 88
+}
+
+docs {
+  Requiere token de CINEMA_MANAGER.
+  Detalle exhaustivo: sala, horario, datos de contacto, aforo.
+  Permiso: CRUD:READ:RENTALS
+}

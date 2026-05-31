@@ -1,14 +1,6 @@
 'use strict';
 
-/**
- * FIX #1.1: La tabla inventories fue creada sin la columna 'stock'.
- * Dos servicios (InventoryManagementService y OrdersService.processCheckout)
- * leen y escriben inventory.stock, lo que causaba NaN en los cálculos de stock disponible.
- *
- * Se agrega la columna y se inicializa su valor a partir del histórico de inventory_movements.
- *
- * @type {import('sequelize-cli').Migration}
- */
+/** @type {import('sequelize-cli').Migration} */
 module.exports = {
     async up(queryInterface, Sequelize) {
         await queryInterface.sequelize.transaction(async (transaction) => {

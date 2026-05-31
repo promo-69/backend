@@ -1,0 +1,28 @@
+/rentals/requests/{id}:
+    get:
+        summary: Get Rental Request Detail (Manager)
+        description: |
+            Returns the full administrative detail of a rental request.
+            Shows all contact info (from `people` via `customers`), estimated attendees,
+            room, cinema, requested schedule and event type so the manager can evaluate
+            before approving, setting a price and generating a proforma.
+            Required permission: **CRUD:READ:RENTALS**
+        tags:
+            - Rentals
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: path
+              name: id
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Rental request detail
+            '401':
+                description: Unauthorized
+            '403':
+                description: Insufficient permissions
+            '404':
+                description: Rental request not found in this cinema

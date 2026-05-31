@@ -1,0 +1,26 @@
+meta {
+  name: List Rental Requests (Manager)
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/rentals/requests
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  page: 1
+  limit: 10
+}
+
+docs {
+  Requiere token de CINEMA_MANAGER (o SUPER_ADMIN).
+  Lista las solicitudes del cine del manager autenticado.
+  Permiso: CRUD:READ:RENTALS
+}

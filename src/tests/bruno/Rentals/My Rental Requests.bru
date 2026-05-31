@@ -1,0 +1,26 @@
+meta {
+  name: My Rental Requests (Customer)
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/rentals/requests/me
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  page: 1
+  limit: 10
+}
+
+docs {
+  Requiere token de cliente autenticado.
+  Devuelve el historial y estatus en tiempo real de sus propias solicitudes.
+  Permiso: VIEW:ACCESS:RENTALS-MY
+}

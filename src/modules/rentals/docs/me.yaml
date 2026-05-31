@@ -1,0 +1,26 @@
+/rentals/requests/me:
+    get:
+        summary: My Rental Requests (Authenticated Customer)
+        description: |
+            Authenticated customer queries the real-time status of their own rental requests.
+            Required permission: **VIEW:ACCESS:RENTALS-MY**
+        tags:
+            - Rentals
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: query
+              name: page
+              schema:
+                  type: integer
+                  default: 1
+            - in: query
+              name: limit
+              schema:
+                  type: integer
+                  default: 10
+        responses:
+            '200':
+                description: Customer's own rental request history
+            '401':
+                description: Unauthorized

@@ -4,7 +4,12 @@
         description: |
             Devuelve las funciones cuya hora de fin es posterior al momento actual.
 
-            **Sin autenticación requerida.** Filtros: `date` (YYYY-MM-DD), `movieId`, `page`, `limit`.
+            **Sin autenticación requerida.**
+            Filtros disponibles:
+            - `date` (YYYY-MM-DD) – funciones de un día específico.
+            - `startDate` y `endDate` (YYYY-MM-DD) – rango de fechas (ambos obligatorios si se usan).
+            - `movieId` – filtrar por película.
+            - `page`, `limit` – paginación.
         tags:
             - Showtimes
         security: []
@@ -14,6 +19,19 @@
               schema:
                   type: string
                   format: date
+              description: Fecha exacta (YYYY-MM-DD). No usar junto con startDate/endDate.
+            - in: query
+              name: startDate
+              schema:
+                  type: string
+                  format: date
+              description: Fecha de inicio del rango (YYYY-MM-DD). Requiere endDate.
+            - in: query
+              name: endDate
+              schema:
+                  type: string
+                  format: date
+              description: Fecha de fin del rango (YYYY-MM-DD). Requiere startDate.
             - in: query
               name: movieId
               schema:
@@ -23,10 +41,12 @@
               name: page
               schema:
                   type: integer
+              default: 1
             - in: query
               name: limit
               schema:
                   type: integer
+              default: 10
         responses:
             '200':
                 description: Lista paginada de funciones
@@ -123,7 +143,7 @@
                                             type: integer
                                             nullable: true
             '400':
-                description: Parámetros de query inválidos
+                description: Parámetros de query inválidos (fechas mal formadas, rangos incorrectos, etc.)
 
     post:
         summary: 'PRIVADO — Crear función'
@@ -174,7 +194,7 @@
             '201':
                 description: Función creada
             '400':
-                description: Validación fallida
+                description: Validación fallida (datos faltantes, horario inválido, etc.)
             '401':
                 description: Sin autenticación
             '403':
@@ -360,6 +380,19 @@
               schema:
                   type: string
                   format: date
+              description: Fecha exacta (YYYY-MM-DD). No usar junto con startDate/endDate.
+            - in: query
+              name: startDate
+              schema:
+                  type: string
+                  format: date
+              description: Fecha de inicio del rango (YYYY-MM-DD). Requiere endDate.
+            - in: query
+              name: endDate
+              schema:
+                  type: string
+                  format: date
+              description: Fecha de fin del rango (YYYY-MM-DD). Requiere startDate.
             - in: query
               name: movieId
               schema:
@@ -369,10 +402,12 @@
               name: page
               schema:
                   type: integer
+              default: 1
             - in: query
               name: limit
               schema:
                   type: integer
+              default: 10
         responses:
             '200':
                 description: Lista de funciones de la sucursal (mismo esquema que GET /showtimes)

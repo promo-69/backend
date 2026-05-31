@@ -16,6 +16,8 @@ class ShowtimesController extends ControllerBase {
         const data = await ShowtimesService.findAllShowtimes({
             ...this.getQueryFilters(),
             date: query.date as string | undefined,
+            startDate: query.startDate as string | undefined,
+            endDate: query.endDate as string | undefined,
             onlyFuture: true,
         });
         return this.success(data, 'Funciones obtenidas exitosamente');

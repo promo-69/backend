@@ -1,0 +1,46 @@
+meta {
+  name: Create Showtime (Explicit — via Cinema)
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/cinemas/{{testCinemaId}}/showtimes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "room": 4,
+    "movie": 12,
+    "projection_type": 2,
+    "language": 1,
+    "start_time": "2026-08-15T22:00:00Z",
+    "end_time": "2026-08-16T00:15:00Z",
+    "currency": 1,
+    "price": 10.00,
+    "earned_loyalty_points": 20
+  }
+}
+
+vars:pre-request {
+  testCinemaId: 1
+}
+
+script:post-response {
+  const body = res.getBody();
+  if (res.getStatus() === 201 && body?.data?.showtime_id) {
+    bru.setEnvVar("testShowtimeId", body.data.showtime_id);
+  }
+}
+
+docs {
+  Crea una función en la sucursal especificada en el path.
+  Horario diferente al Implicit para no generar overlap.
+  Mismas validaciones que el endpoint implícito.
+}
