@@ -11,6 +11,63 @@
         responses:
             '200':
                 description: List of roles
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                    example: true
+                                message:
+                                    type: string
+                                    example: Roles recuperados correctamente.
+                                data:
+                                    type: array
+                                    items:
+                                        type: object
+                                        properties:
+                                            id:
+                                                type: integer
+                                                example: 2
+                                            code:
+                                                type: string
+                                                example: ADMIN
+                                            name:
+                                                type: string
+                                                example: Administrador
+                                            description:
+                                                type: string
+                                                example: Rol con acceso completo.
+                                            _RolePermissions:
+                                                type: array
+                                                items:
+                                                    type: object
+                                                    properties:
+                                                        id:
+                                                            type: integer
+                                                            example: 10
+                                                        role:
+                                                            type: integer
+                                                            example: 2
+                                                        permission:
+                                                            type: integer
+                                                            example: 5
+                                                        _Permissions:
+                                                            type: object
+                                                            properties:
+                                                                id:
+                                                                    type: integer
+                                                                    example: 5
+                                                                action:
+                                                                    type: integer
+                                                                    example: 1
+                                                                resource:
+                                                                    type: integer
+                                                                    example: 2
+                                                                permission_type:
+                                                                    type: integer
+                                                                    example: 1
     post:
         summary: Create a new role
         description: |
@@ -58,6 +115,63 @@
         responses:
             '200':
                 description: Role details
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                    example: true
+                                message:
+                                    type: string
+                                    example: Rol recuperado correctamente.
+                                data:
+                                    oneOf:
+                                        - type: object
+                                          properties:
+                                              id:
+                                                  type: integer
+                                                  example: 2
+                                              code:
+                                                  type: string
+                                                  example: ADMIN
+                                              name:
+                                                  type: string
+                                                  example: Administrador
+                                              description:
+                                                  type: string
+                                                  example: Rol con acceso completo.
+                                              _RolePermissions:
+                                                  type: array
+                                                  items:
+                                                      type: object
+                                                      properties:
+                                                          id:
+                                                              type: integer
+                                                              example: 10
+                                                          role:
+                                                              type: integer
+                                                              example: 2
+                                                          permission:
+                                                              type: integer
+                                                              example: 5
+                                                          _Permissions:
+                                                              type: object
+                                                              properties:
+                                                                  id:
+                                                                      type: integer
+                                                                      example: 5
+                                                                  action:
+                                                                      type: integer
+                                                                      example: 1
+                                                                  resource:
+                                                                      type: integer
+                                                                      example: 2
+                                                                  permission_type:
+                                                                      type: integer
+                                                                      example: 1
+                                        - type: 'null'
             '404':
                 description: Role not found
     patch:

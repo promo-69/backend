@@ -29,7 +29,7 @@ class RolesService extends BaseService {
 	}
 
 	async getRoleById(id: number) {
-		const role = await this._roles.getById(id);
+		const role = await this._roles.getFull(id);
 		if (!role) throw new NotFoundError('Rol', id.toString());
 		return role;
 	}
