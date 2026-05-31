@@ -2,14 +2,14 @@ import { ControllerBase } from '@bases/controller.base.js';
 import EmployeesService from './_.service.js';
 
 class EmployeesController extends ControllerBase {
-    /* GET /employees — cinemaId extraído del JWT */
+    /* GET /employees */
     async findAll() {
         const session = this.getSession<any>();
         const data = await EmployeesService.findAllEmployees(session.cinemaId, this.getQueryFilters());
-        return data;
+        return this.success(data, 'Empleados obtenidos exitosamente');
     }
 
-    /* GET /employees/:id — cinemaId extraído del JWT para verificar pertenencia */
+    /* GET /employees/:id */
     async findById() {
         const session = this.getSession<any>();
         const { id } = this.getParams();
@@ -17,7 +17,7 @@ class EmployeesController extends ControllerBase {
         return this.success(data, 'Empleado encontrado');
     }
 
-    /* POST /employees — cinemaId del JWT en contexto local, del body solo para SUPER_ADMIN */
+    /* POST /employees */
     async create() {
         const session = this.getSession<any>();
         const employeeData = this.getBody();
@@ -25,7 +25,7 @@ class EmployeesController extends ControllerBase {
         return this.created(data, 'Empleado registrado exitosamente');
     }
 
-    /* PATCH /employees/:id — actualización parcial de datos biográficos y/o employee_code */
+    /* PATCH /employees/:id */
     async update() {
         const { id } = this.getParams();
         const employeeData = this.getBody();
@@ -33,7 +33,7 @@ class EmployeesController extends ControllerBase {
         return this.success(null, 'Empleado actualizado exitosamente');
     }
 
-    /* PATCH /employees/:id/position — cambio de cargo / sucursal (SCD Tipo 2) */
+    /* PATCH /employees/:id/position */
     async changePosition() {
         const { id } = this.getParams();
         const positionData = this.getBody();
@@ -41,7 +41,7 @@ class EmployeesController extends ControllerBase {
         return this.success(data, 'Cargo actualizado exitosamente');
     }
 
-    /* DELETE /employees/:id — cierra cargo activo y desactiva el usuario */
+    /* DELETE /employees/:id */
     async delete() {
         const { id } = this.getParams();
         await EmployeesService.deleteEmployee(Number(id));

@@ -19,7 +19,6 @@ body:json {
     "room": 4,
     "movie": 12,
     "projection_type": 2,
-    "language": 1,
     "start_time": "2026-06-15T18:00:00Z",
     "end_time": "2026-06-15T20:15:00Z",
     "currency": 2,
@@ -29,7 +28,7 @@ body:json {
 }
 
 script:pre-request {
-  const baseUrl = bru.getEnvVar('baseUrl') || 'https://127.0.0.1/api/v1';
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
   bru.setVar('baseUrl', baseUrl);
 }
 

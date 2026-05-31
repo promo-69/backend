@@ -1,5 +1,5 @@
 import { Database } from '@database/index.js';
-import { ValidationError, NotFoundError, ConflictError } from '@errors';
+import { ValidationError, NotFoundError } from '@errors';
 import { BcryptUtil } from '@utils/bcrypt.util.js';
 import { REGEX } from '@constants/regex.constant.js';
 import { Transaction } from 'sequelize';
@@ -22,6 +22,50 @@ export class EmployeeManagementService {
     }
     private get _users() {
         return Database.repository('main', 'users') as any;
+    }
+
+    /**
+     * Formatea la respuesta de un empleado en el formato canónico:
+     *   - person: datos biográficos
+     *   - employee: datos laborales + historial de cargos
+     *   - user: credenciales de acceso (si existen)
+     */
+    private _formatEmployeeResponse(raw: any) {
+        if (!raw) return null;
+
+        const { _People: people, _EmployeePositions: positions, ...employeeFields } = raw;
+
+        return {
+            person: people
+                ? {
+                      id: people.id,
+                      document_number: people.document_number,
+                      first_name: people.first_name,
+                      last_name: people.last_name,
+                      gender: people.gender ?? null,
+                      phone_number: people.phone_number ?? null,
+                      personal_email: people.personal_email ?? null,
+                      birth_date: people.birth_date ?? null,
+                  }
+                : null,
+
+            employee: {
+                ...employeeFields,
+                positions: (positions ?? []).map((pos: any) => ({
+                    id: pos.id,
+                    start_date: pos.start_date,
+                    end_date: pos.end_date ?? null,
+                    salary_base: pos.salary_base ?? null,
+                    is_active: pos.end_date === null,
+                    job_position: pos._JobPositions
+                        ? { id: pos._JobPositions.id, title: pos._JobPositions.title }
+                        : { id: pos.job_position },
+                    cinema: pos._Cinemas ? { id: pos._Cinemas.id, name: pos._Cinemas.name } : { id: pos.cinema },
+                })),
+            },
+
+            user: null as any,
+        };
     }
 
     async findAllEmployees(cinemaId?: number, filters?: any) {
@@ -143,14 +187,13 @@ export class EmployeeManagementService {
         return result;
     }
 
+    /**
+     * Obtiene un empleado por ID con el formato canónico.
+     * Si se proporciona cinemaId, verifica que el empleado tenga un cargo activo en esa sucursal.
+     */
     async findEmployeeById(id: number, cinemaId?: number) {
-        const employee = await this._employees.getById(id, {
-            relations: [
-                { association: '_People', attributes: ['id', 'document_number', 'first_name', 'last_name'] },
-                { association: '_EmployeePositions', attributes: ['id', 'cinema', 'end_date'] },
-            ],
-        });
-        if (!employee) throw new NotFoundError('Empleado no encontrado');
+        const raw = await this._employees.getFull(id);
+        if (!raw) throw new NotFoundError('Empleado no encontrado');
 
         if (cinemaId) {
             const position = await this._employeePositions.getOne({ employee: id, cinema: cinemaId, end_date: null });
@@ -158,18 +201,39 @@ export class EmployeeManagementService {
                 throw new NotFoundError('El empleado no está asignado a esta sucursal o no tiene un cargo activo');
         }
 
-        return employee;
+        return this._formatEmployeeResponse(raw);
     }
 
-    async deleteEmployee(id: number) {
+    /**
+     * Elimina un empleado (soft‑delete). Si se proporciona cinemaId,
+     * valida atómicamente que el empleado pertenezca a esa sucursal antes de eliminarlo.
+     */
+    async deleteEmployee(id: number, cinemaId?: number) {
         await this._employees.transaction(async (transaction: Transaction) => {
-            const employee = await this._employees.getById(id, { transaction, lock: transaction.LOCK.UPDATE });
+            const employee = await this._employees.getById(id, {
+                transaction,
+                lock: transaction.LOCK.UPDATE,
+            });
             if (!employee) throw new NotFoundError('Empleado no encontrado');
 
-            const activePosition = await this._employeePositions.getOne(
+            if (cinemaId) {
+                const activePosition = await this._employeePositions.getOne(
+                    { employee: id, cinema: cinemaId, end_date: null },
+                    { transaction, lock: transaction.LOCK.UPDATE },
+                );
+                if (!activePosition) {
+                    throw new NotFoundError('El empleado no está asignado a esta sucursal o no tiene un cargo activo');
+                }
+            }
+
+            const activePositionsResult = await this._employeePositions.getAll(
+                { count: false, operation: { transaction, lock: transaction.LOCK.UPDATE } },
                 { employee: id, end_date: null },
-                { transaction, lock: transaction.LOCK.UPDATE },
             );
+            const activePosition = Array.isArray(activePositionsResult)
+                ? activePositionsResult[0]
+                : activePositionsResult?.rows?.[0];
+
             if (activePosition) {
                 await this._employeePositions.update(activePosition.id, { end_date: new Date() }, { transaction });
             }
@@ -186,6 +250,8 @@ export class EmployeeManagementService {
                 }
             }
         });
+
+        return null;
     }
 }
 

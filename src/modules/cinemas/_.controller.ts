@@ -72,8 +72,7 @@ class CinemasController extends ControllerBase {
     // DELETE /cinemas/:cinemaId/employees/:employeeId
     async removeEmployeeFromCinema() {
         const { cinemaId, employeeId } = this.getParams();
-        await EmployeeManagementService.findEmployeeById(Number(employeeId), Number(cinemaId));
-        await EmployeeManagementService.deleteEmployee(Number(employeeId));
+        await EmployeeManagementService.deleteEmployee(Number(employeeId), Number(cinemaId));
         return this.success(null, 'Empleado desactivado exitosamente');
     }
 }

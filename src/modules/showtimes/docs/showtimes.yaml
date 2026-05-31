@@ -4,7 +4,7 @@
         description: |
             Devuelve las funciones cuya hora de fin es posterior al momento actual.
 
-            **Sin autenticación requerida.** Filtros: `date` (YYYY-MM-DD), `page`, `limit`.
+            **Sin autenticación requerida.** Filtros: `date` (YYYY-MM-DD), `movieId`, `page`, `limit`.
         tags:
             - Showtimes
         security: []
@@ -14,6 +14,11 @@
               schema:
                   type: string
                   format: date
+            - in: query
+              name: movieId
+              schema:
+                  type: integer
+              description: Filtrar por ID de película
             - in: query
               name: page
               schema:
@@ -355,6 +360,11 @@
               schema:
                   type: string
                   format: date
+            - in: query
+              name: movieId
+              schema:
+                  type: integer
+              description: Filtrar por ID de película
             - in: query
               name: page
               schema:

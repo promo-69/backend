@@ -440,10 +440,9 @@ export class ShowtimeManagementService {
 
     async findAllShowtimes(filters?: any) {
         const now = new Date();
-        const { date, cinemaId, onlyFuture = true, ...rest } = filters ?? {};
+        const { date, cinemaId, onlyFuture = true, movieId, ...rest } = filters ?? {};
 
         let targetBookingIds: number[] | undefined;
-
         const bookingWhere: any = { deleted_at: null };
 
         if (onlyFuture) {
@@ -476,6 +475,7 @@ export class ShowtimeManagementService {
 
         const showtimeWhere: any = { deleted_at: null };
         if (targetBookingIds) showtimeWhere.booking = targetBookingIds;
+        if (movieId) showtimeWhere.movie = movieId;
 
         const rawResult = await this._showtimesRepo.getAll(
             {
