@@ -25,7 +25,7 @@ export default class RolesModel extends SequelizeModelBase {
 			deleted_at: {
 				allowNull: true,
 				type: DataTypes.DATE,
-			}
+			},
 		};
 	}
 
@@ -44,6 +44,12 @@ export default class RolesModel extends SequelizeModelBase {
 	}
 
 	static override relations(): RelationsReturn {
-		return [];
+		return [
+			{
+				type: 'hasMany',
+				target: 'RolePermissions',
+				options: { foreignKey: 'role', targetKey: 'id', as: '_RolePermissions' },
+			},
+		];
 	}
 }
