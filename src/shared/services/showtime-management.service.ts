@@ -390,11 +390,9 @@ export class ShowtimeManagementService {
         const result = await this._roomBookings.transaction(async (transaction: Transaction) => {
             await this._checkOverlap(roomId, start, end, undefined, transaction);
 
-            const bookingType: any = await this._bookingTypes.getOne(
-                { code: BOOKING_TYPE_CODE_SHOWTIME },
-                { transaction },
-            );
-            if (!bookingType) throw new ValidationError('Falta el tipo de reserva SHOWTIME en booking_types');
+            const bookingType: any = await this._bookingTypes.getById(1, { transaction });
+            if (!bookingType)
+                throw new ValidationError('Falta el tipo de reserva para películas en booking_types (id=1)');
 
             const booking: any = await this._roomBookings.create(
                 { room: roomId, start_time: start, end_time: end, booking_type: bookingType.id },

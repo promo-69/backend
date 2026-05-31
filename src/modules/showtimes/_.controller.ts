@@ -4,27 +4,13 @@ import ShowtimesService from './_.service.js';
 class ShowtimesController extends ControllerBase {
     // Endpoints públicos
 
-    /**
-     * GET /showtimes/billboard
-     * Cartelera global: películas en cartelera con sus funciones futuras.
-     * Público — sin autenticación requerida.
-     */
+    // GET /showtimes/billboard - Cartelera global: películas en cartelera con sus funciones futuras.
     async getBillboard() {
-        try {
-            const data = await ShowtimesService.getBillboard();
-            return this.success(data, 'Cartelera obtenida exitosamente');
-        } catch (error) {
-            return this.error(error, 'Error al obtener la cartelera');
-        }
+        const data = await ShowtimesService.getBillboard();
+        return this.success(data, 'Cartelera obtenida exitosamente');
     }
-    /**
-     * GET /showtimes
-     * Lista de funciones disponibles (futuras por defecto).
-     * Público — sin autenticación requerida.
-     *
-     * Query params:
-     *   ?date=2026-06-15   → solo funciones que inician ese día
-     */
+
+    // GET /showtimes - Lista de funciones disponibles (futuras por defecto).
     async findAll() {
         const query = this.getQuery();
         const data = await ShowtimesService.findAllShowtimes({
@@ -35,11 +21,7 @@ class ShowtimesController extends ControllerBase {
         return this.success(data, 'Funciones obtenidas exitosamente');
     }
 
-    /**
-     * GET /showtimes/:id
-     * Detalle de una función.
-     * Público — sin autenticación requerida.
-     */
+    // GET /showtimes/:id - Detalle de una función.
     async findById() {
         const { id } = this.getParams();
         const data = await ShowtimesService.findShowtimeById(Number(id));
@@ -47,10 +29,7 @@ class ShowtimesController extends ControllerBase {
     }
 
     // Endpoints privados (backoffice)
-    /**
-     * POST /showtimes
-     * Crear función (requiere sesión + permiso CRUD:CREATE:SHOWTIMES).
-     */
+    // POST /showtimes - Crear función (requiere sesión + permiso CRUD:CREATE:SHOWTIMES).
     async create() {
         const session = this.getSession<any>();
         const body = this.getBody();
@@ -58,10 +37,7 @@ class ShowtimesController extends ControllerBase {
         return this.created(data, 'Función programada exitosamente.');
     }
 
-    /**
-     * PATCH /showtimes/:id
-     * Actualizar función (requiere sesión + permiso CRUD:UPDATE:SHOWTIMES).
-     */
+    // PATCH /showtimes/:id - Actualizar función (requiere sesión + permiso CRUD:UPDATE:SHOWTIMES).
     async update() {
         const { id } = this.getParams();
         const body = this.getBody();
@@ -69,10 +45,7 @@ class ShowtimesController extends ControllerBase {
         return this.success(null, 'Función actualizada correctamente.');
     }
 
-    /**
-     * DELETE /showtimes/:id
-     * Cancelar función (requiere sesión + permiso CRUD:DELETE:SHOWTIMES).
-     */
+    // DELETE /showtimes/:id - Cancelar función (requiere sesión + permiso CRUD:DELETE:SHOWTIMES).
     async remove() {
         const { id } = this.getParams();
         await ShowtimesService.deleteShowtime(Number(id));
