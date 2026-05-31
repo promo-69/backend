@@ -40,6 +40,19 @@ export class ShowtimesService {
     async deleteShowtime(id: number) {
         return ShowtimeManagementService.deleteShowtime(id);
     }
+
+    async getSeatMap(showtimeId: number) {
+        return ShowtimeManagementService.getSeatMap(showtimeId);
+    }
+
+    async getBillboardFiltered(filters: {
+        cinemaId?: number;
+        movieId?: number;
+        projectionType?: string | number;
+        language?: string | number;
+    }) {
+        return ShowtimeManagementService.getBillboardFiltered(filters);
+    }
 }
 
 export default new ShowtimesService();

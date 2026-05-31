@@ -4,6 +4,10 @@ import { Transaction, Op } from 'sequelize';
 
 const BOOKING_TYPE_CODE_SHOWTIME = 'SHOWTIME';
 
+// ID del tipo de reserva "Película" en la tabla booking_types (seed: id=1, description='Película').
+// Se usa como fallback cuando la búsqueda por description no devuelva resultado.
+const BOOKING_TYPE_ID_SHOWTIME = 1;
+
 // IDs de lifecycle que significan "en cartelera" (seed-business-catalogs.js)
 // 2 = En Cartelera (Estreno), 3 = En Cartelera (Regular), 4 = Últimos Días
 const IN_THEATERS_STATES = [2, 3, 4];
@@ -426,11 +430,13 @@ export class ShowtimeManagementService {
         const result = await this._roomBookings.transaction(async (transaction: Transaction) => {
             await this._checkOverlap(roomId, start, end, undefined, transaction);
 
-            const bookingType: any = await this._bookingTypes.getOne(
-                { code: BOOKING_TYPE_CODE_SHOWTIME },
-                { transaction },
-            );
-            if (!bookingType) throw new ValidationError('Falta el tipo de reserva SHOWTIME en booking_types');
+            // booking_types no tiene columna "code" — buscar por description.
+            // Seed: id=1 → 'Película', id=2 → 'Evento Alternativo', id=3 → 'Alquiler Privado'
+            const bookingType: any =
+                (await this._bookingTypes.getOne({ description: 'Película' }, { transaction })) ??
+                (await this._bookingTypes.getById(BOOKING_TYPE_ID_SHOWTIME, { transaction }));
+
+            if (!bookingType) throw new ValidationError('Falta el tipo de reserva "Película" en booking_types');
 
             const booking: any = await this._roomBookings.create(
                 { room: roomId, start_time: start, end_time: end, booking_type: bookingType.id },
@@ -734,6 +740,182 @@ export class ShowtimeManagementService {
 
         await this._showtimesRepo.update(id, updateData);
         return null;
+    }
+
+    // Mapa de asientos en tiempo real para una función
+    async getSeatMap(showtimeId: number) {
+        // 1. Obtener el showtime y su booking asociado
+        const showtime: any = await this._showtimesRepo.getOne(
+            { id: showtimeId },
+            { attributes: ['id', 'booking', 'movie', 'projection_type', 'language', 'currency', 'price'] },
+        );
+        if (!showtime) throw new NotFoundError('Función no encontrada');
+
+        const booking: any = await this._roomBookings.getById(showtime.booking, {
+            attributes: ['id', 'room', 'start_time', 'end_time'],
+        });
+        if (!booking) throw new NotFoundError('Reserva de sala no encontrada');
+
+        // 2. Obtener todos los asientos de la sala (incluyendo los de baja lógica)
+        const allSeats: any[] = await this._seats.getAll(
+            {
+                count: false,
+                attributes: ['id', 'row_identifier', 'column_number', 'seat_category', 'seat_condition'],
+                order: [
+                    ['row_identifier', 'ASC'],
+                    ['column_number', 'ASC'],
+                ],
+            },
+            { room: booking.room },
+        );
+
+        if (!allSeats || allSeats.length === 0) {
+            return {
+                showtime_id: showtimeId,
+                booking_id: booking.id,
+                room_id: booking.room,
+                start_time: booking.start_time,
+                end_time: booking.end_time,
+                seats: [],
+            };
+        }
+
+        // 3. Obtener IDs de asientos ya vendidos para este booking (tickets confirmados)
+        const soldTickets: any[] = await this._tickets.getAll(
+            { count: false, attributes: ['seat'] },
+            { booking: showtime.booking, deleted_at: null },
+        );
+        const soldSeatIds = new Set<number>(
+            (Array.isArray(soldTickets) ? soldTickets : soldTickets).map((t: any) => t.seat),
+        );
+
+        // 4. Consultar Redis para los bloqueos temporales de este booking
+        //    Patrón de clave: lock:booking:{bookingId}:seat:{seatId}
+        const redis = (await import('@providers/cache-database.provider.js')).CacheDatabaseProvider.getInstance()
+            .client;
+
+        const lockPattern = `lock:booking:${booking.id}:seat:*`;
+        const lockKeys: string[] = await redis.keys(lockPattern);
+        const lockedSeatIds = new Set<number>();
+
+        if (lockKeys.length > 0) {
+            for (const key of lockKeys) {
+                // key format: lock:booking:{bookingId}:seat:{seatId}
+                const parts = key.split(':');
+                const seatId = Number(parts[parts.length - 1]);
+                if (!isNaN(seatId)) lockedSeatIds.add(seatId);
+            }
+        }
+
+        // 5. Obtener categorías únicas de asientos para enriquecer la respuesta
+        const categoryIds = [...new Set(allSeats.map((s: any) => s.seat_category))];
+        const categoriesRaw = await (Database.repository('main', 'seat-categories') as any).getAll(
+            { count: false, attributes: ['id', 'description'] },
+            { id: categoryIds },
+        );
+        const categoryMap = new Map<number, any>(
+            (Array.isArray(categoriesRaw) ? categoriesRaw : categoriesRaw.rows).map((c: any) => [c.id, c]),
+        );
+
+        // 6. Construir el mapa de asientos con estado calculado
+        const seats = allSeats.map((seat: any) => {
+            let status: 'available' | 'locked' | 'sold' | 'maintenance';
+
+            // seat_condition: 1 = Operativa, 2+ = Dañada / Fuera de Servicio
+            if (seat.seat_condition !== 1) {
+                status = 'maintenance';
+            } else if (soldSeatIds.has(seat.id)) {
+                status = 'sold';
+            } else if (lockedSeatIds.has(seat.id)) {
+                status = 'locked';
+            } else {
+                status = 'available';
+            }
+
+            const category: any = categoryMap.get(seat.seat_category) ?? {};
+
+            return {
+                id: seat.id,
+                row: seat.row_identifier,
+                column: seat.column_number,
+                label: `${seat.row_identifier}${seat.column_number}`,
+                category: { id: category.id ?? null, description: category.description ?? null },
+                status,
+            };
+        });
+
+        // 7. Estadísticas de disponibilidad
+        const summary = {
+            total: seats.length,
+            available: seats.filter((s) => s.status === 'available').length,
+            locked: seats.filter((s) => s.status === 'locked').length,
+            sold: seats.filter((s) => s.status === 'sold').length,
+            maintenance: seats.filter((s) => s.status === 'maintenance').length,
+        };
+
+        return {
+            showtime_id: showtimeId,
+            booking_id: booking.id,
+            room_id: booking.room,
+            start_time: booking.start_time,
+            end_time: booking.end_time,
+            summary,
+            seats,
+        };
+    }
+
+    // Billboard con filtros avanzados
+    async getBillboardFiltered(
+        filters: {
+            cinemaId?: number;
+            movieId?: number;
+            projectionType?: string | number;
+            language?: string | number;
+        } = {},
+    ) {
+        // Primero obtener el billboard base (ya soporta cinemaId)
+        const base = await this.getBillboard(filters.cinemaId);
+        if (base.count === 0) return base;
+
+        let rows: any[] = base.rows;
+
+        // Filtrar por movieId si se proporciona
+        if (filters.movieId) {
+            const mid = Number(filters.movieId);
+            rows = rows.filter((entry: any) => entry.movie?.id === mid);
+        }
+
+        // Filtrar por projectionType (acepta descripción parcial o id numérico)
+        if (filters.projectionType !== undefined && filters.projectionType !== '') {
+            const pt = String(filters.projectionType).toLowerCase();
+            rows = rows
+                .map((entry: any) => ({
+                    ...entry,
+                    showtimes: entry.showtimes.filter((s: any) => {
+                        const desc: string = (s.projection_type?.description ?? '').toLowerCase();
+                        const id: string = String(s.projection_type?.id ?? '');
+                        return desc.includes(pt) || id === pt;
+                    }),
+                }))
+                .filter((entry: any) => entry.showtimes.length > 0);
+        }
+
+        // Filtrar por language (acepta descripción parcial o id numérico)
+        if (filters.language !== undefined && filters.language !== '') {
+            const lang = String(filters.language).toLowerCase();
+            rows = rows
+                .map((entry: any) => ({
+                    ...entry,
+                    showtimes: entry.showtimes.filter((s: any) => {
+                        const desc: string = (s.language?.description ?? '').toLowerCase();
+                        const id: string = String(s.language?.id ?? '');
+                        return desc.includes(lang) || id === lang;
+                    }),
+                }))
+                .filter((entry: any) => entry.showtimes.length > 0);
+        }
+
+        return { count: rows.length, rows };
     }
 
     async deleteShowtime(id: number) {

@@ -1,0 +1,43 @@
+meta {
+  name: Billboard Global con Filtros
+  type: http
+  seq: 14
+}
+
+get {
+  url: {{baseUrl}}/showtimes/billboard
+  body: none
+  auth: none
+}
+
+params:query {
+  projectionType: 3D
+  ~language: SUB
+  ~movieId: 1
+  ~cinemaId: 1
+}
+
+docs {
+  Endpoint público — no requiere token.
+
+  Extiende el billboard global con filtros opcionales de query string:
+
+    projectionType  → filtra funciones por tipo de proyección.
+                      Acepta descripción parcial (ej: "3D", "IMAX") o ID numérico.
+
+    language        → filtra por idioma de la función.
+                      Acepta descripción parcial (ej: "SUB", "doblada") o ID numérico.
+
+    movieId         → devuelve solo la entrada de esa película (si tiene funciones activas).
+
+    cinemaId        → filtra por sucursal (igual que el billboard por sucursal,
+                      pero desde la ruta global /showtimes/billboard).
+
+  Los filtros son opcionales y acumulables.
+  Las líneas con ~ están desactivadas — actívalas para probar combinaciones.
+
+  Ejemplos:
+    ?projectionType=3D
+    ?language=SUB&cinemaId=1
+    ?projectionType=IMAX&movieId=5&cinemaId=2
+}

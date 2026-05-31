@@ -6,7 +6,20 @@ class ShowtimesController extends ControllerBase {
 
     // GET /showtimes/billboard - Cartelera global: películas en cartelera con sus funciones futuras.
     async getBillboard() {
-        const data = await ShowtimesService.getBillboard();
+        const query = this.getQuery();
+        const filters = {
+            cinemaId: query.cinemaId ? Number(query.cinemaId) : undefined,
+            movieId: query.movieId ? Number(query.movieId) : undefined,
+            projectionType: query.projectionType as string | undefined,
+            language: query.language as string | undefined,
+        };
+
+        // Si no hay filtros avanzados, delegar al método base para mayor rendimiento
+        const hasAdvancedFilters = filters.movieId || filters.projectionType || filters.language;
+        const data = hasAdvancedFilters
+            ? await ShowtimesService.getBillboardFiltered(filters)
+            : await ShowtimesService.getBillboard(filters.cinemaId);
+
         return this.success(data, 'Cartelera obtenida exitosamente');
     }
 
@@ -52,6 +65,13 @@ class ShowtimesController extends ControllerBase {
         const { id } = this.getParams();
         await ShowtimesService.deleteShowtime(Number(id));
         return this.success(null, 'Función y reserva de sala canceladas exitosamente.');
+    }
+
+    // GET /showtimes/:id/seat-map — Mapa de asientos en tiempo real para una función.
+    async getSeatMap() {
+        const { id } = this.getParams();
+        const data = await ShowtimesService.getSeatMap(Number(id));
+        return this.success(data, 'Mapa de asientos obtenido exitosamente.');
     }
 }
 
