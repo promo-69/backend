@@ -2,8 +2,6 @@ import { Database, Ops } from '@database/index.js';
 import { ConflictError, NotFoundError, ValidationError } from '@errors';
 import { Transaction, Op } from 'sequelize';
 
-const BOOKING_TYPE_CODE_SHOWTIME = 'SHOWTIME';
-
 // ID del tipo de reserva "Película" en la tabla booking_types (seed: id=1, description='Película').
 // Se usa como fallback cuando la búsqueda por description no devuelva resultado.
 const BOOKING_TYPE_ID_SHOWTIME = 1;
@@ -524,7 +522,8 @@ export class ShowtimeManagementService {
         }
 
         const showtimeWhere: any = { deleted_at: null };
-        if (targetBookingIds) showtimeWhere.booking = targetBookingIds;
+		if (targetBookingIds) showtimeWhere.booking = targetBookingIds;
+        if (movieId) showtimeWhere.movie = movieId;
 
         const rawResult = await this._showtimesRepo.getAll(
             {
