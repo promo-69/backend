@@ -650,75 +650,6 @@ module.exports = {
 			{},
 		);
 
-		// --- MÓDULO 5: SOLICITUDES DE ALQUILER PRIVADO (RENTALS) ---
-		await queryInterface.bulkInsert(
-			'rental_requests',
-			[
-				// Caso 1: Solicitud pendiente sin precio ni moneda (según regla descrita)
-				{
-					id: 1,
-					customer: 1,
-					order: null,
-					booking: null,
-					room: 1,
-					event_type: 3, // Alquiler Privado
-					requested_start_time: '2026-06-01 10:00:00',
-					requested_end_time: '2026-06-01 14:00:00',
-					event_name: 'Cumpleaños de María',
-					event_description: 'Celebración privada con amigos y familiares',
-					status: 1, // Pendiente
-					currency: null,
-					price: null,
-				},
-				// Caso 2: Solicitud aceptada y pagada (asociada a Orden 1 y Reserva 3)
-				{
-					id: 2,
-					customer: 1,
-					order: 1, // Orden de Pago 1
-					booking: 3, // Reserva física en sala 2
-					room: 2,
-					event_type: 3, // Alquiler Privado
-					requested_start_time: '2026-06-02 14:00:00',
-					requested_end_time: '2026-06-02 18:00:00',
-					event_name: 'Conferencia Tech',
-					event_description: 'Presentación corporativa de tecnología',
-					status: 2, // Aceptada / Completada
-					currency: 1, // USD
-					price: 150.0, // Precio asignado por el administrador por el espacio
-				},
-			],
-			{},
-		);
-
-		await queryInterface.bulkInsert(
-			'rental_catering',
-			[
-				{
-					id: 1,
-					rental_request: 2,
-					line_type: 1, // Producto
-					product: 1, // Cotufas Grandes
-					combo: null,
-					quantity: 10,
-					original_unit_price: 5.0,
-					unit_price: 5.0,
-					quoted_exchange_rate: 1,
-				},
-				{
-					id: 2,
-					rental_request: 2,
-					line_type: 1, // Producto
-					product: 2, // Refresco Mediano
-					combo: null,
-					quantity: 20,
-					original_unit_price: 2.5,
-					unit_price: 2.5,
-					quoted_exchange_rate: 1,
-				},
-			],
-			{},
-		);
-
 		// --- MÓDULO 2 Y FIDELIDAD: REGISTRO EN EL LIBRO DE FIDELIDAD (LEDGER) ---
 		await queryInterface.bulkInsert(
 			'loyalty_ledgers',
@@ -753,8 +684,6 @@ module.exports = {
 		await queryInterface.bulkDelete('order_lines', null, {});
 		await queryInterface.bulkDelete('order_taxes', null, {});
 		await queryInterface.bulkDelete('orders', null, {});
-		await queryInterface.bulkDelete('rental_catering', null, {});
-		await queryInterface.bulkDelete('rental_requests', null, {});
 		await queryInterface.bulkDelete('inventory_movements', null, {});
 		await queryInterface.bulkDelete('inventories', null, {});
 		await queryInterface.bulkDelete('combo_products', null, {});
