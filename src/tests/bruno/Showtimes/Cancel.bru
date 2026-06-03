@@ -1,20 +1,15 @@
 meta {
-  name: Cancel Showtime
+  name: Cancelar función
   type: http
-  seq: 5
+  seq: 18
 }
 
 delete {
-  url: {{baseUrl}}/showtimes/{{testShowtimeId}}
+  url: {{baseUrl}}/showtimes/{{showtimeId}}
   body: none
   auth: bearer
 }
 
 auth:bearer {
   token: {{accessToken}}
-}
-
-script:pre-request {
-  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
-  bru.setVar('baseUrl', baseUrl);
 }

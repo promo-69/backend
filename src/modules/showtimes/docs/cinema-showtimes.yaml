@@ -1,0 +1,247 @@
+/cinemas/{cinemaId}/showtimes:
+    post:
+        summary: 'PRIVADO — Crear función en la sucursal'
+        tags:
+            - Showtimes Admin
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: path
+              name: cinemaId
+              required: true
+              schema:
+                  type: integer
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        required:
+                            - room
+                            - movie
+                            - projection_type
+                            - language
+                            - start_time
+                            - end_time
+                            - currency
+                            - price
+                        properties:
+                            room:
+                                type: integer
+                            movie:
+                                type: integer
+                            projection_type:
+                                type: integer
+                            language:
+                                type: integer
+                            start_time:
+                                type: string
+                                format: date-time
+                            end_time:
+                                type: string
+                                format: date-time
+                            currency:
+                                type: integer
+                            price:
+                                type: number
+                            earned_loyalty_points:
+                                type: integer
+                                nullable: true
+        responses:
+            '201':
+                description: Función creada
+            '400': {}
+            '401': {}
+            '403': {}
+            '409': {}
+
+/cinemas/{cinemaId}/showtimes/movies/{movieId}:
+    get:
+        summary: 'PÚBLICO — Funciones de una película en una sucursal con asientos disponibles'
+        description: |
+            Devuelve las funciones futuras de la película en la sucursal, con total_seats y available_seats.
+        tags:
+            - Showtimes por Sucursal
+        security: []
+        parameters:
+            - in: path
+              name: cinemaId
+              required: true
+              schema:
+                  type: integer
+            - in: path
+              name: movieId
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Funciones con disponibilidad
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                message:
+                                    type: string
+                                data:
+                                    type: object
+                                    properties:
+                                        movie:
+                                            type: object
+                                            properties:
+                                                id:
+                                                    type: integer
+                                                title:
+                                                    type: string
+                                                duration_minutes:
+                                                    type: integer
+                                                poster_url:
+                                                    type: string
+                                                    nullable: true
+                                        count:
+                                            type: integer
+                                        rows:
+                                            type: array
+                                            items:
+                                                type: object
+                                                properties:
+                                                    id:
+                                                        type: integer
+                                                    booking:
+                                                        type: object
+                                                        properties:
+                                                            id:
+                                                                type: integer
+                                                            start_time:
+                                                                type: string
+                                                                format: date-time
+                                                            end_time:
+                                                                type: string
+                                                                format: date-time
+                                                            room:
+                                                                type: object
+                                                                properties:
+                                                                    id:
+                                                                        type: integer
+                                                                    name:
+                                                                        type: string
+                                                                    total_seats:
+                                                                        type: integer
+                                                                    available_seats:
+                                                                        type: integer
+                                                    projection_type:
+                                                        type: object
+                                                        properties:
+                                                            id:
+                                                                type: integer
+                                                            description:
+                                                                type: string
+                                                    language:
+                                                        type: object
+                                                        properties:
+                                                            id:
+                                                                type: integer
+                                                            description:
+                                                                type: string
+                                                    currency:
+                                                        type: object
+                                                        properties:
+                                                            id:
+                                                                type: integer
+                                                            code:
+                                                                type: string
+                                                            symbol:
+                                                                type: string
+                                                    price:
+                                                        type: number
+                                                    earned_loyalty_points:
+                                                        type: integer
+                                                        nullable: true
+            '404':
+                description: Película no encontrada o sin funciones
+
+/cinemas/{cinemaId}/showtimes/{id}:
+    get:
+        summary: 'PÚBLICO — Detalle de una función en la sucursal'
+        tags:
+            - Showtimes por Sucursal
+        security: []
+        parameters:
+            - in: path
+              name: cinemaId
+              required: true
+              schema:
+                  type: integer
+            - in: path
+              name: id
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Detalle de la función (mismo esquema que GET /showtimes/{id})
+            '404':
+                description: Función no encontrada
+
+/cinemas/{cinemaId}/showtimes/{id}/seat-map:
+    get:
+        summary: 'PÚBLICO — Mapa de asientos en tiempo real de una función de la sucursal'
+        tags:
+            - Showtimes por Sucursal
+        security: []
+        parameters:
+            - in: path
+              name: cinemaId
+              required: true
+              schema:
+                  type: integer
+            - in: path
+              name: id
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Mapa de asientos (mismo esquema que GET /showtimes/{id}/seat-map)
+            '404':
+                description: Función no encontrada
+
+components:
+    schemas:
+        CreateShowtimeBody:
+            type: object
+            required:
+                - room
+                - movie
+                - projection_type
+                - language
+                - start_time
+                - end_time
+                - currency
+                - price
+            properties:
+                room:
+                    type: integer
+                movie:
+                    type: integer
+                projection_type:
+                    type: integer
+                language:
+                    type: integer
+                start_time:
+                    type: string
+                    format: date-time
+                end_time:
+                    type: string
+                    format: date-time
+                currency:
+                    type: integer
+                price:
+                    type: number
+                earned_loyalty_points:
+                    type: integer
+                    nullable: true

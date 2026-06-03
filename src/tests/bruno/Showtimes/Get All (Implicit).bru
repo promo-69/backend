@@ -1,11 +1,11 @@
 meta {
-  name: Get All Showtimes (Implicit)
+  name: Listar todas las funciones (admin)
   type: http
-  seq: 1
+  seq: 20
 }
 
 get {
-  url: {{baseUrl}}/showtimes
+  url: {{baseUrl}}/showtimes/admin?startDate=2026-07-01&endDate=2026-09-30&movieId={{movieId}}
   body: none
   auth: bearer
 }
@@ -14,7 +14,7 @@ auth:bearer {
   token: {{accessToken}}
 }
 
-script:pre-request {
-  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
-  bru.setVar('baseUrl', baseUrl);
+docs {
+  Permite al administrador listar y filtrar todas las funciones del sistema.
+  Filtros opcionales por Query Params: startDate, endDate, movieId, cinemaId.
 }

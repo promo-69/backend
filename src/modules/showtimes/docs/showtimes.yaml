@@ -2,13 +2,13 @@
     get:
         summary: 'PÚBLICO — Listar funciones disponibles'
         description: |
-            Devuelve las funciones cuya hora de fin es posterior al momento actual.
-
-            **Sin autenticación requerida.**
-            Filtros disponibles:
-            - `date` (YYYY-MM-DD) – funciones de un día específico.
-            - `startDate` y `endDate` (YYYY-MM-DD) – rango de fechas (ambos obligatorios si se usan).
+            Devuelve funciones futuras (por defecto) o filtradas por fecha/rango.
+            Parámetros:
+            - `date` (YYYY-MM-DD) – funciones de un día exacto.
+            - `startDate` / `endDate` (YYYY-MM-DD) – rango de fechas.
             - `movieId` – filtrar por película.
+            - `cinemaId` – filtrar por sucursal.
+            - `onlyFuture` (true/false) – incluir funciones pasadas.
             - `page`, `limit` – paginación.
         tags:
             - Showtimes
@@ -19,34 +19,39 @@
               schema:
                   type: string
                   format: date
-              description: Fecha exacta (YYYY-MM-DD). No usar junto con startDate/endDate.
             - in: query
               name: startDate
               schema:
                   type: string
                   format: date
-              description: Fecha de inicio del rango (YYYY-MM-DD). Requiere endDate.
             - in: query
               name: endDate
               schema:
                   type: string
                   format: date
-              description: Fecha de fin del rango (YYYY-MM-DD). Requiere startDate.
             - in: query
               name: movieId
               schema:
                   type: integer
-              description: Filtrar por ID de película
+            - in: query
+              name: cinemaId
+              schema:
+                  type: integer
+            - in: query
+              name: onlyFuture
+              schema:
+                  type: boolean
+                  default: true
             - in: query
               name: page
               schema:
                   type: integer
-              default: 1
+                  default: 1
             - in: query
               name: limit
               schema:
                   type: integer
-              default: 10
+                  default: 10
         responses:
             '200':
                 description: Lista paginada de funciones
@@ -71,24 +76,21 @@
                                                 properties:
                                                     id:
                                                         type: integer
-                                                    booking:
+                                                    room_booking_id:
+                                                        type: integer
+                                                    start_time:
+                                                        type: string
+                                                        format: date-time
+                                                    end_time:
+                                                        type: string
+                                                        format: date-time
+                                                    room:
                                                         type: object
                                                         properties:
                                                             id:
                                                                 type: integer
-                                                            start_time:
+                                                            name:
                                                                 type: string
-                                                                format: date-time
-                                                            end_time:
-                                                                type: string
-                                                                format: date-time
-                                                            room:
-                                                                type: object
-                                                                properties:
-                                                                    id:
-                                                                        type: integer
-                                                                    name:
-                                                                        type: string
                                                     movie:
                                                         type: object
                                                         properties:
@@ -125,6 +127,7 @@
                                                         type: number
                                                     earned_loyalty_points:
                                                         type: integer
+                                                        nullable: true
                                 metadata:
                                     type: object
                                     properties:
@@ -143,12 +146,12 @@
                                             type: integer
                                             nullable: true
             '400':
-                description: Parámetros de query inválidos (fechas mal formadas, rangos incorrectos, etc.)
+                description: Parámetros inválidos
+            '404':
+                description: No se encontraron funciones
 
     post:
         summary: 'PRIVADO — Crear función'
-        description: |
-            Requiere token y permiso `CRUD:CREATE:SHOWTIMES`.
         tags:
             - Showtimes Admin
         security:
@@ -194,9 +197,9 @@
             '201':
                 description: Función creada
             '400':
-                description: Validación fallida (datos faltantes, horario inválido, etc.)
+                description: Validación fallida
             '401':
-                description: Sin autenticación
+                description: No autenticado
             '403':
                 description: Sin permiso
             '409':
@@ -236,19 +239,14 @@
                                             properties:
                                                 id:
                                                     type: integer
+                                                room:
+                                                    type: integer
                                                 start_time:
                                                     type: string
                                                     format: date-time
                                                 end_time:
                                                     type: string
                                                     format: date-time
-                                                room:
-                                                    type: object
-                                                    properties:
-                                                        id:
-                                                            type: integer
-                                                        name:
-                                                            type: string
                                         movie:
                                             type: object
                                             properties:
@@ -331,7 +329,7 @@
             '400':
                 description: Datos inválidos
             '401':
-                description: Sin autenticación
+                description: No autenticado
             '403':
                 description: Sin permiso
             '404':
@@ -355,7 +353,7 @@
             '200':
                 description: Función cancelada
             '401':
-                description: Sin autenticación
+                description: No autenticado
             '403':
                 description: Sin permiso
             '404':
@@ -363,142 +361,16 @@
             '409':
                 description: No se puede cancelar — existen boletos vendidos
 
-/cinemas/{cinemaId}/showtimes:
+/showtimes/{id}/seat-map:
     get:
-        summary: 'PÚBLICO — Funciones disponibles en una sucursal'
+        summary: 'PÚBLICO — Mapa de asientos en tiempo real'
+        description: |
+            Devuelve todos los asientos de la sala asociada a la función,
+            con estado calculado (available, locked, sold, maintenance).
         tags:
-            - Showtimes por sucursal
+            - Showtimes
         security: []
         parameters:
-            - in: path
-              name: cinemaId
-              required: true
-              schema:
-                  type: integer
-            - in: query
-              name: date
-              schema:
-                  type: string
-                  format: date
-              description: Fecha exacta (YYYY-MM-DD). No usar junto con startDate/endDate.
-            - in: query
-              name: startDate
-              schema:
-                  type: string
-                  format: date
-              description: Fecha de inicio del rango (YYYY-MM-DD). Requiere endDate.
-            - in: query
-              name: endDate
-              schema:
-                  type: string
-                  format: date
-              description: Fecha de fin del rango (YYYY-MM-DD). Requiere startDate.
-            - in: query
-              name: movieId
-              schema:
-                  type: integer
-              description: Filtrar por ID de película
-            - in: query
-              name: page
-              schema:
-                  type: integer
-              default: 1
-            - in: query
-              name: limit
-              schema:
-                  type: integer
-              default: 10
-        responses:
-            '200':
-                description: Lista de funciones de la sucursal (mismo esquema que GET /showtimes)
-                content:
-                    application/json:
-                        schema:
-                            type: object
-                            properties:
-                                success:
-                                    type: boolean
-                                data:
-                                    type: object
-                                    properties:
-                                        count:
-                                            type: integer
-                                        rows:
-                                            type: array
-                                            items:
-                                                type: object
-            '404':
-                description: Sucursal no encontrada
-
-    post:
-        summary: 'PRIVADO — Crear función en la sucursal'
-        tags:
-            - Showtimes Admin
-        security:
-            - bearerAuth: []
-        parameters:
-            - in: path
-              name: cinemaId
-              required: true
-              schema:
-                  type: integer
-        requestBody:
-            required: true
-            content:
-                application/json:
-                    schema:
-                        type: object
-                        required:
-                            - room
-                            - movie
-                            - projection_type
-                            - language
-                            - start_time
-                            - end_time
-                            - currency
-                            - price
-                        properties:
-                            room:
-                                type: integer
-                            movie:
-                                type: integer
-                            projection_type:
-                                type: integer
-                            language:
-                                type: integer
-                            start_time:
-                                type: string
-                                format: date-time
-                            end_time:
-                                type: string
-                                format: date-time
-                            currency:
-                                type: integer
-                            price:
-                                type: number
-                            earned_loyalty_points:
-                                type: integer
-                                nullable: true
-        responses:
-            '201':
-                description: Función creada
-            '400': {}
-            '401': {}
-            '403': {}
-            '409': {}
-
-/cinemas/{cinemaId}/showtimes/{id}:
-    get:
-        summary: 'PÚBLICO — Detalle de una función en la sucursal'
-        tags:
-            - Showtimes por sucursal
-        security: []
-        parameters:
-            - in: path
-              name: cinemaId
-              required: true
-              schema:
-                  type: integer
             - in: path
               name: id
               required: true
@@ -506,6 +378,72 @@
                   type: integer
         responses:
             '200':
-                description: Detalle de la función (mismo esquema que GET /showtimes/{id})
+                description: Mapa de asientos
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                message:
+                                    type: string
+                                data:
+                                    type: object
+                                    properties:
+                                        showtime_id:
+                                            type: integer
+                                        booking_id:
+                                            type: integer
+                                        room_id:
+                                            type: integer
+                                        start_time:
+                                            type: string
+                                            format: date-time
+                                        end_time:
+                                            type: string
+                                            format: date-time
+                                        summary:
+                                            type: object
+                                            properties:
+                                                total:
+                                                    type: integer
+                                                available:
+                                                    type: integer
+                                                locked:
+                                                    type: integer
+                                                sold:
+                                                    type: integer
+                                                maintenance:
+                                                    type: integer
+                                        seats:
+                                            type: array
+                                            items:
+                                                type: object
+                                                properties:
+                                                    id:
+                                                        type: integer
+                                                    row:
+                                                        type: string
+                                                    column:
+                                                        type: integer
+                                                    label:
+                                                        type: string
+                                                    category:
+                                                        type: object
+                                                        properties:
+                                                            id:
+                                                                type: integer
+                                                                nullable: true
+                                                            description:
+                                                                type: string
+                                                                nullable: true
+                                                    status:
+                                                        type: string
+                                                        enum:
+                                                            - available
+                                                            - locked
+                                                            - sold
+                                                            - maintenance
             '404':
                 description: Función no encontrada
