@@ -17,12 +17,6 @@ router.post(
 	verifyPermission('CRUD:CREATE:EXCHANGE-RATES'),
 	exchangeRatesController.createExchangeRate,
 );
-router.delete(
-	'/:id',
-	verifySession,
-	verifyPermission('CRUD:DELETE:EXCHANGE-RATES'),
-	exchangeRatesController.deleteExchangeRate,
-);
 router.get(
 	'/currency/:currencyId/history',
 	verifySession,

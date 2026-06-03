@@ -85,8 +85,7 @@ export class ExchangeRatesService extends BaseService {
 		if (Number.isNaN(currencyId) || currencyId <= 0)
 			throw new ValidationError('currency must be a valid numeric identifier', ['currency']);
 
-		if (Number.isNaN(rate) || rate <= 0)
-			throw new ValidationError('rate must be a positive number', ['rate']);
+		if (Number.isNaN(rate) || rate <= 0) throw new ValidationError('rate must be a positive number', ['rate']);
 
 		await this.getCurrencyOrFail(currencyId);
 
@@ -99,14 +98,11 @@ export class ExchangeRatesService extends BaseService {
 		return this.getExchangeRateById(created.id);
 	}
 
-	async deleteExchangeRate(id: number) {
-		const exchangeRate = await this._exchangeRates.getById(id);
-		if (!exchangeRate) throw new NotFoundError('Exchange rate not found');
-
-		await this._exchangeRates.delete(id);
-	}
-
-	async getExchangeRateHistoryByCurrency(currencyId: number, filters: ProcessedQueryFilters, query: Record<string, any>) {
+	async getExchangeRateHistoryByCurrency(
+		currencyId: number,
+		filters: ProcessedQueryFilters,
+		query: Record<string, any>,
+	) {
 		await this.getCurrencyOrFail(currencyId);
 
 		const relations = [

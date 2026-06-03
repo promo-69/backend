@@ -21,15 +21,13 @@ class ExchangeRatesController extends ControllerBase {
 		return ExchangeRatesService.createExchangeRate(body, session?.userId);
 	}
 
-	async deleteExchangeRate() {
-		const { id } = this.getParams();
-		await ExchangeRatesService.deleteExchangeRate(Number(id));
-		return this.noContent('Exchange rate deleted successfully');
-	}
-
 	async getExchangeRateHistoryByCurrency() {
 		const { currencyId } = this.getParams();
-		return ExchangeRatesService.getExchangeRateHistoryByCurrency(Number(currencyId), this.getQueryFilters(), this.getQuery());
+		return ExchangeRatesService.getExchangeRateHistoryByCurrency(
+			Number(currencyId),
+			this.getQueryFilters(),
+			this.getQuery(),
+		);
 	}
 }
 
