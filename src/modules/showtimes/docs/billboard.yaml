@@ -202,30 +202,23 @@
                 content:
                     application/json:
                         schema:
-                            $ref: '#/components/schemas/BillboardResponse'
-            '404':
-                description: Sucursal no encontrada o sin funciones
-
-components:
-    schemas:
-        BillboardResponse:
-            type: object
-            properties:
-                success:
-                    type: boolean
-                message:
-                    type: string
-                data:
-                    type: object
-                    properties:
-                        count:
-                            type: integer
-                        rows:
-                            type: array
-                            items:
-                                type: object
-                                properties:
-                                    movie:
-                                        type: object
-                                    showtimes:
-                                        type: array
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                message:
+                                    type: string
+                                data:
+                                    type: object
+                                    properties:
+                                        count:
+                                            type: integer
+                                        rows:
+                                            type: array
+                                            items:
+                                                type: object
+                                                properties:
+                                                    movie:
+                                                        type: object
+                                                    showtimes:
+                                                        type: array

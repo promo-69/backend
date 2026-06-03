@@ -1,11 +1,11 @@
 meta {
-  name: Delete Room
+  name: Delete Seats by Room
   type: http
   seq: 5
 }
 
 delete {
-  url: {{baseUrl}}/rooms/{{testRoomId}}
+  url: {{baseUrl}}/seats/room/{{testRoomId}}
   body: none
   auth: bearer
 }
@@ -17,4 +17,16 @@ auth:bearer {
 script:pre-request {
   const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
   bru.setVar('baseUrl', baseUrl);
+}
+
+script:post-response {
+  // 200 → todos los asientos eliminados
+  // 409 → al menos un asiento tiene tickets en funciones futuras
+  //        res.body.data.message incluye los IDs en conflicto
+  const status = res.getStatus();
+  if (status === 200) {
+    console.log('Asientos eliminados correctamente para la sala', bru.getVar('testRoomId'));
+  } else if (status === 409) {
+    console.warn('Conflicto:', res.body?.message);
+  }
 }

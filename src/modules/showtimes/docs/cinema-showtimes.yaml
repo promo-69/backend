@@ -1,68 +1,4 @@
 /cinemas/{cinemaId}/showtimes:
-    get:
-        summary: 'PÚBLICO — Funciones disponibles en una sucursal'
-        description: |
-            Lista funciones de una sucursal, con filtros de fecha.
-        tags:
-            - Showtimes por Sucursal
-        security: []
-        parameters:
-            - in: path
-              name: cinemaId
-              required: true
-              schema:
-                  type: integer
-            - in: query
-              name: date
-              schema:
-                  type: string
-                  format: date
-            - in: query
-              name: startDate
-              schema:
-                  type: string
-                  format: date
-            - in: query
-              name: endDate
-              schema:
-                  type: string
-                  format: date
-            - in: query
-              name: movieId
-              schema:
-                  type: integer
-            - in: query
-              name: page
-              schema:
-                  type: integer
-            - in: query
-              name: limit
-              schema:
-                  type: integer
-        responses:
-            '200':
-                description: Lista de funciones (mismo esquema que GET /showtimes)
-                content:
-                    application/json:
-                        schema:
-                            type: object
-                            properties:
-                                success:
-                                    type: boolean
-                                message:
-                                    type: string
-                                data:
-                                    type: object
-                                    properties:
-                                        count:
-                                            type: integer
-                                        rows:
-                                            type: array
-                                            items:
-                                                type: object
-            '404':
-                description: Sucursal no encontrada
-
     post:
         summary: 'PRIVADO — Crear función en la sucursal'
         tags:
@@ -80,7 +16,38 @@
             content:
                 application/json:
                     schema:
-                        $ref: '#/components/schemas/CreateShowtimeBody'
+                        type: object
+                        required:
+                            - room
+                            - movie
+                            - projection_type
+                            - language
+                            - start_time
+                            - end_time
+                            - currency
+                            - price
+                        properties:
+                            room:
+                                type: integer
+                            movie:
+                                type: integer
+                            projection_type:
+                                type: integer
+                            language:
+                                type: integer
+                            start_time:
+                                type: string
+                                format: date-time
+                            end_time:
+                                type: string
+                                format: date-time
+                            currency:
+                                type: integer
+                            price:
+                                type: number
+                            earned_loyalty_points:
+                                type: integer
+                                nullable: true
         responses:
             '201':
                 description: Función creada

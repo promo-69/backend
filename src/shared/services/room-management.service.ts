@@ -14,6 +14,10 @@ export class RoomManagementService {
         return Database.repository('main', 'room-projection-types') as any;
     }
 
+    private get _seats() {
+        return Database.repository('main', 'seats') as any;
+    }
+
     async findByCinema(cinemaId: number, filters?: ProcessedQueryFilters) {
         const cinema = await this._cinemas.getById(cinemaId, { attributes: ['id'] });
         if (!cinema) throw new NotFoundError('No se encontró la sucursal especificada');
@@ -32,7 +36,7 @@ export class RoomManagementService {
         );
     }
 
-    async createRoom(cinemaId: number, body: any, actorUserId?: number) {
+    async createRoom(cinemaId: number, body: any, _actorUserId?: number) {
         const { name, projectionTypes, gridRows, gridColumns, roomType } = body;
 
         if (!name?.trim()) throw new ValidationError('El nombre de la sala es obligatorio');
@@ -68,6 +72,27 @@ export class RoomManagementService {
             }));
             await this._roomProjectionTypes.bulkCreate(projectionRecords, { transaction });
 
+            // =============================================================
+            // Generar asientos automáticamente basados en la grilla
+            // =============================================================
+            const seatsToCreate = [];
+            for (let row = 0; row < gridRows; row++) {
+                const rowLabel = String.fromCharCode(65 + row); // A, B, C, ...
+                for (let col = 1; col <= gridColumns; col++) {
+                    seatsToCreate.push({
+                        room: room.id,
+                        row_identifier: rowLabel,
+                        column_number: col,
+                        seat_category: 1, // General (ajusta según tu catálogo)
+                        seat_condition: 1, // Operativo
+                    });
+                }
+            }
+            if (seatsToCreate.length > 0) {
+                for (const seat of seatsToCreate) {
+                    await this._seats.create(seat, { transaction });
+                }
+            }
             return room;
         });
 
