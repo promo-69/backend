@@ -8,6 +8,15 @@ export class ShowtimesService {
         return ShowtimeManagementService.getBillboard(cinemaId);
     }
 
+    async getBillboardFiltered(filters: {
+        cinemaId?: number;
+        movieId?: number;
+        projectionType?: string | number;
+        language?: string | number;
+    }) {
+        return ShowtimeManagementService.getBillboardFiltered(filters);
+    }
+
     async getMovieShowtimesByCinema(movieId: number, cinemaId: number) {
         if (!movieId || !cinemaId) throw new ValidationError('Se requieren movieId y cinemaId');
         return ShowtimeManagementService.getMovieShowtimesByCinema(movieId, cinemaId);
@@ -45,13 +54,23 @@ export class ShowtimesService {
         return ShowtimeManagementService.getSeatMap(showtimeId);
     }
 
-    async getBillboardFiltered(filters: {
-        cinemaId?: number;
-        movieId?: number;
-        projectionType?: string | number;
-        language?: string | number;
-    }) {
-        return ShowtimeManagementService.getBillboardFiltered(filters);
+    async getAllMoviesByLifecycle(lifecycleState?: number, filters?: any) {
+        const where: any = { deleted_at: null };
+        if (lifecycleState !== undefined) where.lifecycle_state = lifecycleState;
+        const moviesRepo = (await import('@database/index.js')).Database.repository('main', 'movies');
+        return moviesRepo.getAll({ ...filters, count: true }, where);
+    }
+
+    async getAllShowtimesAdmin(filters?: any) {
+        return ShowtimeManagementService.findAllShowtimes(filters);
+    }
+
+    async getShowtimesByMovieAdmin(movieId: number, filters?: any) {
+        return ShowtimeManagementService.findAllShowtimes({ ...filters, movieId });
+    }
+
+    async getShowtimesByCinemaAdmin(cinemaId: number, filters?: any) {
+        return ShowtimeManagementService.findAllShowtimes({ ...filters, cinemaId });
     }
 }
 

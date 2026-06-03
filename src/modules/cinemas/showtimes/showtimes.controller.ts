@@ -21,6 +21,22 @@ class CinemaShowtimesController extends ControllerBase {
             ? await ShowtimeManagementService.getBillboardFiltered(filters)
             : await ShowtimeManagementService.getBillboard(filters.cinemaId);
 
+        // Validación dinámica si la cartelera está vacía
+        if (data.count === 0) {
+            try {
+                // Intentamos buscar la sucursal en la base de datos para obtener su nombre real
+                const cinemasRepo = (await import('@database/index.js')).Database.repository('main', 'cinemas') as any;
+                const cinema = await cinemasRepo.getById(filters.cinemaId);
+
+                if (cinema) {
+                    return this.success(data, `No hay funciones disponibles en la sucursal ${cinema.name}`);
+                }
+            } catch {
+                // Si el repositorio de cines falla o no existe, caemos en el mensaje genérico seguro
+            }
+            return this.success(data, 'No hay funciones disponibles en esta sucursal');
+        }
+
         return this.success(data, 'Cartelera de la sucursal obtenida exitosamente');
     }
 
@@ -37,11 +53,14 @@ class CinemaShowtimesController extends ControllerBase {
     async findAll() {
         const { cinemaId } = this.getParams();
         const query = this.getQuery();
+
         const data = await ShowtimeManagementService.findAllShowtimes({
             ...this.getQueryFilters(),
             cinemaId: Number(cinemaId),
             date: query.date as string | undefined,
-            onlyFuture: true,
+            startDate: query.startDate as string | undefined,
+            endDate: query.endDate as string | undefined,
+            onlyFuture: query.date || query.startDate ? false : true,
         });
         return this.success(data, 'Funciones de la sucursal obtenidas exitosamente');
     }

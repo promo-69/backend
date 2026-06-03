@@ -1,11 +1,11 @@
 meta {
-  name: Update Showtime
+  name: Actualizar función (cambiar precio)
   type: http
-  seq: 4
+  seq: 17
 }
 
 patch {
-  url: {{baseUrl}}/showtimes/{{testShowtimeId}}
+  url: {{baseUrl}}/showtimes/{{showtimeId}}
   body: json
   auth: bearer
 }
@@ -16,12 +16,6 @@ auth:bearer {
 
 body:json {
   {
-    "price": "6.00",
-    "earned_loyalty_points": 15
+    "price": 14.00
   }
-}
-
-script:pre-request {
-  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
-  bru.setVar('baseUrl', baseUrl);
 }

@@ -1,43 +1,16 @@
 meta {
-  name: Get Seat Map (Tiempo Real)
+  name: Mapa de asientos de función
   type: http
-  seq: 13
+  seq: 8
 }
 
 get {
-  url: {{baseUrl}}/showtimes/{{testShowtimeId}}/seat-map
+  url: {{baseUrl}}/showtimes/{{showtimeId}}/seat-map
   body: none
   auth: none
 }
 
-vars:pre-request {
-  testShowtimeId: 1
-}
-
-script:post-response {
-  const body = res.getBody();
-  if (res.getStatus() === 200 && body?.data) {
-    const summary = body.data.summary;
-    console.log(`Asientos — total: ${summary.total} | disponibles: ${summary.available} | bloqueados: ${summary.locked} | vendidos: ${summary.sold} | mantenimiento: ${summary.maintenance}`);
-  }
-}
-
 docs {
-  Endpoint público — no requiere token (optionalAuth).
-
-  Devuelve el mapa de asientos de una función con el estado calculado
-  en tiempo real para esa función concreta:
-
-    available   → operativo, sin bloqueo Redis y sin ticket vendido
-    locked      → bloqueado temporalmente en Redis (alguien en proceso de pago, 8 min)
-    sold        → tiene ticket confirmado para esta función
-    maintenance → seat_condition != 1 (asiento fuera de servicio)
-
-  Incluye un objeto `summary` con conteos por estado.
-
-  Flujo de compra esperado:
-    1. GET /cinemas/:id/showtimes/movies/:movieId  → elegir función → guardar testShowtimeId
-    2. GET /showtimes/:id/seat-map                 → este endpoint → visualizar mapa
-    3. POST /orders/checkout                       → seleccionar asientos (se bloquean en Redis)
-    4. POST /orders/payments                       → confirmar pago (asientos pasan a sold)
+  Devuelve todos los asientos de la sala con estado.
+  Si está vacío, significa que la sala no tiene asientos configurados.
 }

@@ -1,0 +1,15 @@
+meta {
+  name: Funciones de una película (admin)
+  type: http
+  seq: 21
+}
+
+get {
+  url: {{baseUrl}}/showtimes/admin/movies/{{movieId}}/showtimes?onlyFuture=true
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

@@ -1,0 +1,11 @@
+meta {
+  name: Listar funciones por película
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/showtimes?movieId={{movieId}}
+  body: none
+  auth: none
+}

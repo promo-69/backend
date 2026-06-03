@@ -2,344 +2,43 @@
     get:
         summary: 'PÚBLICO — Cartelera global con filtros opcionales'
         description: |
-            Devuelve todas las películas en cartelera con sus funciones futuras agrupadas.
-            Sin autenticación requerida.
-
-            Filtros opcionales acumulables:
-            - `projectionType` – descripción parcial o ID numérico (ej: `3D`, `IMAX`, `2`).
-            - `language` – descripción parcial o ID numérico (ej: `SUB`, `doblada`, `1`).
-            - `movieId` – limita la respuesta a una película concreta.
-            - `cinemaId` – equivalente a la ruta `/cinemas/{cinemaId}/showtimes/billboard`.
+            Devuelve todas las películas en cartelera (lifecycle COMING_SOON, PREMIERE, REGULAR, LAST_DAYS)
+            con sus funciones futuras agrupadas.
+            Sin autenticación requerida (optionalAuth).
+            Filtros acumulables:
+            - `cinemaId` – ID de sucursal
+            - `movieId` – ID de película
+            - `projectionType` – descripción parcial o ID (ej: "3D", "IMAX", "2")
+            - `language` – descripción parcial o ID (ej: "SUB", "doblada", "1")
         tags:
             - Cartelera
         security: []
         parameters:
-            - in: query
-              name: projectionType
-              required: false
-              schema:
-                  type: string
-              description: 'Tipo de proyección. Acepta descripción parcial o ID (ej: "3D", "IMAX")'
-              example: '3D'
-            - in: query
-              name: language
-              required: false
-              schema:
-                  type: string
-              description: 'Idioma de la función. Acepta descripción parcial o ID (ej: "SUB", "doblada")'
-              example: 'SUB'
-            - in: query
-              name: movieId
-              required: false
-              schema:
-                  type: integer
-              description: Filtrar por ID de película
             - in: query
               name: cinemaId
-              required: false
               schema:
                   type: integer
-              description: Filtrar por ID de sucursal
-        responses:
-            '200':
-                description: Cartelera (puede estar vacía si los filtros no tienen resultados)
-                content:
-                    application/json:
-                        schema:
-                            type: object
-                            properties:
-                                count:
-                                    type: integer
-                                rows:
-                                    type: array
-                                    items:
-                                        type: object
-                                        properties:
-                                            movie:
-                                                type: object
-                                                properties:
-                                                    id:
-                                                        type: integer
-                                                    title:
-                                                        type: string
-                                                    duration_minutes:
-                                                        type: integer
-                                                    poster_url:
-                                                        type: string
-                                                        nullable: true
-                                                    lifecycle:
-                                                        type: object
-                                                        nullable: true
-                                                        properties:
-                                                            id:
-                                                                type: integer
-                                                            description:
-                                                                type: string
-                                                    age_classification:
-                                                        type: object
-                                                        nullable: true
-                                                        properties:
-                                                            id:
-                                                                type: integer
-                                                            description:
-                                                                type: string
-                                                    genres:
-                                                        type: array
-                                                        items:
-                                                            type: object
-                                                            properties:
-                                                                id:
-                                                                    type: integer
-                                                                description:
-                                                                    type: string
-                                            showtimes:
-                                                type: array
-                                                items:
-                                                    type: object
-                                                    properties:
-                                                        id:
-                                                            type: integer
-                                                        booking:
-                                                            type: object
-                                                            properties:
-                                                                id:
-                                                                    type: integer
-                                                                start_time:
-                                                                    type: string
-                                                                    format: date-time
-                                                                end_time:
-                                                                    type: string
-                                                                    format: date-time
-                                                                room:
-                                                                    type: object
-                                                                    properties:
-                                                                        id:
-                                                                            type: integer
-                                                                        name:
-                                                                            type: string
-                                                                        cinema:
-                                                                            type: object
-                                                                            nullable: true
-                                                                            properties:
-                                                                                id:
-                                                                                    type: integer
-                                                                                name:
-                                                                                    type: string
-                                                        projection_type:
-                                                            type: object
-                                                            properties:
-                                                                id:
-                                                                    type: integer
-                                                                description:
-                                                                    type: string
-                                                        language:
-                                                            type: object
-                                                            properties:
-                                                                id:
-                                                                    type: integer
-                                                                description:
-                                                                    type: string
-                                                        currency:
-                                                            type: object
-                                                            properties:
-                                                                id:
-                                                                    type: integer
-                                                                code:
-                                                                    type: string
-                                                                symbol:
-                                                                    type: string
-                                                        price:
-                                                            type: number
-                                                        earned_loyalty_points:
-                                                            type: integer
-                                                            nullable: true
-            '404':
-                description: Película o sucursal no encontrada
-
-/cinemas/{cinemaId}/showtimes/billboard:
-    get:
-        summary: 'PÚBLICO — Cartelera por sucursal con filtros opcionales'
-        description: |
-            Cartelera de una sucursal específica. Acepta los mismos filtros
-            de `projectionType`, `language` y `movieId` que la cartelera global.
-        tags:
-            - Cartelera
-        security: []
-        parameters:
-            - in: path
-              name: cinemaId
-              required: true
-              schema:
-                  type: integer
-            - in: query
-              name: projectionType
               required: false
-              schema:
-                  type: string
-              description: 'Tipo de proyección. Acepta descripción parcial o ID (ej: "3D", "IMAX")'
-            - in: query
-              name: language
-              required: false
-              schema:
-                  type: string
-              description: 'Idioma de la función. Acepta descripción parcial o ID (ej: "SUB", "doblada")'
             - in: query
               name: movieId
+              schema:
+                  type: integer
               required: false
+            - in: query
+              name: projectionType
               schema:
-                  type: integer
-              description: Filtrar por ID de película
+                  type: string
+              required: false
+              description: Tipo de proyección (ej. '2D', '3D', 'IMAX')
+            - in: query
+              name: language
+              schema:
+                  type: string
+              required: false
+              description: Idioma (ej. 'Español', 'Subtitulado')
         responses:
             '200':
-                description: Cartelera de la sucursal (filtrada)
-                content:
-                    application/json:
-                        schema:
-                            type: object
-                            properties:
-                                count:
-                                    type: integer
-                                rows:
-                                    type: array
-                                    items:
-                                        type: object
-                                        properties:
-                                            movie:
-                                                type: object
-                                                properties:
-                                                    id:
-                                                        type: integer
-                                                    title:
-                                                        type: string
-                                                    duration_minutes:
-                                                        type: integer
-                                                    poster_url:
-                                                        type: string
-                                                        nullable: true
-                                                    lifecycle:
-                                                        type: object
-                                                        nullable: true
-                                                        properties:
-                                                            id:
-                                                                type: integer
-                                                            description:
-                                                                type: string
-                                                    age_classification:
-                                                        type: object
-                                                        nullable: true
-                                                        properties:
-                                                            id:
-                                                                type: integer
-                                                            description:
-                                                                type: string
-                                                    genres:
-                                                        type: array
-                                                        items:
-                                                            type: object
-                                                            properties:
-                                                                id:
-                                                                    type: integer
-                                                                description:
-                                                                    type: string
-                                            showtimes:
-                                                type: array
-                                                items:
-                                                    type: object
-                                                    properties:
-                                                        id:
-                                                            type: integer
-                                                        booking:
-                                                            type: object
-                                                            properties:
-                                                                id:
-                                                                    type: integer
-                                                                start_time:
-                                                                    type: string
-                                                                    format: date-time
-                                                                end_time:
-                                                                    type: string
-                                                                    format: date-time
-                                                                room:
-                                                                    type: object
-                                                                    properties:
-                                                                        id:
-                                                                            type: integer
-                                                                        name:
-                                                                            type: string
-                                                                        cinema:
-                                                                            type: object
-                                                                            nullable: true
-                                                                            properties:
-                                                                                id:
-                                                                                    type: integer
-                                                                                name:
-                                                                                    type: string
-                                                        projection_type:
-                                                            type: object
-                                                            properties:
-                                                                id:
-                                                                    type: integer
-                                                                description:
-                                                                    type: string
-                                                        language:
-                                                            type: object
-                                                            properties:
-                                                                id:
-                                                                    type: integer
-                                                                description:
-                                                                    type: string
-                                                        currency:
-                                                            type: object
-                                                            properties:
-                                                                id:
-                                                                    type: integer
-                                                                code:
-                                                                    type: string
-                                                                symbol:
-                                                                    type: string
-                                                        price:
-                                                            type: number
-                                                        earned_loyalty_points:
-                                                            type: integer
-                                                            nullable: true
-            '404':
-                description: Sucursal no encontrada
-
-/showtimes/{id}/seat-map:
-    get:
-        summary: 'PÚBLICO — Mapa de asientos en tiempo real'
-        description: |
-            Devuelve todos los asientos de la sala asociada a la función,
-            con su estado calculado en tiempo real para esa función concreta.
-
-            **Sin autenticación requerida** (`optionalAuth`).
-
-            Estados posibles por asiento:
-            | Estado        | Significado |
-            |---------------|-------------|
-            | `available`   | Operativo, sin bloqueo y sin ticket vendido |
-            | `locked`      | Bloqueado temporalmente en Redis (8 min — alguien en proceso de pago) |
-            | `sold`        | Ticket confirmado y pagado para esta función |
-            | `maintenance` | `seat_condition != 1` — asiento fuera de servicio |
-
-            La respuesta incluye un objeto `summary` con conteos por estado
-            y un array `seats` ordenado por fila y columna.
-
-            **Ruta equivalente en contexto de sucursal:**
-            `GET /cinemas/{cinemaId}/showtimes/{id}/seat-map`
-        tags:
-            - Cartelera
-        security: []
-        parameters:
-            - in: path
-              name: id
-              required: true
-              schema:
-                  type: integer
-              description: ID del showtime
-        responses:
-            '200':
-                description: Mapa de asientos obtenido exitosamente
+                description: Cartelera global (puede estar vacía)
                 content:
                     application/json:
                         schema:
@@ -347,87 +46,134 @@
                             properties:
                                 success:
                                     type: boolean
-                                    example: true
                                 message:
                                     type: string
-                                    example: Mapa de asientos obtenido exitosamente.
                                 data:
                                     type: object
                                     properties:
-                                        showtime_id:
+                                        count:
                                             type: integer
-                                        booking_id:
-                                            type: integer
-                                        room_id:
-                                            type: integer
-                                        start_time:
-                                            type: string
-                                            format: date-time
-                                        end_time:
-                                            type: string
-                                            format: date-time
-                                        summary:
-                                            type: object
-                                            properties:
-                                                total:
-                                                    type: integer
-                                                    example: 120
-                                                available:
-                                                    type: integer
-                                                    example: 85
-                                                locked:
-                                                    type: integer
-                                                    example: 3
-                                                sold:
-                                                    type: integer
-                                                    example: 30
-                                                maintenance:
-                                                    type: integer
-                                                    example: 2
-                                        seats:
+                                        rows:
                                             type: array
                                             items:
                                                 type: object
                                                 properties:
-                                                    id:
-                                                        type: integer
-                                                    row:
-                                                        type: string
-                                                        example: C
-                                                    column:
-                                                        type: integer
-                                                        example: 5
-                                                    label:
-                                                        type: string
-                                                        example: C5
-                                                    category:
+                                                    movie:
                                                         type: object
                                                         properties:
                                                             id:
                                                                 type: integer
-                                                                nullable: true
-                                                            description:
+                                                            title:
+                                                                type: string
+                                                            duration_minutes:
+                                                                type: integer
+                                                            poster_url:
                                                                 type: string
                                                                 nullable: true
-                                                    status:
-                                                        type: string
-                                                        enum:
-                                                            - available
-                                                            - locked
-                                                            - sold
-                                                            - maintenance
-                                                        example: available
+                                                            lifecycle:
+                                                                type: object
+                                                                properties:
+                                                                    id:
+                                                                        type: integer
+                                                                    description:
+                                                                        type: string
+                                                            age_classification:
+                                                                type: object
+                                                                properties:
+                                                                    id:
+                                                                        type: integer
+                                                                    description:
+                                                                        type: string
+                                                            genres:
+                                                                type: array
+                                                                items:
+                                                                    type: object
+                                                                    properties:
+                                                                        id:
+                                                                            type: integer
+                                                                        description:
+                                                                            type: string
+                                                    showtimes:
+                                                        type: array
+                                                        items:
+                                                            type: object
+                                                            properties:
+                                                                id:
+                                                                    type: integer
+                                                                booking:
+                                                                    type: object
+                                                                    properties:
+                                                                        id:
+                                                                            type: integer
+                                                                        start_time:
+                                                                            type: string
+                                                                            format: date-time
+                                                                        end_time:
+                                                                            type: string
+                                                                            format: date-time
+                                                                        room:
+                                                                            type: object
+                                                                            properties:
+                                                                                id:
+                                                                                    type: integer
+                                                                                name:
+                                                                                    type: string
+                                                                                cinema:
+                                                                                    type: object
+                                                                                    properties:
+                                                                                        id:
+                                                                                            type: integer
+                                                                                        name:
+                                                                                            type: string
+                                                                projection_type:
+                                                                    type: object
+                                                                    properties:
+                                                                        id:
+                                                                            type: integer
+                                                                        description:
+                                                                            type: string
+                                                                language:
+                                                                    type: object
+                                                                    properties:
+                                                                        id:
+                                                                            type: integer
+                                                                        description:
+                                                                            type: string
+                                                                currency:
+                                                                    type: object
+                                                                    properties:
+                                                                        id:
+                                                                            type: integer
+                                                                        code:
+                                                                            type: string
+                                                                        symbol:
+                                                                            type: string
+                                                                price:
+                                                                    type: number
+                                                                earned_loyalty_points:
+                                                                    type: integer
+                                                                    nullable: true
             '404':
-                description: Función no encontrada
+                description: No se encontraron funciones para los filtros
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                message:
+                                    type: string
+                                data:
+                                    type: object
 
-/cinemas/{cinemaId}/showtimes/{id}/seat-map:
+/cinemas/{cinemaId}/showtimes/billboard:
     get:
-        summary: 'PÚBLICO — Mapa de asientos en tiempo real (por sucursal)'
+        summary: 'PÚBLICO — Cartelera por sucursal'
         description: |
-            Idéntico a `GET /showtimes/{id}/seat-map` pero dentro del contexto
-            explícito de una sucursal. Misma lógica, misma respuesta.
+            Cartelera específica de una sucursal, con los mismos filtros opcionales.
         tags:
-            - Cartelera
+            - Cartelera por Sucursal
         security: []
         parameters:
             - in: path
@@ -435,73 +181,51 @@
               required: true
               schema:
                   type: integer
-            - in: path
-              name: id
-              required: true
+            - in: query
+              name: movieId
               schema:
                   type: integer
-              description: ID del showtime
+              required: false
+            - in: query
+              name: projectionType
+              schema:
+                  type: string
+              required: false
+            - in: query
+              name: language
+              schema:
+                  type: string
+              required: false
         responses:
             '200':
-                description: Mapa de asientos obtenido exitosamente
+                description: Cartelera de la sucursal
                 content:
                     application/json:
                         schema:
-                            type: object
-                            properties:
-                                showtime_id:
-                                    type: integer
-                                booking_id:
-                                    type: integer
-                                room_id:
-                                    type: integer
-                                start_time:
-                                    type: string
-                                    format: date-time
-                                end_time:
-                                    type: string
-                                    format: date-time
-                                summary:
-                                    type: object
-                                    properties:
-                                        total:
-                                            type: integer
-                                        available:
-                                            type: integer
-                                        locked:
-                                            type: integer
-                                        sold:
-                                            type: integer
-                                        maintenance:
-                                            type: integer
-                                seats:
-                                    type: array
-                                    items:
-                                        type: object
-                                        properties:
-                                            id:
-                                                type: integer
-                                            row:
-                                                type: string
-                                            column:
-                                                type: integer
-                                            label:
-                                                type: string
-                                            category:
-                                                type: object
-                                                properties:
-                                                    id:
-                                                        type: integer
-                                                        nullable: true
-                                                    description:
-                                                        type: string
-                                                        nullable: true
-                                            status:
-                                                type: string
-                                                enum:
-                                                    - available
-                                                    - locked
-                                                    - sold
-                                                    - maintenance
+                            $ref: '#/components/schemas/BillboardResponse'
             '404':
-                description: Función no encontrada
+                description: Sucursal no encontrada o sin funciones
+
+components:
+    schemas:
+        BillboardResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+                data:
+                    type: object
+                    properties:
+                        count:
+                            type: integer
+                        rows:
+                            type: array
+                            items:
+                                type: object
+                                properties:
+                                    movie:
+                                        type: object
+                                    showtimes:
+                                        type: array

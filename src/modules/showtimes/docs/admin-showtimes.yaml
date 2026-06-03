@@ -1,0 +1,193 @@
+/showtimes/admin/movies:
+    get:
+        summary: 'PRIVADO — Listar películas por estado de ciclo de vida'
+        tags:
+            - Showtimes Admin
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: query
+              name: lifecycle
+              schema:
+                  type: integer
+              description: '1: Próximamente, 2: Estreno, 3: Regular, 4: Últimos días, 5: Fuera de cartelera'
+            - in: query
+              name: page
+              schema:
+                  type: integer
+            - in: query
+              name: limit
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Lista de películas
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                message:
+                                    type: string
+                                data:
+                                    type: object
+                                    properties:
+                                        count:
+                                            type: integer
+                                        rows:
+                                            type: array
+                                            items:
+                                                type: object
+                                                properties:
+                                                    id:
+                                                        type: integer
+                                                    title:
+                                                        type: string
+                                                    duration_minutes:
+                                                        type: integer
+                                                    poster_url:
+                                                        type: string
+                                                        nullable: true
+                                                    lifecycle_state:
+                                                        type: integer
+            '401':
+                description: No autenticado
+            '403':
+                description: Sin permiso
+
+/showtimes/admin:
+    get:
+        summary: 'PRIVADO — Listar todas las funciones con filtros avanzados'
+        tags:
+            - Showtimes Admin
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: query
+              name: startDate
+              schema:
+                  type: string
+                  format: date
+            - in: query
+              name: endDate
+              schema:
+                  type: string
+                  format: date
+            - in: query
+              name: movieId
+              schema:
+                  type: integer
+            - in: query
+              name: cinemaId
+              schema:
+                  type: integer
+            - in: query
+              name: onlyFuture
+              schema:
+                  type: boolean
+                  default: true
+            - in: query
+              name: page
+              schema:
+                  type: integer
+            - in: query
+              name: limit
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Lista de funciones (mismo esquema que GET /showtimes)
+            '401':
+                description: No autenticado
+            '403':
+                description: Sin permiso
+
+/showtimes/admin/movies/{movieId}/showtimes:
+    get:
+        summary: 'PRIVADO — Funciones de una película (backoffice)'
+        tags:
+            - Showtimes Admin
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: path
+              name: movieId
+              required: true
+              schema:
+                  type: integer
+            - in: query
+              name: startDate
+              schema:
+                  type: string
+                  format: date
+            - in: query
+              name: endDate
+              schema:
+                  type: string
+                  format: date
+            - in: query
+              name: onlyFuture
+              schema:
+                  type: boolean
+                  default: true
+            - in: query
+              name: page
+              schema:
+                  type: integer
+            - in: query
+              name: limit
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Funciones de la película
+            '401':
+                description: No autenticado
+            '403':
+                description: Sin permiso
+
+/showtimes/admin/cinemas/{cinemaId}/showtimes:
+    get:
+        summary: 'PRIVADO — Funciones por sucursal (backoffice)'
+        tags:
+            - Showtimes Admin
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: path
+              name: cinemaId
+              required: true
+              schema:
+                  type: integer
+            - in: query
+              name: startDate
+              schema:
+                  type: string
+                  format: date
+            - in: query
+              name: endDate
+              schema:
+                  type: string
+                  format: date
+            - in: query
+              name: onlyFuture
+              schema:
+                  type: boolean
+                  default: true
+            - in: query
+              name: page
+              schema:
+                  type: integer
+            - in: query
+              name: limit
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Funciones de la sucursal
+            '401':
+                description: No autenticado
+            '403':
+                description: Sin permiso
