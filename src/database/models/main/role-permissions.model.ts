@@ -47,9 +47,21 @@ export default class RolePermissionsModel extends SequelizeModelBase {
 				options: { foreignKey: 'role', targetKey: 'id', as: '_Roles' },
 			},
 			{
+				inversed: true,
+				type: 'hasMany',
+				target: 'Roles',
+				options: { foreignKey: 'role', targetKey: 'id', as: '_RolePermissions' },
+			},
+			{
 				type: 'belongsTo',
 				target: 'Permissions',
 				options: { foreignKey: 'permission', targetKey: 'id', as: '_Permissions' },
+			},
+			{
+				inversed: true,
+				type: 'hasMany',
+				target: 'Permissions',
+				options: { foreignKey: 'permission', targetKey: 'id', as: '_RolePermissions' },
 			},
 		];
 	}

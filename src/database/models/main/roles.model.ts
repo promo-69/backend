@@ -44,12 +44,6 @@ export default class RolesModel extends SequelizeModelBase {
 	}
 
 	static override relations(): RelationsReturn {
-		return [
-			{
-				type: 'hasMany',
-				target: 'RolePermissions',
-				options: { foreignKey: 'role', targetKey: 'id', as: '_RolePermissions' },
-			},
-		];
+		return [];
 	}
 }
