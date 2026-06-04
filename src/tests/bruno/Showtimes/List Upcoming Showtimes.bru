@@ -1,5 +1,5 @@
 meta {
-  name: Listar funciones (sin filtros)
+  name: Listar Funciones Futuras
   type: http
   seq: 3
 }
@@ -13,6 +13,11 @@ get {
 script:post-response {
   const resBody = res.getBody();
   if (res.getStatus() === 200 && resBody?.data?.rows?.length > 0) {
-    bru.setEnvVar('showtimeId', resBody.data.rows[0].id);
+    bru.setEnvVar("showtimeId", resBody.data.rows[0].id);
   }
+}
+
+docs {
+  Lista funciones futuras (sin filtros).
+  Guarda automáticamente showtimeId para otras pruebas.
 }

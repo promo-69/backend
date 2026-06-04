@@ -1,5 +1,5 @@
 meta {
-  name: Mapa de asientos de función
+  name: Obtener Mapa Asientos
   type: http
   seq: 8
 }
@@ -8,9 +8,4 @@ get {
   url: {{baseUrl}}/showtimes/{{showtimeId}}/seat-map
   body: none
   auth: none
-}
-
-docs {
-  Devuelve todos los asientos de la sala con estado.
-  Si está vacío, significa que la sala no tiene asientos configurados.
 }
