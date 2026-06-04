@@ -5,18 +5,6 @@ import { Transaction } from 'sequelize';
 // ID del tipo de reserva "Película" en booking_types (seed: id=1, description='Película')
 const BOOKING_TYPE_ID_SHOWTIME = 1;
 
-// Estados del Ciclo de Vida de las Películas (Reglas de Negocio Cineflix)
-const LIFECYCLE = {
-    COMING_SOON: 1, // Próximamente (Precarga de funciones / Preventas lejanas)
-    PREMIERE: 2, // Estreno Inminente (Falta 1 semana o menos para el estreno)
-    REGULAR: 3, // En Cartelera Activa (Ya pasó la fecha de estreno y tiene funciones)
-    LAST_DAYS: 4, // Últimos Días (Decisión comercial/humana del administrador)
-    OFF: 5, // Fuera de Cartelera (Ya pasó su estreno y se quedó sin funciones activas)
-} as const;
-
-// Estados en los que la película es visible para la cartelera pública del cliente
-const VISIBLE_STATES = [LIFECYCLE.COMING_SOON, LIFECYCLE.PREMIERE, LIFECYCLE.REGULAR, LIFECYCLE.LAST_DAYS];
-
 export class ShowtimeManagementService {
     private get _roomBookings() {
         return Database.repository('main', 'room-bookings') as any;
@@ -41,6 +29,40 @@ export class ShowtimeManagementService {
     }
     private get _rooms() {
         return Database.repository('main', 'rooms') as any;
+    }
+    private get _lifecycleStates() {
+        return Database.repository('main', 'movie-lifecycle-states') as any;
+    }
+
+    // Cache para los IDs de estados visibles (se refresca en cada consulta)
+    // Si el rendimiento es crítico, se puede cachear con Redis o variable local con TTL
+    private async _getVisibleLifecycleStates(): Promise<number[]> {
+        const states = await this._lifecycleStates.getAll({ count: false, attributes: ['id', 'description'] });
+        const stateList = Array.isArray(states) ? states : states.rows || [];
+
+        // Los estados visibles para la cartelera pública son:
+        // - Próximamente (1)
+        // - En Cartelera (Estreno) (2)
+        // - En Cartelera (Regular) (3)
+        // - Últimos Días (4)
+        // Excluimos "Fuera de Cartelera" (5)
+        const excludedDescriptions = ['Fuera de Cartelera'];
+        const visibleIds = stateList
+            .filter((s: any) => !excludedDescriptions.includes(s.description))
+            .map((s: any) => s.id);
+
+        return visibleIds;
+    }
+
+    // Mapeo de descripciones a IDs (para uso interno en _syncMovieLifecycle)
+    private async _getLifecycleStateIds(): Promise<Record<string, number>> {
+        const states = await this._lifecycleStates.getAll({ count: false, attributes: ['id', 'description'] });
+        const stateList = Array.isArray(states) ? states : states.rows || [];
+        const map: Record<string, number> = {};
+        for (const s of stateList) {
+            map[s.description] = s.id;
+        }
+        return map;
     }
 
     // -------------------------------------------------------------------------
@@ -81,19 +103,14 @@ export class ShowtimeManagementService {
         });
         if (!movie) return;
 
-        // Si el administrador la pasó manualmente a LAST_DAYS (4), respetamos su decisión comercial
-        if (movie.lifecycle_state === LIFECYCLE.LAST_DAYS) return;
-
         const now = new Date();
-        // Forzamos hora en 00:00:00 para comparar limpiamente fechas calendario puras locales
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         const releaseDate = new Date(movie.release_date);
 
-        // Cálculo de brecha temporal en días para el estreno
         const unDiaEnMilsegundos = 24 * 60 * 60 * 1000;
         const diasParaElEstreno = Math.ceil((releaseDate.getTime() - today.getTime()) / unDiaEnMilsegundos);
 
-        // 2. Contar cuántas funciones activas totales (no borradas lógicamente) posee la película
+        // 2. Contar cuántas funciones activas totales posee la película
         const remainingShowtimes = await this._showtimesRepo.getAll(
             { count: true },
             { movie: movieId, deleted_at: null },
@@ -102,37 +119,44 @@ export class ShowtimeManagementService {
             ? remainingShowtimes.length
             : (remainingShowtimes.count ?? remainingShowtimes.rows?.length ?? 0);
 
+        // 3. Obtener los IDs de los estados desde la tabla real
+        const stateIds = await this._getLifecycleStateIds();
+        const COMING_SOON = stateIds['Próximamente'] || 1;
+        const PREMIERE = stateIds['En Cartelera (Estreno)'] || 2;
+        const REGULAR = stateIds['En Cartelera (Regular)'] || 3;
+        const LAST_DAYS = stateIds['Últimos Días'] || 4;
+        const OFF = stateIds['Fuera de Cartelera'] || 5;
+
         let targetLifecycle = movie.lifecycle_state;
 
-        // 3. Árbol de decisiones basado en tus Reglas de Negocio acordadas
+        // Si el administrador la pasó manualmente a Últimos Días, respetamos su decisión comercial
+        if (movie.lifecycle_state === LAST_DAYS) return;
+
+        // 4. Árbol de decisiones
         if (diasParaElEstreno > 7) {
-            // Caso A: Falta más de una semana para el estreno oficial -> Sigue en Próximamente (1)
-            targetLifecycle = LIFECYCLE.COMING_SOON;
+            targetLifecycle = COMING_SOON;
         } else if (diasParaElEstreno <= 7 && diasParaElEstreno > 0) {
-            // Caso B: Falta una semana o menos para el estreno -> Pasa a Premiere / Estreno (2)
-            targetLifecycle = LIFECYCLE.PREMIERE;
+            targetLifecycle = PREMIERE;
         } else {
-            // Caso C: Ya se cumplió o superó la fecha de estreno oficial
             if (totalFunctions === 0) {
-                // Ya pasó su estreno y no le quedan funciones en cartelera -> OFF automático (5)
-                targetLifecycle = LIFECYCLE.OFF;
+                targetLifecycle = OFF;
             } else {
-                // Sigue proyectándose normalmente -> Regular (3)
-                targetLifecycle = LIFECYCLE.REGULAR;
+                targetLifecycle = REGULAR;
             }
         }
 
-        // 4. Si el estado calculado difiere del que posee la base de datos, actualizamos de inmediato
+        // 5. Actualizar si es necesario
         if (movie.lifecycle_state !== targetLifecycle) {
             await this._movies.update(movieId, { lifecycle_state: targetLifecycle }, { transaction });
         }
     }
 
     // -------------------------------------------------------------------------
-    //  CARTELERA PÚBLICA (SOPORTA OBJETO DE FILTROS O NÚMERO PLANO)
+    //  CARTELERA PÚBLICA
     // -------------------------------------------------------------------------
     async getBillboard(filters?: any) {
         const now = new Date();
+        const visibleStates = await this._getVisibleLifecycleStates();
 
         const bookingWhere: any = {
             end_time: { [Ops.gt]: now },
@@ -239,7 +263,7 @@ export class ShowtimeManagementService {
                     { association: '_Genres', attributes: ['id', 'description'], required: false },
                 ],
             },
-            { id: rawMovieIds, lifecycle_state: VISIBLE_STATES, deleted_at: null },
+            { id: rawMovieIds, lifecycle_state: visibleStates, deleted_at: null },
         );
         const movieList: any[] = Array.isArray(movies) ? movies : movies.rows || [];
         const movieMap = new Map<number, any>(movieList.map((m: any) => [m.id, m]));
@@ -334,10 +358,11 @@ export class ShowtimeManagementService {
     }
 
     // -------------------------------------------------------------------------
-    //  FUNCIONES DE UNA PELÍCULA EN UNA SUCURSAL (con asientos disponibles)
+    //  FUNCIONES DE UNA PELÍCULA EN UNA SUCURSAL
     // -------------------------------------------------------------------------
     async getMovieShowtimesByCinema(movieId: number, cinemaId: number) {
         const now = new Date();
+        const visibleStates = await this._getVisibleLifecycleStates();
 
         const bookings = await this._roomBookings.getAll(
             {
@@ -389,7 +414,7 @@ export class ShowtimeManagementService {
         const movie = await this._movies.getById(movieId, {
             attributes: ['id', 'title', 'duration_minutes', 'poster_url', 'lifecycle_state'],
         });
-        if (!movie || !VISIBLE_STATES.includes(movie.lifecycle_state)) {
+        if (!movie || !visibleStates.includes(movie.lifecycle_state)) {
             throw new NotFoundError('Película no encontrada o no está en cartelera');
         }
 
@@ -515,6 +540,18 @@ export class ShowtimeManagementService {
         if (!language) throw new ValidationError(`No existe ningún idioma con id ${languageId}`);
         if (!currency) throw new ValidationError(`No existe ninguna moneda con id ${currencyId}`);
 
+        const releaseDate = new Date(movie.release_date);
+        const releaseDateStart = new Date(
+            Date.UTC(releaseDate.getUTCFullYear(), releaseDate.getUTCMonth(), releaseDate.getUTCDate(), 0, 0, 0),
+        );
+
+        if (start < releaseDateStart) {
+            throw new ValidationError(
+                `No se pueden programar funciones antes de la fecha de estreno de la película (${movie.release_date}).`,
+                ['start_time'],
+            );
+        }
+
         const roomProjectionType = await (Database.repository('main', 'room-projection-types') as any).getOne({
             room: roomId,
             projection_type: projTypeId,
@@ -554,7 +591,7 @@ export class ShowtimeManagementService {
                 { transaction },
             );
 
-            // 🌟 Sincronizar dinámicamente el ciclo de vida de la película según su release_date
+            // Sincronizar dinámicamente el ciclo de vida de la película
             await this._syncMovieLifecycle(movieId, transaction);
 
             try {
@@ -785,11 +822,9 @@ export class ShowtimeManagementService {
             throw new ValidationError('El ID de la función proporcionado no es válido.');
         }
 
-        // Buscamos la función por su ID directamente sin mapear atributos problemáticos manualmente
         const raw = await this._showtimesRepo.getById(Number(id));
         if (!raw) throw new NotFoundError('Función no encontrada');
 
-        // Precarga segura de las relaciones asociadas
         const [booking, movie, projType, language, currency] = await Promise.all([
             this._roomBookings.getById(raw.booking, {
                 attributes: ['id', 'room', 'start_time', 'end_time'],
@@ -874,7 +909,6 @@ export class ShowtimeManagementService {
                 if (Object.keys(updateData).length > 0) {
                     await this._showtimesRepo.update(id, updateData, { transaction });
                 }
-                // Sincronizar por si el cambio de horarios de la función altera la línea de tiempo
                 await this._syncMovieLifecycle(showtime.movie, transaction);
             });
             return null;
