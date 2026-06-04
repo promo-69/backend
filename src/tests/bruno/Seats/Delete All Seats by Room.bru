@@ -1,0 +1,21 @@
+meta {
+  name: Delete All Seats by Room
+  type: http
+  seq: 4
+}
+
+delete {
+  url: {{baseUrl}}/seats/room/{{roomId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+docs {
+  Elimina TODOS los asientos de una sala (soft delete).
+  Requiere token de administrador.
+  Endpoint: DELETE /seats/room/:roomId
+}
