@@ -1,5 +1,5 @@
 meta {
-  name: Funciones de película en sucursal
+  name: Funciones de Pelicula en Sucursal
   type: http
   seq: 10
 }
@@ -13,6 +13,6 @@ get {
 script:post-response {
   const resBody = res.getBody();
   if (res.getStatus() === 200 && resBody?.data?.rows?.length > 0) {
-    bru.setEnvVar('showtimeId', resBody.data.rows[0].id);
+    bru.setEnvVar("showtimeId", resBody.data.rows[0].id);
   }
 }

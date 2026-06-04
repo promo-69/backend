@@ -1,0 +1,15 @@
+meta {
+  name: Listar Peliculas en Cartelera
+  type: http
+  seq: 19
+}
+
+get {
+  url: {{baseUrl}}/showtimes/admin/movies?lifecycle=2
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
