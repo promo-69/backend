@@ -24,6 +24,44 @@ class UsersController extends ControllerBase {
 		return this.success(null, 'Credenciales de seguridad actualizadas correctamente.');
 	}
 
+	async getMyOrders() {
+		const session = this.getSession();
+		const query = this.getQuery();
+		const data = await UsersService.getMyOrders(session.userId, query);
+		return data;
+	}
+
+	async getMyOrderTicket() {
+		const session = this.getSession();
+		const { orderId } = this.getParams();
+		const data = await UsersService.getMyOrderTicket(session.userId, Number(orderId));
+		return this.success(data, 'Tickets de la orden recuperados correctamente.');
+	}
+
+	async getMyLoyalty() {
+		const session = this.getSession();
+		const filters = this.getQueryFilters();
+		const result = await UsersService.getMyLoyalty(session.userId, filters);
+
+		const ledgers = result.ledgers || { rows: [], count: 0 };
+		const pagination = this.getPagination();
+
+		const metadata = {
+			loyalty_level: result.loyalty_level,
+			level_progress_points: result.level_progress_points,
+			points_balance: result.points_balance,
+			pagination: { offset: pagination.offset, limit: pagination.limit, total: ledgers.count ?? 0 },
+		};
+
+		return this.success(ledgers.rows, 'Loyalty information retrieved.', 200, metadata);
+	}
+
+	async getMyMovieSubscriptions() {
+		const session = this.getSession();
+		const data = await UsersService.getMyMovieSubscriptions(session.userId);
+		return data;
+	}
+
 	// --- Exclusivo para Gerente
 
 	async getAllUsers() {
