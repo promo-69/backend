@@ -156,7 +156,6 @@ export class ShowtimeManagementService {
     // -------------------------------------------------------------------------
     async getBillboard(filters?: any) {
         const now = new Date();
-        const visibleStates = await this._getVisibleLifecycleStates();
 
         const bookingWhere: any = {
             end_time: { [Ops.gt]: now },
@@ -177,15 +176,7 @@ export class ShowtimeManagementService {
                 {
                     association: '_Rooms',
                     attributes: ['id', 'name', 'cinema'],
-                    required: targetCinemaId ? true : false,
-                    relations: [
-                        {
-                            association: '_Cinemas',
-                            attributes: ['id', 'name'],
-                            required: true,
-                            where: targetCinemaId ? { id: targetCinemaId } : {},
-                        },
-                    ],
+                    required: true,
                 },
             ],
         };
@@ -210,6 +201,21 @@ export class ShowtimeManagementService {
         if (!bookingList.length) {
             throw new NotFoundError('No se encontraron funciones programadas para la sucursal seleccionada');
         }
+
+        // =============================================================
+        // Obtener los datos de los cines por separado (solución alternativa)
+        // =============================================================
+        const cinemaIds = [...new Set(bookingList.map((b: any) => b._Rooms?.cinema).filter(Boolean))];
+        let cinemaMap = new Map<number, any>();
+        if (cinemaIds.length > 0) {
+            const cinemas = await (Database.repository('main', 'cinemas') as any).getAll(
+                { count: false, attributes: ['id', 'name'] },
+                { id: cinemaIds },
+            );
+            const cinemaList = Array.isArray(cinemas) ? cinemas : cinemas.rows || [];
+            cinemaMap = new Map(cinemaList.map((c: any) => [c.id, c]));
+        }
+        // =============================================================
 
         const bookingIds = bookingList.map((b: any) => b.id);
         const showtimeWhere: any = { booking: bookingIds, deleted_at: null };
@@ -253,6 +259,7 @@ export class ShowtimeManagementService {
         }
 
         const rawMovieIds = [...new Set(showtimeList.map((s: any) => s.movie))];
+        const visibleStates = await this._getVisibleLifecycleStates();
         const movies = await this._movies.getAll(
             {
                 count: false,
@@ -331,7 +338,10 @@ export class ShowtimeManagementService {
             const lang = langMap.get(s.language) ?? {};
             const curr = currMap.get(s.currency) ?? {};
             const room = booking._Rooms ?? {};
-            const cinema = room._Cinemas ?? null;
+
+            // ✅ Obtener el cine desde el mapa que construimos
+            const cinemaIdFromRoom = room.cinema;
+            const cinema = cinemaIdFromRoom ? cinemaMap.get(cinemaIdFromRoom) : null;
 
             billboardMap.get(movie.id).showtimes.push({
                 id: s.id,
