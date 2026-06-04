@@ -24,6 +24,9 @@ export class RoomsService extends BaseService {
     private get _showtimes() {
         return Database.repository('main', 'showtimes') as any;
     }
+    private get _roomBookings() {
+        return Database.repository('main', 'room-bookings') as any;
+    }
 
     /** Capacidad total real = número de asientos activos */
     private async _getRoomTotalCapacity(roomId: number, transaction?: Transaction): Promise<number> {
@@ -161,13 +164,28 @@ export class RoomsService extends BaseService {
             const room = await this._rooms.getById(id, { transaction, lock: transaction.LOCK.UPDATE });
             if (!room) throw new NotFoundError('Sala no encontrada');
 
-            const activeShowtimes = await this._showtimes.count({ room: id, deleted_at: null }, { transaction });
-            if (activeShowtimes > 0)
+            // Obtener IDs de room_bookings asociadas a esta sala
+            const bookings = await this._roomBookings.getAll(
+                { count: false, attributes: ['id'] },
+                { room: id, deleted_at: null },
+                { transaction },
+            );
+            const bookingIds = (Array.isArray(bookings) ? bookings : bookings.rows || []).map((b: any) => b.id);
+
+            let activeShowtimes = 0;
+            if (bookingIds.length > 0) {
+                activeShowtimes = await this._showtimes.count(
+                    { booking: bookingIds, deleted_at: null },
+                    { transaction },
+                );
+            }
+
+            if (activeShowtimes > 0) {
                 throw new ConflictError(
                     'No se puede clausurar la sala porque tiene funciones activas',
                     'ROOM_HAS_ACTIVE_SHOWTIMES',
                 );
-
+            }
             await this._rooms.delete(id, { transaction });
         });
         return null;
