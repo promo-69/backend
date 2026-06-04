@@ -626,12 +626,14 @@ export class ShowtimeManagementService {
             if (isNaN(start.getTime()) || isNaN(end.getTime())) {
                 throw new ValidationError('startDate y endDate deben ser fechas válidas (YYYY-MM-DD)');
             }
+            start.setUTCHours(0, 0, 0, 0);
+            end.setUTCHours(23, 59, 59, 999);
             bookingWhere.start_time = { [Ops.between]: [start, end] };
         } else if (date) {
             const dayStart = new Date(`${date}T00:00:00.000Z`);
             const dayEnd = new Date(`${date}T23:59:59.999Z`);
             if (isNaN(dayStart.getTime())) {
-                throw new ValidationError('La fecha proporcionada no tiene un formato válido (YYYY-MM-DD)');
+                throw new ValidationError('La fecha proporcionada no es válida (YYYY-MM-DD)');
             }
             bookingWhere.start_time = { [Ops.between]: [dayStart, dayEnd] };
         }
