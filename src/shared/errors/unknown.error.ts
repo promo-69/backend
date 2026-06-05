@@ -1,3 +1,4 @@
+import { AppConfig } from '@config/app.config.js';
 import { AppError } from '@errors/app.error.js';
 
 export class UnknownError extends AppError {
@@ -18,17 +19,16 @@ export class UnknownError extends AppError {
 			...additionalInfo,
 		};
 
+		const isDev = AppConfig.isDevelopment();
+
 		super({
 			statusCode: 500,
-			message:
-				process.env.NODE_ENV === 'development'
-					? `Unexpected error: ${errorName}: ${errorMessage}`
-					: `Unexpected error: ${errorMessage}`,
+			message: isDev ? `Unexpected error: ${errorName}: ${errorMessage}` : `Unexpected error: ${errorMessage}`,
 			code: 'UNKNOWN_ERROR',
 			cause: originalError,
 			data: {
 				timestamp: new Date().toISOString(),
-				environment: process.env.NODE_ENV || 'development',
+				environment: isDev ? 'development' : 'production',
 				...debugInfo,
 			},
 		});

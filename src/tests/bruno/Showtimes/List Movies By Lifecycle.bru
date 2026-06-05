@@ -1,0 +1,21 @@
+meta {
+  name: Listar Peliculas por Lifecycle
+  type: http
+  seq: 18
+}
+
+get {
+  url: {{baseUrl}}/showtimes/admin/movies?lifecycle=1
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+docs {
+  lifecycle=1: Próximamente
+  lifecycle=2: En Cartelera
+  lifecycle=5: Fuera de cartelera
+}

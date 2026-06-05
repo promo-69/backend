@@ -60,6 +60,10 @@
 /showtimes/admin:
     get:
         summary: 'PRIVADO — Listar todas las funciones con filtros avanzados'
+        description: |
+            Permite a administradores listar funciones con filtros de rango de fechas, película, sucursal.
+            Por defecto (`onlyFuture=true`) devuelve solo funciones futuras.
+            Con `onlyFuture=false` devuelve también funciones pasadas (útil para auditoría y reportes).
         tags:
             - Showtimes Admin
         security:
@@ -70,32 +74,41 @@
               schema:
                   type: string
                   format: date
+              description: Fecha de inicio del rango (YYYY-MM-DD)
             - in: query
               name: endDate
               schema:
                   type: string
                   format: date
+              description: Fecha de fin del rango (YYYY-MM-DD)
             - in: query
               name: movieId
               schema:
                   type: integer
+              description: Filtrar por ID de película
             - in: query
               name: cinemaId
               schema:
                   type: integer
+              description: Filtrar por ID de sucursal
             - in: query
               name: onlyFuture
               schema:
                   type: boolean
                   default: true
+              description: |
+                  - `true` (por defecto): solo funciones futuras
+                  - `false`: incluye también funciones pasadas (requiere permisos de administrador)
             - in: query
               name: page
               schema:
                   type: integer
+              default: 1
             - in: query
               name: limit
               schema:
                   type: integer
+              default: 10
         responses:
             '200':
                 description: Lista de funciones (mismo esquema que GET /showtimes)
@@ -132,6 +145,9 @@
               schema:
                   type: boolean
                   default: true
+              description: |
+                  - `true`: solo funciones futuras
+                  - `false`: incluye funciones pasadas
             - in: query
               name: page
               schema:
@@ -176,6 +192,9 @@
               schema:
                   type: boolean
                   default: true
+              description: |
+                  - `true`: solo funciones futuras
+                  - `false`: incluye funciones pasadas
             - in: query
               name: page
               schema:

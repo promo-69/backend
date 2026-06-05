@@ -1,7 +1,7 @@
 meta {
-  name: Crear función (implícito)
+  name: Crear Funcion (Implicito)
   type: http
-  seq: 15
+  seq: 14
 }
 
 post {
@@ -24,14 +24,13 @@ body:json {
     "end_time": "2026-08-15T20:30:00Z",
     "currency": 1,
     "price": 12.50,
-    "earned_loyalty_points": 25,
-    "cinema": {{cinemaId}}
+    "earned_loyalty_points": 25
   }
 }
 
 script:post-response {
   const resBody = res.getBody();
   if (res.getStatus() === 201 && resBody?.data?.showtime_id) {
-    bru.setEnvVar('showtimeId', resBody.data.showtime_id);
+    bru.setEnvVar("showtimeId", resBody.data.showtime_id);
   }
 }

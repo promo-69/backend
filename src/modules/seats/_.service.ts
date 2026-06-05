@@ -33,6 +33,10 @@ export class SeatsService extends BaseService {
         return seat;
     }
 
+    /**
+     * Devuelve los IDs de showtimes futuros activos.
+     * Centralizado para reutilizar en ambos métodos de verificación.
+     */
     private async _getFutureShowtimeIds(transaction?: Transaction): Promise<number[]> {
         const futureShowtimes = await this._showtimes.getAll(
             {
@@ -49,6 +53,13 @@ export class SeatsService extends BaseService {
         return list.map((s: any) => s.id);
     }
 
+    /**
+     * Dado un conjunto de seatIds, devuelve en UNA SOLA CONSULTA
+     * los IDs de asientos que tienen tickets asociados a funciones futuras.
+     *
+     * Cadena correcta: seat → ticket.booking → room_bookings.id → showtime.booking
+     * La tabla tickets NO tiene columna 'showtime', solo 'booking' (FK a room_bookings).
+     */
     private async _seatsWithFutureTickets(seatIds: number[], transaction?: Transaction): Promise<number[]> {
         if (seatIds.length === 0) return [];
 

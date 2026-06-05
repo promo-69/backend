@@ -1,4 +1,89 @@
 /cinemas/{cinemaId}/showtimes:
+    get:
+        summary: 'PRIVADO — Funciones disponibles en una sucursal (con filtros)'
+        description: |
+            Lista funciones de una sucursal, con filtros de fecha.
+            Por defecto (`onlyFuture=true`) devuelve solo funciones futuras.
+            Con `onlyFuture=false` devuelve también funciones pasadas (requiere autenticación y permisos de gerente).
+        tags:
+            - Showtimes por Sucursal
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: path
+              name: cinemaId
+              required: true
+              schema:
+                  type: integer
+            - in: query
+              name: date
+              schema:
+                  type: string
+                  format: date
+              description: Fecha exacta (YYYY-MM-DD)
+            - in: query
+              name: startDate
+              schema:
+                  type: string
+                  format: date
+              description: Fecha de inicio del rango
+            - in: query
+              name: endDate
+              schema:
+                  type: string
+                  format: date
+              description: Fecha de fin del rango
+            - in: query
+              name: movieId
+              schema:
+                  type: integer
+              description: Filtrar por ID de película
+            - in: query
+              name: onlyFuture
+              schema:
+                  type: boolean
+                  default: true
+              description: |
+                  - `true` (por defecto): solo funciones futuras
+                  - `false`: incluye también funciones pasadas (requiere permisos)
+            - in: query
+              name: page
+              schema:
+                  type: integer
+              default: 1
+            - in: query
+              name: limit
+              schema:
+                  type: integer
+              default: 10
+        responses:
+            '200':
+                description: Lista de funciones de la sucursal (mismo esquema que GET /showtimes)
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                message:
+                                    type: string
+                                data:
+                                    type: object
+                                    properties:
+                                        count:
+                                            type: integer
+                                        rows:
+                                            type: array
+                                            items:
+                                                type: object
+            '401':
+                description: No autenticado
+            '403':
+                description: Sin permiso
+            '404':
+                description: Sucursal no encontrada
+
     post:
         summary: 'PRIVADO — Crear función en la sucursal'
         tags:
@@ -61,6 +146,7 @@
         summary: 'PÚBLICO — Funciones de una película en una sucursal con asientos disponibles'
         description: |
             Devuelve las funciones futuras de la película en la sucursal, con total_seats y available_seats.
+            (Solo funciones futuras, no aplica filtro onlyFuture)
         tags:
             - Showtimes por Sucursal
         security: []
