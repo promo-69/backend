@@ -2,6 +2,7 @@ import { RealtimeProvider } from '@providers/realtime.provider.js';
 import { SeatLockService } from './seat-lock.service.js';
 import { Logger } from '@utils/logger.util.js';
 import { CacheDatabaseProvider } from '@providers/cache-database.provider.js';
+import { Database } from '@database/index.js';
 
 export class BookingSocketService {
 	static initialize() {
@@ -18,13 +19,29 @@ export class BookingSocketService {
 				const quoteRaw = await redis.get(userQueueKey);
 
 				if (!quoteRaw) {
-					socket.emit('session_error', {
-						message: 'Debe iniciar una sesión de compra para unirse a la sala',
+					RealtimeProvider.getInstance().emitToSocket(socket.id, 'join_error', {
+						message: 'Función no válida para la sucursal actual o sesión expirada',
 					});
 					return;
 				}
+
+				const quoteData = JSON.parse(quoteRaw);
+				const showtime = await (Database.repository('main', 'showtimes') as any).getById(data.showtimeId, {
+					relations: [{ association: '_RoomBookings', nested: [{ association: '_Rooms' }] }],
+				});
+
+				const showtimeCinemaId = showtime?._RoomBookings?._Rooms?.cinema;
+
+				if (!showtimeCinemaId || Number(showtimeCinemaId) !== Number(quoteData.cinema)) {
+					RealtimeProvider.getInstance().emitToSocket(socket.id, 'join_error', {
+						message: 'Función no válida para la sucursal actual o sesión expirada',
+					});
+					return;
+				}
+
 				socket.join(`showtime_${data.showtimeId}`);
 				await redis.set(`ws:context:usr:${user.userId}`, String(data.showtimeId), 'EX', 3600);
+				RealtimeProvider.getInstance().emitToSocket(socket.id, 'join_success', { showtimeId: data.showtimeId });
 			}
 		});
 
@@ -48,6 +65,7 @@ export class BookingSocketService {
 					const pipeline = redis.pipeline();
 					for (const seatId of seatIds) {
 						pipeline.del(`lock:showtime:${data.showtimeId}:seat:${seatId}`);
+						pipeline.zrem(`showtime:${data.showtimeId}:locked_seats`, String(seatId));
 					}
 					await pipeline.exec();
 
@@ -80,8 +98,8 @@ export class BookingSocketService {
 				await redis.sadd(`usr:${user.userId}:showtime:${showtimeId}:locked_seats`, String(data.seatId));
 				await redis.expire(`usr:${user.userId}:showtime:${showtimeId}:locked_seats`, 3600);
 			} catch (err: any) {
-				socket.emit('seat_lock_error', {
-					message: err.message,
+				RealtimeProvider.getInstance().emitToSocket(socket.id, 'seat_lock_error', {
+					message: err.message || 'Asiento ocupado',
 					seatId: data.seatId,
 				});
 			}

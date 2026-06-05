@@ -41,6 +41,9 @@ router.post('/', verifySession, verifyPermission('CRUD:CREATE:SHOWTIMES'), showt
 // Detalle de una función específica.
 router.get('/:id', optionalAuth, showtimesController.findById);
 
+// Estado en vivo de los asientos (sold, locked)
+router.get('/:id/seats-status', optionalAuth, showtimesController.getSeatsStatus);
+
 // Mapa de asientos de una función
 router.get('/:id/seat-map', optionalAuth, showtimesController.getSeatMap);
 

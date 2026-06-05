@@ -54,6 +54,10 @@ export class ShowtimesService {
         return ShowtimeManagementService.getSeatMap(showtimeId);
     }
 
+    async getSeatsStatus(showtimeId: number) {
+        return ShowtimeManagementService.getSeatsStatus(showtimeId);
+    }
+
     async getAllMoviesByLifecycle(lifecycleState?: number, filters?: any) {
         const where: any = { deleted_at: null };
         if (lifecycleState !== undefined) where.lifecycle_state = lifecycleState;

@@ -111,7 +111,6 @@ module.exports = {
 				{ id: 1, description: 'Adulto' },
 				{ id: 2, description: 'Niño' },
 				{ id: 3, description: 'Tercera Edad' },
-				{ id: 4, description: 'Estudiante' },
 			],
 			{},
 		);

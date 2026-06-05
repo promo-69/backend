@@ -24,7 +24,10 @@ export class SeatLockService {
 		const lockKey = `lock:showtime:${showtimeId}:seat:${seatId}`;
 		const success = await this._redis.set(lockKey, String(userId), 'EX', 480, 'NX');
 
-		if (!success) throw new ConflictError('El asiento ya se encuentra bloqueado por otro usuario.');
+		if (!success) throw new ConflictError('Asiento ocupado');
+
+		const expireTimestamp = Date.now() + 480000;
+		await this._redis.zadd(`showtime:${showtimeId}:locked_seats`, expireTimestamp, String(seatId));
 
 		if (socketId) RealtimeProvider.getInstance().emitToSocket(socketId, 'seat_lock_success', { seatId });
 
@@ -39,6 +42,7 @@ export class SeatLockService {
 
 		if (lockedUserId === String(userId)) {
 			await this._redis.del(lockKey);
+			await this._redis.zrem(`showtime:${showtimeId}:locked_seats`, String(seatId));
 			RealtimeProvider.getInstance().emitToRoom(`showtime_${showtimeId}`, 'seat_unlocked', { seatId });
 			return true;
 		}

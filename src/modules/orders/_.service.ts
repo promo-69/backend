@@ -105,9 +105,7 @@ export class OrdersService extends BaseService {
 		const existingQuote = await this._redis.get(userQueueKey);
 
 		if (existingQuote)
-			throw new ActiveSessionError(
-				'Ya tienes una sesión de compra en curso. Por favor finalízala o espera 10 minutos a que expire.',
-			);
+			throw new ConflictError('Ya tienes una sesión activa');
 
 		const cinemaData = await this._cinemas.count({ id: cinema });
 		if (!cinemaData) throw new NotFoundError('La sucursal no existe.');
@@ -122,8 +120,8 @@ export class OrdersService extends BaseService {
 		});
 		const systemBaseCurrencyId = baseCurrency ? baseCurrency.id : 1;
 
-		// Establece el tiempo de vida de la cotizacion en 5 minutos
-		const TTL_SECONDS = 300;
+		// Establece el tiempo de vida de la cotizacion en 10 minutos
+		const TTL_SECONDS = 600;
 		const createdAt = new Date();
 		const expiresAt = new Date(createdAt.getTime() + TTL_SECONDS * 1000);
 
@@ -405,6 +403,7 @@ export class OrdersService extends BaseService {
 
 			// Restaura el estado de la cotizacion para permitir el pago
 			quoteData.status = OrderState.PAYMENT_PENDING;
+			quoteData.order_id = createdOrder.id;
 			await this._redis.set(userQueueKey, JSON.stringify(quoteData), 'EX', 600);
 
 			// Agrega tarea en cola para expirar la orden despues de 10 minutos
@@ -437,14 +436,19 @@ export class OrdersService extends BaseService {
 	 * Genera los codigos QR y notifica al cliente cuando el pago esta completo.
 	 */
 	async registerPayment(body: any, session: any) {
-		const { order_id, payment_method, amount, currency, reference_number } = body;
+		const { payment_method, amount, currency, reference_number } = body;
 		let orderData: any = null;
+		let remaining_balance: number | null = null;
 		const userQueueKey = `queue:usr:${session.userId}`;
 
 		// Valida que la sesion de compra siga vigente
 		const quoteRaw = await this._redis.get(userQueueKey);
 		if (!quoteRaw) throw new BadRequestError('El tiempo para pagar ha expirado o no existe sesión de compra.');
 		const quoteData = JSON.parse(quoteRaw);
+		
+		const order_id = quoteData.order_id;
+		if (!order_id) throw new ForbiddenError('No hay una orden asociada a esta sesión de compra.');
+
 		const exchangeRatesDict = quoteData.exchange_rates || {};
 
 		// Inicia transaccion para registrar el pago con seguridad
@@ -498,6 +502,30 @@ export class OrdersService extends BaseService {
 				}
 			}
 			const amountBase = amount * exchangeRateValue;
+
+			// Ramificación según método de pago
+			if (payment_method === 'points' || payment_method === 'cinepuntos') {
+				const ledgers = await this._loyaltyLedgers.getAll(
+					{ count: false, order: [['id', 'DESC']], limit: 1, operation: { transaction } },
+					{ customer: session.customerId }
+				);
+				const currentBalance = ledgers.length > 0 ? Number(ledgers[0].points_balance) : 0;
+				if (amount > currentBalance) {
+					throw new BadRequestError('Saldo de puntos insuficiente');
+				}
+				// Descontar puntos de una vez con un registro negativo
+				await this._loyaltyLedgers.create({
+					customer: session.customerId,
+					points: -amount,
+					points_balance: currentBalance - amount,
+					description: `Pago parcial de orden ${order_id}`,
+				}, { transaction });
+			} else if (payment_method === 'transfer' || payment_method === 'mobile_payment') {
+				// TODO: Validar referencia con Simulador API
+			} else if (payment_method === 'cash') {
+				// El operador de taquilla ya lo validó
+			}
+
 			await this._orderPayments.create(
 				{
 					order: order_id,
@@ -528,6 +556,8 @@ export class OrdersService extends BaseService {
 					await this._deductPhysicalInventory(concessions, order, session.userId, transaction);
 				await this._awardLoyaltyPoints(order, transaction);
 				orderData = { ...order, qr_code: qrCode, order_status: 2 };
+			} else {
+				remaining_balance = Number(order.total_amount_base_currency) - totalPaid;
 			}
 		});
 
@@ -560,8 +590,16 @@ export class OrdersService extends BaseService {
 				}
 
 				for (const showtimeId of uniqueShowtimes) {
+					const seatIds = ticketsByShowtime.get(showtimeId)!;
+
+					const pipeline = this._redis.pipeline();
+					for (const seatId of seatIds) {
+						pipeline.zrem(`showtime:${showtimeId}:locked_seats`, String(seatId));
+					}
+					await pipeline.exec();
+
 					RealtimeProvider.getInstance().emitToRoom(`showtime_${showtimeId}`, 'seats_sold_final', {
-						seatIds: ticketsByShowtime.get(showtimeId),
+						seatIds,
 					});
 				}
 			}
@@ -574,6 +612,8 @@ export class OrdersService extends BaseService {
 					email: session.email,
 				})
 				.catch((err) => console.error(err));
+		} else if (remaining_balance !== null && remaining_balance > 0) {
+			return { remaining_balance, message: 'Pago parcial registrado exitosamente' };
 		}
 		return orderData;
 	}

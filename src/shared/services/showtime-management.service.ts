@@ -1,6 +1,7 @@
 import { Database, Ops } from '@database/index.js';
 import { ConflictError, NotFoundError, ValidationError } from '@errors';
 import { Transaction } from 'sequelize';
+import { CacheDatabaseProvider } from '@providers/cache-database.provider.js';
 
 // ID del tipo de reserva "Película" en booking_types (seed: id=1, description='Película')
 const BOOKING_TYPE_ID_SHOWTIME = 1;
@@ -645,6 +646,42 @@ export class ShowtimeManagementService {
         });
 
         return result;
+    }
+
+    async getSeatsStatus(showtimeId: number) {
+        const showtime = await this._showtimesRepo.getById(showtimeId, { attributes: ['booking'] });
+        if (!showtime) throw new NotFoundError('Función no encontrada');
+
+        const tickets = await this._tickets.getAll(
+            {
+                count: false,
+                attributes: ['seat'],
+                relations: [
+                    {
+                        association: '_Orders',
+                        required: true,
+                        where: { order_status: 2 },
+                    },
+                ],
+            },
+            { booking: showtime.booking, deleted_at: null },
+        );
+
+        const soldSeats = (Array.isArray(tickets) ? tickets : tickets.rows || []).map((t: any) => t.seat);
+
+        // Limpiar expirados y obtener actuales (ZSET)
+        const redis = CacheDatabaseProvider.getInstance().client;
+        const zsetKey = `showtime:${showtimeId}:locked_seats`;
+        const nowMs = Date.now();
+        
+        await redis.zremrangebyscore(zsetKey, 0, nowMs);
+        const lockedRaw = await redis.zrange(zsetKey, 0, -1);
+        const lockedSeats = lockedRaw.map(Number);
+
+        return {
+            sold: soldSeats,
+            locked: lockedSeats,
+        };
     }
 
     async findAllShowtimes(filters?: any) {
