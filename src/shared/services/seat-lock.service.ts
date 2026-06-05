@@ -1,4 +1,4 @@
-import { RealtimeService } from './realtime.service.js';
+import { RealtimeProvider } from '@providers/realtime.provider.js';
 import { ConflictError } from '@errors';
 import { CacheDatabaseProvider } from '@providers/cache-database.provider.js';
 
@@ -8,12 +8,12 @@ export class SeatLockService {
 	}
 
 	async handleQuoteExpiration(queueId: string, userId: number) {
-		RealtimeService.emitToRoom(`queue_${queueId}`, 'quote_expired', {});
+		RealtimeProvider.getInstance().emitToRoom(`queue_${queueId}`, 'quote_expired', {});
 	}
 
 	async handleSeatExpiration(showtimeId: number, seatId: number, queueId: string) {
-		RealtimeService.emitToRoom(`showtime_${showtimeId}`, 'seats_unlocked', { seatIds: [seatId] });
-		if (queueId) RealtimeService.emitToRoom(`queue_${queueId}`, 'seat_lock_expired', { seatId, showtimeId });
+		RealtimeProvider.getInstance().emitToRoom(`showtime_${showtimeId}`, 'seats_unlocked', { seatIds: [seatId] });
+		if (queueId) RealtimeProvider.getInstance().emitToRoom(`queue_${queueId}`, 'seat_lock_expired', { seatId, showtimeId });
 	}
 
 	/**
@@ -26,9 +26,9 @@ export class SeatLockService {
 
 		if (!success) throw new ConflictError('El asiento ya se encuentra bloqueado por otro usuario.');
 
-		if (socketId) RealtimeService.emitToSocket(socketId, 'seat_lock_success', { seatId });
+		if (socketId) RealtimeProvider.getInstance().emitToSocket(socketId, 'seat_lock_success', { seatId });
 
-		RealtimeService.broadcastToRoomExclude(`showtime_${showtimeId}`, 'seat_locked_by_other', { seatId }, socketId);
+		RealtimeProvider.getInstance().broadcastToRoomExclude(`showtime_${showtimeId}`, 'seat_locked_by_other', { seatId }, socketId);
 
 		return true;
 	}
@@ -39,7 +39,7 @@ export class SeatLockService {
 
 		if (lockedUserId === String(userId)) {
 			await this._redis.del(lockKey);
-			RealtimeService.emitToRoom(`showtime_${showtimeId}`, 'seat_unlocked', { seatId });
+			RealtimeProvider.getInstance().emitToRoom(`showtime_${showtimeId}`, 'seat_unlocked', { seatId });
 			return true;
 		}
 

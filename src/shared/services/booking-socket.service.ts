@@ -1,4 +1,4 @@
-import { RealtimeService } from './realtime.service.js';
+import { RealtimeProvider } from '@providers/realtime.provider.js';
 import { SeatLockService } from './seat-lock.service.js';
 import { Logger } from '@utils/logger.util.js';
 import { CacheDatabaseProvider } from '@providers/cache-database.provider.js';
@@ -6,19 +6,30 @@ import { CacheDatabaseProvider } from '@providers/cache-database.provider.js';
 export class BookingSocketService {
 	static initialize() {
 		// Suscripción a la sala de una función
-		RealtimeService.registerEventHandler('join_showtime', async (socket, data: { showtimeId: number }) => {
+		RealtimeProvider.getInstance().registerEventHandler('join_showtime', async (socket, data: any) => {
 			if (!data?.showtimeId) return;
-			socket.join(`showtime_${data.showtimeId}`);
 
 			const user = socket.data.session;
 			if (user?.userId) {
 				const redis = CacheDatabaseProvider.getInstance().client;
+
+				// Verificar que exista una sesión de compra iniciada
+				const userQueueKey = `queue:usr:${user.userId}`;
+				const quoteRaw = await redis.get(userQueueKey);
+
+				if (!quoteRaw) {
+					socket.emit('session_error', {
+						message: 'Debe iniciar una sesión de compra para unirse a la sala',
+					});
+					return;
+				}
+				socket.join(`showtime_${data.showtimeId}`);
 				await redis.set(`ws:context:usr:${user.userId}`, String(data.showtimeId), 'EX', 3600);
 			}
 		});
 
 		// Desuscripción a la sala
-		RealtimeService.registerEventHandler('leave_showtime', async (socket, data: { showtimeId: number }) => {
+		RealtimeProvider.getInstance().registerEventHandler('leave_showtime', async (socket, data: any) => {
 			if (!data?.showtimeId) return;
 			socket.leave(`showtime_${data.showtimeId}`);
 
@@ -40,17 +51,25 @@ export class BookingSocketService {
 					}
 					await pipeline.exec();
 
-					RealtimeService.emitToRoom(`showtime_${data.showtimeId}`, 'seats_unlocked', { seatIds });
+					RealtimeProvider.getInstance().emitToRoom(`showtime_${data.showtimeId}`, 'seats_unlocked', {
+						seatIds,
+					});
 				}
 			}
 		});
 
 		// Intento de bloquear un asiento
-		RealtimeService.registerEventHandler('lock_seat', async (socket, data: { seatId: number }) => {
+		RealtimeProvider.getInstance().registerEventHandler('lock_seat', async (socket, data: any) => {
 			const user = socket.data.session;
 			if (!user?.userId || !data?.seatId) return;
 			try {
 				const redis = CacheDatabaseProvider.getInstance().client;
+
+				// Verificar que exista una sesión de compra iniciada
+				const userQueueKey = `queue:usr:${user.userId}`;
+				const quoteRaw = await redis.get(userQueueKey);
+				if (!quoteRaw) throw new Error('La sesión de compra no existe o ha expirado');
+
 				const showtimeIdRaw = await redis.get(`ws:context:usr:${user.userId}`);
 				if (!showtimeIdRaw) throw new Error('No estás conectado a ninguna función');
 				const showtimeId = Number(showtimeIdRaw);
@@ -69,11 +88,17 @@ export class BookingSocketService {
 		});
 
 		// Intento de liberar un asiento
-		RealtimeService.registerEventHandler('unlock_seat', async (socket, data: { seatId: number }) => {
+		RealtimeProvider.getInstance().registerEventHandler('unlock_seat', async (socket, data: any) => {
 			const user = socket.data.session;
 			if (!user?.userId || !data?.seatId) return;
 			try {
 				const redis = CacheDatabaseProvider.getInstance().client;
+
+				// Verificar que exista una sesión de compra iniciada
+				const userQueueKey = `queue:usr:${user.userId}`;
+				const quoteRaw = await redis.get(userQueueKey);
+				if (!quoteRaw) throw new Error('La sesión de compra no existe o ha expirado');
+
 				const showtimeIdRaw = await redis.get(`ws:context:usr:${user.userId}`);
 				if (!showtimeIdRaw) return;
 				const showtimeId = Number(showtimeIdRaw);

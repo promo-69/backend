@@ -1,6 +1,6 @@
 import { CacheDatabaseProvider } from '@providers/cache-database.provider.js';
 import { Database } from '@database/index.js';
-import { RealtimeService } from './realtime.service.js';
+import { RealtimeProvider } from '@providers/realtime.provider.js';
 import { Logger } from '@utils/logger.util.js';
 import { Transaction } from 'sequelize';
 
@@ -41,7 +41,7 @@ export class ShoppingSessionService {
 				if (parts.length >= 5) {
 					const showtimeId = parts[2];
 					const seatId = parts[4];
-					RealtimeService.emitToRoom(`showtime_${showtimeId}`, 'seats_unlocked', {
+					RealtimeProvider.getInstance().emitToRoom(`showtime_${showtimeId}`, 'seats_unlocked', {
 						seatIds: [Number(seatId)],
 					});
 				}
@@ -71,7 +71,7 @@ export class ShoppingSessionService {
 				await this._tickets.delete({ order: orderId }, { transaction });
 
 				Logger.info(` Orden ${orderId} expiró y fue cancelada.`);
-				RealtimeService.emitToRoom(`queue_${queueId}`, 'order_expired', { orderId });
+				RealtimeProvider.getInstance().emitToRoom(`queue_${queueId}`, 'order_expired', { orderId });
 
 				const uniqueShowtimes = new Set<number>();
 				const ticketsByShowtime = new Map<number, number[]>();
@@ -91,7 +91,7 @@ export class ShoppingSessionService {
 				}
 
 				for (const showtimeId of uniqueShowtimes) {
-					RealtimeService.emitToRoom(`showtime_${showtimeId}`, 'seats_unlocked', {
+					RealtimeProvider.getInstance().emitToRoom(`showtime_${showtimeId}`, 'seats_unlocked', {
 						seatIds: ticketsByShowtime.get(showtimeId),
 					});
 				}

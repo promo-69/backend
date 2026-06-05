@@ -2,7 +2,7 @@ import { BaseService } from '@bases/service.base.js';
 import { Database, Ops } from '@database/index.js';
 import { CacheDatabaseProvider } from '@providers/cache-database.provider.js';
 import { QueueProvider } from '@providers/queue.provider.js';
-import { RealtimeService } from '@services/realtime.service.js';
+import { RealtimeProvider } from '@providers/realtime.provider.js';
 import {
 	NotFoundError,
 	ValidationError,
@@ -534,7 +534,7 @@ export class OrdersService extends BaseService {
 		// Acciones posteriores si la orden fue pagada completamente
 		if (orderData && orderData.order_status === 2) {
 			await this._redis.del(userQueueKey);
-			RealtimeService.emitToRoom(`order_${order_id}`, 'payment_success', {
+			RealtimeProvider.getInstance().emitToRoom(`order_${order_id}`, 'payment_success', {
 				orderId: order_id,
 				qrCode: orderData.qr_code,
 			});
@@ -560,7 +560,7 @@ export class OrdersService extends BaseService {
 				}
 
 				for (const showtimeId of uniqueShowtimes) {
-					RealtimeService.emitToRoom(`showtime_${showtimeId}`, 'seats_sold_final', {
+					RealtimeProvider.getInstance().emitToRoom(`showtime_${showtimeId}`, 'seats_sold_final', {
 						seatIds: ticketsByShowtime.get(showtimeId),
 					});
 				}
