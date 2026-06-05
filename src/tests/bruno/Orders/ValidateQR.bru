@@ -1,11 +1,11 @@
 meta {
   name: Validate QR
   type: http
-  seq: 5
+  seq: 7
 }
 
 post {
-  url: {{baseUrl}}/orders/validate-qr/qr-code-abc-123
+  url: {{baseUrl}}/orders/validate-qr/{{orderQrCode}}
   body: json
   auth: bearer
 }

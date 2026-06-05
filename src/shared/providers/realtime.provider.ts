@@ -36,6 +36,12 @@ export class RealtimeProvider {
 		return this._io;
 	}
 
+	private _eventHandlers = new Map<string, (socket: Socket, data: any) => void>();
+
+	registerEventHandler(event: string, handler: (socket: Socket, data: any) => void) {
+		this._eventHandlers.set(event, handler);
+	}
+
 	async attach(server: http.Server): Promise<void> {
 		if (this._io) {
 			await this.close();
@@ -58,6 +64,11 @@ export class RealtimeProvider {
 		this._io.on('connection', (socket: Socket) => {
 			const user = socket.data.session;
 			Logger.info(ANSI.info(`[Socket.io] Socket connected: ${socket.id} | User: ${user?.userId}`));
+
+			// Registrar handlers dinámicos
+			for (const [event, handler] of this._eventHandlers.entries()) {
+				socket.on(event, (data) => handler(socket, data));
+			}
 
 			socket.on('disconnect', () => {
 				Logger.info(ANSI.info(`[Socket.io] Socket disconnected: ${socket.id}`));

@@ -1,11 +1,11 @@
 meta {
-  name: Get Order Detail
+  name: Get Session State
   type: http
-  seq: 4
+  seq: 8
 }
 
 get {
-  url: {{baseUrl}}/orders/{{orderId}}
+  url: {{baseUrl}}/orders/session
   body: none
   auth: bearer
 }

@@ -1,11 +1,11 @@
 meta {
-  name: Get Order Detail
+  name: Get Tickets by QR
   type: http
-  seq: 4
+  seq: 6
 }
 
 get {
-  url: {{baseUrl}}/orders/{{orderId}}
+  url: {{baseUrl}}/orders/qr/{{orderQrCode}}/tickets
   body: none
   auth: bearer
 }

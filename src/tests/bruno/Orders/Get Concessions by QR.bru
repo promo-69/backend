@@ -1,11 +1,11 @@
 meta {
-  name: Get Order Detail
+  name: Get Concessions by QR
   type: http
-  seq: 4
+  seq: 5
 }
 
 get {
-  url: {{baseUrl}}/orders/{{orderId}}
+  url: {{baseUrl}}/orders/qr/{{orderQrCode}}/concessions
   body: none
   auth: bearer
 }

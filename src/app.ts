@@ -61,7 +61,9 @@ export class App {
 	}
 
 	private async setupRealtime(server: http.Server): Promise<void> {
-		RealtimeProvider.getInstance().attach(server);
+		await RealtimeProvider.getInstance().attach(server);
+		const { BookingSocketService } = await import('./shared/services/booking-socket.service.js');
+		BookingSocketService.initialize();
 	}
 
 	private async setupBackgroundTasks(): Promise<void> {

@@ -24,6 +24,12 @@ body:json {
   }
 }
 
-vars:pre-request {
-  queueId: 66891bec-541b-426c-a967-df05e469222a
+script:post-response {
+  if (res.status === 200 || res.status === 201) {
+    const data = res.getBody();
+    if (data.data && data.data.order_id) {
+      bru.setEnvVar("orderId", data.data.order_id);
+      bru.setEnvVar("orderTotalBase", data.data.total_amount_base_currency);
+    }
+  }
 }

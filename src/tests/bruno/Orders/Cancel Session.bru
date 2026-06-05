@@ -1,11 +1,11 @@
 meta {
-  name: Get Order Detail
+  name: Cancel Session
   type: http
-  seq: 4
+  seq: 10
 }
 
-get {
-  url: {{baseUrl}}/orders/{{orderId}}
+delete {
+  url: {{baseUrl}}/orders/session
   body: none
   auth: bearer
 }

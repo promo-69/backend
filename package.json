@@ -36,6 +36,8 @@
 		"db:prod:reset:full": "yarn load-vars .env.prod \"yarn db:reset:full\"",
 		"docker:exec": "docker compose -f docker-compose.yml exec",
 		"docker:api-exec": "yarn docker:exec api",
+		"docker:db:generate:seed": "yarn docker:api-exec yarn db:generate:seed",
+		"docker:db:generate:migration": "yarn docker:api-exec yarn db:generate:migration",
 		"docker:db:setup": "yarn docker:api-exec yarn db:setup",
 		"docker:db:setup:full": "yarn docker:api-exec yarn db:setup:full",
 		"docker:db:reset": "yarn docker:api-exec yarn db:reset && yarn docker:clear-cache",

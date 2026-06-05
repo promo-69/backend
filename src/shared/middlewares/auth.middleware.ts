@@ -103,8 +103,8 @@ export class AuthMiddleware {
 		const cookieHeader = socket.handshake?.headers?.cookie;
 		if (cookieHeader) {
 			const cookies = Object.fromEntries(
-				cookieHeader.split('; ').map((c: string) => {
-					const parts = c.split('=');
+				cookieHeader.split(';').map((c: string) => {
+					const parts = c.trim().split('=');
 					return [parts[0], parts.slice(1).join('=')];
 				}),
 			);
@@ -136,7 +136,12 @@ export class AuthMiddleware {
 
 			next();
 		} catch (error: any) {
-			next(error instanceof Error ? error : new Error('Authentication failed'));
+			const socketError: any = new Error(error.message || 'Authentication failed');
+			socketError.data = {
+				code: error.code || 'AUTH_FAILED',
+				details: error.details || error.message,
+			};
+			next(socketError);
 		}
 	}
 

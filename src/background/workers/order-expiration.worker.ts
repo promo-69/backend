@@ -1,6 +1,6 @@
 import { WorkerHandler } from '../handlers/worker.handler.js';
 import { Logger } from '@utils/logger.util.js';
-import { OrdersService } from '@modules/orders/_.service.js';
+import { ShoppingSessionService } from '@services/shopping-session.service.js';
 import { Job } from 'bullmq';
 
 export default function orderExpirationWorker() {
@@ -13,8 +13,8 @@ export default function orderExpirationWorker() {
 				return;
 			}
 			
-			const ordersService = new OrdersService();
-			await ordersService.expirePendingOrder(orderId, queueId);
+			const shoppingSessionService = new ShoppingSessionService();
+			await shoppingSessionService.expirePendingOrder(orderId, queueId);
 		},
 		on: {
 			failed: (job, err) => {

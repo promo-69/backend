@@ -4,6 +4,10 @@ import { RealtimeProvider } from '@providers/realtime.provider.js';
 export class RealtimeService {
 	private constructor() {}
 
+	static registerEventHandler(event: string, handler: (socket: any, data: any) => void): void {
+		RealtimeProvider.getInstance().registerEventHandler(event, handler);
+	}
+
 	static emitToSocket(socketId: string, event: string, data: any): void {
 		try {
 			const io = RealtimeProvider.getInstance().io;
@@ -19,6 +23,22 @@ export class RealtimeService {
 			io.to(room).emit(event, data);
 		} catch (error: any) {
 			throw new RealtimeError(`Error emitting to room ${room}:`, error);
+		}
+	}
+
+	static broadcastToRoomExclude(room: string, event: string, data: any, excludeSocketId?: string): void {
+		try {
+			const io = RealtimeProvider.getInstance().io;
+			if (excludeSocketId) {
+				const socket = io.sockets.sockets.get(excludeSocketId);
+				if (socket) {
+					socket.broadcast.to(room).emit(event, data);
+					return;
+				}
+			}
+			io.to(room).emit(event, data);
+		} catch (error: any) {
+			throw new RealtimeError(`Error broadcasting to room ${room}:`, error);
 		}
 	}
 
