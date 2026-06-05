@@ -28,7 +28,7 @@ export class App {
 		this.app = express();
 		this.appConfig = config;
 
-		Logger.natural(ANSI.success(`[+] Configuration loaded (${config.nodeEnv})`), { sepEnd: true });
+		Logger.natural(ANSI.success(`[+] Configuration loaded (${config.appEnv})`), { sepEnd: true });
 	}
 
 	async start(): Promise<http.Server> {
@@ -176,10 +176,10 @@ export class App {
 				timestamp: new Date().toLocaleString('es-VE', { timeZone: 'America/Caracas' }),
 			};
 
-			if (this.appConfig.nodeEnv == 'development') {
+			if (this.appConfig.appEnv == 'development') {
 				health.uptime = process.uptime();
 				health.memoryUsage = process.memoryUsage();
-				health.environment = this.appConfig.nodeEnv;
+				health.environment = this.appConfig.appEnv;
 			}
 
 			res.json(health);
@@ -192,7 +192,7 @@ export class App {
 				message: 'Welcome to the API',
 				docs: `See ${this.appConfig.protocol}://${interfaceIp}${this.appConfig.docs?.path} for check the swagger of the API`,
 				health: `See ${this.appConfig.protocol}://${interfaceIp}/health for check the health of the API`,
-				...(this.appConfig.nodeEnv == 'development'
+				...(this.appConfig.appEnv == 'development'
 					? {
 							development: {
 								routes: `See ${this.appConfig.protocol}://${interfaceIp}/api/v[version-number]/[module]: API endpoints`,
