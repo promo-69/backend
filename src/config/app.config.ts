@@ -13,7 +13,7 @@ export interface IAppConfig {
 	port: number;
 	host: string;
 	protocol: string;
-	nodeEnv: string;
+	appEnv: string;
 	apiBaseUrl: string;
 	corsOptions: CorsOptions;
 	enableCors: boolean;
@@ -81,7 +81,7 @@ export class AppConfig {
 	static load(): IAppConfig {
 		if (this._configCache) return this._configCache;
 
-		const nodeEnv = (process.env.NODE_ENV || 'development').toLocaleLowerCase();
+		const appEnv = (process.env.APP_ENV || 'development').toLocaleLowerCase();
 		const protocol = (process.env.SECURE_PROTOCOL === 'true' ? 'https' : 'http').toLocaleLowerCase();
 		const host = (process.env.DOMAIN || process.env.API_HOST || '127.0.0.1').toLocaleLowerCase();
 		const port = parseInt((process.env.PORT || '3000').toString(), 10);
@@ -97,7 +97,7 @@ export class AppConfig {
 			port,
 			host,
 			protocol,
-			nodeEnv,
+			appEnv,
 			apiBaseUrl,
 			corsOptions: {
 				methods: ['GET', 'PUT', 'POST', 'DELETE', 'PATCH', 'OPTIONS'],
@@ -171,11 +171,11 @@ export class AppConfig {
 	}
 
 	static isProduction(): boolean {
-		return this.load().nodeEnv.toLocaleLowerCase() === 'production';
+		return this.load().appEnv.toLocaleLowerCase() === 'production';
 	}
 
 	static isDevelopment(): boolean {
-		return this.load().nodeEnv.toLocaleLowerCase() === 'development';
+		return this.load().appEnv.toLocaleLowerCase() === 'development';
 	}
 
 	static getEnabledDatabases(): string[] {

@@ -21,7 +21,7 @@ FROM dependencies AS development
 # En desarrollo, el código fuente se monta vía volumen, pero lo copiamos igual por si acaso
 COPY . .
 # La variable de entorno en dev
-ENV NODE_ENV=development
+ENV APP_ENV=development
 # El puerto de dev
 EXPOSE ${PORT:-4000}
 CMD ["yarn", "dev"]
@@ -31,15 +31,15 @@ CMD ["yarn", "dev"]
 # ==========================================
 FROM dependencies AS builder
 COPY . .
-# Pasamos NODE_ENV a production para optimizaciones en build (si aplica)
-ENV NODE_ENV=production
+# Pasamos APP_ENV a production para optimizaciones en build (si aplica)
+ENV APP_ENV=production
 RUN yarn build
 
 # ==========================================
 # Etapa 5: Production
 # ==========================================
 FROM base AS production
-ENV NODE_ENV=production
+ENV APP_ENV=production
 
 COPY package*.json yarn.lock ./
 # Instalamos SOLO dependencias de producción
