@@ -1,0 +1,60 @@
+/users/me/orders:
+    get:
+        tags:
+        - Users (Self-Service)
+        summary: Get my orders
+        description: Retrieve orders for the authenticated user. Supports optional date range filtering with `from` and `to` (ISO dates) and pagination.
+        security:
+        -   cookieAuth: []
+        -   bearerAuth: []
+        parameters:
+        -   in: query
+            name: page
+            schema:
+                type: integer
+            description: Page number for pagination
+        -   in: query
+            name: limit
+            schema:
+                type: integer
+            description: Number of records per page
+        -   in: query
+            name: from
+            schema:
+                type: string
+                format: date-time
+            description: Start date (inclusive) for order creation date filter (ISO 8601)
+        -   in: query
+            name: to
+            schema:
+                type: string
+                format: date-time
+            description: End date (inclusive) for order creation date filter (ISO 8601)
+        responses:
+            '200':
+                description: Orders retrieved successfully.
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                    example: true
+                                message:
+                                    type: string
+                                    example: Registros recuperados exitosamente.
+                                data:
+                                    type: object
+                                    properties:
+                                        rows:
+                                            type: array
+                                            items:
+                                                type: object
+                                        count:
+                                            type: integer
+                                            example: 5
+            '401':
+                description: Unauthorized
+            '500':
+                description: Internal server error

@@ -1,0 +1,15 @@
+meta {
+  name: Get My Loyalty Info
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{baseUrl}}/users/me/loyalty
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

@@ -346,13 +346,13 @@ export class UsersService extends BaseService {
 		return tickets;
 	}
 
-	async getMyLoyalty(userId: number, queryFilters: Record<string, any>) {
+	async getMyLoyaltyInfo(userId: number) {
 		const user = await this._users.getById(userId, { attributes: ['id', 'person'] });
 		if (!user) throw new NotFoundError('Usuario', userId.toString());
 
 		const customersRepo = this._customers;
 		const customer = await customersRepo.getOne({ person: user.person }, { relations: customersRepo.relations });
-		if (!customer) return { data: [], metadata: {} };
+		if (!customer) return { loyalty_level: null, level_progress_points: 0, points_balance: 0 };
 
 		const loyalty_level = customer.loyalty_level ?? null;
 		const level_progress_points = customer.level_progress_points ?? 0;
@@ -365,16 +365,21 @@ export class UsersService extends BaseService {
 
 		const points_balance = Array.isArray(lastLedger) && lastLedger.length > 0 ? lastLedger[0].points_balance : 0;
 
-		// Obtener paginado de ledgers según filtros (controller proveerá pagination en queryFilters)
+		return { loyalty_level, level_progress_points, points_balance };
+	}
+
+	async getMyLoyaltyLedgers(userId: number, queryFilters: Record<string, any>) {
+		const user = await this._users.getById(userId, { attributes: ['id', 'person'] });
+		if (!user) throw new NotFoundError('Usuario', userId.toString());
+
+		const customersRepo = this._customers;
+		const customer = await customersRepo.getOne({ person: user.person }, { relations: customersRepo.relations });
+		if (!customer) return { rows: [], count: 0 };
+
 		const paginationOptions: any = { count: true, ...queryFilters };
 		const ledgersResult = await this._loyaltyLedgers.getAll(paginationOptions, { customer: customer.id });
 
-		return {
-			loyalty_level,
-			level_progress_points,
-			points_balance,
-			ledgers: ledgersResult,
-		};
+		return ledgersResult;
 	}
 
 	async getMyMovieSubscriptions(userId: number) {
