@@ -211,7 +211,7 @@ export abstract class ControllerBase {
 		};
 
 		// Agregar tiempo de ejecución en desarrollo
-		if (process.env.NODE_ENV === 'development') (response as any).executionTime = `${executionTime}ms`;
+		if (process.env.APP_ENV === 'development') (response as any).executionTime = `${executionTime}ms`;
 		this.currentResponse.status(200).json(response);
 	}
 

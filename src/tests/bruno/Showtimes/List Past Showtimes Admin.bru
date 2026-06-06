@@ -1,0 +1,15 @@
+meta {
+  name: List Past Showtimes Admin
+  type: http
+  seq: 23
+}
+
+get {
+  url: {{baseUrl}}/showtimes/admin?onlyFuture=false&cinemaId={{cinemaId}}&startDate=2026-05-01&endDate=2026-05-31
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

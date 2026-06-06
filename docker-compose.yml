@@ -3,7 +3,7 @@ services:
         build:
             context: .
             dockerfile: Dockerfile
-            target: ${NODE_ENV:-development}
+            target: ${APP_ENV:-development}
         container_name: cineflix-api
         restart: always
         volumes:

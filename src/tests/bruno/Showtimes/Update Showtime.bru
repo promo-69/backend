@@ -1,0 +1,21 @@
+meta {
+  name: Actualizar Funcion
+  type: http
+  seq: 16
+}
+
+patch {
+  url: {{baseUrl}}/showtimes/{{showtimeId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "price": 14.00
+  }
+}

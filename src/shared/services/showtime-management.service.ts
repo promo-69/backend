@@ -1,16 +1,9 @@
 import { Database, Ops } from '@database/index.js';
 import { ConflictError, NotFoundError, ValidationError } from '@errors';
-import { Transaction, Op } from 'sequelize';
+import { Transaction } from 'sequelize';
 
-const BOOKING_TYPE_CODE_SHOWTIME = 'SHOWTIME';
-
-// ID del tipo de reserva "Película" en la tabla booking_types (seed: id=1, description='Película').
-// Se usa como fallback cuando la búsqueda por description no devuelva resultado.
+// ID del tipo de reserva "Película" en booking_types (seed: id=1, description='Película')
 const BOOKING_TYPE_ID_SHOWTIME = 1;
-
-// IDs de lifecycle que significan "en cartelera" (seed-business-catalogs.js)
-// 2 = En Cartelera (Estreno), 3 = En Cartelera (Regular), 4 = Últimos Días
-const IN_THEATERS_STATES = [2, 3, 4];
 
 export class ShowtimeManagementService {
     private get _roomBookings() {
@@ -34,7 +27,47 @@ export class ShowtimeManagementService {
     private get _seats() {
         return Database.repository('main', 'seats') as any;
     }
+    private get _rooms() {
+        return Database.repository('main', 'rooms') as any;
+    }
+    private get _lifecycleStates() {
+        return Database.repository('main', 'movie-lifecycle-states') as any;
+    }
 
+    // Cache para los IDs de estados visibles (se refresca en cada consulta)
+    // Si el rendimiento es crítico, se puede cachear con Redis o variable local con TTL
+    private async _getVisibleLifecycleStates(): Promise<number[]> {
+        const states = await this._lifecycleStates.getAll({ count: false, attributes: ['id', 'description'] });
+        const stateList = Array.isArray(states) ? states : states.rows || [];
+
+        // Los estados visibles para la cartelera pública son:
+        // - Próximamente (1)
+        // - En Cartelera (Estreno) (2)
+        // - En Cartelera (Regular) (3)
+        // - Últimos Días (4)
+        // Excluimos "Fuera de Cartelera" (5)
+        const excludedDescriptions = ['Fuera de Cartelera'];
+        const visibleIds = stateList
+            .filter((s: any) => !excludedDescriptions.includes(s.description))
+            .map((s: any) => s.id);
+
+        return visibleIds;
+    }
+
+    // Mapeo de descripciones a IDs (para uso interno en _syncMovieLifecycle)
+    private async _getLifecycleStateIds(): Promise<Record<string, number>> {
+        const states = await this._lifecycleStates.getAll({ count: false, attributes: ['id', 'description'] });
+        const stateList = Array.isArray(states) ? states : states.rows || [];
+        const map: Record<string, number> = {};
+        for (const s of stateList) {
+            map[s.description] = s.id;
+        }
+        return map;
+    }
+
+    // -------------------------------------------------------------------------
+    //  PRIVADOS - VALIDACIÓN DE SOLAPAMIENTO
+    // -------------------------------------------------------------------------
     private async _checkOverlap(
         roomId: number,
         startTime: Date,
@@ -46,82 +79,178 @@ export class ShowtimeManagementService {
             room: roomId,
             start_time: { [Ops.lt]: endTime },
             end_time: { [Ops.gt]: startTime },
+            deleted_at: null,
         };
-        if (excludeBookingId) where.id = { [Ops.ne]: excludeBookingId };
 
-        const conflict = await this._roomBookings.getOne(where, { transaction });
-        if (conflict) throw new ConflictError('La sala ya está ocupada en ese horario', 'ROOM_ALREADY_BOOKED');
+        if (excludeBookingId) {
+            where.id = { [Ops.ne]: excludeBookingId };
+        }
+
+        const existingBooking = await this._roomBookings.getOne(where, { transaction });
+        if (existingBooking) {
+            throw new ConflictError('La sala ya está ocupada en ese horario', 'ROOM_ALREADY_BOOKED');
+        }
     }
 
-    // ---------------------------------------------------------------------------
-    // CARTELERA PÚBLICA
-    // ---------------------------------------------------------------------------
-    async getBillboard(cinemaId?: number) {
-        const now = new Date();
+    // -------------------------------------------------------------------------
+    //  SINCRONIZADOR INTELIGENTE DEL CICLO DE VIDA DE UNA PELÍCULA
+    // -------------------------------------------------------------------------
+    private async _syncMovieLifecycle(movieId: number, transaction?: Transaction) {
+        // 1. Obtener la película con su fecha de estreno oficial
+        const movie = await this._movies.getById(movieId, {
+            attributes: ['id', 'release_date', 'lifecycle_state'],
+            transaction,
+        });
+        if (!movie) return;
 
-        const activeBookingsWhere: any = {
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const releaseDate = new Date(movie.release_date);
+
+        const unDiaEnMilsegundos = 24 * 60 * 60 * 1000;
+        const diasParaElEstreno = Math.ceil((releaseDate.getTime() - today.getTime()) / unDiaEnMilsegundos);
+
+        // 2. Contar cuántas funciones activas totales posee la película
+        const remainingShowtimes = await this._showtimesRepo.getAll(
+            { count: true },
+            { movie: movieId, deleted_at: null },
+        );
+        const totalFunctions = Array.isArray(remainingShowtimes)
+            ? remainingShowtimes.length
+            : (remainingShowtimes.count ?? remainingShowtimes.rows?.length ?? 0);
+
+        // 3. Obtener los IDs de los estados desde la tabla real
+        const stateIds = await this._getLifecycleStateIds();
+        const COMING_SOON = stateIds['Próximamente'] || 1;
+        const PREMIERE = stateIds['En Cartelera (Estreno)'] || 2;
+        const REGULAR = stateIds['En Cartelera (Regular)'] || 3;
+        const LAST_DAYS = stateIds['Últimos Días'] || 4;
+        const OFF = stateIds['Fuera de Cartelera'] || 5;
+
+        let targetLifecycle = movie.lifecycle_state;
+
+        // Si el administrador la pasó manualmente a Últimos Días, respetamos su decisión comercial
+        if (movie.lifecycle_state === LAST_DAYS) return;
+
+        // 4. Árbol de decisiones
+        if (diasParaElEstreno > 7) {
+            targetLifecycle = COMING_SOON;
+        } else if (diasParaElEstreno <= 7 && diasParaElEstreno > 0) {
+            targetLifecycle = PREMIERE;
+        } else {
+            if (totalFunctions === 0) {
+                targetLifecycle = OFF;
+            } else {
+                targetLifecycle = REGULAR;
+            }
+        }
+
+        // 5. Actualizar si es necesario
+        if (movie.lifecycle_state !== targetLifecycle) {
+            await this._movies.update(movieId, { lifecycle_state: targetLifecycle }, { transaction });
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    //  CARTELERA PÚBLICA
+    // -------------------------------------------------------------------------
+    async getBillboard(filters?: any) {
+        const now = new Date();
+        const visibleStates = await this._getVisibleLifecycleStates();
+
+        const bookingWhere: any = {
             end_time: { [Ops.gt]: now },
             deleted_at: null,
         };
 
-        const activeBookings = await this._roomBookings.getAll(
-            {
-                count: false,
-                attributes: ['id', 'room', 'start_time', 'end_time'],
-                relations: cinemaId
-                    ? [
-                          {
-                              association: '_Rooms',
-                              attributes: ['id', 'name', 'cinema'],
-                              required: true,
-                              nested: [
-                                  {
-                                      association: '_Cinemas',
-                                      attributes: ['id', 'name'],
-                                      required: true,
-                                  },
-                              ],
-                          },
-                      ]
-                    : [
-                          {
-                              association: '_Rooms',
-                              attributes: ['id', 'name', 'cinema'],
-                              required: true,
-                          },
-                      ],
-            },
-            activeBookingsWhere,
-        );
+        let targetCinemaId: number | undefined;
+        if (typeof filters === 'number') {
+            targetCinemaId = filters;
+        } else if (filters && typeof filters === 'object') {
+            targetCinemaId = filters.cinemaId ? Number(filters.cinemaId) : undefined;
+        }
 
-        const bookingList: any[] = Array.isArray(activeBookings) ? activeBookings : activeBookings.rows;
-        if (bookingList.length === 0) return { count: 0, rows: [] };
+        const bookingQueryOptions: any = {
+            count: false,
+            attributes: ['id', 'room', 'start_time', 'end_time'],
+            relations: [
+                {
+                    association: '_Rooms',
+                    attributes: ['id', 'name', 'cinema'],
+                    required: targetCinemaId ? true : false,
+                    relations: [
+                        {
+                            association: '_Cinemas',
+                            attributes: ['id', 'name'],
+                            required: true,
+                            where: targetCinemaId ? { id: targetCinemaId } : {},
+                        },
+                    ],
+                },
+            ],
+        };
 
-        const filteredBookings: any[] = cinemaId
-            ? bookingList.filter((b: any) => b._Rooms?.cinema === cinemaId)
-            : bookingList;
-        if (filteredBookings.length === 0) return { count: 0, rows: [] };
+        const allBookings = await this._roomBookings.getAll(bookingQueryOptions, bookingWhere);
+        let bookingList = Array.isArray(allBookings) ? allBookings : allBookings.rows || [];
 
-        const activeBookingIds = filteredBookings.map((b: any) => b.id);
+        if (!bookingList.length) {
+            if (targetCinemaId) {
+                throw new NotFoundError('No se encontraron funciones programadas para la sucursal seleccionada');
+            }
+            return { count: 0, rows: [] };
+        }
 
-        const showtimes = await this._showtimesRepo.getAll(
-            {
-                count: false,
-                attributes: [
-                    'id',
-                    'booking',
-                    'movie',
-                    'projection_type',
-                    'language',
-                    'currency',
-                    'price',
-                    'earned_loyalty_points',
-                ],
-            },
-            { booking: activeBookingIds, deleted_at: null },
-        );
-        const showtimeList: any[] = Array.isArray(showtimes) ? showtimes : showtimes.rows;
-        if (showtimeList.length === 0) return { count: 0, rows: [] };
+        if (targetCinemaId) {
+            bookingList = bookingList.filter((b: any) => {
+                const cinemaIdInRoom = b._Rooms?.cinema ?? b._Rooms?.cinemaId;
+                return Number(cinemaIdInRoom) === targetCinemaId;
+            });
+        }
+
+        if (!bookingList.length) {
+            throw new NotFoundError('No se encontraron funciones programadas para la sucursal seleccionada');
+        }
+
+        const bookingIds = bookingList.map((b: any) => b.id);
+        const showtimeWhere: any = { booking: bookingIds, deleted_at: null };
+
+        const showtimes = await this._showtimesRepo.getAll({ count: false }, showtimeWhere);
+        let showtimeList = Array.isArray(showtimes) ? showtimes : showtimes.rows || [];
+
+        if (!showtimeList.length) {
+            if (targetCinemaId) {
+                throw new NotFoundError('No se encontraron funciones programadas para la sucursal seleccionada');
+            }
+            return { count: 0, rows: [] };
+        }
+
+        if (filters && typeof filters === 'object') {
+            if (filters.movieId) {
+                showtimeList = showtimeList.filter((s: any) => s.movie === Number(filters.movieId));
+            }
+            if (filters.projectionType) {
+                const pt = String(filters.projectionType).toLowerCase();
+                showtimeList = showtimeList.filter((s: any) => {
+                    const desc = (s._ProjectionType?.description || '').toLowerCase();
+                    const idStr = String(s.projection_type);
+                    return desc.includes(pt) || idStr === pt;
+                });
+            }
+            if (filters.language) {
+                const lang = String(filters.language).toLowerCase();
+                showtimeList = showtimeList.filter((s: any) => {
+                    const desc = (s._Language?.description || '').toLowerCase();
+                    const idStr = String(s.language);
+                    return desc.includes(lang) || idStr === lang;
+                });
+            }
+        }
+
+        if (!showtimeList.length) {
+            throw new NotFoundError(
+                'No se encontraron funciones que coincidan con los filtros seleccionados para esta sucursal',
+            );
+        }
 
         const rawMovieIds = [...new Set(showtimeList.map((s: any) => s.movie))];
         const movies = await this._movies.getAll(
@@ -134,9 +263,9 @@ export class ShowtimeManagementService {
                     { association: '_Genres', attributes: ['id', 'description'], required: false },
                 ],
             },
-            { id: rawMovieIds, lifecycle_state: IN_THEATERS_STATES, deleted_at: null },
+            { id: rawMovieIds, lifecycle_state: visibleStates, deleted_at: null },
         );
-        const movieList: any[] = Array.isArray(movies) ? movies : movies.rows;
+        const movieList: any[] = Array.isArray(movies) ? movies : movies.rows || [];
         const movieMap = new Map<number, any>(movieList.map((m: any) => [m.id, m]));
 
         const projTypeIds = [...new Set(showtimeList.map((s: any) => s.projection_type))];
@@ -167,15 +296,14 @@ export class ShowtimeManagementService {
         const currMap = new Map<number, any>(
             (Array.isArray(currencies) ? currencies : currencies.rows).map((c: any) => [c.id, c]),
         );
-        const bookingMap = new Map<number, any>(filteredBookings.map((b: any) => [b.id, b]));
+        const bookingMap = new Map<number, any>(bookingList.map((b: any) => [b.id, b]));
 
         const billboardMap = new Map<number, any>();
-
         for (const s of showtimeList) {
-            const movie: any = movieMap.get(s.movie);
+            const movie = movieMap.get(s.movie);
             if (!movie) continue;
 
-            const booking: any = bookingMap.get(s.booking);
+            const booking = bookingMap.get(s.booking);
             if (!booking) continue;
 
             if (!billboardMap.has(movie.id)) {
@@ -189,12 +317,9 @@ export class ShowtimeManagementService {
                             ? { id: movie._LifecycleStates.id, description: movie._LifecycleStates.description }
                             : null,
                         age_classification: movie._AgeClassifications
-                            ? {
-                                  id: movie._AgeClassifications.id,
-                                  description: movie._AgeClassifications.description,
-                              }
+                            ? { id: movie._AgeClassifications.id, description: movie._AgeClassifications.description }
                             : null,
-                        genres: Array.isArray(movie._Genres)
+                        genres: movie._Genres
                             ? movie._Genres.map((g: any) => ({ id: g.id, description: g.description }))
                             : [],
                     },
@@ -202,11 +327,11 @@ export class ShowtimeManagementService {
                 });
             }
 
-            const proj: any = projMap.get(s.projection_type) ?? {};
-            const lang: any = langMap.get(s.language) ?? {};
-            const curr: any = currMap.get(s.currency) ?? {};
-            const room: any = booking._Rooms ?? {};
-            const cinema: any = room._Cinemas ?? null;
+            const proj = projMap.get(s.projection_type) ?? {};
+            const lang = langMap.get(s.language) ?? {};
+            const curr = currMap.get(s.currency) ?? {};
+            const room = booking._Rooms ?? {};
+            const cinema = room._Cinemas ?? null;
 
             billboardMap.get(movie.id).showtimes.push({
                 id: s.id,
@@ -232,11 +357,12 @@ export class ShowtimeManagementService {
         return { count: rows.length, rows };
     }
 
-    // ---------------------------------------------------------------------------
-    // FUNCIONES DE UNA PELÍCULA EN UNA SUCURSAL
-    // ---------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
+    //  FUNCIONES DE UNA PELÍCULA EN UNA SUCURSAL
+    // -------------------------------------------------------------------------
     async getMovieShowtimesByCinema(movieId: number, cinemaId: number) {
         const now = new Date();
+        const visibleStates = await this._getVisibleLifecycleStates();
 
         const bookings = await this._roomBookings.getAll(
             {
@@ -247,6 +373,7 @@ export class ShowtimeManagementService {
                         association: '_Rooms',
                         attributes: ['id', 'name', 'cinema', 'grid_rows', 'grid_columns'],
                         required: true,
+                        where: { cinema: cinemaId },
                     },
                 ],
                 order: [['start_time', 'ASC']],
@@ -255,10 +382,11 @@ export class ShowtimeManagementService {
         );
 
         const bookingList: any[] = Array.isArray(bookings) ? bookings : bookings.rows;
-        const cinemabookings: any[] = bookingList.filter((b: any) => b._Rooms?.cinema === cinemaId);
-        if (cinemabookings.length === 0) return { count: 0, rows: [] };
+        if (!bookingList.length) {
+            throw new NotFoundError(`No hay funciones disponibles para esta película en la sucursal seleccionada`);
+        }
 
-        const bookingIds = cinemabookings.map((b: any) => b.id);
+        const bookingIds = bookingList.map((b: any) => b.id);
 
         const showtimes = await this._showtimesRepo.getAll(
             {
@@ -276,13 +404,17 @@ export class ShowtimeManagementService {
             },
             { booking: bookingIds, movie: movieId, deleted_at: null },
         );
-        const showtimeList: any[] = Array.isArray(showtimes) ? showtimes : showtimes.rows;
-        if (showtimeList.length === 0) return { count: 0, rows: [] };
 
-        const movie: any = await this._movies.getById(movieId, {
+        const showtimeList: any[] = Array.isArray(showtimes) ? showtimes : showtimes.rows;
+
+        if (!showtimeList.length) {
+            throw new NotFoundError(`No hay funciones disponibles para esta película en la sucursal seleccionada`);
+        }
+
+        const movie = await this._movies.getById(movieId, {
             attributes: ['id', 'title', 'duration_minutes', 'poster_url', 'lifecycle_state'],
         });
-        if (!movie || !IN_THEATERS_STATES.includes(movie.lifecycle_state)) {
+        if (!movie || !visibleStates.includes(movie.lifecycle_state)) {
             throw new NotFoundError('Película no encontrada o no está en cartelera');
         }
 
@@ -314,19 +446,17 @@ export class ShowtimeManagementService {
         const currMap = new Map<number, any>(
             (Array.isArray(currencies) ? currencies : currencies.rows).map((c: any) => [c.id, c]),
         );
-        const bookingMap = new Map<number, any>(cinemabookings.map((b: any) => [b.id, b]));
+        const bookingMap = new Map<number, any>(bookingList.map((b: any) => [b.id, b]));
 
         const rows = await Promise.all(
             showtimeList.map(async (s: any) => {
-                const booking: any = bookingMap.get(s.booking);
-                const room: any = booking?._Rooms ?? {};
-
+                const booking = bookingMap.get(s.booking);
+                const room = booking?._Rooms ?? {};
                 const totalSeats = await this._seats.count({ room: room.id, deleted_at: null });
                 const soldSeats = await this._tickets.count({ booking: s.booking, deleted_at: null });
-
-                const proj: any = projMap.get(s.projection_type) ?? {};
-                const lang: any = langMap.get(s.language) ?? {};
-                const curr: any = currMap.get(s.currency) ?? {};
+                const proj = projMap.get(s.projection_type) ?? {};
+                const lang = langMap.get(s.language) ?? {};
+                const curr = currMap.get(s.currency) ?? {};
 
                 return {
                     id: s.id,
@@ -350,10 +480,6 @@ export class ShowtimeManagementService {
             }),
         );
 
-        rows.sort(
-            (a: any, b: any) => new Date(a.booking.start_time).getTime() - new Date(b.booking.start_time).getTime(),
-        );
-
         return {
             movie: {
                 id: movie.id,
@@ -366,9 +492,9 @@ export class ShowtimeManagementService {
         };
     }
 
-    // ---------------------------------------------------------------------------
-    // GESTIÓN INTERNA DE FUNCIONES
-    // ---------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
+    //  GESTIÓN INTERNA DE FUNCIONES (CRUD)
+    // -------------------------------------------------------------------------
     async createShowtime(data: any) {
         const roomId = data.room ?? data.roomId;
         const movieId = data.movie ?? data.movieId;
@@ -380,7 +506,6 @@ export class ShowtimeManagementService {
         const price = Number(data.price);
         const earnedLoyaltyPoints = data.earned_loyalty_points ?? data.earnedLoyaltyPoints ?? null;
 
-        // ── Validaciones de campos obligatorios ───────────────────────────
         if (!roomId) throw new ValidationError('La sala (room) es obligatoria');
         if (!movieId) throw new ValidationError('La película (movie) es obligatoria');
         if (!projTypeId) throw new ValidationError('El tipo de proyección (projection_type) es obligatorio');
@@ -392,19 +517,22 @@ export class ShowtimeManagementService {
 
         const start = new Date(startTime);
         const end = new Date(endTime);
+
         if (isNaN(start.getTime())) throw new ValidationError('start_time no es una fecha válida');
         if (isNaN(end.getTime())) throw new ValidationError('end_time no es una fecha válida');
         if (end <= start) throw new ValidationError('La hora de fin debe ser posterior a la de inicio');
-        if (start < new Date()) throw new ValidationError('No se puede programar una función en el pasado');
 
-        // ── Validaciones de existencia (fuera de transacción — solo lectura) ──
         const [movie, room, language, currency] = await Promise.all([
-            this._movies.getById(movieId, { attributes: ['id', 'title', 'lifecycle_state', 'deleted_at'] }),
-            (Database.repository('main', 'rooms') as any).getById(roomId, { attributes: ['id', 'name', 'deleted_at'] }),
+            this._movies.getById(movieId, {
+                attributes: ['id', 'title', 'duration_minutes', 'release_date', 'lifecycle_state'],
+            }),
+            this._rooms.getById(roomId, { attributes: ['id', 'name'] }),
             (Database.repository('main', 'languages') as any).getById(languageId, {
                 attributes: ['id', 'description'],
             }),
-            (Database.repository('main', 'currencies') as any).getById(currencyId, { attributes: ['id', 'code'] }),
+            (Database.repository('main', 'currencies') as any).getById(currencyId, {
+                attributes: ['id', 'code', 'symbol'],
+            }),
         ]);
 
         if (!movie) throw new ValidationError(`No existe ninguna película con id ${movieId}`);
@@ -412,7 +540,18 @@ export class ShowtimeManagementService {
         if (!language) throw new ValidationError(`No existe ningún idioma con id ${languageId}`);
         if (!currency) throw new ValidationError(`No existe ninguna moneda con id ${currencyId}`);
 
-        // Verificar que la sala admite ese tipo de proyección
+        const releaseDate = new Date(movie.release_date);
+        const releaseDateStart = new Date(
+            Date.UTC(releaseDate.getUTCFullYear(), releaseDate.getUTCMonth(), releaseDate.getUTCDate(), 0, 0, 0),
+        );
+
+        if (start < releaseDateStart) {
+            throw new ValidationError(
+                `No se pueden programar funciones antes de la fecha de estreno de la película (${movie.release_date}).`,
+                ['start_time'],
+            );
+        }
+
         const roomProjectionType = await (Database.repository('main', 'room-projection-types') as any).getOne({
             room: roomId,
             projection_type: projTypeId,
@@ -428,22 +567,18 @@ export class ShowtimeManagementService {
         }
 
         const result = await this._roomBookings.transaction(async (transaction: Transaction) => {
-            await this._checkOverlap(roomId, start, end, undefined, transaction);
+            await this._checkOverlap(Number(roomId), start, end, undefined, transaction);
 
-            // booking_types no tiene columna "code" — buscar por description.
-            // Seed: id=1 → 'Película', id=2 → 'Evento Alternativo', id=3 → 'Alquiler Privado'
-            const bookingType: any =
-                (await this._bookingTypes.getOne({ description: 'Película' }, { transaction })) ??
-                (await this._bookingTypes.getById(BOOKING_TYPE_ID_SHOWTIME, { transaction }));
-
+            let bookingType = await this._bookingTypes.getOne({ description: 'Película' }, { transaction });
+            if (!bookingType) bookingType = await this._bookingTypes.getById(BOOKING_TYPE_ID_SHOWTIME, { transaction });
             if (!bookingType) throw new ValidationError('Falta el tipo de reserva "Película" en booking_types');
 
-            const booking: any = await this._roomBookings.create(
-                { room: roomId, start_time: start, end_time: end, booking_type: bookingType.id },
+            const booking = await this._roomBookings.create(
+                { room: Number(roomId), start_time: start, end_time: end, booking_type: bookingType.id },
                 { transaction },
             );
 
-            const showtime: any = await this._showtimesRepo.create(
+            const showtime = await this._showtimesRepo.create(
                 {
                     booking: booking.id,
                     movie: movieId,
@@ -456,75 +591,117 @@ export class ShowtimeManagementService {
                 { transaction },
             );
 
-            const movieRecord: any = await this._movies.getById(movieId, { transaction });
-            if (movieRecord && movieRecord.lifecycle_state !== 2) {
-                await this._movies.update(movieId, { lifecycle_state: 2 }, { transaction });
-            }
+            // Sincronizar dinámicamente el ciclo de vida de la película
+            await this._syncMovieLifecycle(movieId, transaction);
 
             try {
                 const subscriptions = await this._movieSubscriptions.getAll(
                     { count: false },
                     { movie: movieId, is_notified: false },
                 );
-                const subList: any[] = Array.isArray(subscriptions) ? subscriptions : subscriptions.rows;
+                const subList = Array.isArray(subscriptions) ? subscriptions : subscriptions.rows || [];
                 for (const sub of subList) {
                     await this._movieSubscriptions.update(sub.id, { is_notified: true }, { transaction });
                 }
             } catch {
-                /* no interrumpir el flujo principal */
+                // No interrumpir
             }
 
-            return { booking_id: booking.id, showtime_id: showtime.id };
+            const projType = await (Database.repository('main', 'projection-types') as any).getById(projTypeId, {
+                attributes: ['id', 'description'],
+                transaction,
+            });
+
+            return {
+                id: showtime.id,
+                room_booking_id: booking.id,
+                start_time: booking.start_time,
+                end_time: booking.end_time,
+                room: {
+                    id: room.id,
+                    name: room.name,
+                },
+                movie: {
+                    id: movie.id,
+                    title: movie.title,
+                    duration_minutes: movie.duration_minutes,
+                },
+                projection_type: {
+                    id: projType?.id ?? projTypeId,
+                    description: projType?.description ?? 'N/A',
+                },
+                language: {
+                    id: language.id,
+                    description: language.description,
+                },
+                currency: {
+                    id: currency.id,
+                    code: currency.code,
+                    symbol: currency.symbol ?? '$',
+                },
+                price: showtime.price,
+                earned_loyalty_points: showtime.earned_loyalty_points,
+            };
         });
 
         return result;
     }
 
     async findAllShowtimes(filters?: any) {
+        const { date, startDate, endDate, cinemaId, movieId, onlyFuture = true, ...rest } = filters ?? {};
         const now = new Date();
-        const { date, startDate, endDate, cinemaId, onlyFuture = true, movieId, ...rest } = filters ?? {};
 
-        let targetBookingIds: number[] | undefined;
         const bookingWhere: any = { deleted_at: null };
 
         if (onlyFuture) {
-            bookingWhere.end_time = { [Op.gt]: now };
+            bookingWhere.end_time = { [Ops.gt]: now };
         }
 
-        // Manejar rangos de fechas
         if (startDate && endDate) {
             const start = new Date(startDate);
             const end = new Date(endDate);
             if (isNaN(start.getTime()) || isNaN(end.getTime())) {
                 throw new ValidationError('startDate y endDate deben ser fechas válidas (YYYY-MM-DD)');
             }
-            bookingWhere.start_time = { [Op.between]: [start, end] };
+            start.setUTCHours(0, 0, 0, 0);
+            end.setUTCHours(23, 59, 59, 999);
+            bookingWhere.start_time = { [Ops.between]: [start, end] };
         } else if (date) {
             const dayStart = new Date(`${date}T00:00:00.000Z`);
             const dayEnd = new Date(`${date}T23:59:59.999Z`);
-            bookingWhere.start_time = { [Op.between]: [dayStart, dayEnd] };
+            if (isNaN(dayStart.getTime())) {
+                throw new ValidationError('La fecha proporcionada no es válida (YYYY-MM-DD)');
+            }
+            bookingWhere.start_time = { [Ops.between]: [dayStart, dayEnd] };
         }
 
-        const needsBookingFilter = cinemaId || date || startDate || onlyFuture;
-        if (needsBookingFilter) {
+        let targetBookingIds: number[] = [];
+        if (cinemaId || date || startDate || onlyFuture) {
             const bookingQueryOptions: any = {
                 count: false,
                 attributes: ['id', 'room', 'start_time', 'end_time'],
                 relations: [{ association: '_Rooms', attributes: ['id', 'name', 'cinema'], required: true }],
             };
             const allBookings = await this._roomBookings.getAll(bookingQueryOptions, bookingWhere);
-            const bookingList: any[] = Array.isArray(allBookings) ? allBookings : allBookings.rows;
+            let bookingList = Array.isArray(allBookings) ? allBookings : allBookings.rows || [];
 
-            const filtered: any[] = cinemaId
-                ? bookingList.filter((b: any) => b._Rooms?.cinema === Number(cinemaId))
-                : bookingList;
+            if (cinemaId) {
+                bookingList = bookingList.filter((b: any) => b._Rooms?.cinema === Number(cinemaId));
+            }
 
-            targetBookingIds = filtered.map((b: any) => b.id);
-            if (targetBookingIds.length === 0) return { count: 0, rows: [] };
+            targetBookingIds = bookingList.map((b: any) => b.id);
+
+            if (targetBookingIds.length === 0) {
+                if (date) {
+                    throw new NotFoundError(`No hay funciones disponibles para el día ${date}`);
+                }
+                throw new NotFoundError('No se encontraron funciones disponibles para los criterios seleccionados');
+            }
         }
 
         const showtimeWhere: any = { deleted_at: null };
-        if (targetBookingIds) showtimeWhere.booking = targetBookingIds;
+        if (targetBookingIds.length > 0) showtimeWhere.booking = targetBookingIds;
+        if (movieId) showtimeWhere.movie = movieId;
 
         const rawResult = await this._showtimesRepo.getAll(
             {
@@ -543,10 +720,16 @@ export class ShowtimeManagementService {
             },
             showtimeWhere,
         );
-        const showtimesList: any[] = Array.isArray(rawResult) ? rawResult : rawResult.rows;
-        const total: number = Array.isArray(rawResult) ? showtimesList.length : rawResult.count;
 
-        if (showtimesList.length === 0) return { count: 0, rows: [] };
+        const showtimesList = Array.isArray(rawResult) ? rawResult : rawResult.rows || [];
+        const total = Array.isArray(rawResult) ? showtimesList.length : rawResult.count || 0;
+
+        if (!showtimesList.length) {
+            if (date) {
+                throw new NotFoundError(`No hay funciones disponibles para el día ${date}`);
+            }
+            throw new NotFoundError('No se encontraron funciones disponibles para los criterios seleccionados');
+        }
 
         const bookingIds = [...new Set(showtimesList.map((s: any) => s.booking))];
         const movieIds = [...new Set(showtimesList.map((s: any) => s.movie))];
@@ -555,35 +738,35 @@ export class ShowtimeManagementService {
         const currencyIds = [...new Set(showtimesList.map((s: any) => s.currency))];
 
         const [bookings, movies, projTypes, languages, currencies] = await Promise.all([
-            bookingIds.length > 0
+            bookingIds.length
                 ? this._roomBookings.getAll(
                       {
                           count: false,
                           attributes: ['id', 'room', 'start_time', 'end_time'],
-                          relations: [{ association: '_Rooms', attributes: ['id', 'name'], required: false }],
+                          relations: [{ association: '_Rooms', attributes: ['id', 'name'] }],
                       },
                       { id: bookingIds },
                   )
                 : [],
-            movieIds.length > 0
+            movieIds.length
                 ? (Database.repository('main', 'movies') as any).getAll(
                       { count: false, attributes: ['id', 'title', 'duration_minutes'] },
                       { id: movieIds },
                   )
                 : [],
-            projTypeIds.length > 0
+            projTypeIds.length
                 ? (Database.repository('main', 'projection-types') as any).getAll(
                       { count: false, attributes: ['id', 'description'] },
                       { id: projTypeIds },
                   )
                 : [],
-            languageIds.length > 0
+            languageIds.length
                 ? (Database.repository('main', 'languages') as any).getAll(
                       { count: false, attributes: ['id', 'description'] },
                       { id: languageIds },
                   )
                 : [],
-            currencyIds.length > 0
+            currencyIds.length
                 ? (Database.repository('main', 'currencies') as any).getAll(
                       { count: false, attributes: ['id', 'code', 'symbol'] },
                       { id: currencyIds },
@@ -592,30 +775,30 @@ export class ShowtimeManagementService {
         ]);
 
         const bookingMap = new Map<number, any>(
-            (Array.isArray(bookings) ? bookings : (bookings as any).rows).map((b: any) => [
+            (Array.isArray(bookings) ? bookings : bookings.rows || []).map((b: any) => [
                 b.id,
                 { ...b, _roomName: b._Rooms?.name ?? null },
             ]),
         );
         const movieMap = new Map<number, any>(
-            (Array.isArray(movies) ? movies : (movies as any).rows).map((m: any) => [m.id, m]),
+            (Array.isArray(movies) ? movies : movies.rows || []).map((m: any) => [m.id, m]),
         );
         const projMap = new Map<number, any>(
-            (Array.isArray(projTypes) ? projTypes : (projTypes as any).rows).map((p: any) => [p.id, p]),
+            (Array.isArray(projTypes) ? projTypes : projTypes.rows || []).map((p: any) => [p.id, p]),
         );
         const langMap = new Map<number, any>(
-            (Array.isArray(languages) ? languages : (languages as any).rows).map((l: any) => [l.id, l]),
+            (Array.isArray(languages) ? languages : languages.rows || []).map((l: any) => [l.id, l]),
         );
         const currencyMap = new Map<number, any>(
-            (Array.isArray(currencies) ? currencies : (currencies as any).rows).map((c: any) => [c.id, c]),
+            (Array.isArray(currencies) ? currencies : currencies.rows || []).map((c: any) => [c.id, c]),
         );
 
         const rows = showtimesList.map((s: any) => {
-            const booking: any = bookingMap.get(s.booking) ?? {};
-            const movie: any = movieMap.get(s.movie) ?? {};
-            const projection: any = projMap.get(s.projection_type) ?? {};
-            const language: any = langMap.get(s.language) ?? {};
-            const currency: any = currencyMap.get(s.currency) ?? {};
+            const booking = bookingMap.get(s.booking) ?? {};
+            const movie = movieMap.get(s.movie) ?? {};
+            const projection = projMap.get(s.projection_type) ?? {};
+            const language = langMap.get(s.language) ?? {};
+            const currency = currencyMap.get(s.currency) ?? {};
             return {
                 id: s.id,
                 room_booking_id: booking.id,
@@ -635,36 +818,29 @@ export class ShowtimeManagementService {
     }
 
     async findShowtimeById(id: number) {
-        const raw: any = await this._showtimesRepo.getById(id, {
-            attributes: [
-                'id',
-                'booking',
-                'movie',
-                'projection_type',
-                'language',
-                'currency',
-                'price',
-                'earned_loyalty_points',
-            ],
-        });
+        if (!id || isNaN(Number(id))) {
+            throw new ValidationError('El ID de la función proporcionado no es válido.');
+        }
+
+        const raw = await this._showtimesRepo.getById(Number(id));
         if (!raw) throw new NotFoundError('Función no encontrada');
 
         const [booking, movie, projType, language, currency] = await Promise.all([
-            Database.repository('main', 'room-bookings').getById(raw.booking, {
+            this._roomBookings.getById(raw.booking, {
                 attributes: ['id', 'room', 'start_time', 'end_time'],
-            }) as Promise<any>,
-            Database.repository('main', 'movies').getById(raw.movie, {
+            }),
+            this._movies.getById(raw.movie, {
                 attributes: ['id', 'title', 'duration_minutes'],
-            }) as Promise<any>,
-            Database.repository('main', 'projection-types').getById(raw.projection_type, {
+            }),
+            (Database.repository('main', 'projection-types') as any).getById(raw.projection_type, {
                 attributes: ['id', 'description'],
-            }) as Promise<any>,
-            Database.repository('main', 'languages').getById(raw.language, {
+            }),
+            (Database.repository('main', 'languages') as any).getById(raw.language, {
                 attributes: ['id', 'description'],
-            }) as Promise<any>,
-            Database.repository('main', 'currencies').getById(raw.currency, {
+            }),
+            (Database.repository('main', 'currencies') as any).getById(raw.currency, {
                 attributes: ['id', 'code', 'symbol'],
-            }) as Promise<any>,
+            }),
         ]);
 
         return {
@@ -685,7 +861,7 @@ export class ShowtimeManagementService {
     }
 
     async updateShowtime(id: number, body: any) {
-        const showtime: any = await this._showtimesRepo.getOne(
+        const showtime = await this._showtimesRepo.getOne(
             { id },
             {
                 attributes: [
@@ -710,12 +886,11 @@ export class ShowtimeManagementService {
         if (body.currency !== undefined) updateData.currency = body.currency;
 
         const hasBookingChanges = body.room || body.start_time || body.end_time;
-
         if (!hasBookingChanges && Object.keys(updateData).length === 0)
             throw new ValidationError('No se proporcionaron datos para actualizar');
 
         if (hasBookingChanges) {
-            const booking: any = await this._roomBookings.getById(showtime.booking);
+            const booking = await this._roomBookings.getById(showtime.booking);
             if (!booking) throw new NotFoundError('Reserva de sala no encontrada');
 
             const newRoom = body.room ?? booking.room;
@@ -734,6 +909,7 @@ export class ShowtimeManagementService {
                 if (Object.keys(updateData).length > 0) {
                     await this._showtimesRepo.update(id, updateData, { transaction });
                 }
+                await this._syncMovieLifecycle(showtime.movie, transaction);
             });
             return null;
         }
@@ -742,22 +918,41 @@ export class ShowtimeManagementService {
         return null;
     }
 
-    // Mapa de asientos en tiempo real para una función
+    async deleteShowtime(id: number) {
+        const showtime = await this._showtimesRepo.getOne({ id }, { attributes: ['id', 'booking', 'movie'] });
+        if (!showtime) throw new NotFoundError('Función no encontrada');
+
+        const ticketCount = await this._tickets.count({ booking: showtime.booking, deleted_at: null });
+        if (ticketCount > 0)
+            throw new ConflictError(
+                'No se puede cancelar la función porque tiene boletos vendidos',
+                'SHOWTIME_HAS_TICKETS',
+            );
+
+        await this._roomBookings.transaction(async (transaction: Transaction) => {
+            const booking = await this._roomBookings.getById(showtime.booking, { transaction });
+            await this._showtimesRepo.delete(id, { transaction });
+            if (booking) await this._roomBookings.delete(booking.id, { transaction });
+
+            await this._syncMovieLifecycle(showtime.movie, transaction);
+        });
+
+        return null;
+    }
+
     async getSeatMap(showtimeId: number) {
-        // 1. Obtener el showtime y su booking asociado
-        const showtime: any = await this._showtimesRepo.getOne(
+        const showtime = await this._showtimesRepo.getOne(
             { id: showtimeId },
             { attributes: ['id', 'booking', 'movie', 'projection_type', 'language', 'currency', 'price'] },
         );
         if (!showtime) throw new NotFoundError('Función no encontrada');
 
-        const booking: any = await this._roomBookings.getById(showtime.booking, {
+        const booking = await this._roomBookings.getById(showtime.booking, {
             attributes: ['id', 'room', 'start_time', 'end_time'],
         });
         if (!booking) throw new NotFoundError('Reserva de sala no encontrada');
 
-        // 2. Obtener todos los asientos de la sala (incluyendo los de baja lógica)
-        const allSeats: any[] = await this._seats.getAll(
+        const allSeats = await this._seats.getAll(
             {
                 count: false,
                 attributes: ['id', 'row_identifier', 'column_number', 'seat_category', 'seat_condition'],
@@ -777,11 +972,11 @@ export class ShowtimeManagementService {
                 start_time: booking.start_time,
                 end_time: booking.end_time,
                 seats: [],
+                summary: { total: 0, available: 0, locked: 0, sold: 0, maintenance: 0 },
             };
         }
 
-        // 3. Obtener IDs de asientos ya vendidos para este booking (tickets confirmados)
-        const soldTickets: any[] = await this._tickets.getAll(
+        const soldTickets = await this._tickets.getAll(
             { count: false, attributes: ['seat'] },
             { booking: showtime.booking, deleted_at: null },
         );
@@ -789,25 +984,21 @@ export class ShowtimeManagementService {
             (Array.isArray(soldTickets) ? soldTickets : soldTickets).map((t: any) => t.seat),
         );
 
-        // 4. Consultar Redis para los bloqueos temporales de este booking
-        //    Patrón de clave: lock:booking:{bookingId}:seat:{seatId}
-        const redis = (await import('@providers/cache-database.provider.js')).CacheDatabaseProvider.getInstance()
-            .client;
-
-        const lockPattern = `lock:booking:${booking.id}:seat:*`;
-        const lockKeys: string[] = await redis.keys(lockPattern);
         const lockedSeatIds = new Set<number>();
-
-        if (lockKeys.length > 0) {
+        try {
+            const redis = (await import('@providers/cache-database.provider.js')).CacheDatabaseProvider.getInstance()
+                .client;
+            const lockPattern = `lock:booking:${booking.id}:seat:*`;
+            const lockKeys = await redis.keys(lockPattern);
             for (const key of lockKeys) {
-                // key format: lock:booking:{bookingId}:seat:{seatId}
                 const parts = key.split(':');
                 const seatId = Number(parts[parts.length - 1]);
                 if (!isNaN(seatId)) lockedSeatIds.add(seatId);
             }
+        } catch {
+            // Ignorar
         }
 
-        // 5. Obtener categorías únicas de asientos para enriquecer la respuesta
         const categoryIds = [...new Set(allSeats.map((s: any) => s.seat_category))];
         const categoriesRaw = await (Database.repository('main', 'seat-categories') as any).getAll(
             { count: false, attributes: ['id', 'description'] },
@@ -817,11 +1008,8 @@ export class ShowtimeManagementService {
             (Array.isArray(categoriesRaw) ? categoriesRaw : categoriesRaw.rows).map((c: any) => [c.id, c]),
         );
 
-        // 6. Construir el mapa de asientos con estado calculado
         const seats = allSeats.map((seat: any) => {
             let status: 'available' | 'locked' | 'sold' | 'maintenance';
-
-            // seat_condition: 1 = Operativa, 2+ = Dañada / Fuera de Servicio
             if (seat.seat_condition !== 1) {
                 status = 'maintenance';
             } else if (soldSeatIds.has(seat.id)) {
@@ -831,9 +1019,7 @@ export class ShowtimeManagementService {
             } else {
                 status = 'available';
             }
-
-            const category: any = categoryMap.get(seat.seat_category) ?? {};
-
+            const category = categoryMap.get(seat.seat_category) ?? {};
             return {
                 id: seat.id,
                 row: seat.row_identifier,
@@ -844,13 +1030,12 @@ export class ShowtimeManagementService {
             };
         });
 
-        // 7. Estadísticas de disponibilidad
         const summary = {
             total: seats.length,
-            available: seats.filter((s) => s.status === 'available').length,
-            locked: seats.filter((s) => s.status === 'locked').length,
-            sold: seats.filter((s) => s.status === 'sold').length,
-            maintenance: seats.filter((s) => s.status === 'maintenance').length,
+            available: seats.filter((s: any) => s.status === 'available').length,
+            locked: seats.filter((s: any) => s.status === 'locked').length,
+            sold: seats.filter((s: any) => s.status === 'sold').length,
+            maintenance: seats.filter((s: any) => s.status === 'maintenance').length,
         };
 
         return {
@@ -864,7 +1049,9 @@ export class ShowtimeManagementService {
         };
     }
 
-    // Billboard con filtros avanzados
+    // -------------------------------------------------------------------------
+    //  BILLBOARD CON FILTROS AVANZADOS
+    // -------------------------------------------------------------------------
     async getBillboardFiltered(
         filters: {
             cinemaId?: number;
@@ -873,77 +1060,51 @@ export class ShowtimeManagementService {
             language?: string | number;
         } = {},
     ) {
-        // Primero obtener el billboard base (ya soporta cinemaId)
-        const base = await this.getBillboard(filters.cinemaId);
+        const base = await this.getBillboard(filters);
         if (base.count === 0) return base;
 
-        let rows: any[] = base.rows;
+        let rows = base.rows;
 
-        // Filtrar por movieId si se proporciona
         if (filters.movieId) {
             const mid = Number(filters.movieId);
             rows = rows.filter((entry: any) => entry.movie?.id === mid);
         }
 
-        // Filtrar por projectionType (acepta descripción parcial o id numérico)
-        if (filters.projectionType !== undefined && filters.projectionType !== '') {
+        if (filters.projectionType && filters.projectionType !== '') {
             const pt = String(filters.projectionType).toLowerCase();
             rows = rows
                 .map((entry: any) => ({
                     ...entry,
                     showtimes: entry.showtimes.filter((s: any) => {
-                        const desc: string = (s.projection_type?.description ?? '').toLowerCase();
-                        const id: string = String(s.projection_type?.id ?? '');
+                        const desc = (s.projection_type?.description ?? '').toLowerCase();
+                        const id = String(s.projection_type?.id ?? '');
                         return desc.includes(pt) || id === pt;
                     }),
                 }))
                 .filter((entry: any) => entry.showtimes.length > 0);
         }
 
-        // Filtrar por language (acepta descripción parcial o id numérico)
-        if (filters.language !== undefined && filters.language !== '') {
+        if (filters.language && filters.language !== '') {
             const lang = String(filters.language).toLowerCase();
             rows = rows
                 .map((entry: any) => ({
                     ...entry,
                     showtimes: entry.showtimes.filter((s: any) => {
-                        const desc: string = (s.language?.description ?? '').toLowerCase();
-                        const id: string = String(s.language?.id ?? '');
+                        const desc = (s.language?.description ?? '').toLowerCase();
+                        const id = String(s.language?.id ?? '');
                         return desc.includes(lang) || id === lang;
                     }),
                 }))
                 .filter((entry: any) => entry.showtimes.length > 0);
         }
 
+        if (rows.length === 0) {
+            throw new NotFoundError(
+                'No se encontraron funciones que coincidan con los filtros avanzados seleccionados',
+            );
+        }
+
         return { count: rows.length, rows };
-    }
-
-    async deleteShowtime(id: number) {
-        const showtime: any = await this._showtimesRepo.getOne({ id }, { attributes: ['id', 'booking', 'movie'] });
-        if (!showtime) throw new NotFoundError('Función no encontrada');
-
-        const ticketCount = await this._tickets.count({ booking: showtime.booking, deleted_at: null });
-        if (ticketCount > 0)
-            throw new ConflictError(
-                'No se puede cancelar la función porque tiene boletos vendidos',
-                'SHOWTIME_HAS_TICKETS',
-            );
-
-        await this._roomBookings.transaction(async (transaction: Transaction) => {
-            const booking: any = await this._roomBookings.getById(showtime.booking, { transaction });
-            await this._showtimesRepo.delete(id, { transaction });
-            if (booking) await this._roomBookings.delete(booking.id, { transaction });
-
-            const remaining = await this._showtimesRepo.count(
-                { movie: showtime.movie, deleted_at: null },
-                { transaction },
-            );
-            if (remaining === 0) {
-                await this._movies.update(showtime.movie, { lifecycle_state: 1 }, { transaction });
-            }
-        });
-
-        return null;
     }
 }
 

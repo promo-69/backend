@@ -1,0 +1,18 @@
+meta {
+  name: Funciones de Pelicula en Sucursal
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/cinemas/{{cinemaId}}/showtimes/movies/{{movieId}}
+  body: none
+  auth: none
+}
+
+script:post-response {
+  const resBody = res.getBody();
+  if (res.getStatus() === 200 && resBody?.data?.rows?.length > 0) {
+    bru.setEnvVar("showtimeId", resBody.data.rows[0].id);
+  }
+}

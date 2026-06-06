@@ -1,0 +1,15 @@
+meta {
+  name: Listar Todas las Funciones Admin
+  type: http
+  seq: 20
+}
+
+get {
+  url: {{baseUrl}}/showtimes/admin?startDate=2026-07-01&endDate=2026-09-30&movieId={{movieId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

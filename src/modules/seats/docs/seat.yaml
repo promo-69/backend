@@ -110,3 +110,58 @@
                 description: Conflict — seat has future sold tickets
             '500':
                 description: Internal server error
+
+/seats/room/{roomId}:
+    delete:
+        summary: Delete All Seats by Room
+        description: |
+            Soft-delete all seats belonging to a room in a single atomic operation.
+            If any seat has future sold tickets, the entire operation is rejected and
+            the response includes the IDs of the conflicting seats.
+            Required permission: **CRUD:DELETE:SEATS**
+        tags:
+            - Seats
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: roomId
+              in: path
+              required: true
+              schema:
+                  type: integer
+              description: ID of the room whose seats will be deleted
+        responses:
+            '200':
+                description: All seats deleted successfully
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                message:
+                                    type: string
+                                    example: Asientos de la sala eliminados exitosamente
+            '401':
+                description: Unauthorized
+            '404':
+                description: Room not found
+            '409':
+                description: |
+                    One or more seats have future sold tickets.
+                    The response includes the conflicting seat IDs.
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                name:
+                                    type: string
+                                    example: ConflictError
+                                message:
+                                    type: string
+                                    example: 'No se pueden eliminar los asientos porque los siguientes tienen boletos en funciones futuras: 12, 15'
+                                code:
+                                    type: string
+                                    example: SEATS_HAVE_FUTURE_TICKETS
+            '500':
+                description: Internal server error
