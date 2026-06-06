@@ -24,6 +24,39 @@ class UsersController extends ControllerBase {
 		return this.success(null, 'Credenciales de seguridad actualizadas correctamente.');
 	}
 
+	async getMyOrders() {
+		const session = this.getSession();
+		const query = this.getQuery();
+		const data = await UsersService.getMyOrders(session.userId, query);
+		return data;
+	}
+
+	async getMyOrderTicket() {
+		const session = this.getSession();
+		const { orderId } = this.getParams();
+		const data = await UsersService.getMyOrderTicket(session.userId, Number(orderId));
+		return this.success(data, 'Tickets de la orden recuperados correctamente.');
+	}
+
+	async getMyLoyaltyInfo() {
+		const session = this.getSession();
+		const info = await UsersService.getMyLoyaltyInfo(session.userId);
+		return this.success(info, 'Recibida información de lealtad');
+	}
+
+	async getMyLoyaltyLedgers() {
+		const session = this.getSession();
+		const filters = this.getQueryFilters();
+		const ledgers = await UsersService.getMyLoyaltyLedgers(session.userId, filters);
+		return this.success(ledgers, 'Balance de lealtad recuperados correctamente');
+	}
+
+	async getMyMovieSubscriptions() {
+		const session = this.getSession();
+		const data = await UsersService.getMyMovieSubscriptions(session.userId);
+		return data;
+	}
+
 	// --- Exclusivo para Gerente
 
 	async getAllUsers() {

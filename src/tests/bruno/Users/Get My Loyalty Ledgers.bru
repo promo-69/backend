@@ -1,0 +1,15 @@
+meta {
+  name: Get My Loyalty Ledgers
+  type: http
+  seq: 14
+}
+
+get {
+  url: {{baseUrl}}/users/me/loyalty/ledgers
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
