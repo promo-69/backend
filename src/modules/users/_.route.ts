@@ -9,6 +9,11 @@ const managerMiddleware = [verifySession, verifyPermission(['FEAT:DO:MANAGE_USER
 router.get('/me', verifySession, usersController.getMyProfile);
 router.patch('/me/profile', verifySession, usersController.updateMyProfile);
 router.patch('/me/security', verifySession, usersController.updateMySecurity);
+router.get('/me/orders', verifySession, usersController.getMyOrders);
+router.get('/me/orders/:orderId/ticket', verifySession, usersController.getMyOrderTicket);
+router.get('/me/loyalty', verifySession, usersController.getMyLoyaltyInfo);
+router.get('/me/loyalty/ledgers', verifySession, usersController.getMyLoyaltyLedgers);
+router.get('/me/movie-subscriptions', verifySession, usersController.getMyMovieSubscriptions);
 
 // --- Exclusivo para Gerencia
 router.get('/', ...managerMiddleware, usersController.getAllUsers);

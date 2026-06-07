@@ -111,6 +111,19 @@ class RolesService extends BaseService {
 
 		await this.validateRoleExists(roleId);
 
+		// Verificar que los permisos solicitados estén asociados al rol
+		const existing = await this._rolePermissions.getAll(
+			{ count: false },
+			{ role: roleId, permission: permissionIds },
+		);
+		const existingIds = Array.isArray(existing) ? existing.map((r: any) => r.permission) : [];
+		const missingIds = permissionIds.filter((id) => !existingIds.includes(id));
+		if (missingIds.length > 0)
+			throw new ValidationError(
+				'El rol no tiene algunos permisos: ' + missingIds.join(', '),
+				missingIds.map(String),
+			);
+
 		await this._rolePermissions.transaction(async (transaction: any) => {
 			await this._rolePermissions.delete({ role: roleId, permission: permissionIds }, { transaction });
 		});

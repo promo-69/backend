@@ -7,6 +7,7 @@ import { CacheDatabaseProvider } from '@providers/cache-database.provider.js';
 import { REGEX } from '@constants/regex.constant.js';
 import { type UsersWithPeople } from '@repositories/main/users.repository.js';
 import { tokenBlacklistService } from '@services/token-blacklist.service.js';
+import { WhereOperators } from '@bases/repository.base.js';
 
 export class UsersService extends BaseService {
 	constructor() {
@@ -21,6 +22,21 @@ export class UsersService extends BaseService {
 	}
 	private get _usersLogins() {
 		return Database.repository('main', 'users-logins') as any;
+	}
+	private get _orders() {
+		return Database.repository('main', 'orders') as any;
+	}
+	private get _tickets() {
+		return Database.repository('main', 'tickets') as any;
+	}
+	private get _customers() {
+		return Database.repository('main', 'customers') as any;
+	}
+	private get _loyaltyLedgers() {
+		return Database.repository('main', 'loyalty-ledgers') as any;
+	}
+	private get _movieSubscriptions() {
+		return Database.repository('main', 'movie-user-subscriptions') as any;
 	}
 	private get _roles() {
 		return Database.repository('main', 'roles') as any;
@@ -279,6 +295,106 @@ export class UsersService extends BaseService {
 
 		const deletedRows = await this._userPermissions.delete({ user: userId, permission: permissions });
 		if (!deletedRows) throw new NotFoundError('Permiso(s) no encontrado(s) para el usuario', userId.toString());
+	}
+
+	// --- Endpoints para el usuario autenticado (My)
+
+	async getMyOrders(userId: number, query: Record<string, any>) {
+		const user = await this._users.getById(userId, { attributes: ['id', 'person'] });
+		if (!user) throw new NotFoundError('Usuario', userId.toString());
+
+		const customer = await this._customers.getOne({ person: user.person });
+		if (!customer) return { rows: [], count: 0 };
+
+		const conditions: any = { customer: customer.id };
+
+		if (query.from || query.to) {
+			const from = query.from ? new Date(String(query.from)) : null;
+			const to = query.to ? new Date(String(query.to)) : null;
+
+			if (from && to)
+				conditions.created_at = { [WhereOperators.between]: [from.toISOString(), to.toISOString()] };
+			else if (from) conditions.created_at = { [WhereOperators.gte]: from.toISOString() };
+			else if (to) conditions.created_at = { [WhereOperators.lte]: to.toISOString() };
+		}
+
+		const options: any = {
+			count: true,
+			relations: ['_OrderLines', '_Tickets', '_OrderPayments', '_Cinemas', '_Customers'],
+			attributes: undefined,
+			...query,
+		};
+
+		const result = await this._orders.getAll(options, conditions);
+		return result;
+	}
+
+	async getMyOrderTicket(userId: number, orderId: number) {
+		const user = await this._users.getById(userId, { attributes: ['id', 'person'] });
+		if (!user) throw new NotFoundError('Usuario', userId.toString());
+
+		const customer = await this._customers.getOne({ person: user.person });
+		if (!customer) throw new NotFoundError('Cliente', userId.toString());
+
+		const order = await this._orders.getById(orderId);
+		if (!order || order.customer !== customer.id) throw new NotFoundError('Orden', String(orderId));
+
+		// Si el repository ya incluye tickets en las relaciones, devolverlos; si no, obtener desde tickets repo
+		if (order._Tickets) return order._Tickets;
+
+		const tickets = await this._tickets.getAll({ count: false }, { order: orderId });
+		return tickets;
+	}
+
+	async getMyLoyaltyInfo(userId: number) {
+		const user = await this._users.getById(userId, { attributes: ['id', 'person'] });
+		if (!user) throw new NotFoundError('Usuario', userId.toString());
+
+		const customersRepo = this._customers;
+		const customer = await customersRepo.getOne({ person: user.person }, { relations: customersRepo.relations });
+		if (!customer) return { loyalty_level: null, level_progress_points: 0, points_balance: 0 };
+
+		const loyalty_level = customer.loyalty_level ?? null;
+		const level_progress_points = customer.level_progress_points ?? 0;
+
+		// Obtener último balance de loyalty_ledgers
+		const lastLedger = await this._loyaltyLedgers.getAll(
+			{ count: false, operation: { order: [['id', 'DESC']], limit: 1 } },
+			{ customer: customer.id },
+		);
+
+		const points_balance = Array.isArray(lastLedger) && lastLedger.length > 0 ? lastLedger[0].points_balance : 0;
+
+		return { loyalty_level, level_progress_points, points_balance };
+	}
+
+	async getMyLoyaltyLedgers(userId: number, queryFilters: Record<string, any>) {
+		const user = await this._users.getById(userId, { attributes: ['id', 'person'] });
+		if (!user) throw new NotFoundError('Usuario', userId.toString());
+
+		const customersRepo = this._customers;
+		const customer = await customersRepo.getOne({ person: user.person }, { relations: customersRepo.relations });
+		if (!customer) return { rows: [], count: 0 };
+
+		const paginationOptions: any = { count: true, ...queryFilters };
+		const ledgersResult = await this._loyaltyLedgers.getAll(paginationOptions, { customer: customer.id });
+
+		return ledgersResult;
+	}
+
+	async getMyMovieSubscriptions(userId: number) {
+		const user = await this._users.getById(userId, { attributes: ['id', 'person'] });
+		if (!user) throw new NotFoundError('Usuario', userId.toString());
+
+		const customer = await this._customers.getOne({ person: user.person });
+		if (!customer) return { rows: [], count: 0 };
+
+		const result = await this._movieSubscriptions.getAll(
+			{ count: true, relations: ['_Movies'] },
+			{ customer: customer.id, is_notified: false },
+		);
+
+		return result;
 	}
 }
 

@@ -1,0 +1,15 @@
+meta {
+  name: Get My Movie Subscriptions
+  type: http
+  seq: 15
+}
+
+get {
+  url: {{baseUrl}}/users/me/movie-subscriptions
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
