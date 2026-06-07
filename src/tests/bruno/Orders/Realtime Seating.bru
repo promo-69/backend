@@ -1,0 +1,26 @@
+meta {
+  name: Realtime Seating
+  type: ws
+  seq: 12
+}
+
+ws {
+  url: {{wsBaseUrl}}/socket.io/?EIO=4&transport=websocket
+  body: ws
+  auth: none
+}
+
+headers {
+  Origin: {{clientWebAppUrl}}
+  Authorization: Bearer {{accessToken}}
+}
+
+body:ws {
+  name: Connect and lock seat 5
+  type: text
+  content: '''
+    40
+    42["join_booking", 1]
+    42["lock_seat", {"bookingId": 1, "seatId": 5}]
+  '''
+}

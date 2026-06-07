@@ -1,11 +1,19 @@
 meta {
   name: Get Order Detail
   type: http
-  seq: 4
+  seq: 8
 }
 
 get {
-  url: {{baseUrl}}/orders/1
+  url: {{baseUrl}}/orders/{{orderId}}
   body: none
-  auth: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+vars:pre-request {
+  orderId: 2
 }

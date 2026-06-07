@@ -1,7 +1,7 @@
 meta {
   name: Pay Order
   type: http
-  seq: 3
+  seq: 4
 }
 
 post {
@@ -16,10 +16,27 @@ auth:bearer {
 
 body:json {
   {
-    "order_id": 6,
-    "payment_method": 3,
-    "amount": "456.25",
+    "payment_method": 1,
+    "amount": {{orderTotalBase}},
     "currency": 1,
-    "reference_number": "TX-12345162"
+    "reference_number": "{{refNumber}}"
+  }
+}
+
+vars:pre-request {
+  refNumber: 1
+  orderTotalBase: 300
+}
+
+script:pre-request {
+  bru.setVar("refNumber", "TX-" + Math.floor(Math.random() * 1000000000));
+}
+
+script:post-response {
+  if (res.status === 200 || res.status === 201) {
+    const data = res.getBody();
+    if (data.data && data.data.qr_code) {
+      bru.setEnvVar("orderQrCode", data.data.qr_code);
+    }
   }
 }

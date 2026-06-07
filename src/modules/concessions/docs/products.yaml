@@ -4,6 +4,9 @@
         description: Retrieve all concession products, each with its category and image URL.
         tags:
             - Concessions
+        security:
+            - bearerAuth: []
+            - {}
         responses:
             '200':
                 description: A list of concession products
@@ -41,6 +44,17 @@
                                                         type: integer
                                                     name:
                                                         type: string
+                                            pricing:
+                                                type: object
+                                                properties:
+                                                    base_price:
+                                                        type: number
+                                                    final_price:
+                                                        type: number
+                                                    applied_modifiers:
+                                                        type: array
+                                                        items:
+                                                            type: object
             '500':
                 description: Internal server error
     post:
@@ -113,3 +127,51 @@
                 description: Conflict — duplicate SKU
             '500':
                 description: Internal server error
+
+    /{id}:
+        get:
+            summary: Get Product by ID
+            description: Retrieve a single concession product by its ID.
+            tags:
+                - Concessions
+            security:
+                - bearerAuth: []
+                - {}
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                      type: integer
+            responses:
+                '200':
+                    description: Product details
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    data:
+                                        type: object
+                                        properties:
+                                            id:
+                                                type: integer
+                                            name:
+                                                type: string
+                                            sku:
+                                                type: string
+                                            pricing:
+                                                type: object
+                                                properties:
+                                                    base_price:
+                                                        type: number
+                                                    final_price:
+                                                        type: number
+                                                    applied_modifiers:
+                                                        type: array
+                                                        items:
+                                                            type: object
+                '404':
+                    description: Product not found
+                '500':
+                    description: Internal server error

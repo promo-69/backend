@@ -12,26 +12,26 @@ router.get('/', optionalAuth, showtimesController.findAll);
 
 // Rutas administrativas fijas (Backoffice)
 router.get(
-    '/admin/movies',
-    verifySession,
-    verifyPermission('CRUD:READ:SHOWTIMES'),
-    showtimesController.getAllMoviesByLifecycle,
+	'/admin/movies',
+	verifySession,
+	verifyPermission('CRUD:READ:SHOWTIMES'),
+	showtimesController.getAllMoviesByLifecycle,
 );
 
 router.get('/admin', verifySession, verifyPermission('CRUD:READ:SHOWTIMES'), showtimesController.getAllShowtimesAdmin);
 
 router.get(
-    '/admin/movies/:movieId/showtimes',
-    verifySession,
-    verifyPermission('CRUD:READ:SHOWTIMES'),
-    showtimesController.getShowtimesByMovieAdmin,
+	'/admin/movies/:movieId/showtimes',
+	verifySession,
+	verifyPermission('CRUD:READ:SHOWTIMES'),
+	showtimesController.getShowtimesByMovieAdmin,
 );
 
 router.get(
-    '/admin/cinemas/:cinemaId/showtimes',
-    verifySession,
-    verifyPermission('CRUD:READ:SHOWTIMES'),
-    showtimesController.getShowtimesByCinemaAdmin,
+	'/admin/cinemas/:cinemaId/showtimes',
+	verifySession,
+	verifyPermission('CRUD:READ:SHOWTIMES'),
+	showtimesController.getShowtimesByCinemaAdmin,
 );
 
 router.post('/', verifySession, verifyPermission('CRUD:CREATE:SHOWTIMES'), showtimesController.create);
@@ -40,6 +40,9 @@ router.post('/', verifySession, verifyPermission('CRUD:CREATE:SHOWTIMES'), showt
 
 // Detalle de una función específica.
 router.get('/:id', optionalAuth, showtimesController.findById);
+
+// Estado en vivo de los asientos (sold, locked)
+router.get('/:id/seats-status', optionalAuth, showtimesController.getSeatsStatus);
 
 // Mapa de asientos de una función
 router.get('/:id/seat-map', optionalAuth, showtimesController.getSeatMap);

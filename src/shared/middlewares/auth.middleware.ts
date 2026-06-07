@@ -79,10 +79,10 @@ export class AuthMiddleware {
 		} catch (error: any) {
 			if (error instanceof AuthError) throw error;
 
-			if (error.message === 'Token has expired')
+			if (error.message === 'El token ha expirado')
 				throw new AuthError('El token de sesión ha expirado', { code: 'TOKEN_EXPIRED' });
 
-			if (error.message === 'Invalid token type')
+			if (error.message === 'Tipo de token inválido')
 				throw new AuthError('El tipo de token es inválido', { code: 'INVALID_TOKEN' });
 
 			throw new AuthError(`Error de autenticación: ${error.message}`, { code: 'AUTH_FAILED' });
@@ -103,23 +103,20 @@ export class AuthMiddleware {
 		const cookieHeader = socket.handshake?.headers?.cookie;
 		if (cookieHeader) {
 			const cookies = Object.fromEntries(
-				cookieHeader.split('; ').map((c: string) => {
-					const parts = c.split('=');
+				cookieHeader.split(';').map((c: string) => {
+					const parts = c.trim().split('=');
 					return [parts[0], parts.slice(1).join('=')];
 				}),
 			);
-			if (cookies[cookieName]) {
-				token = cookies[cookieName];
-			}
+			if (cookies[cookieName]) token = cookies[cookieName];
 		}
 
 		if (token) return token;
 
 		const authFallback = socket.handshake?.auth?.token || socket.handshake?.headers?.authorization;
 		if (typeof authFallback === 'string') {
-			if (authFallback.toLowerCase().startsWith('bearer ')) {
-				return authFallback.slice(7);
-			}
+			if (authFallback.toLowerCase().startsWith('bearer ')) return authFallback.slice(7);
+
 			return authFallback;
 		}
 
@@ -136,7 +133,12 @@ export class AuthMiddleware {
 
 			next();
 		} catch (error: any) {
-			next(error instanceof Error ? error : new Error('Authentication failed'));
+			const socketError: any = new Error(error.message || 'Falló la autenticación');
+			socketError.data = {
+				code: error.code || 'AUTH_FAILED',
+				details: error.details || error.message,
+			};
+			next(socketError);
 		}
 	}
 

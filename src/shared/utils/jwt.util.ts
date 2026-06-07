@@ -80,13 +80,13 @@ export class JWTUtil {
 	static verifyAccessToken<T = JWTPayload>(token: string): T {
 		try {
 			const decoded = jwt.verify(token, this.SECRET) as T;
-			if ((decoded as any).type !== 'access') throw new Error('Invalid token type');
+			if ((decoded as any).type !== 'access') throw new Error('Tipo de token inválido');
 			return decoded;
 		} catch (error) {
-			if (error instanceof jwt.TokenExpiredError) throw new Error('Token has expired');
-			else if (error instanceof jwt.JsonWebTokenError) throw new Error('Invalid token');
+			if (error instanceof jwt.TokenExpiredError) throw new Error('El token ha expirado');
+			else if (error instanceof jwt.JsonWebTokenError) throw new Error('Token inválido');
 
-			throw new Error('Token verification failed');
+			throw new Error('Falló la verificación del token');
 		}
 	}
 
@@ -115,14 +115,14 @@ export class JWTUtil {
 		try {
 			const decoded = jwt.verify(token, this.REFRESH_SECRET) as T;
 
-			if ((decoded as any).type !== 'refresh') throw new Error('Invalid token type');
+			if ((decoded as any).type !== 'refresh') throw new Error('Tipo de token inválido');
 
 			return decoded;
 		} catch (error) {
-			if (error instanceof jwt.TokenExpiredError) throw new Error('Refresh token has expired');
-			else if (error instanceof jwt.JsonWebTokenError) throw new Error('Invalid refresh token');
+			if (error instanceof jwt.TokenExpiredError) throw new Error('El token de refresco ha expirado');
+			else if (error instanceof jwt.JsonWebTokenError) throw new Error('Token de refresco inválido');
 
-			throw new Error('Refresh token verification failed');
+			throw new Error('Falló la verificación del token de refresco');
 		}
 	}
 
@@ -188,7 +188,7 @@ export class JWTUtil {
 	static getPayload(token: string): JWTPayload {
 		const decoded = this.decodeToken(token);
 
-		if (!decoded) throw new Error('Invalid token');
+		if (!decoded) throw new Error('Token inválido');
 
 		delete decoded.iat;
 		delete decoded.exp;

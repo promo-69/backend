@@ -287,6 +287,12 @@ const foreignKeys = [
 	{ table: 'tickets', field: 'seat', target: 'seats', name: 'fk_tickets_seat' },
 	{
 		table: 'tickets',
+		field: 'audience_category',
+		target: 'audience_categories',
+		name: 'fk_tickets_audience_category',
+	},
+	{
+		table: 'tickets',
 		field: 'quoted_exchange_rate',
 		target: 'exchange_rates',
 		name: 'fk_tickets_quoted_exchange_rate',

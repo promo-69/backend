@@ -4,6 +4,9 @@
         description: Retrieve all concession combos with their image URL.
         tags:
             - Concessions
+        security:
+            - bearerAuth: []
+            - {}
         responses:
             '200':
                 description: A list of combos
@@ -33,6 +36,17 @@
                                             image_url:
                                                 type: string
                                                 nullable: true
+                                            pricing:
+                                                type: object
+                                                properties:
+                                                    base_price:
+                                                        type: number
+                                                    final_price:
+                                                        type: number
+                                                    applied_modifiers:
+                                                        type: array
+                                                        items:
+                                                            type: object
             '500':
                 description: Internal server error
     post:
@@ -110,3 +124,51 @@
                 description: Conflict — duplicate SKU
             '500':
                 description: Internal server error
+
+    /{id}:
+        get:
+            summary: Get Combo by ID
+            description: Retrieve a single combo by its ID.
+            tags:
+                - Concessions
+            security:
+                - bearerAuth: []
+                - {}
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                      type: integer
+            responses:
+                '200':
+                    description: Combo details
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    data:
+                                        type: object
+                                        properties:
+                                            id:
+                                                type: integer
+                                            name:
+                                                type: string
+                                            sku:
+                                                type: string
+                                            pricing:
+                                                type: object
+                                                properties:
+                                                    base_price:
+                                                        type: number
+                                                    final_price:
+                                                        type: number
+                                                    applied_modifiers:
+                                                        type: array
+                                                        items:
+                                                            type: object
+                '404':
+                    description: Combo not found
+                '500':
+                    description: Internal server error

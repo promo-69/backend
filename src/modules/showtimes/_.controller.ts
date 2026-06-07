@@ -93,6 +93,13 @@ class ShowtimesController extends ControllerBase {
         return this.success(data, 'Mapa de asientos obtenido exitosamente.');
     }
 
+    // GET /showtimes/:id/seats-status — Estado inicial (vendidos/bloqueados)
+    async getSeatsStatus() {
+        const { id } = this.getParams();
+        const data = await ShowtimesService.getSeatsStatus(Number(id));
+        return this.success(data, 'Estado de los asientos obtenido exitosamente.');
+    }
+
     // GET /showtimes/admin/movies?lifecycle=2
     async getAllMoviesByLifecycle() {
         const query = this.getQuery();

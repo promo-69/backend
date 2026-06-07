@@ -1,8 +1,7 @@
 import { DataTypes } from 'sequelize';
 import { type RelationsReturn, SequelizeModelBase } from '@database/models/bases/sequelize.model.js';
 
-// FIX #1.1: se agrega la columna 'stock' que faltaba en el modelo
-// (existe en la migración 20260528000001-add-stock-to-inventories.js)
+// El modelo inventories representa una cabecera, el stock se maneja en inventory_movements (ledger)
 export default class InventoriesModel extends SequelizeModelBase {
     static definition() {
         return {
@@ -25,11 +24,7 @@ export default class InventoriesModel extends SequelizeModelBase {
                 type: DataTypes.INTEGER,
                 defaultValue: 0,
             },
-            stock: {
-                allowNull: false,
-                type: DataTypes.INTEGER,
-                defaultValue: 0,
-            },
+
             deleted_at: {
                 allowNull: true,
                 type: DataTypes.DATE,

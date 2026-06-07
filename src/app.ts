@@ -5,7 +5,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import { AppConfig, type IAppConfig } from '@config/app.config.js';
-import { AppError, NotFoundError } from '@errors';
+import { AppError, NotFoundError, BadRequestError } from '@errors';
 import { ANSI } from '@utils/ansi.util.js';
 import { Logger } from '@utils/logger.util.js';
 import { Database } from '@database/index.js';
@@ -61,7 +61,9 @@ export class App {
 	}
 
 	private async setupRealtime(server: http.Server): Promise<void> {
-		RealtimeProvider.getInstance().attach(server);
+		await RealtimeProvider.getInstance().attach(server);
+		const { BookingSocketService } = await import('./shared/services/booking-socket.service.js');
+		BookingSocketService.initialize();
 	}
 
 	private async setupBackgroundTasks(): Promise<void> {
@@ -132,6 +134,15 @@ export class App {
 				},
 			}),
 		);
+		
+		// Catch JSON syntax errors
+		this.app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+			if (err instanceof SyntaxError && 'status' in err && err.status === 400 && 'body' in err) {
+				return next(new BadRequestError('El cuerpo de la petición contiene un JSON mal formado o inválido'));
+			}
+			next(err);
+		});
+
 		Logger.natural(ANSI.success('[+] Body Parsing middleware loaded'));
 
 		// 7. URL encoded parsing (para formularios)
