@@ -135,6 +135,10 @@ export class RealtimeProvider {
 			const user = socket.data.session;
 			Logger.info(ANSI.info(`[Socket.io] Socket connected: ${socket.id} | User: ${user?.userId}`));
 
+			if (user?.userId) {
+				socket.join(`usr_${user.userId}`);
+			}
+
 			// Registrar handlers dinámicos
 			socket.onAny((event, ...args) => {
 				const handler = this._eventHandlers.get(event);

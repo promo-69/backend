@@ -101,6 +101,33 @@ export class OrdersService extends BaseService {
 	private get _cinemas() {
 		return Database.repository('main', 'cinemas') as any;
 	}
+
+	private async _getCustomerEmail(customerId: number | null, session: any): Promise<string | null> {
+		if (!session.roleCode && session.email) {
+			return session.email;
+		}
+
+		if (customerId) {
+			const customer = await this._customers.getById(customerId, {
+				relations: [{ association: '_People', nested: [{ association: '_Users' }] }],
+			});
+
+			if (customer && customer._People) {
+				if (customer._People._Users) {
+					const users = Array.isArray(customer._People._Users) ? customer._People._Users : [customer._People._Users];
+					const verifiedUser = users.find((u: any) => u.signup_verified_at !== null && !u.deleted_at);
+					if (verifiedUser && verifiedUser.email) return verifiedUser.email;
+				}
+				
+				if (customer._People.personal_email) {
+					return customer._People.personal_email;
+				}
+			}
+		}
+
+		return null;
+	}
+
 	/**
 	 * Crea una cotizacion temporal para iniciar el proceso de compra.
 	 * Bloquea al usuario para tener una sola sesion activa.
@@ -201,7 +228,7 @@ export class OrdersService extends BaseService {
 	async getShoppingSessionDetails(session: any) {
 		const sessionState = await this.getShoppingSessionState(session);
 		if (!sessionState) return { session: null, order: null };
-		
+
 		const customerId = sessionState.customerId ? Number(sessionState.customerId) : null;
 
 		// Busca si ya existe una orden pendiente asociada al cliente
@@ -262,6 +289,13 @@ export class OrdersService extends BaseService {
 	 * Registra la orden en la base de datos de manera transaccional.
 	 */
 	async processCheckout(body: any, session: any) {
+		if (body.tickets && Array.isArray(body.tickets))
+			for (const ticket of body.tickets)
+				if (typeof ticket.seatId !== 'number' || typeof ticket.audienceCategoryId !== 'number')
+					throw new BadRequestError(
+						'Cada boleto debe contener seatId y audienceCategoryId y deben ser numéricos',
+					);
+
 		const { concessions = [], tickets = [] } = body;
 
 		// Recupera y valida la sesion de compra activa
@@ -273,8 +307,7 @@ export class OrdersService extends BaseService {
 		if (quoteData.status !== SessionStatus.PENDING_ORDER)
 			throw new ConflictError('La cotización no está disponible para ser procesada.');
 
-		if (quoteData.is_processing)
-			throw new ConflictError('La cotización ya está siendo procesada.');
+		if (quoteData.is_processing) throw new ConflictError('La cotización ya está siendo procesada.');
 
 		// Marca la sesion como en proceso para evitar conflictos concurrentes
 		quoteData.is_processing = true;
@@ -515,9 +548,8 @@ export class OrdersService extends BaseService {
 	 * Genera los codigos QR y notifica al cliente cuando el pago esta completo.
 	 */
 	async registerPayment(body: any, session: any) {
+		this.validateRequired(body, ['payment_method', 'amount']);
 		const { payment_method, amount, currency, reference_number } = body;
-		let orderData: any = null;
-		let remaining_balance: number | null = null;
 		const userQueueKey = `queue:usr:${session.userId}`;
 
 		// Valida que la sesion de compra siga vigente
@@ -525,13 +557,17 @@ export class OrdersService extends BaseService {
 		if (!quoteRaw) throw new BadRequestError('El tiempo para pagar ha expirado o no existe sesión de compra.');
 		const quoteData = JSON.parse(quoteRaw);
 
-		if (quoteData.status !== SessionStatus.PENDING_PAYMENT) {
+		if (quoteData.status !== SessionStatus.PENDING_PAYMENT)
 			throw new BadRequestError('La sesión no se encuentra en la etapa de pago o ya ha sido procesada.');
-		}
 
 		const order_id = quoteData.order_id;
 		if (!order_id) throw new ForbiddenError('No hay una orden asociada a esta sesión de compra.');
 
+		if (typeof amount !== 'number' || amount <= 0)
+			throw new BadRequestError('El monto del pago debe ser un número mayor a cero');
+
+		let orderData: any = null;
+		let remaining_balance: number | null = null;
 		const exchangeRatesDict = quoteData.exchange_rates || {};
 
 		// Inicia transaccion para registrar el pago con seguridad
@@ -670,13 +706,13 @@ export class OrdersService extends BaseService {
 				quoteData.status = SessionStatus.PENDING_BILLING;
 				await this._redis.set(userQueueKey, JSON.stringify(quoteData), 'EX', 86400);
 
-				RealtimeProvider.getInstance().emitToRoom(`order_${order_id}`, 'billing_required', {
+				RealtimeProvider.getInstance().emitToRoom(`usr_${session.userId}`, 'billing_required', {
 					orderId: order_id,
 					qrCode: orderData.qr_code,
 				});
 			} else {
 				await this._redis.del(userQueueKey);
-				RealtimeProvider.getInstance().emitToRoom(`order_${order_id}`, 'payment_success', {
+				RealtimeProvider.getInstance().emitToRoom(`usr_${session.userId}`, 'payment_success', {
 					orderId: order_id,
 					qrCode: orderData.qr_code,
 				});
@@ -719,13 +755,16 @@ export class OrdersService extends BaseService {
 
 			// Envia correo de confirmacion de compra si la orden se completó
 			if (orderData.order_status === 4) {
-				QueueProvider.getInstance()
-					.add('order-email-queue', 'send-order-email', {
-						orderId: order_id,
-						qrCode: orderData.qr_code,
-						email: session.email,
-					})
-					.catch((err) => console.error(err));
+				const customerEmail = await this._getCustomerEmail(orderData.customer, session);
+				if (customerEmail) {
+					QueueProvider.getInstance()
+						.add('order-email-queue', 'send-order-email', {
+							orderId: order_id,
+							qrCode: orderData.qr_code,
+							email: customerEmail,
+						})
+						.catch((err) => console.error(err));
+				}
 			}
 		} else if (remaining_balance !== null && remaining_balance > 0) {
 			return { remaining_balance, message: 'Pago parcial registrado exitosamente' };
@@ -758,7 +797,11 @@ export class OrdersService extends BaseService {
 		await this._orders.transaction(async (transaction: Transaction) => {
 			const order = await this._orders.getOne(
 				{ id: orderId },
-				{ transaction, lock: transaction.LOCK.UPDATE, relations: [{ association: '_Customers', nested: [{ association: '_People' }] }] }
+				{
+					transaction,
+					lock: transaction.LOCK.UPDATE,
+					relations: [{ association: '_Customers', nested: [{ association: '_People' }] }],
+				},
 			);
 
 			if (!order) throw new NotFoundError('Orden no encontrada.');
@@ -768,7 +811,9 @@ export class OrdersService extends BaseService {
 
 			if (use_customer_data) {
 				if (!order._Customers || !order._Customers._People) {
-					throw new BadRequestError('La orden no tiene un cliente asociado para extraer los datos de facturación.');
+					throw new BadRequestError(
+						'La orden no tiene un cliente asociado para extraer los datos de facturación.',
+					);
 				}
 				const person = order._Customers._People;
 				billingData = {
@@ -788,25 +833,40 @@ export class OrdersService extends BaseService {
 		await this._redis.del(userQueueKey);
 		const finalOrder = await this._orders.getById(orderId);
 
-		RealtimeProvider.getInstance().emitToRoom(`order_${orderId}`, 'payment_success', {
+		RealtimeProvider.getInstance().emitToRoom(`usr_${session.userId}`, 'payment_success', {
 			orderId: orderId,
 			qrCode: finalOrder.qr_code,
 		});
 
 		// Envia correo
-		QueueProvider.getInstance()
-			.add('order-email-queue', 'send-order-email', {
-				orderId: orderId,
-				qrCode: finalOrder.qr_code,
-				email: session.email,
-			})
-			.catch((err) => console.error(err));
+		const customerEmail = await this._getCustomerEmail(finalOrder.customer, session);
+		if (customerEmail) {
+			QueueProvider.getInstance()
+				.add('order-email-queue', 'send-order-email', {
+					orderId: orderId,
+					qrCode: finalOrder.qr_code,
+					email: customerEmail,
+				})
+				.catch((err) => console.error(err));
+		}
 
 		return { message: 'Facturación completada exitosamente y orden finalizada.' };
 	}
 
-	async getOrderById(id: number) {
-		return await this._orders.getById(id);
+	async getOrderById(id: number | string, session: any) {
+		const orderId = Number(id);
+
+		if (isNaN(orderId)) throw new BadRequestError('El ID de la orden debe ser un número válido');
+
+		const order = await this._orders.getById(orderId);
+		if (!order) throw new NotFoundError('Orden no encontrada');
+
+		// Si el usuario no tiene rol (es cliente), debe ser dueño de la orden
+		if (!session.roleCode)
+			if (order.customer !== session.customerId)
+				throw new ForbiddenError('No tienes permiso para ver esta orden');
+
+		return order;
 	}
 
 	async getConcessionsByQr(qrCode: string) {
@@ -1339,7 +1399,7 @@ export class OrdersService extends BaseService {
 	private async _generateInvoice(order_id: number, billingData: any, cinema: number, transaction: Transaction) {
 		const sequence = await this._invoiceSequences.getOne(
 			{ cinema },
-			{ lock: transaction.LOCK.UPDATE, transaction }
+			{ lock: transaction.LOCK.UPDATE, transaction },
 		);
 
 		if (!sequence) {
@@ -1357,13 +1417,11 @@ export class OrdersService extends BaseService {
 				billing_name: billingData.name,
 				billing_address: billingData.address || '',
 			},
-			{ transaction }
+			{ transaction },
 		);
 
-		await this._invoiceSequences.update(
-			{ id: sequence.id },
-			{ current_value: nextValue },
-			{ transaction }
-		);
+		await this._invoiceSequences.update({ id: sequence.id }, { current_value: nextValue }, { transaction });
 	}
 }
+
+export default new OrdersService();

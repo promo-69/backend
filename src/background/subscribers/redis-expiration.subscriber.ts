@@ -13,8 +13,6 @@ export default async function redisExpirationSubscriber() {
 		Logger.warn(`[Redis Expiration] No se pudo configurar notify-keyspace-events de forma automática. Asegúrese de que esté habilitado en redis.conf`);
 	}
 
-	const seatLockService = new SeatLockService();
-
 	subscriber.on('message', (channel, message) => {
 		// message es el nombre de la key expirada
 		if (message.startsWith('queue:usr:')) {

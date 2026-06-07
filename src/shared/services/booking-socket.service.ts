@@ -26,6 +26,31 @@ export class BookingSocketService {
 				}
 
 				const quoteData = JSON.parse(quoteRaw);
+
+				// Verificar si el usuario ya estaba en otra función y limpiarla
+				const previousShowtimeIdRaw = await redis.get(`ws:context:usr:${user.userId}`);
+				if (previousShowtimeIdRaw && Number(previousShowtimeIdRaw) !== Number(data.showtimeId)) {
+					const prevShowtimeId = Number(previousShowtimeIdRaw);
+					socket.leave(`showtime_${prevShowtimeId}`);
+					
+					const lockedSeatsKey = `usr:${user.userId}:showtime:${prevShowtimeId}:locked_seats`;
+					const seatIdsRaw = await redis.smembers(lockedSeatsKey);
+
+					if (seatIdsRaw && seatIdsRaw.length > 0) {
+						await redis.del(lockedSeatsKey);
+						const seatIds = seatIdsRaw.map(Number);
+						const pipeline = redis.pipeline();
+						for (const seatId of seatIds) {
+							pipeline.del(`lock:showtime:${prevShowtimeId}:seat:${seatId}`);
+							pipeline.zrem(`showtime:${prevShowtimeId}:locked_seats`, String(seatId));
+						}
+						await pipeline.exec();
+						RealtimeProvider.getInstance().emitToRoom(`showtime_${prevShowtimeId}`, 'seats_unlocked', {
+							seatIds,
+						});
+					}
+				}
+
 				const showtime = await (Database.repository('main', 'showtimes') as any).getById(data.showtimeId, {
 					relations: [{ association: '_RoomBookings', nested: [{ association: '_Rooms' }] }],
 				});
