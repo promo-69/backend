@@ -1,6 +1,7 @@
 import { BaseService } from '@bases/service.base.js';
 import { Database } from '@database/index.js';
 import { NotFoundError, ValidationError } from '@errors';
+import { PricingCacheService } from '@services/pricing-cache.service.js';
 
 // Reglas del constraint chk_price_modifiers_logic
 // scope 1 (Boletería):  product_category, product, combo deben ser NULL
@@ -161,6 +162,7 @@ export class PriceModifiersService extends BaseService {
 			target_currency_condition: body.targetCurrencyCondition ?? false,
 		});
 
+		await PricingCacheService.invalidateCache();
 		return createdModifier;
 	}
 
@@ -194,6 +196,7 @@ export class PriceModifiersService extends BaseService {
 			throw new ValidationError('No se proporcionaron datos para actualizar', []);
 
 		await this._priceModifiers.update(id, updateData);
+		await PricingCacheService.invalidateCache();
 		return null;
 	}
 
@@ -213,6 +216,7 @@ export class PriceModifiersService extends BaseService {
 		if (!modifier) throw new NotFoundError('Regla de precio no encontrada');
 
 		await this._priceModifiers.delete(id);
+		await PricingCacheService.invalidateCache();
 		return null;
 	}
 }

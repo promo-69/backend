@@ -1,7 +1,7 @@
 meta {
   name: Checkout Order
   type: http
-  seq: 2
+  seq: 3
 }
 
 post {
@@ -16,19 +16,18 @@ auth:bearer {
 
 body:json {
   {
-    "queue_id": "{{queueId}}",
     "concessions": [
-      { "line_type": 1, "product": 1, "quantity": 1 },
-      { "line_type": 1, "product": 2, "quantity": 3 }
-    ]
+      { "line_type": 1, "product": 2, "quantity": 1 },
+      { "line_type": 1, "product": 1, "quantity": 1 }
+    ],
+    "tickets": []
   }
 }
 
 script:post-response {
   if (res.status === 200 || res.status === 201) {
     const data = res.getBody();
-    if (data.data && data.data.order_id) {
-      bru.setEnvVar("orderId", data.data.order_id);
+    if (data.data && data.data.total_amount_base_currency) {
       bru.setEnvVar("orderTotalBase", data.data.total_amount_base_currency);
     }
   }

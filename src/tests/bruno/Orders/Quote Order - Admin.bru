@@ -1,7 +1,7 @@
 meta {
-  name: Quote Order
+  name: Quote Order - Admin
   type: http
-  seq: 1
+  seq: 2
 }
 
 post {
@@ -16,7 +16,8 @@ auth:bearer {
 
 body:json {
   {
-    "cinema": 1
+    "cinema": 1,
+    "customerId": 1
   }
 }
 

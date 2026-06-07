@@ -1,6 +1,6 @@
 import { CacheDatabaseProvider } from '@providers/cache-database.provider.js';
 import { Logger } from '@utils/logger.util.js';
-import { SeatLockService } from '@services/seat-lock.service.js';
+import seatLockService from '@services/seat-lock.service.js';
 
 export default async function redisExpirationSubscriber() {
 	const redisClient = CacheDatabaseProvider.getInstance().client;
@@ -19,14 +19,13 @@ export default async function redisExpirationSubscriber() {
 		// message es el nombre de la key expirada
 		if (message.startsWith('queue:usr:')) {
 			const parts = message.split(':');
-			// queue:usr:{user_id}:id:{queue_id}
+			// queue:usr:{user_id}
 			const userId = Number(parts[2]);
-			const queueId = parts[4];
 			
-			if (queueId && userId) {
-				Logger.info(`[Redis Expiration] Sesión de compra expirada: queue_id=${queueId}`);
-				seatLockService.handleQuoteExpiration(queueId, userId).catch((err: any) => {
-					Logger.error(`Error manejando expiración de quote ${queueId}:`, err);
+			if (userId && !isNaN(userId)) {
+				Logger.info(`[Redis Expiration] Sesión de compra expirada: usr=${userId}`);
+				seatLockService.handleQuoteExpiration(userId).catch((err: any) => {
+					Logger.error(`Error manejando expiración de quote del usuario ${userId}:`, err);
 				});
 			}
 		} else if (message.startsWith('lock:showtime:')) {
@@ -37,7 +36,7 @@ export default async function redisExpirationSubscriber() {
 			
 			if (showtimeId && seatId) {
 				Logger.info(`[Redis Expiration] Butaca liberada por TTL: showtime=${showtimeId}, seat=${seatId}`);
-				seatLockService.handleSeatExpiration(showtimeId, seatId, '').catch((err: any) => {
+				seatLockService.handleSeatExpiration(showtimeId, seatId).catch((err: any) => {
 					Logger.error(`Error manejando expiración de asiento ${seatId}:`, err);
 				});
 			}

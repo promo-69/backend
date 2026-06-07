@@ -12,26 +12,26 @@ router.get('/', optionalAuth, showtimesController.findAll);
 
 // Rutas administrativas fijas (Backoffice)
 router.get(
-    '/admin/movies',
-    verifySession,
-    verifyPermission('CRUD:READ:SHOWTIMES'),
-    showtimesController.getAllMoviesByLifecycle,
+	'/admin/movies',
+	verifySession,
+	verifyPermission('CRUD:READ:SHOWTIMES'),
+	showtimesController.getAllMoviesByLifecycle,
 );
 
 router.get('/admin', verifySession, verifyPermission('CRUD:READ:SHOWTIMES'), showtimesController.getAllShowtimesAdmin);
 
 router.get(
-    '/admin/movies/:movieId/showtimes',
-    verifySession,
-    verifyPermission('CRUD:READ:SHOWTIMES'),
-    showtimesController.getShowtimesByMovieAdmin,
+	'/admin/movies/:movieId/showtimes',
+	verifySession,
+	verifyPermission('CRUD:READ:SHOWTIMES'),
+	showtimesController.getShowtimesByMovieAdmin,
 );
 
 router.get(
-    '/admin/cinemas/:cinemaId/showtimes',
-    verifySession,
-    verifyPermission('CRUD:READ:SHOWTIMES'),
-    showtimesController.getShowtimesByCinemaAdmin,
+	'/admin/cinemas/:cinemaId/showtimes',
+	verifySession,
+	verifyPermission('CRUD:READ:SHOWTIMES'),
+	showtimesController.getShowtimesByCinemaAdmin,
 );
 
 router.post('/', verifySession, verifyPermission('CRUD:CREATE:SHOWTIMES'), showtimesController.create);

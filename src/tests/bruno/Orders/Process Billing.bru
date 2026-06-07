@@ -1,0 +1,25 @@
+meta {
+  name: Process Billing
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/orders/billing
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "orderId": {{orderId}},
+    "use_customer_data": false,
+    "billing_name": "Juan Perez",
+    "billing_document": "V-12345678",
+    "billing_address": "Av Principal"
+  }
+}

@@ -21,6 +21,9 @@ paths:
               properties:
                 cinema:
                   type: integer
+                customerId:
+                  type: integer
+                  description: "Requerido si la venta es en taquilla (empleado)"
       responses:
         '201':
           description: "Cotización creada"
@@ -38,11 +41,7 @@ paths:
           application/json:
             schema:
               type: object
-              required:
-                - queue_id
               properties:
-                queue_id:
-                  type: string
                 concessions:
                   type: array
                   items:
@@ -55,6 +54,17 @@ paths:
                       combo:
                         type: integer
                       quantity:
+                        type: integer
+                tickets:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      booking:
+                        type: integer
+                      seatId:
+                        type: integer
+                      audienceCategoryId:
                         type: integer
       responses:
         '201':
@@ -74,13 +84,10 @@ paths:
             schema:
               type: object
               required:
-                - order_id
                 - payment_method
                 - amount
                 - currency
               properties:
-                order_id:
-                  type: integer
                 payment_method:
                   type: integer
                 amount:
@@ -92,6 +99,37 @@ paths:
       responses:
         '201':
           description: "Pago registrado"
+  /api/v1/orders/billing:
+    post:
+      summary: "Completar Facturación (Solo Empleados)"
+      description: "Genera la factura de una orden pagada, usando datos provistos o del cliente asociado"
+      tags:
+        - Orders
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - orderId
+                - use_customer_data
+              properties:
+                orderId:
+                  type: integer
+                use_customer_data:
+                  type: boolean
+                billing_name:
+                  type: string
+                billing_document:
+                  type: string
+                billing_address:
+                  type: string
+      responses:
+        '200':
+          description: "Facturación completada"
   /api/v1/orders/{id}:
     get:
       summary: "Obtener Orden"
@@ -166,3 +204,35 @@ paths:
       responses:
         '200':
           description: "Beneficio consumido"
+  /api/v1/orders/session:
+    delete:
+      summary: "Cancelar Sesión de Compra"
+      description: "Cancela una sesión de compra y libera los asientos"
+      tags:
+        - Orders
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: "Sesión de compra cancelada exitosamente y recursos devueltos"
+    get:
+      summary: "Obtener Estado de la Sesión"
+      description: "Obtiene el estado actual de la sesión de compra (cotización)"
+      tags:
+        - Orders
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: "Estado de la sesión"
+  /api/v1/orders/session/details:
+    get:
+      summary: "Obtener Detalles de la Sesión"
+      description: "Obtiene detalles de precios e inventario para una sesión en curso"
+      tags:
+        - Orders
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: "Detalles de la sesión en curso"

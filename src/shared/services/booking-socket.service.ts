@@ -1,5 +1,5 @@
 import { RealtimeProvider } from '@providers/realtime.provider.js';
-import { SeatLockService } from './seat-lock.service.js';
+import seatLockService from '@services/seat-lock.service.js';
 import { Logger } from '@utils/logger.util.js';
 import { CacheDatabaseProvider } from '@providers/cache-database.provider.js';
 import { Database } from '@database/index.js';
@@ -92,7 +92,6 @@ export class BookingSocketService {
 				if (!showtimeIdRaw) throw new Error('No estás conectado a ninguna función');
 				const showtimeId = Number(showtimeIdRaw);
 
-				const seatLockService = new SeatLockService();
 				await seatLockService.lockSeat(showtimeId, data.seatId, user.userId, socket.id);
 
 				await redis.sadd(`usr:${user.userId}:showtime:${showtimeId}:locked_seats`, String(data.seatId));
@@ -121,7 +120,6 @@ export class BookingSocketService {
 				if (!showtimeIdRaw) return;
 				const showtimeId = Number(showtimeIdRaw);
 
-				const seatLockService = new SeatLockService();
 				const unlocked = await seatLockService.unlockSeat(showtimeId, data.seatId, user.userId);
 
 				if (unlocked) {

@@ -108,18 +108,15 @@ export class AuthMiddleware {
 					return [parts[0], parts.slice(1).join('=')];
 				}),
 			);
-			if (cookies[cookieName]) {
-				token = cookies[cookieName];
-			}
+			if (cookies[cookieName]) token = cookies[cookieName];
 		}
 
 		if (token) return token;
 
 		const authFallback = socket.handshake?.auth?.token || socket.handshake?.headers?.authorization;
 		if (typeof authFallback === 'string') {
-			if (authFallback.toLowerCase().startsWith('bearer ')) {
-				return authFallback.slice(7);
-			}
+			if (authFallback.toLowerCase().startsWith('bearer ')) return authFallback.slice(7);
+
 			return authFallback;
 		}
 

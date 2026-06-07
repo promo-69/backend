@@ -7,13 +7,14 @@ export class SeatLockService {
 		return CacheDatabaseProvider.getInstance().client;
 	}
 
-	async handleQuoteExpiration(queueId: string, userId: number) {
-		RealtimeProvider.getInstance().emitToRoom(`queue_${queueId}`, 'quote_expired', {});
+	async handleQuoteExpiration(userId: number) {
+		RealtimeProvider.getInstance().emitToRoom(`usr_${userId}`, 'quote_expired', {});
 	}
 
-	async handleSeatExpiration(showtimeId: number, seatId: number, queueId: string) {
+	async handleSeatExpiration(showtimeId: number, seatId: number) {
+		const redis = CacheDatabaseProvider.getInstance().client;
+		await redis.zrem(`showtime:${showtimeId}:locked_seats`, String(seatId));
 		RealtimeProvider.getInstance().emitToRoom(`showtime_${showtimeId}`, 'seats_unlocked', { seatIds: [seatId] });
-		if (queueId) RealtimeProvider.getInstance().emitToRoom(`queue_${queueId}`, 'seat_lock_expired', { seatId, showtimeId });
 	}
 
 	/**
@@ -50,3 +51,5 @@ export class SeatLockService {
 		return false;
 	}
 }
+
+export default new SeatLockService();

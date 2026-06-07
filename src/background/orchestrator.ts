@@ -18,6 +18,11 @@ export async function startBackgroundProcesses(): Promise<void> {
 	try {
 		const promises = [];
 
+		const startups = import.meta.glob(['./startups/*.startup.{ts,js}', '!./startups/__*.{ts,js}'], {
+			eager: true,
+		}) as Record<string, any>;
+		for (const path in startups) promises.push(manageInit(startups[path].default, path));
+
 		const subscribers = import.meta.glob(['./subscribers/*.subscriber.{ts,js}', '!./subscribers/__*.{ts,js}'], {
 			eager: true,
 		}) as Record<string, any>;

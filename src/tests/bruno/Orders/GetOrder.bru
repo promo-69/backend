@@ -1,7 +1,7 @@
 meta {
   name: Get Order Detail
   type: http
-  seq: 4
+  seq: 8
 }
 
 get {
@@ -12,4 +12,8 @@ get {
 
 auth:bearer {
   token: {{accessToken}}
+}
+
+vars:pre-request {
+  orderId: 2
 }

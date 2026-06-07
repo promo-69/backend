@@ -17,18 +17,23 @@ export class ShoppingSessionService {
 		return Database.repository('main', 'tickets') as any;
 	}
 
-	async cancelShoppingSession(session: any) {
+	async getActiveQuote(userId: number) {
+		const userQueueKey = `queue:usr:${userId}`;
+		const quoteRaw = await this._redis.get(userQueueKey);
+		if (!quoteRaw) return null;
+		return JSON.parse(quoteRaw);
+	}
+
+	async clearSessionAndLocks(session: any) {
 		const userQueueKey = `queue:usr:${session.userId}`;
+		const quoteRaw = await this._redis.get(userQueueKey);
+		
 		await this._redis.del(userQueueKey);
 
-		const customerId = Number(session.customerId);
-
-		// Cancela cualquier orden pendiente de este usuario
-		const pendingOrders = await this._orders.getAll({ count: false }, { customer: customerId, order_status: 1 });
-
-		for (const order of pendingOrders) {
-			await this._orders.update({ id: order.id }, { order_status: 3 });
-			await this._tickets.delete({ order: order.id });
+		let customerId = session.customerId ? Number(session.customerId) : null;
+		if (quoteRaw) {
+			const quoteData = JSON.parse(quoteRaw);
+			if (quoteData.customerId) customerId = Number(quoteData.customerId);
 		}
 
 		// Libera todos los asientos bloqueados por este usuario en Redis
@@ -49,10 +54,10 @@ export class ShoppingSessionService {
 			}
 		}
 
-		return { message: 'Sesión de compra cancelada exitosamente' };
+		return { success: true, customerId, sessionFound: !!quoteRaw };
 	}
 
-	async expirePendingOrder(orderId: number, queueId: string) {
+	async expirePendingOrder(orderId: number, userId: number) {
 		await this._orders.transaction(async (transaction: Transaction) => {
 			const order = await this._orders.getOne({ id: orderId }, { transaction, lock: transaction.LOCK.UPDATE });
 
@@ -60,20 +65,20 @@ export class ShoppingSessionService {
 
 			await this._orders.update({ id: orderId }, { order_status: 3 }, { transaction }); // Cancelado
 
-		// Requerimos los tickets para liberar los asientos masivamente
-		const tickets = await this._tickets.getAll(
-			{
-				count: false,
-				relations: [{ association: '_RoomBookings', nested: [{ association: '_Showtimes' }] }],
-			},
-			{ order: orderId },
-			{ transaction },
-		);
+			// Requerimos los tickets para liberar los asientos masivamente
+			const tickets = await this._tickets.getAll(
+				{
+					count: false,
+					relations: [{ association: '_RoomBookings', nested: [{ association: '_Showtimes' }] }],
+				},
+				{ order: orderId },
+				{ transaction },
+			);
 
-		await this._tickets.delete({ order: orderId }, { transaction });
+			await this._tickets.delete({ order: orderId }, { transaction });
 
-		Logger.info(` Orden ${orderId} expiró y fue cancelada.`);
-		RealtimeProvider.getInstance().emitToRoom(`queue_${queueId}`, 'quote_expired', { orderId });
+			Logger.info(` Orden ${orderId} expiró y fue cancelada.`);
+			RealtimeProvider.getInstance().emitToRoom(`usr_${userId}`, 'quote_expired', { orderId });
 
 		const uniqueShowtimes = new Set<number>();
 		const ticketsByShowtime = new Map<number, number[]>();
@@ -108,3 +113,5 @@ export class ShoppingSessionService {
 	});
 }
 }
+
+export default new ShoppingSessionService();

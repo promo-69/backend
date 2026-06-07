@@ -22,6 +22,10 @@ export default class TicketsModel extends SequelizeModelBase {
 				allowNull: false,
 				type: DataTypes.INTEGER,
 			},
+			audience_category: {
+				allowNull: false,
+				type: DataTypes.INTEGER,
+			},
 			original_price: {
 				allowNull: false,
 				type: DataTypes.DECIMAL(10, 2),
@@ -93,6 +97,17 @@ export default class TicketsModel extends SequelizeModelBase {
 				type: 'hasMany',
 				target: 'Seats',
 				options: { foreignKey: 'seat', targetKey: 'id', as: '_Tickets' },
+			},
+			{
+				type: 'belongsTo',
+				target: 'AudienceCategories',
+				options: { foreignKey: 'audience_category', targetKey: 'id', as: '_AudienceCategories' },
+			},
+			{
+				inversed: true,
+				type: 'hasMany',
+				target: 'AudienceCategories',
+				options: { foreignKey: 'audience_category', targetKey: 'id', as: '_Tickets' },
 			},
 			{
 				type: 'belongsTo',

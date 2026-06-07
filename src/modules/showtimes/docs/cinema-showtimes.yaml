@@ -149,7 +149,9 @@
             (Solo funciones futuras, no aplica filtro onlyFuture)
         tags:
             - Showtimes por Sucursal
-        security: []
+        security:
+            - bearerAuth: []
+            - {}
         parameters:
             - in: path
               name: cinemaId
@@ -247,6 +249,17 @@
                                                     earned_loyalty_points:
                                                         type: integer
                                                         nullable: true
+                                                    pricing:
+                                                        type: object
+                                                        properties:
+                                                            base_price:
+                                                                type: number
+                                                            final_price:
+                                                                type: number
+                                                            applied_modifiers:
+                                                                type: array
+                                                                items:
+                                                                    type: object
             '404':
                 description: Película no encontrada o sin funciones
 
@@ -255,7 +268,9 @@
         summary: 'PÚBLICO — Detalle de una función en la sucursal'
         tags:
             - Showtimes por Sucursal
-        security: []
+        security:
+            - bearerAuth: []
+            - {}
         parameters:
             - in: path
               name: cinemaId
@@ -278,7 +293,9 @@
         summary: 'PÚBLICO — Mapa de asientos en tiempo real de una función de la sucursal'
         tags:
             - Showtimes por Sucursal
-        security: []
+        security:
+            - bearerAuth: []
+            - {}
         parameters:
             - in: path
               name: cinemaId

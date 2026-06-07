@@ -11,6 +11,7 @@ router.delete('/session', verifySession, controller.cancelShoppingSession);
 router.post('/quote', verifySession, controller.createQuote);
 router.post('/checkout', verifySession, controller.checkout);
 router.post('/payments', verifySession, controller.processPayment);
+router.post('/billing', verifySession, controller.processBilling);
 router.get('/:id', controller.getOrderById);
 router.get(
 	'/qr/:qrCode/concessions',

@@ -12,7 +12,9 @@
             - `page`, `limit` – paginación.
         tags:
             - Showtimes
-        security: []
+        security:
+            - bearerAuth: []
+            - {}
         parameters:
             - in: query
               name: date
@@ -128,6 +130,26 @@
                                                     earned_loyalty_points:
                                                         type: integer
                                                         nullable: true
+                                                    pricing:
+                                                        type: object
+                                                        properties:
+                                                            base_price:
+                                                                type: number
+                                                            final_price:
+                                                                type: number
+                                                            applied_modifiers:
+                                                                type: array
+                                                                items:
+                                                                    type: object
+                                                                    properties:
+                                                                        name:
+                                                                            type: string
+                                                                        amount:
+                                                                            type: number
+                                                                        type:
+                                                                            type: string
+                                                                        description:
+                                                                            type: string
                                 metadata:
                                     type: object
                                     properties:
@@ -210,7 +232,9 @@
         summary: 'PÚBLICO — Detalle de una función'
         tags:
             - Showtimes
-        security: []
+        security:
+            - bearerAuth: []
+            - {}
         parameters:
             - in: path
               name: id
@@ -284,6 +308,17 @@
                                         earned_loyalty_points:
                                             type: integer
                                             nullable: true
+                                        pricing:
+                                            type: object
+                                            properties:
+                                                base_price:
+                                                    type: number
+                                                final_price:
+                                                    type: number
+                                                applied_modifiers:
+                                                    type: array
+                                                    items:
+                                                        type: object
             '404':
                 description: Función no encontrada
 
@@ -369,7 +404,9 @@
             con estado calculado (available, locked, sold, maintenance).
         tags:
             - Showtimes
-        security: []
+        security:
+            - bearerAuth: []
+            - {}
         parameters:
             - in: path
               name: id
@@ -445,5 +482,16 @@
                                                             - locked
                                                             - sold
                                                             - maintenance
+                                                    pricing:
+                                                        type: object
+                                                        properties:
+                                                            base_price:
+                                                                type: number
+                                                            final_price:
+                                                                type: number
+                                                            applied_modifiers:
+                                                                type: array
+                                                                items:
+                                                                    type: object
             '404':
                 description: Función no encontrada

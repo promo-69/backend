@@ -16,6 +16,8 @@ import { randomUUID } from 'crypto';
 import { JWTUtil } from '@utils/jwt.util.js';
 import { AppConfig } from '@config/app.config.js';
 import { Logger } from '@utils/logger.util.js';
+import { PricingService } from '@services/pricing.service.js';
+import shoppingSessionService from '@services/shopping-session.service.js';
 
 export enum LineType {
 	PRODUCT = 1,
@@ -27,10 +29,11 @@ export enum OrderStatus {
 	CANCELLED = 3,
 	COMPLETED = 4,
 }
-export enum OrderState {
-	PENDING = 'pending',
-	PAYMENT_PENDING = 'payment_pending',
-	PROCESSING = 'processing',
+export enum SessionStatus {
+	PENDING_ORDER = 'pending_order',
+	PENDING_PAYMENT = 'pending_payment',
+	PENDING_BILLING = 'pending_billing',
+	COMPLETED = 'completed',
 }
 
 export class OrdersService extends BaseService {
@@ -55,6 +58,9 @@ export class OrdersService extends BaseService {
 	}
 	private get _exchangeRates() {
 		return Database.repository('main', 'exchange-rates') as any;
+	}
+	private get _customers() {
+		return Database.repository('main', 'customers') as any;
 	}
 	private get _inventories() {
 		return Database.repository('main', 'inventories') as any;
@@ -83,8 +89,11 @@ export class OrdersService extends BaseService {
 	private get _appliedPriceModifiers() {
 		return Database.repository('main', 'applied-price-modifiers') as any;
 	}
-	private get _customers() {
-		return Database.repository('main', 'customers') as any;
+	private get _invoices() {
+		return Database.repository('main', 'invoices') as any;
+	}
+	private get _invoiceSequences() {
+		return Database.repository('main', 'invoice-sequences') as any;
 	}
 	private get _loyaltyLedgers() {
 		return Database.repository('main', 'loyalty-ledgers') as any;
@@ -96,16 +105,31 @@ export class OrdersService extends BaseService {
 	 * Crea una cotizacion temporal para iniciar el proceso de compra.
 	 * Bloquea al usuario para tener una sola sesion activa.
 	 */
-	async createQuote(body: { cinema: number }, session: any) {
-		const { cinema } = body;
+	async createQuote(body: { cinema: number; customerId?: number }, session: any) {
+		const { cinema, customerId } = body;
 		if (!cinema) throw new ValidationError('La sucursal es requerida', []);
+
+		if (session.roleCode != null && !customerId)
+			throw new ValidationError(
+				'El ID del cliente (customerId) es requerido para crear cotizaciones desde taquilla',
+				[],
+			);
+
+		if (session.roleCode == null && customerId)
+			throw new ForbiddenError('No tienes permisos para comprar en nombre de otro cliente');
+
+		const finalCustomerId = customerId || session.customerId;
+		if (finalCustomerId) {
+			const customerExists = await this._customers.count({ id: finalCustomerId });
+			if (!customerExists)
+				throw new NotFoundError('El ID de cliente proporcionado no existe en la base de datos.');
+		}
 
 		// Verifica si el usuario ya tiene una sesion de compra activa
 		const userQueueKey = `queue:usr:${session.userId}`;
 		const existingQuote = await this._redis.get(userQueueKey);
 
-		if (existingQuote)
-			throw new ConflictError('Ya tienes una sesión activa');
+		if (existingQuote) throw new ConflictError('Ya tienes una sesión activa');
 
 		const cinemaData = await this._cinemas.count({ id: cinema });
 		if (!cinemaData) throw new NotFoundError('La sucursal no existe.');
@@ -125,11 +149,10 @@ export class OrdersService extends BaseService {
 		const createdAt = new Date();
 		const expiresAt = new Date(createdAt.getTime() + TTL_SECONDS * 1000);
 
-		const queueId = randomUUID();
 		const quoteData = {
-			queue_id: queueId,
-			status: OrderState.PENDING,
+			status: SessionStatus.PENDING_ORDER,
 			cinema,
+			customerId: customerId || session.customerId,
 			system_base_currency: systemBaseCurrencyId,
 			exchange_rates: exchangeRatesDict,
 			created_at: createdAt.toISOString(),
@@ -141,7 +164,6 @@ export class OrdersService extends BaseService {
 
 		// Devuelve los datos de la cotizacion creada
 		return {
-			queue_id: queueId,
 			cinema,
 			expires_in: TTL_SECONDS,
 			created_at: quoteData.created_at,
@@ -157,17 +179,15 @@ export class OrdersService extends BaseService {
 		const userQueueKey = `queue:usr:${session.userId}`;
 		const quoteRaw = await this._redis.get(userQueueKey);
 
-		if (!quoteRaw) {
-			throw new NotFoundError('No existe una sesión de compra activa.');
-		}
+		if (!quoteRaw) return null;
 
 		const currentTtl = await this._redis.ttl(userQueueKey);
 		const quoteData = JSON.parse(quoteRaw);
 
 		return {
-			queue_id: quoteData.queue_id,
 			cinema: quoteData.cinema,
 			status: quoteData.status,
+			customerId: quoteData.customerId,
 			created_at: quoteData.created_at,
 			expires_at: quoteData.expires_at,
 			expires_in: currentTtl,
@@ -180,31 +200,35 @@ export class OrdersService extends BaseService {
 	 */
 	async getShoppingSessionDetails(session: any) {
 		const sessionState = await this.getShoppingSessionState(session);
-		const customerId = Number(session.customerId);
+		if (!sessionState) return { session: null, order: null };
+		
+		const customerId = sessionState.customerId ? Number(sessionState.customerId) : null;
 
 		// Busca si ya existe una orden pendiente asociada al cliente
-		const pendingOrder = await this._orders.getOne(
-			{ customer: customerId, cinema: sessionState.cinema, order_status: 1 },
-			{
-				relations: [
+		const pendingOrder = customerId
+			? await this._orders.getOne(
+					{ customer: customerId, cinema: sessionState.cinema, order_status: 1 },
 					{
-						association: '_Tickets',
-						required: false,
-						nested: [{ association: '_Seats' }, { association: '_RoomBookings' }],
+						relations: [
+							{
+								association: '_Tickets',
+								required: false,
+								nested: [{ association: '_Seats' }, { association: '_RoomBookings' }],
+							},
+							{
+								association: '_OrderLines',
+								required: false,
+								nested: [{ association: '_Products' }, { association: '_Combos' }],
+							},
+							{
+								association: '_OrderTaxes',
+								required: false,
+								nested: [{ association: '_Taxes' }],
+							},
+						],
 					},
-					{
-						association: '_OrderLines',
-						required: false,
-						nested: [{ association: '_Products' }, { association: '_Combos' }],
-					},
-					{
-						association: '_OrderTaxes',
-						required: false,
-						nested: [{ association: '_Taxes' }],
-					},
-				],
-			},
-		);
+				)
+			: null;
 
 		return {
 			session: sessionState,
@@ -212,13 +236,33 @@ export class OrdersService extends BaseService {
 		};
 	}
 
+	async cancelShoppingSession(session: any) {
+		const { customerId, sessionFound } = await shoppingSessionService.clearSessionAndLocks(session);
+
+		if (!sessionFound) throw new NotFoundError('No existe una sesión de compra activa.');
+
+		if (customerId) {
+			await this._orders.transaction(async (transaction: Transaction) => {
+				const pendingOrders = await this._orders.getAll(
+					{ count: false, operation: { transaction } },
+					{ customer: customerId, order_status: 1 },
+				);
+
+				for (const order of pendingOrders) {
+					await this._orders.update({ id: order.id }, { order_status: 3 }, { transaction });
+				}
+			});
+		}
+
+		return { message: 'Sesión de compra cancelada exitosamente y recursos devueltos.' };
+	}
+
 	/**
 	 * Procesa los elementos de la compra confirmando inventarios y precios.
 	 * Registra la orden en la base de datos de manera transaccional.
 	 */
 	async processCheckout(body: any, session: any) {
-		const { queue_id, concessions = [], tickets = [] } = body;
-		if (!queue_id) throw new ValidationError('La sesión de compra es requerida', []);
+		const { concessions = [], tickets = [] } = body;
 
 		// Recupera y valida la sesion de compra activa
 		const userQueueKey = `queue:usr:${session.userId}`;
@@ -226,13 +270,14 @@ export class OrdersService extends BaseService {
 		if (!quoteRaw) throw new BadRequestError('La sesión de compra ha expirado o no existe.');
 
 		const quoteData = JSON.parse(quoteRaw);
-		if (quoteData.queue_id !== queue_id)
-			throw new ForbiddenError('El identificador de la sesión de compra es inválido.');
-		if (quoteData.status != OrderState.PENDING)
+		if (quoteData.status !== SessionStatus.PENDING_ORDER)
 			throw new ConflictError('La cotización no está disponible para ser procesada.');
 
+		if (quoteData.is_processing)
+			throw new ConflictError('La cotización ya está siendo procesada.');
+
 		// Marca la sesion como en proceso para evitar conflictos concurrentes
-		quoteData.status = OrderState.PROCESSING;
+		quoteData.is_processing = true;
 		const currentTtl = await this._redis.ttl(userQueueKey);
 		if (currentTtl <= 0) throw new ConflictError('La sesión de compra ha expirado o no existe.');
 		await this._redis.set(userQueueKey, JSON.stringify(quoteData), 'EX', currentTtl);
@@ -242,16 +287,46 @@ export class OrdersService extends BaseService {
 			const hasTickets = tickets.length > 0;
 			if (!hasTickets && !hasConcessions) throw new ValidationError('El carrito está completamente vacío.', []);
 
-			// Valida que los asientos sigan bloqueados por el usuario
+			// Valida y extiende que los asientos sigan bloqueados por el usuario
 			if (hasTickets) {
+				const uniqueBookingIds = [...new Set(tickets.map((t: any) => t.booking))];
+				const loadedBookings = uniqueBookingIds.length
+					? await (Database.repository('main', 'room-bookings') as any).getAll(
+							{ count: false, relations: [{ association: '_Showtimes' }] },
+							{ id: uniqueBookingIds },
+						)
+					: [];
+				const bookingsMap = new Map<number, any>(loadedBookings.map((b: any) => [b.id, b]));
+
+				const pipeline = this._redis.pipeline();
 				for (const ticket of tickets) {
-					const lockKey = `lock:booking:${ticket.booking}:seat:${ticket.seat}`;
+					const bookingDb = bookingsMap.get(ticket.booking);
+					const st = bookingDb
+						? Array.isArray(bookingDb._Showtimes)
+							? bookingDb._Showtimes[0]
+							: bookingDb._Showtimes
+						: null;
+					const showtimeId = st ? st.id : null;
+					if (!showtimeId) throw new NotFoundError('Showtime no encontrado para el boleto.');
+
+					const lockKey = `lock:showtime:${showtimeId}:seat:${ticket.seatId}`;
 					const lockedUserId = await this._redis.get(lockKey);
-					if (!lockedUserId || lockedUserId !== String(session.userId))
+					if (!lockedUserId || lockedUserId !== String(session.userId)) {
 						throw new ConflictError(
 							'Uno de los asientos seleccionados ya no está disponible o expiró su tiempo de reserva',
 						);
+					}
+
+					pipeline.expire(lockKey, 600);
+					pipeline.zadd(
+						`showtime:${showtimeId}:locked_seats`,
+						'XX',
+						'CH',
+						Date.now() + 600000,
+						String(ticket.seatId),
+					);
 				}
+				await pipeline.exec();
 			}
 
 			let createdOrder: any;
@@ -345,7 +420,7 @@ export class OrdersService extends BaseService {
 						: [];
 					const bookingsMap = new Map<number, any>(loadedBookings.map((b: any) => [b.id, b]));
 
-					const uniqueSeatIds = [...new Set(tickets.map((t: any) => t.seat))];
+					const uniqueSeatIds = [...new Set(tickets.map((t: any) => t.seatId))];
 					const loadedSeats = uniqueSeatIds.length
 						? await (Database.repository('main', 'seats') as any).getAll(
 								{ count: false, operation: { transaction } },
@@ -357,6 +432,7 @@ export class OrdersService extends BaseService {
 					// Calcula precios finales, impuestos y modificadores para boletos
 					const result = await this._calculateTicketsPrices(
 						tickets,
+						quoteData.cinema,
 						exchangeRatesDict,
 						activeModifiers,
 						activeTaxes,
@@ -371,7 +447,8 @@ export class OrdersService extends BaseService {
 
 				// Totaliza los montos y crea la cabecera de la orden
 				const totalBase = subtotalBase + taxesBase;
-				const customerId = Number(session.customerId);
+				const customerId = quoteData.customerId ? Number(quoteData.customerId) : null;
+
 				createdOrder = await this._orders.create(
 					{
 						customer: customerId,
@@ -402,7 +479,8 @@ export class OrdersService extends BaseService {
 			});
 
 			// Restaura el estado de la cotizacion para permitir el pago
-			quoteData.status = OrderState.PAYMENT_PENDING;
+			quoteData.status = SessionStatus.PENDING_PAYMENT;
+			quoteData.is_processing = false;
 			quoteData.order_id = createdOrder.id;
 			await this._redis.set(userQueueKey, JSON.stringify(quoteData), 'EX', 600);
 
@@ -411,19 +489,20 @@ export class OrdersService extends BaseService {
 				.add(
 					'order-expiration-queue',
 					'expire-pending-order',
-					{ orderId: createdOrder.id, queueId: queue_id },
+					{ orderId: createdOrder.id, userId: session.userId },
 					{ delay: 600_000 },
 				)
 				.catch((err) => console.error(err));
 
 			return {
-				order_id: createdOrder.id,
+				success: true,
 				subtotal_base_currency: createdOrder.subtotal_base_currency,
 				total_amount_base_currency: createdOrder.total_amount_base_currency,
 			};
 		} catch (error) {
 			// Revierte estado en caso de error para permitir reintentos
-			quoteData.status = OrderState.PENDING;
+			quoteData.status = SessionStatus.PENDING_ORDER;
+			quoteData.is_processing = false;
 			const currentTtl = await this._redis.ttl(userQueueKey);
 			if (currentTtl <= 0) throw new ConflictError('La sesión de compra ha expirado o no existe.');
 			await this._redis.set(userQueueKey, JSON.stringify(quoteData), 'EX', currentTtl);
@@ -445,7 +524,11 @@ export class OrdersService extends BaseService {
 		const quoteRaw = await this._redis.get(userQueueKey);
 		if (!quoteRaw) throw new BadRequestError('El tiempo para pagar ha expirado o no existe sesión de compra.');
 		const quoteData = JSON.parse(quoteRaw);
-		
+
+		if (quoteData.status !== SessionStatus.PENDING_PAYMENT) {
+			throw new BadRequestError('La sesión no se encuentra en la etapa de pago o ya ha sido procesada.');
+		}
+
 		const order_id = quoteData.order_id;
 		if (!order_id) throw new ForbiddenError('No hay una orden asociada a esta sesión de compra.');
 
@@ -507,19 +590,22 @@ export class OrdersService extends BaseService {
 			if (payment_method === 'points' || payment_method === 'cinepuntos') {
 				const ledgers = await this._loyaltyLedgers.getAll(
 					{ count: false, order: [['id', 'DESC']], limit: 1, operation: { transaction } },
-					{ customer: session.customerId }
+					{ customer: session.customerId },
 				);
 				const currentBalance = ledgers.length > 0 ? Number(ledgers[0].points_balance) : 0;
 				if (amount > currentBalance) {
 					throw new BadRequestError('Saldo de puntos insuficiente');
 				}
 				// Descontar puntos de una vez con un registro negativo
-				await this._loyaltyLedgers.create({
-					customer: session.customerId,
-					points: -amount,
-					points_balance: currentBalance - amount,
-					description: `Pago parcial de orden ${order_id}`,
-				}, { transaction });
+				await this._loyaltyLedgers.create(
+					{
+						customer: session.customerId,
+						points: -amount,
+						points_balance: currentBalance - amount,
+						description: `Pago parcial de orden ${order_id}`,
+					},
+					{ transaction },
+				);
 			} else if (payment_method === 'transfer' || payment_method === 'mobile_payment') {
 				// TODO: Validar referencia con Simulador API
 			} else if (payment_method === 'cash') {
@@ -549,25 +635,52 @@ export class OrdersService extends BaseService {
 
 				// Genera el codigo QR para el acceso
 				const qrCode = this._generateOrderQrCode(order, tickets, concessions);
-				await this._orders.update({ id: order_id }, { order_status: 2, qr_code: qrCode }, { transaction });
+
+				// Verifica el rol para decidir si se completa la orden directamente o se requiere facturacion manual
+				const isEmployee = !!session.roleCode;
+
+				if (isEmployee) {
+					await this._orders.update({ id: order_id }, { order_status: 2, qr_code: qrCode }, { transaction });
+					orderData = { ...order, qr_code: qrCode, order_status: 2, is_employee: true };
+				} else {
+					// Si es un cliente directo, genera factura automatica usando sus datos de sesion
+					const billingData = {
+						name: `${session.firstName} ${session.lastName}`.trim(),
+						document: session.documentNumber,
+						address: '',
+					};
+					await this._generateInvoice(order_id, billingData, order.cinema, transaction);
+					await this._orders.update({ id: order_id }, { order_status: 4, qr_code: qrCode }, { transaction });
+					orderData = { ...order, qr_code: qrCode, order_status: 4, is_employee: false };
+				}
 
 				// Actualiza inventario y otorga puntos de lealtad
 				if (concessions.length > 0)
 					await this._deductPhysicalInventory(concessions, order, session.userId, transaction);
 				await this._awardLoyaltyPoints(order, transaction);
-				orderData = { ...order, qr_code: qrCode, order_status: 2 };
 			} else {
 				remaining_balance = Number(order.total_amount_base_currency) - totalPaid;
 			}
 		});
 
-		// Acciones posteriores si la orden fue pagada completamente
-		if (orderData && orderData.order_status === 2) {
-			await this._redis.del(userQueueKey);
-			RealtimeProvider.getInstance().emitToRoom(`order_${order_id}`, 'payment_success', {
-				orderId: order_id,
-				qrCode: orderData.qr_code,
-			});
+		// Acciones posteriores si la orden fue pagada completamente (o requiere billing)
+		if (orderData && (orderData.order_status === 2 || orderData.order_status === 4)) {
+			if (orderData.is_employee) {
+				// Extiende la sesion 24 horas para obligar al empleado a facturar
+				quoteData.status = SessionStatus.PENDING_BILLING;
+				await this._redis.set(userQueueKey, JSON.stringify(quoteData), 'EX', 86400);
+
+				RealtimeProvider.getInstance().emitToRoom(`order_${order_id}`, 'billing_required', {
+					orderId: order_id,
+					qrCode: orderData.qr_code,
+				});
+			} else {
+				await this._redis.del(userQueueKey);
+				RealtimeProvider.getInstance().emitToRoom(`order_${order_id}`, 'payment_success', {
+					orderId: order_id,
+					qrCode: orderData.qr_code,
+				});
+			}
 
 			// Emite eventos de tiempo real para confirmar asientos vendidos permanentemente
 			if (orderData._Tickets && orderData._Tickets.length > 0) {
@@ -604,18 +717,92 @@ export class OrdersService extends BaseService {
 				}
 			}
 
-			// Envia correo de confirmacion de compra
-			QueueProvider.getInstance()
-				.add('order-email-queue', 'send-order-email', {
-					orderId: order_id,
-					qrCode: orderData.qr_code,
-					email: session.email,
-				})
-				.catch((err) => console.error(err));
+			// Envia correo de confirmacion de compra si la orden se completó
+			if (orderData.order_status === 4) {
+				QueueProvider.getInstance()
+					.add('order-email-queue', 'send-order-email', {
+						orderId: order_id,
+						qrCode: orderData.qr_code,
+						email: session.email,
+					})
+					.catch((err) => console.error(err));
+			}
 		} else if (remaining_balance !== null && remaining_balance > 0) {
 			return { remaining_balance, message: 'Pago parcial registrado exitosamente' };
 		}
 		return orderData;
+	}
+
+	async processBilling(body: any, session: any) {
+		const { orderId, use_customer_data, billing_name, billing_document, billing_address } = body;
+		const userQueueKey = `queue:usr:${session.userId}`;
+
+		// Verifica que el usuario sea empleado
+		if (!session.roleCode) {
+			throw new ForbiddenError('Solo los empleados pueden facturar ordenes mediante este endpoint.');
+		}
+
+		// Valida que la orden exista y pertenezca a la sesion o al menos este en proceso
+		const quoteRaw = await this._redis.get(userQueueKey);
+		if (!quoteRaw) throw new NotFoundError('No existe una sesión de compra activa.');
+		const quoteData = JSON.parse(quoteRaw);
+
+		if (quoteData.status !== SessionStatus.PENDING_BILLING) {
+			throw new BadRequestError('La sesión no se encuentra en etapa de facturación.');
+		}
+
+		if (quoteData.order_id !== orderId) {
+			throw new BadRequestError('El ID de la orden no coincide con la sesión actual.');
+		}
+
+		await this._orders.transaction(async (transaction: Transaction) => {
+			const order = await this._orders.getOne(
+				{ id: orderId },
+				{ transaction, lock: transaction.LOCK.UPDATE, relations: [{ association: '_Customers', nested: [{ association: '_People' }] }] }
+			);
+
+			if (!order) throw new NotFoundError('Orden no encontrada.');
+			if (order.order_status !== 2) throw new BadRequestError('La orden no se encuentra en estado pagada.');
+
+			let billingData = { name: billing_name, document: billing_document, address: billing_address };
+
+			if (use_customer_data) {
+				if (!order._Customers || !order._Customers._People) {
+					throw new BadRequestError('La orden no tiene un cliente asociado para extraer los datos de facturación.');
+				}
+				const person = order._Customers._People;
+				billingData = {
+					name: `${person.first_name} ${person.last_name}`.trim(),
+					document: person.document_number,
+					address: '',
+				};
+			} else if (!billing_name || !billing_document) {
+				throw new BadRequestError('Debe proporcionar nombre y documento para la factura.');
+			}
+
+			await this._generateInvoice(orderId, billingData, order.cinema, transaction);
+			await this._orders.update({ id: orderId }, { order_status: 4 }, { transaction });
+		});
+
+		// Limpia la sesion y emite el success final
+		await this._redis.del(userQueueKey);
+		const finalOrder = await this._orders.getById(orderId);
+
+		RealtimeProvider.getInstance().emitToRoom(`order_${orderId}`, 'payment_success', {
+			orderId: orderId,
+			qrCode: finalOrder.qr_code,
+		});
+
+		// Envia correo
+		QueueProvider.getInstance()
+			.add('order-email-queue', 'send-order-email', {
+				orderId: orderId,
+				qrCode: finalOrder.qr_code,
+				email: session.email,
+			})
+			.catch((err) => console.error(err));
+
+		return { message: 'Facturación completada exitosamente y orden finalizada.' };
 	}
 
 	async getOrderById(id: number) {
@@ -624,7 +811,7 @@ export class OrdersService extends BaseService {
 
 	async getConcessionsByQr(qrCode: string) {
 		const order = await this._orders.getOne({ qr_code: qrCode });
-		if (!order) throw new NotFoundError('Invalid QR code');
+		if (!order) throw new NotFoundError('Código QR inválido');
 
 		// Regla 1: Usar relations en lugar de include
 		const lines = await this._orderLines.getAll(
@@ -678,7 +865,7 @@ export class OrdersService extends BaseService {
 		// Valida los tiempos de expiracion por tipo de articulo
 		if (validation_type === 1) {
 			if (!payload.c_exp || Math.floor(Date.now() / 1000) > payload.c_exp) {
-				throw new BadRequestError('Código QR de confetería expirado o inválido');
+				throw new BadRequestError('Código QR de confitería expirado o inválido');
 			}
 		} else if (validation_type === 2) {
 			if (!payload.t_exp || Math.floor(Date.now() / 1000) > payload.t_exp) {
@@ -764,7 +951,14 @@ export class OrdersService extends BaseService {
 				const pendingLines = allPendingLines.filter((line: any) => line.product === inv.product);
 				let pendingQty = 0;
 				for (const line of pendingLines) pendingQty += line.quantity;
-				const availableStock = inv.stock - pendingQty;
+
+				const lastMovements = await this._inventoryMovements.getAll(
+					{ count: false, limit: 1, order: [['id', 'DESC']], operation: { transaction } },
+					{ inventory: inv.id },
+				);
+				const currentStock = lastMovements.length > 0 ? Number(lastMovements[0].resulting_stock) : 0;
+
+				const availableStock = currentStock - pendingQty;
 				if (availableStock < requiredQty)
 					throw new ConflictError(
 						`Inventario insuficiente para producto ID ${inv.product}. Disponible real: ${Math.max(0, availableStock)}`,
@@ -875,6 +1069,7 @@ export class OrdersService extends BaseService {
 
 	private async _calculateTicketsPrices(
 		tickets: any[],
+		cinemaId: number,
 		exchangeRatesDict: any,
 		activeModifiers: any[],
 		activeTaxes: any[],
@@ -896,40 +1091,35 @@ export class OrdersService extends BaseService {
 					? bookingDb._Showtimes[0]
 					: bookingDb._Showtimes
 				: null;
-			const seatData = seatsMap.get(ticket.seat) as any;
+			const seatData = seatsMap.get(ticket.seatId) as any;
 			const rawBasePrice = showtimeData ? Number(showtimeData.price || 0) : 0;
 			const currency = showtimeData ? showtimeData.currency || 1 : 1;
 			const rateObj = exchangeRatesDict[currency] || { rate: 1, id: 1 };
 			const basePrice = rawBasePrice * Number(rateObj.rate);
 			ticket.exchangeRateId = rateObj.id;
-			let finalUnitPrice = basePrice;
-			const modifiers = activeModifiers.filter((m: any) => {
-				if (m.modifier_scope !== 1) return false;
-				if (!this._isValidTime(m, currentDate, currentTime, currentDay)) return false;
-				if (m.booking_type && bookingDb && m.booking_type !== bookingDb.booking_type) return false;
-				if (m.movie && showtimeData && m.movie !== showtimeData.movie) return false;
-				if (m.projection_type && showtimeData && m.projection_type !== showtimeData.projection_type)
-					return false;
-				if (m.seat_category && seatData && m.seat_category !== seatData.seat_category) return false;
-				if (m.room_type && bookingDb?._Rooms && m.room_type !== bookingDb._Rooms.room_type) return false;
-				return true;
-			});
-			ticket.appliedModifiers = [];
-			for (const mod of modifiers) {
-				const opType = opTypesMap.get(mod.operation_type) || ({} as any);
-				let modValue = 0;
-				if (mod.is_percentage) {
-					modValue = basePrice * (Number(mod.value) / 100);
-				} else {
-					const modCurr = mod.currency || 1;
-					const modRate = exchangeRatesDict[modCurr] ? Number(exchangeRatesDict[modCurr].rate) : 1;
-					modValue = Number(mod.value) * modRate;
-				}
-				const netChange = opType.is_increment ? modValue : -modValue;
-				finalUnitPrice += netChange;
-				ticket.appliedModifiers.push({ price_modifier: mod.id, applied_amount_base_currency: netChange });
-			}
-			finalUnitPrice = Math.max(0, finalUnitPrice);
+
+			const context = {
+				cinemaId,
+				modifier_scope: 1,
+				booking_type: bookingDb?.booking_type,
+				movie: showtimeData?.movie,
+				projection_type: showtimeData?.projection_type,
+				seat_category: seatData?.seat_category,
+				room_type: bookingDb?._Rooms?.room_type,
+				audienceCategoryId: ticket.audienceCategoryId,
+			};
+
+			const { finalPrice, appliedModifiers } = PricingService.calculateFinalPrice(
+				basePrice,
+				context,
+				activeModifiers,
+				opTypesMap,
+				exchangeRatesDict,
+				{ currentDate, currentTime, currentDay },
+			);
+
+			ticket.appliedModifiers = appliedModifiers;
+			const finalUnitPrice = finalPrice;
 			subtotalBase += finalUnitPrice;
 			const ticketTaxes = activeTaxes.filter((t: any) => t.tax_scope === 1);
 			for (const rule of ticketTaxes) {
@@ -979,7 +1169,8 @@ export class OrdersService extends BaseService {
 		const ticketsToInsert = tickets.map((ticket: any) => ({
 			order: orderId,
 			booking: ticket.booking,
-			seat: ticket.seat,
+			seat: ticket.seatId,
+			audience_category: ticket.audienceCategoryId,
 			original_price: ticket.originalPrice,
 			price: ticket.finalPrice,
 			quoted_exchange_rate: ticket.exchangeRateId,
@@ -1041,14 +1232,15 @@ export class OrdersService extends BaseService {
 			);
 			if (!inv) continue;
 			const qty = requiredProducts[productId];
-			const newStock = Number(inv.stock) - qty;
-			if (newStock < 0)
-				throw new ConflictError(`Stock insuficiente para el producto ${productId}`, 'INSUFFICIENT_STOCK');
-			await this._inventories.update(inv.id, { stock: newStock }, { transaction });
 			const lastMovements = await this._inventoryMovements.getAll(
 				{ count: false, limit: 1, order: [['id', 'DESC']], operation: { transaction } },
 				{ inventory: inv.id },
 			);
+			const currentStock = lastMovements.length > 0 ? Number(lastMovements[0].resulting_stock) : 0;
+			const newStock = currentStock - qty;
+			if (newStock < 0)
+				throw new ConflictError(`Stock insuficiente para el producto ${productId}`, 'INSUFFICIENT_STOCK');
+
 			const unitCost = lastMovements.length > 0 ? Number(lastMovements[0].resulting_unit_cost_base_currency) : 0;
 			await this._inventoryMovements.create(
 				{
@@ -1142,5 +1334,36 @@ export class OrdersService extends BaseService {
 		if (t_exp) payload.t_exp = t_exp;
 		if (c_exp) payload.c_exp = c_exp;
 		return JWTUtil.generateToken(payload, secret, expiresInSeconds);
+	}
+
+	private async _generateInvoice(order_id: number, billingData: any, cinema: number, transaction: Transaction) {
+		const sequence = await this._invoiceSequences.getOne(
+			{ cinema },
+			{ lock: transaction.LOCK.UPDATE, transaction }
+		);
+
+		if (!sequence) {
+			throw new Error('Secuencia de facturación no configurada para esta sucursal');
+		}
+
+		const nextValue = sequence.current_value + 1;
+		const invoiceNumber = `${sequence.prefix}${nextValue.toString().padStart(6, '0')}`;
+
+		await this._invoices.create(
+			{
+				order: order_id,
+				invoice_number: invoiceNumber,
+				billing_document: billingData.document,
+				billing_name: billingData.name,
+				billing_address: billingData.address || '',
+			},
+			{ transaction }
+		);
+
+		await this._invoiceSequences.update(
+			{ id: sequence.id },
+			{ current_value: nextValue },
+			{ transaction }
+		);
 	}
 }

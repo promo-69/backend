@@ -1,16 +1,12 @@
 import { Request, Response } from 'express';
 import { ControllerBase } from '@bases/controller.base.js';
 import { OrdersService } from './_.service.js';
-import { ShoppingSessionService } from '@services/shopping-session.service.js';
+import { BadRequestError } from '@errors/index.js';
 
 export class OrdersController extends ControllerBase {
-	private _ordersService: OrdersService;
-	private _shoppingSessionService: ShoppingSessionService;
-
 	constructor() {
 		super();
 		this._ordersService = new OrdersService();
-		this._shoppingSessionService = new ShoppingSessionService();
 	}
 
 	async createQuote() {
@@ -26,19 +22,34 @@ export class OrdersController extends ControllerBase {
 	}
 
 	async cancelShoppingSession() {
-		return await this._shoppingSessionService.cancelShoppingSession(this.getSession());
+		return await this._ordersService.cancelShoppingSession(this.getSession());
 	}
 
 	async checkout() {
-		return await this._ordersService.processCheckout(this.getBody(), this.getSession());
+		const body = this.getBody();
+		if (body.tickets && Array.isArray(body.tickets)) {
+			for (const ticket of body.tickets) {
+				if (typeof ticket.seatId !== 'number' || typeof ticket.audienceCategoryId !== 'number') {
+					throw new BadRequestError('Cada boleto debe contener seatId y audienceCategoryId y deben ser numéricos');
+				}
+			}
+		}
+		return await this._ordersService.processCheckout(body, this.getSession());
 	}
 
 	async processPayment() {
 		return await this._ordersService.registerPayment(this.getBody(), this.getSession());
 	}
 
+	async processBilling() {
+		return await this._ordersService.processBilling(this.getBody(), this.getSession());
+	}
+
 	async getOrderById() {
-		return await this._ordersService.getOrderById(Number(this.requireParam('id')));
+		const idStr = this.requireParam('id');
+		const id = Number(idStr);
+		if (isNaN(id)) throw new BadRequestError('El ID de la orden debe ser un número válido');
+		return await this._ordersService.getOrderById(id);
 	}
 
 	async getConcessionsByQr() {

@@ -1,7 +1,7 @@
 meta {
   name: Pay Order
   type: http
-  seq: 3
+  seq: 4
 }
 
 post {
@@ -16,8 +16,7 @@ auth:bearer {
 
 body:json {
   {
-    "order_id": {{orderId}},
-    "payment_method": 3,
+    "payment_method": 1,
     "amount": {{orderTotalBase}},
     "currency": 1,
     "reference_number": "{{refNumber}}"
