@@ -25,6 +25,9 @@ export class ReportsManagementService {
     private get _showtimes() {
         return Database.repository('main', 'showtimes') as any;
     }
+    private get _specialEvents() {
+        return Database.repository('main', 'special-events') as any;
+    }
     private get _roomBookings() {
         return Database.repository('main', 'room-bookings') as any;
     }
@@ -42,6 +45,12 @@ export class ReportsManagementService {
     }
     private get _rentalRequests() {
         return Database.repository('main', 'rental-requests') as any;
+    }
+    private get _products() {
+        return Database.repository('main', 'products') as any;
+    }
+    private get _currencies() {
+        return Database.repository('main', 'currencies') as any;
     }
 
     private _toList(r: any): any[] {
@@ -77,9 +86,8 @@ export class ReportsManagementService {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // 1. VENTAS
+    // 1. VENTAS (consolidado)
     // ─────────────────────────────────────────────────────────────────────────
-
     async getSalesReport(cinemaId: number, filters: { from?: string; to?: string; channel?: string } = {}) {
         const { from, to } = this._buildDateRange(filters.from, filters.to);
 
@@ -99,6 +107,7 @@ export class ReportsManagementService {
                     'subtotal_base_currency',
                     'tax_amount_base_currency',
                     'total_amount_base_currency',
+                    'generated_points',
                     'created_at',
                 ],
             },
@@ -117,10 +126,12 @@ export class ReportsManagementService {
                     total_revenue: 0,
                     total_tax: 0,
                     total_concessions_revenue: 0,
+                    total_loyalty_points_generated: 0,
                     net_revenue: 0,
                 },
                 breakdown_by_payment_method: [],
                 daily_series: [],
+                product_breakdown: [],
             };
         }
 
@@ -129,7 +140,7 @@ export class ReportsManagementService {
         const [ticketsRaw, linesRaw, paymentsRaw] = await Promise.all([
             this._tickets.getAll({ count: false, attributes: ['id', 'order'] }, { order: orderIds }),
             this._orderLines.getAll(
-                { count: false, attributes: ['id', 'order', 'quantity', 'unit_price'] },
+                { count: false, attributes: ['id', 'order', 'quantity', 'unit_price', 'product', 'combo'] },
                 { order: orderIds },
             ),
             this._orderPayments.getAll(
@@ -149,6 +160,7 @@ export class ReportsManagementService {
         const totalTickets = tickets.length;
         const totalRevenue = orders.reduce((s: number, o: any) => s + Number(o.total_amount_base_currency), 0);
         const totalTax = orders.reduce((s: number, o: any) => s + Number(o.tax_amount_base_currency), 0);
+        const totalPoints = orders.reduce((s: number, o: any) => s + Number(o.generated_points), 0);
         const totalConcessions = lines.reduce((s: number, l: any) => s + Number(l.unit_price) * Number(l.quantity), 0);
 
         // Desglose por método de pago
@@ -166,18 +178,40 @@ export class ReportsManagementService {
             transaction_count: v.count,
         }));
 
+        // Desglose por producto (concesiones)
+        const productMap = new Map<
+            number,
+            { name: string; quantity: number; revenue: number; type: 'product' | 'combo' }
+        >();
+        for (const l of lines) {
+            const isProduct = l.product !== null;
+            const id = isProduct ? l.product : l.combo;
+            const name = isProduct ? `Producto ${id}` : `Combo ${id}`;
+            if (!productMap.has(id)) productMap.set(id, { name, quantity: 0, revenue: 0, type: isProduct ? 'product' : 'combo' });
+            productMap.get(id)!.quantity += l.quantity;
+            productMap.get(id)!.revenue += Number(l.unit_price) * l.quantity;
+        }
+        const product_breakdown = [...productMap.entries()].map(([id, v]) => ({
+            product_id: id,
+            product_name: v.name,
+            type: v.type,
+            quantity_sold: v.quantity,
+            total_revenue: Math.round(v.revenue * 100) / 100,
+        }));
+
         // Serie diaria
         const ticketsByOrder = new Map<number, number>();
         for (const t of tickets) ticketsByOrder.set(t.order, (ticketsByOrder.get(t.order) ?? 0) + 1);
 
-        const dailyMap = new Map<string, { revenue: number; orders: number; tickets: number }>();
+        const dailyMap = new Map<string, { revenue: number; orders: number; tickets: number; points: number }>();
         for (const o of orders) {
             const day = new Date(o.created_at).toISOString().slice(0, 10);
-            if (!dailyMap.has(day)) dailyMap.set(day, { revenue: 0, orders: 0, tickets: 0 });
+            if (!dailyMap.has(day)) dailyMap.set(day, { revenue: 0, orders: 0, tickets: 0, points: 0 });
             const slot = dailyMap.get(day)!;
             slot.revenue += Number(o.total_amount_base_currency);
             slot.orders += 1;
             slot.tickets += ticketsByOrder.get(o.id) ?? 0;
+            slot.points += Number(o.generated_points);
         }
         const daily_series = [...dailyMap.entries()]
             .sort(([a], [b]) => a.localeCompare(b))
@@ -186,6 +220,7 @@ export class ReportsManagementService {
                 orders: v.orders,
                 tickets: v.tickets,
                 revenue: Math.round(v.revenue * 100) / 100,
+                loyalty_points: v.points,
             }));
 
         return {
@@ -197,17 +232,18 @@ export class ReportsManagementService {
                 total_revenue: Math.round(totalRevenue * 100) / 100,
                 total_tax: Math.round(totalTax * 100) / 100,
                 total_concessions_revenue: Math.round(totalConcessions * 100) / 100,
+                total_loyalty_points_generated: totalPoints,
                 net_revenue: Math.round((totalRevenue - totalConcessions) * 100) / 100,
             },
             breakdown_by_payment_method,
             daily_series,
+            product_breakdown,
         };
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // 2. PELÍCULAS
+    // 2. PELÍCULAS (estadísticas)
     // ─────────────────────────────────────────────────────────────────────────
-
     async getMoviesReport(cinemaId: number, filters: { from?: string; to?: string } = {}) {
         const { from, to } = this._buildDateRange(filters.from, filters.to);
 
@@ -235,7 +271,7 @@ export class ReportsManagementService {
                 attributes: ['id', 'booking', 'movie'],
                 relations: [{ association: '_Movies', attributes: ['id', 'title', 'poster_url'] }],
             },
-            { booking: bookingIds },
+            { booking: bookingIds, movie: { [Ops.ne]: null } }, // solo películas
         );
         const showtimesList: any[] = this._toList(showtimesRaw);
         if (showtimesList.length === 0)
@@ -309,9 +345,114 @@ export class ReportsManagementService {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // 3. INVENTARIO
+    // 3. EVENTOS ESPECIALES (estadísticas)
     // ─────────────────────────────────────────────────────────────────────────
+    async getEventsReport(cinemaId: number, filters: { from?: string; to?: string } = {}) {
+        const { from, to } = this._buildDateRange(filters.from, filters.to);
 
+        const roomsRaw = await this._rooms.getAll({ count: false, attributes: ['id'] }, { cinema: cinemaId });
+        const roomList: any[] = this._toList(roomsRaw);
+        if (roomList.length === 0)
+            return { period: { from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) }, events: [] };
+
+        const roomIds = roomList.map((r: any) => r.id);
+
+        const bookingsRaw = await this._roomBookings.getAll(
+            { count: false, attributes: ['id', 'room', 'start_time'] },
+            { room: roomIds, start_time: { [Ops.between]: [from, to] } },
+        );
+        const bookings: any[] = this._toList(bookingsRaw);
+        if (bookings.length === 0)
+            return { period: { from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) }, events: [] };
+
+        const bookingIds = bookings.map((b: any) => b.id);
+        const bookingMap = new Map<number, any>(bookings.map((b: any) => [b.id, b]));
+
+        const showtimesRaw = await this._showtimes.getAll(
+            {
+                count: false,
+                attributes: ['id', 'booking', 'special_event_id'],
+                relations: [
+                    { association: '_SpecialEvents', attributes: ['id', 'title', 'poster_url', 'duration_minutes'] },
+                ],
+            },
+            { booking: bookingIds, special_event_id: { [Ops.ne]: null } },
+        );
+        const showtimesList: any[] = this._toList(showtimesRaw);
+        if (showtimesList.length === 0)
+            return { period: { from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) }, events: [] };
+
+        const ticketsRaw = await this._tickets.getAll(
+            { count: false, attributes: ['id', 'booking', 'price'] },
+            { booking: bookingIds },
+        );
+        const ticketsList: any[] = this._toList(ticketsRaw);
+
+        const seatCountMap = new Map<number, number>();
+        await Promise.all(
+            roomIds.map(async (rid: number) => {
+                seatCountMap.set(rid, await this._seats.count({ room: rid }));
+            }),
+        );
+
+        const ticketsByBooking = new Map<number, any[]>();
+        for (const t of ticketsList) {
+            if (!ticketsByBooking.has(t.booking)) ticketsByBooking.set(t.booking, []);
+            ticketsByBooking.get(t.booking)!.push(t);
+        }
+
+        type EventStats = {
+            id: number;
+            title: string;
+            poster_url: string | null;
+            duration_minutes: number;
+            showtimes: number;
+            tickets_sold: number;
+            revenue: number;
+            total_capacity: number;
+        };
+        const eventMap = new Map<number, EventStats>();
+
+        for (const s of showtimesList) {
+            const eventId = s.special_event_id;
+            if (!eventMap.has(eventId)) {
+                eventMap.set(eventId, {
+                    id: eventId,
+                    title: s._SpecialEvents?.title ?? `Evento ${eventId}`,
+                    poster_url: s._SpecialEvents?.poster_url ?? null,
+                    duration_minutes: s._SpecialEvents?.duration_minutes ?? 0,
+                    showtimes: 0,
+                    tickets_sold: 0,
+                    revenue: 0,
+                    total_capacity: 0,
+                });
+            }
+            const stats = eventMap.get(eventId)!;
+            const roomId = bookingMap.get(s.booking)?.room;
+            stats.showtimes += 1;
+            stats.total_capacity += seatCountMap.get(roomId) ?? 0;
+            const tickets = ticketsByBooking.get(s.booking) ?? [];
+            stats.tickets_sold += tickets.length;
+            stats.revenue += tickets.reduce((sum: number, t: any) => sum + Number(t.price), 0);
+        }
+
+        const events = [...eventMap.values()]
+            .map((e) => ({
+                event: { id: e.id, title: e.title, poster_url: e.poster_url, duration_minutes: e.duration_minutes },
+                total_showtimes: e.showtimes,
+                total_tickets_sold: e.tickets_sold,
+                total_revenue: Math.round(e.revenue * 100) / 100,
+                avg_occupancy_pct:
+                    e.total_capacity > 0 ? Math.round((e.tickets_sold / e.total_capacity) * 10000) / 100 : 0,
+            }))
+            .sort((a, b) => b.total_tickets_sold - a.total_tickets_sold);
+
+        return { period: { from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) }, events };
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 4. INVENTARIO (con precio de venta y valorización)
+    // ─────────────────────────────────────────────────────────────────────────
     async getInventoryReport(cinemaId: number, filters: { from?: string; to?: string } = {}) {
         const { from, to } = this._buildDateRange(filters.from, filters.to);
 
@@ -322,7 +463,7 @@ export class ReportsManagementService {
                 relations: [
                     {
                         association: '_Products',
-                        attributes: ['id', 'name', 'sku'],
+                        attributes: ['id', 'name', 'sku', 'price', 'currency'],
                         include: [{ association: '_ProductCategories', attributes: ['id', 'description'] }],
                     },
                 ],
@@ -330,17 +471,17 @@ export class ReportsManagementService {
             { cinema: cinemaId },
         );
         const inventories: any[] = this._toList(inventoriesRaw);
-        if (inventories.length === 0)
+        if (inventories.length === 0) {
             return {
                 period: { from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) },
                 products: [],
                 alerts: [],
             };
+        }
 
         const inventoryIds = inventories.map((i: any) => i.id);
-
         const movementsRaw = await this._inventoryMovements.getAll(
-            { count: false, attributes: ['id', 'inventory', 'operation_type', 'quantity'] },
+            { count: false, attributes: ['id', 'inventory', 'operation_type', 'quantity', 'unit_cost'] },
             { inventory: inventoryIds, created_at: { [Ops.between]: [from, to] } },
         );
         const movements: any[] = this._toList(movementsRaw);
@@ -349,27 +490,35 @@ export class ReportsManagementService {
         const entriesByInv = new Map<number, number>();
         for (const m of movements) {
             const qty = Number(m.quantity);
-            if (m.operation_type === INVENTORY_OP_SALE)
-                soldByInv.set(m.inventory, (soldByInv.get(m.inventory) ?? 0) + qty);
-            if (m.operation_type === INVENTORY_OP_ENTRY)
-                entriesByInv.set(m.inventory, (entriesByInv.get(m.inventory) ?? 0) + qty);
+            if (m.operation_type === INVENTORY_OP_SALE) soldByInv.set(m.inventory, (soldByInv.get(m.inventory) ?? 0) + qty);
+            if (m.operation_type === INVENTORY_OP_ENTRY) entriesByInv.set(m.inventory, (entriesByInv.get(m.inventory) ?? 0) + qty);
         }
 
+        const currencyMap = new Map<number, string>();
         const products = inventories
-            .map((inv: any) => ({
-                inventory_id: inv.id,
-                product: {
-                    id: inv._Products?.id ?? inv.product,
-                    name: inv._Products?.name ?? `Product ${inv.product}`,
-                    sku: inv._Products?.sku ?? null,
-                    category: inv._Products?._ProductCategories ?? null,
-                },
-                current_stock: inv.stock,
-                minimum_stock: inv.minimum_stock,
-                units_sold: soldByInv.get(inv.id) ?? 0,
-                units_received: entriesByInv.get(inv.id) ?? 0,
-                below_minimum: inv.stock <= inv.minimum_stock,
-            }))
+            .map((inv: any) => {
+                const product = inv._Products;
+                const productPrice = product ? Number(product.price) : 0;
+                const currentStock = inv.stock;
+                const stockValue = currentStock * productPrice;
+                return {
+                    inventory_id: inv.id,
+                    product: {
+                        id: product?.id ?? inv.product,
+                        name: product?.name ?? `Product ${inv.product}`,
+                        sku: product?.sku ?? null,
+                        category: product?._ProductCategories ?? null,
+                        selling_price: productPrice,
+                        currency_id: product?.currency,
+                    },
+                    current_stock: currentStock,
+                    minimum_stock: inv.minimum_stock,
+                    units_sold: soldByInv.get(inv.id) ?? 0,
+                    units_received: entriesByInv.get(inv.id) ?? 0,
+                    stock_value: Math.round(stockValue * 100) / 100,
+                    below_minimum: currentStock <= inv.minimum_stock,
+                };
+            })
             .sort((a, b) => Number(b.below_minimum) - Number(a.below_minimum));
 
         const alerts = products
@@ -384,9 +533,8 @@ export class ReportsManagementService {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // 4. CAJA (CIERRE DE TURNO)
+    // 5. CAJA (CIERRE DE TURNO)
     // ─────────────────────────────────────────────────────────────────────────
-
     async getCashierReport(employeeId: number, cinemaId: number, filters: { from?: string; to?: string } = {}) {
         let dateFrom: Date;
         let dateTo: Date;
@@ -425,7 +573,7 @@ export class ReportsManagementService {
             return {
                 period: { from: dateFrom.toISOString().slice(0, 10), to: dateTo.toISOString().slice(0, 10) },
                 employee_id: employeeId,
-                summary: { total_orders: 0, total_revenue: 0, total_tax: 0 },
+                summary: { total_orders: 0, total_revenue: 0, total_tax: 0, cancelled_orders: 0 },
                 breakdown_by_payment_method: [],
                 transactions: [],
             };
@@ -445,6 +593,7 @@ export class ReportsManagementService {
         const paidOrders = orders.filter((o: any) => PAID_STATUSES.includes(o.order_status));
         const totalRevenue = paidOrders.reduce((s: number, o: any) => s + Number(o.total_amount_base_currency), 0);
         const totalTax = paidOrders.reduce((s: number, o: any) => s + Number(o.tax_amount_base_currency), 0);
+        const cancelledOrders = orders.filter((o: any) => o.order_status === 3).length; // asumiendo status 3 = Cancelada
 
         const pmMap = new Map<number, { description: string; amount: number; count: number }>();
         for (const p of payments) {
@@ -481,6 +630,7 @@ export class ReportsManagementService {
                 total_orders: totalOrders,
                 total_revenue: Math.round(totalRevenue * 100) / 100,
                 total_tax: Math.round(totalTax * 100) / 100,
+                cancelled_orders: cancelledOrders,
             },
             breakdown_by_payment_method,
             transactions,
@@ -488,9 +638,8 @@ export class ReportsManagementService {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // 5. FUNCIONES (OCUPACIÓN)
+    // 6. FUNCIONES (OCUPACIÓN) – películas y eventos
     // ─────────────────────────────────────────────────────────────────────────
-
     async getShowtimesReport(cinemaId: number, filters: { from?: string; to?: string } = {}) {
         const { from, to } = this._buildDateRange(filters.from, filters.to);
 
@@ -519,19 +668,19 @@ export class ReportsManagementService {
         const bookingIds = bookings.map((b: any) => b.id);
         const bookingMap = new Map<number, any>(bookings.map((b: any) => [b.id, b]));
 
-        const [showtimesRaw, ticketsRaw] = await Promise.all([
-            this._showtimes.getAll(
-                {
-                    count: false,
-                    attributes: ['id', 'booking', 'movie'],
-                    relations: [{ association: '_Movies', attributes: ['id', 'title'] }],
-                },
-                { booking: bookingIds },
-            ),
-            this._tickets.getAll({ count: false, attributes: ['id', 'booking', 'price'] }, { booking: bookingIds }),
-        ]);
-
+        const showtimesRaw = await this._showtimes.getAll(
+            {
+                count: false,
+                attributes: ['id', 'booking', 'movie', 'special_event_id'],
+                relations: [
+                    { association: '_Movies', attributes: ['id', 'title'] },
+                    { association: '_SpecialEvents', attributes: ['id', 'title'] },
+                ],
+            },
+            { booking: bookingIds },
+        );
         const showtimesList: any[] = this._toList(showtimesRaw);
+        const ticketsRaw = await this._tickets.getAll({ count: false, attributes: ['id', 'booking', 'price'] }, { booking: bookingIds });
         const ticketsList: any[] = this._toList(ticketsRaw);
 
         const seatCountMap = new Map<number, number>();
@@ -555,12 +704,20 @@ export class ReportsManagementService {
                 const tickets = ticketsByBooking.get(s.booking) ?? [];
                 const sold = tickets.length;
                 const revenue = tickets.reduce((sum: number, t: any) => sum + Number(t.price), 0);
+                const isEvent = s.special_event_id !== null;
+                const title = isEvent
+                    ? s._SpecialEvents?.title ?? `Evento ${s.special_event_id}`
+                    : s._Movies?.title ?? `Película ${s.movie}`;
                 return {
                     showtime_id: s.id,
                     booking_id: s.booking,
                     start_time: booking.start_time,
                     end_time: booking.end_time,
-                    movie: { id: s.movie, title: s._Movies?.title ?? `Movie ${s.movie}` },
+                    content: {
+                        type: isEvent ? 'event' : 'movie',
+                        id: isEvent ? s.special_event_id : s.movie,
+                        title,
+                    },
                     room: { id: roomId, name: roomMap.get(roomId) ?? `Sala ${roomId}` },
                     capacity,
                     tickets_sold: sold,
@@ -574,9 +731,8 @@ export class ReportsManagementService {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // 6. ALQUILERES
+    // 7. ALQUILERES
     // ─────────────────────────────────────────────────────────────────────────
-
     async getRentalsReport(cinemaId: number, filters: { from?: string; to?: string } = {}) {
         const { from, to } = this._buildDateRange(filters.from, filters.to);
 

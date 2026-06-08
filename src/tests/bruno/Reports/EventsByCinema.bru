@@ -1,0 +1,28 @@
+meta {
+  name: Events By Cinema (Super Admin)
+  type: http
+  seq: 12
+}
+
+get {
+  url: {{baseUrl}}/reports/cinemas/{{cinemaId}}/events
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  from: {{fromDate}}
+  to: {{toDate}}
+}
+
+vars:pre-request {
+  cinemaId: 1
+}
+
+docs {
+  Reporte de eventos especiales de una sucursal específica. Permiso: CRUD:READ:REPORTS-ALL
+}
