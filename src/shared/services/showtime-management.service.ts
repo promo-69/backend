@@ -6,8 +6,9 @@ import { PricingService } from '@services/pricing.service.js';
 import { PricingCacheService } from '@services/pricing-cache.service.js';
 import shoppingSessionService from '@services/shopping-session.service.js';
 
-// ID del tipo de reserva "Película" en booking_types (seed: id=1, description='Película')
+// IDs de booking_types (seed: 1='Película', 2='Evento Alternativo')
 const BOOKING_TYPE_ID_SHOWTIME = 1;
+const BOOKING_TYPE_ID_SPECIAL_EVENT = 2;
 
 export class ShowtimeManagementService {
 	private get _roomBookings() {
@@ -18,6 +19,9 @@ export class ShowtimeManagementService {
 	}
 	private get _movies() {
 		return Database.repository('main', 'movies') as any;
+	}
+	private get _specialEvents() {
+		return Database.repository('main', 'special-events') as any;
 	}
 	private get _tickets() {
 		return Database.repository('main', 'tickets') as any;
@@ -39,26 +43,16 @@ export class ShowtimeManagementService {
 	}
 
 	// Cache para los IDs de estados visibles (se refresca en cada consulta)
-	// Si el rendimiento es crítico, se puede cachear con Redis o variable local con TTL
 	private async _getVisibleLifecycleStates(): Promise<number[]> {
 		const states = await this._lifecycleStates.getAll({ count: false, attributes: ['id', 'description'] });
 		const stateList = Array.isArray(states) ? states : states.rows || [];
-
-		// Los estados visibles para la cartelera pública son:
-		// - Próximamente (1)
-		// - En Cartelera (Estreno) (2)
-		// - En Cartelera (Regular) (3)
-		// - Últimos Días (4)
-		// Excluimos "Fuera de Cartelera" (5)
 		const excludedDescriptions = ['Fuera de Cartelera'];
 		const visibleIds = stateList
 			.filter((s: any) => !excludedDescriptions.includes(s.description))
 			.map((s: any) => s.id);
-
 		return visibleIds;
 	}
 
-	// Mapeo de descripciones a IDs (para uso interno en _syncMovieLifecycle)
 	private async _getLifecycleStateIds(): Promise<Record<string, number>> {
 		const states = await this._lifecycleStates.getAll({ count: false, attributes: ['id', 'description'] });
 		const stateList = Array.isArray(states) ? states : states.rows || [];
@@ -85,11 +79,9 @@ export class ShowtimeManagementService {
 			end_time: { [Ops.gt]: startTime },
 			deleted_at: null,
 		};
-
 		if (excludeBookingId) {
 			where.id = { [Ops.ne]: excludeBookingId };
 		}
-
 		const existingBooking = await this._roomBookings.getOne(where, { transaction });
 		if (existingBooking) {
 			throw new ConflictError('La sala ya está ocupada en ese horario', 'ROOM_ALREADY_BOOKED');
@@ -97,10 +89,9 @@ export class ShowtimeManagementService {
 	}
 
 	// -------------------------------------------------------------------------
-	//  SINCRONIZADOR INTELIGENTE DEL CICLO DE VIDA DE UNA PELÍCULA
+	//  CICLO DE VIDA - PELÍCULAS
 	// -------------------------------------------------------------------------
 	private async _syncMovieLifecycle(movieId: number, transaction?: Transaction) {
-		// 1. Obtener la película con su fecha de estreno oficial
 		const movie = await this._movies.getById(movieId, {
 			attributes: ['id', 'release_date', 'lifecycle_state'],
 			transaction,
@@ -110,11 +101,9 @@ export class ShowtimeManagementService {
 		const now = new Date();
 		const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 		const releaseDate = new Date(movie.release_date);
-
 		const unDiaEnMilsegundos = 24 * 60 * 60 * 1000;
 		const diasParaElEstreno = Math.ceil((releaseDate.getTime() - today.getTime()) / unDiaEnMilsegundos);
 
-		// 2. Contar cuántas funciones activas totales posee la película
 		const remainingShowtimes = await this._showtimesRepo.getAll(
 			{ count: true },
 			{ movie: movieId, deleted_at: null },
@@ -123,7 +112,6 @@ export class ShowtimeManagementService {
 			? remainingShowtimes.length
 			: (remainingShowtimes.count ?? remainingShowtimes.rows?.length ?? 0);
 
-		// 3. Obtener los IDs de los estados desde la tabla real
 		const stateIds = await this._getLifecycleStateIds();
 		const COMING_SOON = stateIds['Próximamente'] || 1;
 		const PREMIERE = stateIds['En Cartelera (Estreno)'] || 2;
@@ -132,11 +120,8 @@ export class ShowtimeManagementService {
 		const OFF = stateIds['Fuera de Cartelera'] || 5;
 
 		let targetLifecycle = movie.lifecycle_state;
-
-		// Si el administrador la pasó manualmente a Últimos Días, respetamos su decisión comercial
 		if (movie.lifecycle_state === LAST_DAYS) return;
 
-		// 4. Árbol de decisiones
 		if (diasParaElEstreno > 7) {
 			targetLifecycle = COMING_SOON;
 		} else if (diasParaElEstreno <= 7 && diasParaElEstreno > 0) {
@@ -149,14 +134,60 @@ export class ShowtimeManagementService {
 			}
 		}
 
-		// 5. Actualizar si es necesario
 		if (movie.lifecycle_state !== targetLifecycle) {
 			await this._movies.update(movieId, { lifecycle_state: targetLifecycle }, { transaction });
 		}
 	}
 
 	// -------------------------------------------------------------------------
-	//  CARTELERA PÚBLICA
+	//  CICLO DE VIDA - EVENTOS ESPECIALES
+	// -------------------------------------------------------------------------
+	private async _syncEventLifecycle(eventId: number, transaction?: Transaction) {
+		const event = await this._specialEvents.getById(eventId, {
+			attributes: ['id', 'release_date', 'lifecycle_state'],
+			transaction,
+		});
+		if (!event) return;
+
+		const now = new Date();
+		const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+		const releaseDate = new Date(event.release_date);
+		const unDiaEnMilsegundos = 24 * 60 * 60 * 1000;
+		const diasParaElEstreno = Math.ceil((releaseDate.getTime() - today.getTime()) / unDiaEnMilsegundos);
+
+		const remainingShowtimes = await this._showtimesRepo.getAll(
+			{ count: true },
+			{ special_event_id: eventId, deleted_at: null },
+		);
+		const totalFunctions = Array.isArray(remainingShowtimes)
+			? remainingShowtimes.length
+			: (remainingShowtimes.count ?? remainingShowtimes.rows?.length ?? 0);
+
+		const stateIds = await this._getLifecycleStateIds();
+		const COMING_SOON = stateIds['Próximamente'] || 1;
+		const PREMIERE = stateIds['En Cartelera (Estreno)'] || 2;
+		const REGULAR = stateIds['En Cartelera (Regular)'] || 3;
+		const LAST_DAYS = stateIds['Últimos Días'] || 4;
+		const OFF = stateIds['Fuera de Cartelera'] || 5;
+
+		if (event.lifecycle_state === LAST_DAYS) return;
+
+		let targetLifecycle = event.lifecycle_state;
+		if (diasParaElEstreno > 7) {
+			targetLifecycle = COMING_SOON;
+		} else if (diasParaElEstreno <= 7 && diasParaElEstreno > 0) {
+			targetLifecycle = PREMIERE;
+		} else {
+			targetLifecycle = totalFunctions === 0 ? OFF : REGULAR;
+		}
+
+		if (event.lifecycle_state !== targetLifecycle) {
+			await this._specialEvents.update(eventId, { lifecycle_state: targetLifecycle }, { transaction });
+		}
+	}
+
+	// -------------------------------------------------------------------------
+	//  CARTELERA PÚBLICA - PELÍCULAS
 	// -------------------------------------------------------------------------
 	async getBillboard(filters?: any) {
 		const now = new Date();
@@ -199,7 +230,13 @@ export class ShowtimeManagementService {
 
 		if (!bookingList.length) {
 			if (targetCinemaId) {
-				throw new NotFoundError('No se encontraron funciones programadas para la sucursal seleccionada');
+				const cinemasRepo = Database.repository('main', 'cinemas');
+				const cinema = await cinemasRepo.getById(targetCinemaId);
+				const cinemaName = cinema?.name ?? `sucursal ${targetCinemaId}`;
+				throw new NotFoundError(
+					`No hay funciones disponibles en la sucursal ${cinemaName}`,
+					'NO_SHOWTIMES_IN_CINEMA',
+				);
 			}
 			return { count: 0, rows: [] };
 		}
@@ -306,7 +343,6 @@ export class ShowtimeManagementService {
 		for (const s of showtimeList) {
 			const movie = movieMap.get(s.movie);
 			if (!movie) continue;
-
 			const booking = bookingMap.get(s.booking);
 			if (!booking) continue;
 
@@ -362,6 +398,159 @@ export class ShowtimeManagementService {
 	}
 
 	// -------------------------------------------------------------------------
+	//  CARTELERA PÚBLICA - EVENTOS ESPECIALES
+	// -------------------------------------------------------------------------
+	async getEventsBillboard(cinemaId?: number) {
+		const now = new Date();
+		const visibleStates = await this._getVisibleLifecycleStates();
+
+		const bookingWhere: any = { end_time: { [Ops.gt]: now }, deleted_at: null };
+
+		const bookingQueryOptions: any = {
+			count: false,
+			attributes: ['id', 'room', 'start_time', 'end_time'],
+			relations: [
+				{
+					association: '_Rooms',
+					attributes: ['id', 'name', 'cinema'],
+					required: cinemaId ? true : false,
+					relations: [
+						{
+							association: '_Cinemas',
+							attributes: ['id', 'name'],
+							required: true,
+							where: cinemaId ? { id: cinemaId } : {},
+						},
+					],
+				},
+			],
+		};
+
+		const allBookings = await this._roomBookings.getAll(bookingQueryOptions, bookingWhere);
+		let bookingList = Array.isArray(allBookings) ? allBookings : allBookings.rows || [];
+
+		if (cinemaId) {
+			bookingList = bookingList.filter((b: any) => {
+				const cinemaIdInRoom = b._Rooms?.cinema ?? b._Rooms?.cinemaId;
+				return Number(cinemaIdInRoom) === cinemaId;
+			});
+		}
+
+		if (!bookingList.length) return { count: 0, rows: [] };
+
+		const bookingIds = bookingList.map((b: any) => b.id);
+		const showtimeWhere: any = {
+			booking: bookingIds,
+			deleted_at: null,
+			special_event_id: { [Ops.ne]: null },
+		};
+
+		const showtimes = await this._showtimesRepo.getAll({ count: false }, showtimeWhere);
+		const showtimeList: any[] = Array.isArray(showtimes) ? showtimes : showtimes.rows || [];
+
+		if (!showtimeList.length) return { count: 0, rows: [] };
+
+		const rawEventIds = [...new Set(showtimeList.map((s: any) => s.special_event_id))];
+		const events = await this._specialEvents.getAll(
+			{
+				count: false,
+				attributes: ['id', 'title', 'duration_minutes', 'poster_url', 'lifecycle_state'],
+				relations: [
+					{ association: '_LifecycleStates', attributes: ['id', 'description'], required: false },
+					{ association: '_AgeClassifications', attributes: ['id', 'description'], required: false },
+				],
+			},
+			{ id: rawEventIds, lifecycle_state: visibleStates, deleted_at: null },
+		);
+		const eventList: any[] = Array.isArray(events) ? events : events.rows || [];
+		const eventMap = new Map<number, any>(eventList.map((e: any) => [e.id, e]));
+
+		const projTypeIds = [...new Set(showtimeList.map((s: any) => s.projection_type))];
+		const languageIds = [...new Set(showtimeList.map((s: any) => s.language))];
+		const currencyIds = [...new Set(showtimeList.map((s: any) => s.currency))];
+
+		const [projTypes, languages, currencies] = await Promise.all([
+			(Database.repository('main', 'projection-types') as any).getAll(
+				{ count: false, attributes: ['id', 'description'] },
+				{ id: projTypeIds },
+			),
+			(Database.repository('main', 'languages') as any).getAll(
+				{ count: false, attributes: ['id', 'description'] },
+				{ id: languageIds },
+			),
+			(Database.repository('main', 'currencies') as any).getAll(
+				{ count: false, attributes: ['id', 'code', 'symbol'] },
+				{ id: currencyIds },
+			),
+		]);
+
+		const projMap = new Map<number, any>(
+			(Array.isArray(projTypes) ? projTypes : projTypes.rows).map((p: any) => [p.id, p]),
+		);
+		const langMap = new Map<number, any>(
+			(Array.isArray(languages) ? languages : languages.rows).map((l: any) => [l.id, l]),
+		);
+		const currMap = new Map<number, any>(
+			(Array.isArray(currencies) ? currencies : currencies.rows).map((c: any) => [c.id, c]),
+		);
+		const bookingMap = new Map<number, any>(bookingList.map((b: any) => [b.id, b]));
+
+		const billboardMap = new Map<number, any>();
+		for (const s of showtimeList) {
+			const event = eventMap.get(s.special_event_id);
+			if (!event) continue;
+			const booking = bookingMap.get(s.booking);
+			if (!booking) continue;
+
+			if (!billboardMap.has(event.id)) {
+				billboardMap.set(event.id, {
+					event: {
+						id: event.id,
+						title: event.title,
+						duration_minutes: event.duration_minutes,
+						poster_url: event.poster_url ?? null,
+						lifecycle: event._LifecycleStates
+							? { id: event._LifecycleStates.id, description: event._LifecycleStates.description }
+							: null,
+						age_classification: event._AgeClassifications
+							? { id: event._AgeClassifications.id, description: event._AgeClassifications.description }
+							: null,
+					},
+					showtimes: [],
+				});
+			}
+
+			const proj = projMap.get(s.projection_type) ?? {};
+			const lang = langMap.get(s.language) ?? {};
+			const curr = currMap.get(s.currency) ?? {};
+			const room = booking._Rooms ?? {};
+			const cinema = room._Cinemas ?? null;
+
+			billboardMap.get(event.id).showtimes.push({
+				id: s.id,
+				booking: {
+					id: booking.id,
+					start_time: booking.start_time,
+					end_time: booking.end_time,
+					room: {
+						id: room.id,
+						name: room.name,
+						cinema: cinema ? { id: cinema.id, name: cinema.name } : null,
+					},
+				},
+				projection_type: { id: proj.id, description: proj.description },
+				language: { id: lang.id, description: lang.description },
+				currency: { id: curr.id, code: curr.code, symbol: curr.symbol },
+				price: s.price,
+				earned_loyalty_points: s.earned_loyalty_points,
+			});
+		}
+
+		const rows = [...billboardMap.values()];
+		return { count: rows.length, rows };
+	}
+
+	// -------------------------------------------------------------------------
 	//  FUNCIONES DE UNA PELÍCULA EN UNA SUCURSAL
 	// -------------------------------------------------------------------------
 	async getMovieShowtimesByCinema(movieId: number, cinemaId: number, userId?: number) {
@@ -375,7 +564,7 @@ export class ShowtimeManagementService {
 				relations: [
 					{
 						association: '_Rooms',
-						attributes: ['id', 'name', 'cinema', 'grid_rows', 'grid_columns'],
+						attributes: ['id', 'name', 'cinema', 'grid_rows', 'grid_columns', 'room_type'],
 						required: true,
 						where: { cinema: cinemaId },
 					},
@@ -410,7 +599,6 @@ export class ShowtimeManagementService {
 		);
 
 		const showtimeList: any[] = Array.isArray(showtimes) ? showtimes : showtimes.rows;
-
 		if (!showtimeList.length) {
 			throw new NotFoundError(`No hay funciones disponibles para esta película en la sucursal seleccionada`);
 		}
@@ -454,19 +642,12 @@ export class ShowtimeManagementService {
 
 		let activeQuote = null;
 		let cacheData: any = null;
-
 		if (userId) {
 			activeQuote = await shoppingSessionService.getActiveQuote(userId);
+			if (activeQuote) {
+				cacheData = await PricingCacheService.getActiveModifiers();
+			}
 		}
-
-		if (activeQuote) {
-			cacheData = await PricingCacheService.getActiveModifiers();
-		} else {
-			cacheData = await PricingCacheService.getActiveModifiers();
-		}
-
-		const allCurrencies = await (Database.repository('main', 'currencies') as any).getAll({ count: false });
-		const sysCurrencyMap = new Map<number, string>(allCurrencies.map((c: any) => [c.id, c.description]));
 
 		const rows = await Promise.all(
 			showtimeList.map(async (s: any) => {
@@ -497,35 +678,29 @@ export class ShowtimeManagementService {
 					earned_loyalty_points: s.earned_loyalty_points,
 				};
 
-				if (cacheData) {
-					// Time anchor based on session creation
-					const sessionDate = activeQuote ? new Date(activeQuote.created_at) : new Date();
+				if (activeQuote && cacheData) {
+					const sessionDate = new Date(activeQuote.created_at || Date.now());
 					const currentDate = sessionDate.toISOString().split('T')[0];
 					const currentTime = sessionDate.toTimeString().split(' ')[0];
 					const currentDay = sessionDate.getDay() === 0 ? 7 : sessionDate.getDay();
-
 					const timeContext = { currentDate, currentTime, currentDay };
-					
-					// 1. Obtener precio base y showtime_applied_modifiers (si hubieran modificadores para el boleto completo sin categoría)
+
 					const baseContext = {
 						modifier_scope: 1,
 						cinemaId: cinemaId,
-						booking_type: booking?.booking_type || 1, // Película
+						booking_type: booking?.booking_type || 1,
 						movie: movieId,
 						projection_type: s.projection_type,
 						room_type: room.room_type || 1,
-						// No seat nor audience yet
 					};
-
-					const showtimeCurr = s.currency || 1;
 
 					const basePricing = PricingService.calculateFinalPrice(
 						s.price,
 						baseContext,
-						showtimeCurr,
 						cacheData.modifiers,
 						cacheData.opTypesMap,
-						timeContext
+						activeQuote.exchange_rates,
+						timeContext,
 					);
 
 					const pricingMatrix: any[] = [];
@@ -536,70 +711,30 @@ export class ShowtimeManagementService {
 								seat_category: seatCat.id,
 								audienceCategoryId: audCat.id,
 							};
-
 							const specificPricing = PricingService.calculateFinalPrice(
-								basePricing.finalPrice, // we apply on top of base (already in item currency)
+								basePricing.finalPrice,
 								specificContext,
-								showtimeCurr,
 								cacheData.modifiers,
 								cacheData.opTypesMap,
-								timeContext
+								activeQuote.exchange_rates,
+								timeContext,
 							);
-
-							const matrixItem: any = {
+							pricingMatrix.push({
 								audience_category: { id: audCat.id, name: audCat.description },
 								seat_category: { id: seatCat.id, name: seatCat.description },
 								final_price: specificPricing.finalPrice,
-								applied_modifiers: specificPricing.appliedModifiers
-							};
-
-							if (activeQuote && activeQuote.exchange_rates) {
-								const rateObj = activeQuote.exchange_rates[showtimeCurr] || { rate: 1 };
-								const exRate = Number(rateObj.rate);
-								matrixItem.base_currency_equivalent = {
-									currency: activeQuote.system_base_currency,
-									currency_description: sysCurrencyMap.get(activeQuote.system_base_currency) || 'Desconocido',
-									exchange_rate: exRate,
-									final_price: specificPricing.finalPrice * exRate,
-									applied_modifiers: specificPricing.appliedModifiers.map((mod: any) => ({
-										...mod,
-										applied_amount: mod.applied_amount * exRate,
-									}))
-								};
-							}
-
-							pricingMatrix.push(matrixItem);
+								applied_modifiers: specificPricing.appliedModifiers,
+							});
 						}
 					}
-
-					const pricingObj: any = {
-						currency: showtimeCurr,
-						currency_description: sysCurrencyMap.get(showtimeCurr) || 'Desconocido',
-						base_price: s.price,
+					resultObj.pricing = {
+						base_price: basePricing.finalPrice,
 						showtime_applied_modifiers: basePricing.appliedModifiers,
-						pricing_matrix: pricingMatrix
+						pricing_matrix: pricingMatrix,
 					};
-
-					if (activeQuote && activeQuote.exchange_rates) {
-						const rateObj = activeQuote.exchange_rates[showtimeCurr] || { rate: 1 };
-						const exRate = Number(rateObj.rate);
-						pricingObj.base_currency_equivalent = {
-							currency: activeQuote.system_base_currency,
-							currency_description: sysCurrencyMap.get(activeQuote.system_base_currency) || 'Desconocido',
-							exchange_rate: exRate,
-							base_price: s.price * exRate,
-							showtime_applied_modifiers: basePricing.appliedModifiers.map((mod: any) => ({
-								...mod,
-								applied_amount: mod.applied_amount * exRate,
-							}))
-						};
-					}
-
-					resultObj.pricing = pricingObj;
-					delete resultObj.price;
+				} else {
 					delete resultObj.currency;
 				}
-
 				return resultObj;
 			}),
 		);
@@ -617,11 +752,148 @@ export class ShowtimeManagementService {
 	}
 
 	// -------------------------------------------------------------------------
-	//  GESTIÓN INTERNA DE FUNCIONES (CRUD)
+	//  FUNCIONES DE UN EVENTO ESPECIAL EN UNA SUCURSAL
+	// -------------------------------------------------------------------------
+	async getEventShowtimesByCinema(eventId: number, cinemaId: number) {
+		const now = new Date();
+		const visibleStates = await this._getVisibleLifecycleStates();
+
+		const bookings = await this._roomBookings.getAll(
+			{
+				count: false,
+				attributes: ['id', 'room', 'start_time', 'end_time'],
+				relations: [
+					{
+						association: '_Rooms',
+						attributes: ['id', 'name', 'cinema', 'grid_rows', 'grid_columns'],
+						required: true,
+						where: { cinema: cinemaId },
+					},
+				],
+				order: [['start_time', 'ASC']],
+			},
+			{ end_time: { [Ops.gt]: now }, deleted_at: null },
+		);
+
+		const bookingList: any[] = Array.isArray(bookings) ? bookings : bookings.rows;
+		if (!bookingList.length) {
+			throw new NotFoundError(`No hay funciones disponibles para este evento en la sucursal seleccionada`);
+		}
+
+		const bookingIds = bookingList.map((b: any) => b.id);
+		const showtimes = await this._showtimesRepo.getAll(
+			{
+				count: false,
+				attributes: [
+					'id',
+					'booking',
+					'special_event_id',
+					'projection_type',
+					'language',
+					'currency',
+					'price',
+					'earned_loyalty_points',
+				],
+			},
+			{ booking: bookingIds, special_event_id: eventId, deleted_at: null },
+		);
+
+		const showtimeList: any[] = Array.isArray(showtimes) ? showtimes : showtimes.rows;
+		if (!showtimeList.length) {
+			throw new NotFoundError(`No hay funciones disponibles para este evento en la sucursal seleccionada`);
+		}
+
+		const event = await this._specialEvents.getById(eventId, {
+			attributes: ['id', 'title', 'duration_minutes', 'poster_url', 'lifecycle_state'],
+		});
+		if (!event || !visibleStates.includes(event.lifecycle_state)) {
+			throw new NotFoundError('Evento especial no encontrado o no está en cartelera');
+		}
+
+		const projTypeIds = [...new Set(showtimeList.map((s: any) => s.projection_type))];
+		const languageIds = [...new Set(showtimeList.map((s: any) => s.language))];
+		const currencyIds = [...new Set(showtimeList.map((s: any) => s.currency))];
+
+		const [projTypes, languages, currencies] = await Promise.all([
+			(Database.repository('main', 'projection-types') as any).getAll(
+				{ count: false, attributes: ['id', 'description'] },
+				{ id: projTypeIds },
+			),
+			(Database.repository('main', 'languages') as any).getAll(
+				{ count: false, attributes: ['id', 'description'] },
+				{ id: languageIds },
+			),
+			(Database.repository('main', 'currencies') as any).getAll(
+				{ count: false, attributes: ['id', 'code', 'symbol'] },
+				{ id: currencyIds },
+			),
+		]);
+
+		const projMap = new Map<number, any>(
+			(Array.isArray(projTypes) ? projTypes : projTypes.rows).map((p: any) => [p.id, p]),
+		);
+		const langMap = new Map<number, any>(
+			(Array.isArray(languages) ? languages : languages.rows).map((l: any) => [l.id, l]),
+		);
+		const currMap = new Map<number, any>(
+			(Array.isArray(currencies) ? currencies : currencies.rows).map((c: any) => [c.id, c]),
+		);
+		const bookingMap = new Map<number, any>(bookingList.map((b: any) => [b.id, b]));
+
+		const rows = await Promise.all(
+			showtimeList.map(async (s: any) => {
+				const booking = bookingMap.get(s.booking);
+				const room = booking?._Rooms ?? {};
+				const totalSeats = await this._seats.count({ room: room.id, deleted_at: null });
+				const soldSeats = await this._tickets.count({ booking: s.booking, deleted_at: null });
+				const proj = projMap.get(s.projection_type) ?? {};
+				const lang = langMap.get(s.language) ?? {};
+				const curr = currMap.get(s.currency) ?? {};
+				return {
+					id: s.id,
+					booking: {
+						id: booking?.id,
+						start_time: booking?.start_time,
+						end_time: booking?.end_time,
+						room: {
+							id: room.id,
+							name: room.name,
+							total_seats: totalSeats,
+							available_seats: Math.max(0, totalSeats - soldSeats),
+						},
+					},
+					projection_type: { id: proj.id, description: proj.description },
+					language: { id: lang.id, description: lang.description },
+					currency: { id: curr.id, code: curr.code, symbol: curr.symbol },
+					price: s.price,
+					earned_loyalty_points: s.earned_loyalty_points,
+				};
+			}),
+		);
+
+		return {
+			event: {
+				id: event.id,
+				title: event.title,
+				duration_minutes: event.duration_minutes,
+				poster_url: event.poster_url,
+			},
+			count: rows.length,
+			rows,
+		};
+	}
+
+	// -------------------------------------------------------------------------
+	//  CREAR FUNCIÓN (unificado para películas y eventos)
 	// -------------------------------------------------------------------------
 	async createShowtime(data: any) {
+		const showtimeType: 'movie' | 'event' = data.showtime_type ?? 'movie';
+
+		if (showtimeType !== 'movie' && showtimeType !== 'event') {
+			throw new ValidationError('El campo showtime_type debe ser "movie" o "event"', ['showtime_type']);
+		}
+
 		const roomId = data.room ?? data.roomId;
-		const movieId = data.movie ?? data.movieId;
 		const projTypeId = data.projection_type ?? data.projectionTypeId;
 		const languageId = data.language ?? data.languageId;
 		const startTime = data.start_time ?? data.startTime;
@@ -631,7 +903,6 @@ export class ShowtimeManagementService {
 		const earnedLoyaltyPoints = data.earned_loyalty_points ?? data.earnedLoyaltyPoints ?? null;
 
 		if (!roomId) throw new ValidationError('La sala (room) es obligatoria');
-		if (!movieId) throw new ValidationError('La película (movie) es obligatoria');
 		if (!projTypeId) throw new ValidationError('El tipo de proyección (projection_type) es obligatorio');
 		if (!languageId) throw new ValidationError('El idioma (language) es obligatorio');
 		if (!startTime) throw new ValidationError('La hora de inicio (start_time) es obligatoria');
@@ -641,10 +912,42 @@ export class ShowtimeManagementService {
 
 		const start = new Date(startTime);
 		const end = new Date(endTime);
-
 		if (isNaN(start.getTime())) throw new ValidationError('start_time no es una fecha válida');
 		if (isNaN(end.getTime())) throw new ValidationError('end_time no es una fecha válida');
 		if (end <= start) throw new ValidationError('La hora de fin debe ser posterior a la de inicio');
+
+		if (showtimeType === 'movie') {
+			return this._createMovieShowtime({
+				roomId,
+				projTypeId,
+				languageId,
+				start,
+				end,
+				currencyId,
+				price,
+				earnedLoyaltyPoints,
+				data,
+			});
+		} else {
+			return this._createEventShowtime({
+				roomId,
+				projTypeId,
+				languageId,
+				start,
+				end,
+				currencyId,
+				price,
+				earnedLoyaltyPoints,
+				data,
+			});
+		}
+	}
+
+	private async _createMovieShowtime(params: any) {
+		const { roomId, projTypeId, languageId, start, end, currencyId, price, earnedLoyaltyPoints, data } = params;
+		const movieId = data.movie ?? data.movieId;
+		if (!movieId)
+			throw new ValidationError('El campo movie es obligatorio para funciones de tipo "movie"', ['movie']);
 
 		const [movie, room, language, currency] = await Promise.all([
 			this._movies.getById(movieId, {
@@ -668,7 +971,6 @@ export class ShowtimeManagementService {
 		const releaseDateStart = new Date(
 			Date.UTC(releaseDate.getUTCFullYear(), releaseDate.getUTCMonth(), releaseDate.getUTCDate(), 0, 0, 0),
 		);
-
 		if (start < releaseDateStart) {
 			throw new ValidationError(
 				`No se pueden programar funciones antes de la fecha de estreno de la película (${movie.release_date}).`,
@@ -715,7 +1017,6 @@ export class ShowtimeManagementService {
 				{ transaction },
 			);
 
-			// Sincronizar dinámicamente el ciclo de vida de la película
 			await this._syncMovieLifecycle(movieId, transaction);
 
 			try {
@@ -741,28 +1042,11 @@ export class ShowtimeManagementService {
 				room_booking_id: booking.id,
 				start_time: booking.start_time,
 				end_time: booking.end_time,
-				room: {
-					id: room.id,
-					name: room.name,
-				},
-				movie: {
-					id: movie.id,
-					title: movie.title,
-					duration_minutes: movie.duration_minutes,
-				},
-				projection_type: {
-					id: projType?.id ?? projTypeId,
-					description: projType?.description ?? 'N/A',
-				},
-				language: {
-					id: language.id,
-					description: language.description,
-				},
-				currency: {
-					id: currency.id,
-					code: currency.code,
-					symbol: currency.symbol ?? '$',
-				},
+				room: { id: room.id, name: room.name },
+				movie: { id: movie.id, title: movie.title, duration_minutes: movie.duration_minutes },
+				projection_type: { id: projType?.id ?? projTypeId, description: projType?.description ?? 'N/A' },
+				language: { id: language.id, description: language.description },
+				currency: { id: currency.id, code: currency.code, symbol: currency.symbol ?? '$' },
 				price: showtime.price,
 				earned_loyalty_points: showtime.earned_loyalty_points,
 			};
@@ -771,6 +1055,85 @@ export class ShowtimeManagementService {
 		return result;
 	}
 
+	private async _createEventShowtime(params: any) {
+		const { roomId, projTypeId, languageId, start, end, currencyId, price, earnedLoyaltyPoints, data } = params;
+		const eventId = data.special_event_id ?? data.eventId;
+		if (!eventId)
+			throw new ValidationError('El campo special_event_id es obligatorio para funciones de tipo "event"', [
+				'special_event_id',
+			]);
+
+		const [event, room, language, currency, projType] = await Promise.all([
+			this._specialEvents.getById(eventId, {
+				attributes: ['id', 'title', 'duration_minutes', 'release_date', 'lifecycle_state'],
+			}),
+			this._rooms.getById(roomId, { attributes: ['id', 'name'] }),
+			(Database.repository('main', 'languages') as any).getById(languageId, {
+				attributes: ['id', 'description'],
+			}),
+			(Database.repository('main', 'currencies') as any).getById(currencyId, {
+				attributes: ['id', 'code', 'symbol'],
+			}),
+			(Database.repository('main', 'projection-types') as any).getById(projTypeId, {
+				attributes: ['id', 'description'],
+			}),
+		]);
+
+		if (!event) throw new ValidationError(`No existe ningún evento especial con id ${eventId}`);
+		if (!room) throw new ValidationError(`No existe ninguna sala con id ${roomId}`);
+		if (!language) throw new ValidationError(`No existe ningún idioma con id ${languageId}`);
+		if (!currency) throw new ValidationError(`No existe ninguna moneda con id ${currencyId}`);
+		if (!projType) throw new ValidationError(`No existe ningún tipo de proyección con id ${projTypeId}`);
+
+		return this._roomBookings.transaction(async (transaction: Transaction) => {
+			await this._checkOverlap(Number(roomId), start, end, undefined, transaction);
+
+			let bookingType = await this._bookingTypes.getOne({ description: 'Evento Alternativo' }, { transaction });
+			if (!bookingType)
+				bookingType = await this._bookingTypes.getById(BOOKING_TYPE_ID_SPECIAL_EVENT, { transaction });
+			if (!bookingType)
+				throw new ValidationError('Falta el tipo de reserva "Evento Alternativo" en booking_types');
+
+			const booking = await this._roomBookings.create(
+				{ room: Number(roomId), start_time: start, end_time: end, booking_type: bookingType.id },
+				{ transaction },
+			);
+
+			const showtime = await this._showtimesRepo.create(
+				{
+					booking: booking.id,
+					movie: null,
+					special_event_id: eventId,
+					projection_type: projTypeId,
+					language: languageId,
+					currency: currencyId,
+					price,
+					earned_loyalty_points: earnedLoyaltyPoints,
+				},
+				{ transaction },
+			);
+
+			await this._syncEventLifecycle(eventId, transaction);
+
+			return {
+				id: showtime.id,
+				room_booking_id: booking.id,
+				start_time: booking.start_time,
+				end_time: booking.end_time,
+				room: { id: room.id, name: room.name },
+				event: { id: event.id, title: event.title, duration_minutes: event.duration_minutes },
+				projection_type: { id: projType.id, description: projType.description },
+				language: { id: language.id, description: language.description },
+				currency: { id: currency.id, code: currency.code, symbol: currency.symbol ?? '$' },
+				price: showtime.price,
+				earned_loyalty_points: showtime.earned_loyalty_points,
+			};
+		});
+	}
+
+	// -------------------------------------------------------------------------
+	//  GESTIÓN DE FUNCIONES (ADMIN)
+	// -------------------------------------------------------------------------
 	async getSeatsStatus(showtimeId: number) {
 		const showtime = await this._showtimesRepo.getById(showtimeId, { attributes: ['booking'] });
 		if (!showtime) throw new NotFoundError('Función no encontrada');
@@ -792,7 +1155,6 @@ export class ShowtimeManagementService {
 
 		const soldSeats = (Array.isArray(tickets) ? tickets : tickets.rows || []).map((t: any) => t.seat);
 
-		// Limpiar expirados y obtener actuales (ZSET)
 		const redis = CacheDatabaseProvider.getInstance().client;
 		const zsetKey = `showtime:${showtimeId}:locked_seats`;
 		const nowMs = Date.now();
@@ -801,18 +1163,14 @@ export class ShowtimeManagementService {
 		const lockedRaw = await redis.zrange(zsetKey, 0, -1);
 		const lockedSeats = lockedRaw.map(Number);
 
-		return {
-			sold: soldSeats,
-			locked: lockedSeats,
-		};
+		return { sold: soldSeats, locked: lockedSeats };
 	}
 
 	async findAllShowtimes(filters?: any) {
-		const { date, startDate, endDate, cinemaId, movieId, onlyFuture = true, ...rest } = filters ?? {};
+		const { date, startDate, endDate, cinemaId, movieId, eventId, onlyFuture = true, ...rest } = filters ?? {};
 		const now = new Date();
 
 		const bookingWhere: any = { deleted_at: null };
-
 		if (onlyFuture) {
 			bookingWhere.end_time = { [Ops.gt]: now };
 		}
@@ -862,6 +1220,7 @@ export class ShowtimeManagementService {
 		const showtimeWhere: any = { deleted_at: null };
 		if (targetBookingIds.length > 0) showtimeWhere.booking = targetBookingIds;
 		if (movieId) showtimeWhere.movie = movieId;
+		if (eventId) showtimeWhere.special_event_id = eventId;
 
 		const rawResult = await this._showtimesRepo.getAll(
 			{
@@ -871,6 +1230,7 @@ export class ShowtimeManagementService {
 					'id',
 					'booking',
 					'movie',
+					'special_event_id',
 					'projection_type',
 					'language',
 					'currency',
@@ -892,12 +1252,13 @@ export class ShowtimeManagementService {
 		}
 
 		const bookingIds = [...new Set(showtimesList.map((s: any) => s.booking))];
-		const movieIds = [...new Set(showtimesList.map((s: any) => s.movie))];
+		const movieIds = [...new Set(showtimesList.map((s: any) => s.movie).filter(Boolean))];
+		const eventIds = [...new Set(showtimesList.map((s: any) => s.special_event_id).filter(Boolean))];
 		const projTypeIds = [...new Set(showtimesList.map((s: any) => s.projection_type))];
 		const languageIds = [...new Set(showtimesList.map((s: any) => s.language))];
 		const currencyIds = [...new Set(showtimesList.map((s: any) => s.currency))];
 
-		const [bookings, movies, projTypes, languages, currencies] = await Promise.all([
+		const [bookings, movies, events, projTypes, languages, currencies] = await Promise.all([
 			bookingIds.length
 				? this._roomBookings.getAll(
 						{
@@ -912,6 +1273,12 @@ export class ShowtimeManagementService {
 				? (Database.repository('main', 'movies') as any).getAll(
 						{ count: false, attributes: ['id', 'title', 'duration_minutes'] },
 						{ id: movieIds },
+					)
+				: [],
+			eventIds.length
+				? (Database.repository('main', 'special-events') as any).getAll(
+						{ count: false, attributes: ['id', 'title', 'duration_minutes'] },
+						{ id: eventIds },
 					)
 				: [],
 			projTypeIds.length
@@ -943,6 +1310,9 @@ export class ShowtimeManagementService {
 		const movieMap = new Map<number, any>(
 			(Array.isArray(movies) ? movies : movies.rows || []).map((m: any) => [m.id, m]),
 		);
+		const eventMap = new Map<number, any>(
+			(Array.isArray(events) ? events : events.rows || []).map((e: any) => [e.id, e]),
+		);
 		const projMap = new Map<number, any>(
 			(Array.isArray(projTypes) ? projTypes : projTypes.rows || []).map((p: any) => [p.id, p]),
 		);
@@ -955,23 +1325,34 @@ export class ShowtimeManagementService {
 
 		const rows = showtimesList.map((s: any) => {
 			const booking = bookingMap.get(s.booking) ?? {};
-			const movie = movieMap.get(s.movie) ?? {};
 			const projection = projMap.get(s.projection_type) ?? {};
 			const language = langMap.get(s.language) ?? {};
 			const currency = currencyMap.get(s.currency) ?? {};
-			return {
+			const isEvent = s.special_event_id !== null && s.special_event_id !== undefined;
+
+			const base: any = {
 				id: s.id,
+				showtime_type: isEvent ? 'event' : 'movie',
 				room_booking_id: booking.id,
 				start_time: booking.start_time,
 				end_time: booking.end_time,
 				room: { id: booking.room, name: booking._roomName ?? null },
-				movie: { id: movie.id, title: movie.title, duration_minutes: movie.duration_minutes },
 				projection_type: { id: projection.id, description: projection.description },
 				language: { id: language.id, description: language.description },
 				currency: { id: currency.id, code: currency.code, symbol: currency.symbol },
 				price: s.price,
 				earned_loyalty_points: s.earned_loyalty_points,
 			};
+
+			if (isEvent) {
+				const event = eventMap.get(s.special_event_id) ?? {};
+				base.event = { id: event.id, title: event.title, duration_minutes: event.duration_minutes };
+			} else {
+				const movie = movieMap.get(s.movie) ?? {};
+				base.movie = { id: movie.id, title: movie.title, duration_minutes: movie.duration_minutes };
+			}
+
+			return base;
 		});
 
 		return { count: total, rows };
@@ -985,13 +1366,10 @@ export class ShowtimeManagementService {
 		const raw = await this._showtimesRepo.getById(Number(id));
 		if (!raw) throw new NotFoundError('Función no encontrada');
 
-		const [booking, movie, projType, language, currency] = await Promise.all([
-			this._roomBookings.getById(raw.booking, {
-				attributes: ['id', 'room', 'start_time', 'end_time'],
-			}),
-			this._movies.getById(raw.movie, {
-				attributes: ['id', 'title', 'duration_minutes'],
-			}),
+		const isEvent = raw.special_event_id !== null && raw.special_event_id !== undefined;
+
+		const [booking, projType, language, currency] = await Promise.all([
+			this._roomBookings.getById(raw.booking, { attributes: ['id', 'room', 'start_time', 'end_time'] }),
 			(Database.repository('main', 'projection-types') as any).getById(raw.projection_type, {
 				attributes: ['id', 'description'],
 			}),
@@ -1003,21 +1381,35 @@ export class ShowtimeManagementService {
 			}),
 		]);
 
-		return {
+		const base: any = {
 			id: raw.id,
+			showtime_type: isEvent ? 'event' : 'movie',
 			booking: {
 				id: booking?.id,
 				room: booking?.room,
 				start_time: booking?.start_time,
 				end_time: booking?.end_time,
 			},
-			movie: { id: movie?.id, title: movie?.title, duration_minutes: movie?.duration_minutes },
 			projection_type: { id: projType?.id, description: projType?.description },
 			language: { id: language?.id, description: language?.description },
 			currency: { id: currency?.id, code: currency?.code, symbol: currency?.symbol },
 			price: raw.price,
 			earned_loyalty_points: raw.earned_loyalty_points,
 		};
+
+		if (isEvent) {
+			const event = await this._specialEvents.getById(raw.special_event_id, {
+				attributes: ['id', 'title', 'duration_minutes'],
+			});
+			base.event = { id: event?.id, title: event?.title, duration_minutes: event?.duration_minutes };
+		} else {
+			const movie = await this._movies.getById(raw.movie, {
+				attributes: ['id', 'title', 'duration_minutes'],
+			});
+			base.movie = { id: movie?.id, title: movie?.title, duration_minutes: movie?.duration_minutes };
+		}
+
+		return base;
 	}
 
 	async updateShowtime(id: number, body: any) {
@@ -1028,6 +1420,7 @@ export class ShowtimeManagementService {
 					'id',
 					'booking',
 					'movie',
+					'special_event_id',
 					'projection_type',
 					'language',
 					'currency',
@@ -1037,6 +1430,8 @@ export class ShowtimeManagementService {
 			},
 		);
 		if (!showtime) throw new NotFoundError('Función no encontrada');
+
+		const isEvent = showtime.special_event_id !== null && showtime.special_event_id !== undefined;
 
 		const updateData: Record<string, any> = {};
 		if (body.price !== undefined) updateData.price = Number(body.price);
@@ -1069,7 +1464,12 @@ export class ShowtimeManagementService {
 				if (Object.keys(updateData).length > 0) {
 					await this._showtimesRepo.update(id, updateData, { transaction });
 				}
-				await this._syncMovieLifecycle(showtime.movie, transaction);
+
+				if (isEvent) {
+					await this._syncEventLifecycle(showtime.special_event_id, transaction);
+				} else {
+					await this._syncMovieLifecycle(showtime.movie, transaction);
+				}
 			});
 			return null;
 		}
@@ -1079,8 +1479,13 @@ export class ShowtimeManagementService {
 	}
 
 	async deleteShowtime(id: number) {
-		const showtime = await this._showtimesRepo.getOne({ id }, { attributes: ['id', 'booking', 'movie'] });
+		const showtime = await this._showtimesRepo.getOne(
+			{ id },
+			{ attributes: ['id', 'booking', 'movie', 'special_event_id'] },
+		);
 		if (!showtime) throw new NotFoundError('Función no encontrada');
+
+		const isEvent = showtime.special_event_id !== null && showtime.special_event_id !== undefined;
 
 		const ticketCount = await this._tickets.count({ booking: showtime.booking, deleted_at: null });
 		if (ticketCount > 0)
@@ -1094,7 +1499,11 @@ export class ShowtimeManagementService {
 			await this._showtimesRepo.delete(id, { transaction });
 			if (booking) await this._roomBookings.delete(booking.id, { transaction });
 
-			await this._syncMovieLifecycle(showtime.movie, transaction);
+			if (isEvent) {
+				await this._syncEventLifecycle(showtime.special_event_id, transaction);
+			} else {
+				await this._syncMovieLifecycle(showtime.movie, transaction);
+			}
 		});
 
 		return null;
@@ -1103,7 +1512,18 @@ export class ShowtimeManagementService {
 	async getSeatMap(showtimeId: number, userId?: number) {
 		const showtime = await this._showtimesRepo.getOne(
 			{ id: showtimeId },
-			{ attributes: ['id', 'booking', 'movie', 'projection_type', 'language', 'currency', 'price'] },
+			{
+				attributes: [
+					'id',
+					'booking',
+					'movie',
+					'special_event_id',
+					'projection_type',
+					'language',
+					'currency',
+					'price',
+				],
+			},
 		);
 		if (!showtime) throw new NotFoundError('Función no encontrada');
 
@@ -1202,36 +1622,30 @@ export class ShowtimeManagementService {
 			const activeQuote = await shoppingSessionService.getActiveQuote(userId);
 			if (activeQuote) {
 				const cacheData = await PricingCacheService.getActiveModifiers();
-				const allCurrencies = await (Database.repository('main', 'currencies') as any).getAll({ count: false });
-				const sysCurrencyMap = new Map<number, string>(allCurrencies.map((c: any) => [c.id, c.description]));
 				if (cacheData) {
 					const sessionDate = new Date(activeQuote.created_at || Date.now());
 					const currentDate = sessionDate.toISOString().split('T')[0];
 					const currentTime = sessionDate.toTimeString().split(' ')[0];
 					const currentDay = sessionDate.getDay() === 0 ? 7 : sessionDate.getDay();
-
 					const timeContext = { currentDate, currentTime, currentDay };
-					
-					const room = await this._rooms.getById(booking.room, { attributes: ['room_type', 'cinema'] });
 
+					const room = await this._rooms.getById(booking.room, { attributes: ['room_type', 'cinema'] });
 					const baseContext = {
 						modifier_scope: 1,
 						cinemaId: room?.cinema,
-						booking_type: booking.booking_type || 1, // Película
+						booking_type: booking.booking_type || 1,
 						movie: showtime.movie,
 						projection_type: showtime.projection_type,
 						room_type: room?.room_type || 1,
 					};
-
 					const basePricing = PricingService.calculateFinalPrice(
 						showtime.price,
 						baseContext,
-						showtime.currency || 1,
 						cacheData.modifiers,
 						cacheData.opTypesMap,
-						timeContext
+						activeQuote.exchange_rates,
+						timeContext,
 					);
-
 					const pricingMatrix: any[] = [];
 					for (const seatCat of cacheData.seatCategories) {
 						for (const audCat of cacheData.audienceCategories) {
@@ -1240,66 +1654,27 @@ export class ShowtimeManagementService {
 								seat_category: seatCat.id,
 								audienceCategoryId: audCat.id,
 							};
-
 							const specificPricing = PricingService.calculateFinalPrice(
-								basePricing.finalPrice, 
+								basePricing.finalPrice,
 								specificContext,
-								showtime.currency || 1,
 								cacheData.modifiers,
 								cacheData.opTypesMap,
-								timeContext
+								activeQuote.exchange_rates,
+								timeContext,
 							);
-
-							const matrixItem: any = {
+							pricingMatrix.push({
 								audience_category: { id: audCat.id, name: audCat.description },
 								seat_category: { id: seatCat.id, name: seatCat.description },
 								final_price: specificPricing.finalPrice,
-								applied_modifiers: specificPricing.appliedModifiers
-							};
-
-							if (activeQuote && activeQuote.exchange_rates) {
-								const rateObj = activeQuote.exchange_rates[showtime.currency || 1] || { rate: 1 };
-								const exRate = Number(rateObj.rate);
-								matrixItem.base_currency_equivalent = {
-									currency: activeQuote.system_base_currency,
-									currency_description: sysCurrencyMap.get(activeQuote.system_base_currency) || 'Desconocido',
-									exchange_rate: exRate,
-									final_price: specificPricing.finalPrice * exRate,
-									applied_modifiers: specificPricing.appliedModifiers.map((mod: any) => ({
-										...mod,
-										applied_amount: mod.applied_amount * exRate,
-									}))
-								};
-							}
-
-							pricingMatrix.push(matrixItem);
+								applied_modifiers: specificPricing.appliedModifiers,
+							});
 						}
 					}
-
-					const pricingObj: any = {
-						currency: showtime.currency || 1,
-						currency_description: sysCurrencyMap.get(showtime.currency || 1) || 'Desconocido',
+					pricing = {
 						base_price: basePricing.finalPrice,
 						showtime_applied_modifiers: basePricing.appliedModifiers,
-						pricing_matrix: pricingMatrix
+						pricing_matrix: pricingMatrix,
 					};
-
-					if (activeQuote && activeQuote.exchange_rates) {
-						const rateObj = activeQuote.exchange_rates[showtime.currency || 1] || { rate: 1 };
-						const exRate = Number(rateObj.rate);
-						pricingObj.base_currency_equivalent = {
-							currency: activeQuote.system_base_currency,
-							currency_description: sysCurrencyMap.get(activeQuote.system_base_currency) || 'Desconocido',
-							exchange_rate: exRate,
-							base_price: basePricing.finalPrice * exRate,
-							showtime_applied_modifiers: basePricing.appliedModifiers.map((mod: any) => ({
-								...mod,
-								applied_amount: mod.applied_amount * exRate,
-							}))
-						};
-					}
-
-					pricing = pricingObj;
 				}
 			}
 		}
@@ -1321,9 +1696,6 @@ export class ShowtimeManagementService {
 		return responseObj;
 	}
 
-	// -------------------------------------------------------------------------
-	//  BILLBOARD CON FILTROS AVANZADOS
-	// -------------------------------------------------------------------------
 	async getBillboardFiltered(
 		filters: {
 			cinemaId?: number;

@@ -1,453 +1,566 @@
-import { Database } from '@database/index.js';
+import { Database, Ops } from '@database/index.js';
 import { NotFoundError, ValidationError, ConflictError } from '@errors';
 import { QueueProvider } from '@providers/queue.provider.js';
 import { Transaction } from 'sequelize';
+import { Logger } from '@utils/logger.util.js';
 
-// ── Constantes de ciclo de vida ──────────────────────────────────────────────
 export const RENTAL_STATUS = {
-    PENDING_REVIEW:  1, // Recién creada, sin revisar
-    PENDING_PAYMENT: 2, // Aprobada, sala bloqueada, precio fijado
-    PAID:            3, // Cliente pagó — reserva permanente
-    REJECTED:        4, // Gerente rechazó
-    CANCELLED:       5, // Expiró o cancelación manual
+	PENDING_REVIEW: 1,
+	PENDING_PAYMENT: 2,
+	PAID: 3,
+	REJECTED: 4,
+	CANCELLED: 5,
 } as const;
 
-// booking_types id 3 = 'Alquiler Privado'
 const BOOKING_TYPE_RENTAL = 3;
-
-// TTL de expiración de proforma: 48 horas en ms
 const PROFORMA_TTL_MS = 48 * 60 * 60 * 1000;
-
-// Cola BullMQ de expiración de proformas
 const RENTAL_EXPIRY_QUEUE = 'rental-expiration-queue';
 
 export class RentalManagementService {
-    private get _rentalRequests() {
-        return Database.repository('main', 'rental-requests') as any;
-    }
-    private get _roomBookings() {
-        return Database.repository('main', 'room-bookings') as any;
-    }
-    private get _rooms() {
-        return Database.repository('main', 'rooms') as any;
-    }
-    private get _people() {
-        return Database.repository('main', 'people') as any;
-    }
-    private get _customers() {
-        return Database.repository('main', 'customers') as any;
-    }
+	private get _rentalRequests() {
+		return Database.repository('main', 'rental-requests') as any;
+	}
+	private get _roomBookings() {
+		return Database.repository('main', 'room-bookings') as any;
+	}
+	private get _rooms() {
+		return Database.repository('main', 'rooms') as any;
+	}
+	private get _people() {
+		return Database.repository('main', 'people') as any;
+	}
+	private get _customers() {
+		return Database.repository('main', 'customers') as any;
+	}
 
-    // ── Formato de respuesta ──────────────────────────────────────────────────
+	// ── Helpers de formato ────────────────────────────────────────────────────
 
-    /**
-     * Extrae los datos de contacto del solicitante desde la cadena
-     * customer → _People (people).
-     */
-    private _extractContact(raw: any) {
-        const people = raw._Customers?._People;
-        if (!people) return null;
-        return {
-            name:  `${people.first_name} ${people.last_name}`.trim(),
-            email: people.personal_email ?? null,
-            phone: people.phone_number ?? null,
-        };
-    }
+	private _extractContact(raw: any) {
+		const people = raw._Customers?._People;
+		if (!people) return null;
+		return {
+			name: `${people.first_name} ${people.last_name}`.trim(),
+			email: people.personal_email ?? null,
+			phone: people.phone_number ?? null,
+		};
+	}
 
-    /** Vista compacta para listas (GET /requests y GET /me). */
-    private _formatList(raw: any) {
-        const contact = this._extractContact(raw);
-        return {
-            id: raw.id,
-            event_name: raw.event_name,
-            contact_name: contact?.name ?? null,
-            requested_start_time: raw.requested_start_time,
-            status: raw._Statuses
-                ? { id: raw._Statuses.id, description: raw._Statuses.description }
-                : { id: raw.status },
-        };
-    }
+	private _formatList(raw: any) {
+		const contact = this._extractContact(raw);
+		const room = raw._Rooms;
+		const cinema = raw._Cinemas || room?._Cinemas;
+		return {
+			id: raw.id,
+			event_name: raw.event_name,
+			contact_name: contact?.name ?? null,
+			requested_start_time: raw.requested_start_time,
+			cinema_name: cinema?.name ?? null,
+			status: raw._Statuses
+				? { id: raw._Statuses.id, description: raw._Statuses.description }
+				: { id: raw.status },
+		};
+	}
 
-    /** Vista de detalle exhaustivo para el gerente (GET /requests/:id). */
-    private _formatDetail(raw: any) {
-        const contact = this._extractContact(raw);
-        const room = raw._Rooms;
-        const cinema = room?._Cinemas;
+	private _formatDetail(raw: any) {
+		const people = raw._Customers?._People;
+		const room = raw._Rooms;
+		const cinema = raw._Cinemas || room?._Cinemas;
 
-        return {
-            id: raw.id,
-            event_name: raw.event_name,
-            event_description: raw.event_description ?? null,
-            event_date: raw.event_date,
-            requested_start_time: raw.requested_start_time,
-            requested_end_time: raw.requested_end_time,
-            attendees: raw.attendees ?? null,
-            contact_name:  contact?.name  ?? null,
-            contact_email: contact?.email ?? null,
-            contact_phone: contact?.phone ?? null,
-            room:   room   ? { id: room.id,   name: room.name }   : { id: raw.room },
-            cinema: cinema ? { id: cinema.id, name: cinema.name } : null,
-            event_type: raw._EventTypes
-                ? { id: raw._EventTypes.id, description: raw._EventTypes.description }
-                : { id: raw.event_type },
-            status: raw._Statuses
-                ? { id: raw._Statuses.id, description: raw._Statuses.description }
-                : { id: raw.status },
-            price:    raw.price ?? null,
-            currency: raw._Currencies
-                ? { id: raw._Currencies.id, code: raw._Currencies.code, symbol: raw._Currencies.symbol }
-                : raw.currency ? { id: raw.currency } : null,
-        };
-    }
+		return {
+			id: raw.id,
+			event_name: raw.event_name,
+			event_description: raw.event_description ?? null,
+			event_date: raw.event_date,
+			requested_start_time: raw.requested_start_time,
+			requested_end_time: raw.requested_end_time,
+			attendees: raw.attendees ?? null,
+			contact_name: people ? `${people.first_name} ${people.last_name}`.trim() : null,
+			contact_email: people?.personal_email ?? null,
+			contact_phone: people?.phone_number ?? null,
+			room: room ? { id: room.id, name: room.name } : { id: raw.room },
+			cinema: cinema ? { id: cinema.id, name: cinema.name } : null,
+			event_type: raw._EventTypes
+				? { id: raw._EventTypes.id, description: raw._EventTypes.description }
+				: { id: raw.event_type },
+			status: raw._Statuses
+				? { id: raw._Statuses.id, description: raw._Statuses.description }
+				: { id: raw.status },
+			booking_id: raw.booking ?? null,
+			price: raw.price ?? null,
+			currency: raw._Currencies
+				? { id: raw._Currencies.id, code: raw._Currencies.code, symbol: raw._Currencies.symbol }
+				: raw.currency
+					? { id: raw.currency }
+					: null,
+		};
+	}
 
-    // ── Lectura ───────────────────────────────────────────────────────────────
+	private _formatAdminList(raw: any) {
+		// Extraer datos del cliente explícitamente
+		const customerData = raw._Customers;
+		const people = customerData?._People;
 
-    /**
-     * GET /rentals/requests — gerente lista las solicitudes de su cine.
-     * cinemaId se usa para filtrar las salas que pertenecen a ese cine.
-     */
-    async findAllByCinema(cinemaId: number, filters?: any) {
-        // Obtener IDs de salas del cine para filtrar solicitudes
-        const rooms = await this._rooms.getAll(
-            { count: false, attributes: ['id'] },
-            { cinema: cinemaId, deleted_at: null },
-        );
-        const roomList = Array.isArray(rooms) ? rooms : rooms.rows;
-        if (roomList.length === 0) return { count: 0, rows: [] };
-        const roomIds = roomList.map((r: any) => r.id);
+		const contact = people
+			? {
+					name: `${people.first_name} ${people.last_name}`.trim(),
+					email: people.personal_email ?? null,
+				}
+			: null;
 
-        const result = await this._rentalRequests.getAll(
-            {
-                count: true,
-                attributes: ['id', 'event_name', 'requested_start_time', 'status'],
-                relations: [
-                    { association: '_Statuses', attributes: ['id', 'description'] },
-                    {
-                        association: '_Customers',
-                        attributes: ['id', 'person'],
-                        nested: [{ association: '_People', attributes: ['first_name', 'last_name'] }],
-                    },
-                ],
-                ...filters,
-            },
-            { room: roomIds },
-        );
+		const room = raw._Rooms;
+		const cinema = raw._Cinemas || room?._Cinemas;
 
-        const list  = Array.isArray(result) ? result : result.rows;
-        const count = Array.isArray(result) ? result.length : result.count;
-        return { count, rows: list.map((r: any) => this._formatList(r)) };
-    }
+		return {
+			id: raw.id,
+			event_name: raw.event_name,
+			requested_start_time: raw.requested_start_time,
+			status: raw._Statuses
+				? { id: raw._Statuses.id, description: raw._Statuses.description }
+				: { id: raw.status },
+			customer_name: contact?.name ?? null,
+			customer_email: contact?.email ?? null,
+			cinema_name: cinema?.name ?? null,
+			room_name: room?.name ?? null,
+			price: raw.price ?? null,
+		};
+	}
 
-    /** GET /rentals/requests/me — cliente ve sus propias solicitudes. */
-    async findMyRequests(customerId: number, filters?: any) {
-        const result = await this._rentalRequests.getAll(
-            {
-                count: true,
-                attributes: ['id', 'event_name', 'requested_start_time', 'status'],
-                relations: [{ association: '_Statuses', attributes: ['id', 'description'] }],
-                ...filters,
-            },
-            { customer: customerId },
-        );
+	// ── Lectura para cliente (solo sus solicitudes) ────────────────────────────
 
-        const list  = Array.isArray(result) ? result : result.rows;
-        const count = Array.isArray(result) ? result.length : result.count;
-        return {
-            count,
-            rows: list.map((r: any) => ({
-                id: r.id,
-                event_name: r.event_name,
-                requested_start_time: r.requested_start_time,
-                status: r._Statuses
-                    ? { id: r._Statuses.id, description: r._Statuses.description }
-                    : { id: r.status },
-            })),
-        };
-    }
+	async findMyRequests(customerId: number, filters?: any) {
+		if (!customerId) throw new ValidationError('No se pudo identificar al cliente');
 
-    /** GET /rentals/requests/:id — detalle exhaustivo para el gerente. */
-    async findById(id: number, cinemaId?: number) {
-        const raw = await this._rentalRequests.getFull(id);
-        if (!raw) throw new NotFoundError('Solicitud de alquiler no encontrada');
+		const result = await this._rentalRequests.getAll(
+			{
+				count: true,
+				attributes: ['id', 'event_name', 'requested_start_time', 'status'],
+				relations: [{ association: '_Statuses', attributes: ['id', 'description'] }],
+				...filters,
+			},
+			{ customer: customerId },
+		);
 
-        // Verificar que la sala de la solicitud pertenece al cine del gerente
-        if (cinemaId !== undefined) {
-            const room = await this._rooms.getById(raw.room, { attributes: ['id', 'cinema'] });
-            if (!room || room.cinema !== cinemaId) {
-                throw new NotFoundError('Solicitud de alquiler no encontrada');
-            }
-        }
+		const list = Array.isArray(result) ? result : result.rows;
+		const count = Array.isArray(result) ? result.length : result.count;
+		return {
+			count,
+			rows: list.map((r: any) => ({
+				id: r.id,
+				event_name: r.event_name,
+				requested_start_time: r.requested_start_time,
+				status: r._Statuses ? { id: r._Statuses.id, description: r._Statuses.description } : { id: r.status },
+			})),
+		};
+	}
 
-        return this._formatDetail(raw);
-    }
+	// ── Lectura para gerente de sucursal (solo solicitudes de sus salas) ───────
 
-    // ── Creación ──────────────────────────────────────────────────────────────
+	async findAllByCinema(cinemaId: number, filters?: any) {
+		const result = await this._rentalRequests.getAll(
+			{
+				count: true,
+				attributes: ['id', 'event_name', 'requested_start_time', 'status'],
+				relations: (Database.repository('main', 'rental-requests') as any).listRelations,
+				...filters,
+			},
+			{ cinema: cinemaId },
+		);
 
-    /**
-     * POST /rentals/requests — formulario público de solicitud de alquiler.
-     *
-     * NO bloquea sala. Registra con status 1 (Pendiente de Revisión).
-     *
-     * Flujo del solicitante:
-     *  A) Con sesión de cliente (customerId del JWT):
-     *     → Se usa ese customer directamente.
-     *
-     *  B) Sin sesión (solicitud pública/por taquilla):
-     *     → Se reciben contact_name, contact_email, contact_phone, document_number.
-     *     → Dentro de la transacción con LOCK:
-     *         1. Buscar/crear people por document_number.
-     *         2. Buscar/crear customers apuntando a ese people.
-     *     → El customer resultante (sin user, sin contraseña) queda vinculado.
-     *
-     * Así todos los datos de contacto viven en people (fuente única de verdad)
-     * y rental_requests.customer siempre tiene un FK válido.
-     */
-    async createRequest(body: any, existingCustomerId?: number) {
-        const {
-            room, event_type,
-            event_name, event_description,
-            event_date, requested_start_time, requested_end_time,
-            attendees,
-            // Campos de contacto — solo se usan si no hay sesión de cliente
-            contact_name, contact_email, contact_phone, document_number,
-        } = body;
+		const list = Array.isArray(result) ? result : result.rows;
+		const count = Array.isArray(result) ? result.length : result.count;
+		return { count, rows: list.map((r: any) => this._formatList(r)) };
+	}
 
-        // ── Validaciones previas (sin side-effects) ────────────────────────
-        if (!room)       throw new ValidationError('La sala es obligatoria');
-        if (!event_type) throw new ValidationError('El tipo de evento es obligatorio');
-        if (!event_name?.trim()) throw new ValidationError('El nombre del evento es obligatorio');
-        if (!event_date)         throw new ValidationError('La fecha del evento es obligatoria');
-        if (!requested_start_time) throw new ValidationError('La hora de inicio solicitada es obligatoria');
-        if (!requested_end_time)   throw new ValidationError('La hora de fin solicitada es obligatoria');
+	// ── Lectura para superadmin / backoffice (todas las solicitudes con filtros) ─
 
-        const start = new Date(requested_start_time);
-        const end   = new Date(requested_end_time);
-        if (end <= start) throw new ValidationError('La hora de fin debe ser posterior a la de inicio');
+	async findAllRequests(filters?: any) {
+		const { status, startDate, endDate, ...rest } = filters || {};
 
-        if (!existingCustomerId) {
-            if (!contact_name?.trim())  throw new ValidationError('El nombre de contacto es obligatorio');
-            if (!contact_email?.trim()) throw new ValidationError('El email de contacto es obligatorio');
-            if (!document_number?.trim()) throw new ValidationError('El número de documento es obligatorio');
-        }
+		const where: any = {};
+		if (status) where.status = Number(status);
+		if (startDate && endDate) {
+			where.requested_start_time = { [Ops.between]: [new Date(startDate), new Date(endDate)] };
+		} else if (startDate) {
+			where.requested_start_time = { [Ops.gte]: new Date(startDate) };
+		} else if (endDate) {
+			where.requested_start_time = { [Ops.lte]: new Date(endDate) };
+		}
 
-        // Verificar que la sala existe
-        const roomRecord = await this._rooms.getById(room, { attributes: ['id', 'cinema'] });
-        if (!roomRecord) throw new ValidationError('Sala no encontrada');
+		const result = await this._rentalRequests.getAll(
+			{
+				count: true,
+				attributes: ['id', 'event_name', 'requested_start_time', 'status', 'price'],
+				relations: [
+					{ association: '_Statuses', attributes: ['id', 'description'] },
+					{
+						association: '_Customers',
+						attributes: ['id', 'person'],
+						include: [
+							{
+								association: '_People',
+								attributes: ['first_name', 'last_name', 'personal_email', 'phone_number'],
+							},
+						],
+					},
+					{
+						association: '_Rooms',
+						attributes: ['id', 'name'],
+						include: [{ association: '_Cinemas', attributes: ['id', 'name'] }],
+					},
+					{
+						association: '_Cinemas',
+						attributes: ['id', 'name'],
+					},
+				],
+				...rest,
+			},
+			where,
+		);
 
-        // ── Transacción: determinar customer + crear solicitud ─────────────
-        const created = await this._rentalRequests.transaction(async (transaction: Transaction) => {
-            let customerId = existingCustomerId;
+		const list = Array.isArray(result) ? result : result.rows;
+		const count = Array.isArray(result) ? result.length : result.count;
+		return { count, rows: list.map((r: any) => this._formatAdminList(r)) };
+	}
 
-            if (!customerId) {
-                // Paso 1: buscar o crear people (LOCK evita duplicados concurrentes)
-                let person = await this._people.getOne(
-                    { document_number: document_number.trim() },
-                    { transaction, lock: transaction.LOCK.UPDATE },
-                );
+	// ── Detalle de una solicitud (con verificación de cine) ────────────────────
 
-                if (!person) {
-                    const nameParts = contact_name.trim().split(' ');
-                    person = await this._people.create(
-                        {
-                            document_number:  document_number.trim(),
-                            first_name:       nameParts[0] ?? contact_name.trim(),
-                            last_name:        nameParts.slice(1).join(' ') || nameParts[0],
-                            personal_email:   contact_email.trim(),
-                            phone_number:     contact_phone?.trim() ?? null,
-                        },
-                        { transaction },
-                    );
-                }
+	async findById(id: number, cinemaId?: number) {
+		const raw = await this._rentalRequests.getOne(
+			{ id },
+			{
+				relations: [
+					{ association: '_Statuses', attributes: ['id', 'description'] },
+					{ association: '_EventTypes', attributes: ['id', 'description'] },
+					{
+						association: '_Rooms',
+						attributes: ['id', 'name'],
+						include: [{ association: '_Cinemas', attributes: ['id', 'name'] }],
+					},
+					{
+						association: '_Customers',
+						attributes: ['id'],
+						include: [
+							{
+								association: '_People',
+								attributes: ['first_name', 'last_name', 'personal_email', 'phone_number'],
+							},
+						],
+					},
+					{ association: '_Currencies', attributes: ['id', 'code', 'symbol'] },
+					{ association: '_Cinemas', attributes: ['id', 'name'] },
+				],
+			},
+		);
+		if (!raw) throw new NotFoundError('Solicitud de alquiler no encontrada');
 
-                // Paso 2: buscar o crear customer para ese people (LOCK)
-                let customer = await this._customers.getOne(
-                    { person: person.id },
-                    { transaction, lock: transaction.LOCK.UPDATE },
-                );
+		// Solo validar si el usuario tiene cine asignado (empleado, no superadmin)
+		if (cinemaId !== undefined && raw.cinema !== cinemaId) {
+			throw new NotFoundError('Solicitud de alquiler no encontrada en este cine');
+		}
 
-                if (!customer) {
-                    customer = await this._customers.create(
-                        { person: person.id },
-                        { transaction },
-                    );
-                }
+		return this._formatDetail(raw);
+	}
 
-                customerId = customer.id;
-            }
+	// ── Creación ──────────────────────────────────────────────────────────────
 
-            // Paso 3: crear la solicitud de alquiler
-            return this._rentalRequests.create(
-                {
-                    customer:             customerId,
-                    room:                 Number(room),
-                    event_type:           Number(event_type),
-                    booking:              null,
-                    event_name:           event_name.trim(),
-                    event_description:    event_description?.trim() ?? null,
-                    event_date,
-                    attendees:            attendees ? Number(attendees) : null,
-                    requested_start_time: start,
-                    requested_end_time:   end,
-                    status:               RENTAL_STATUS.PENDING_REVIEW,
-                    currency:             null,
-                    price:                null,
-                },
-                { transaction },
-            );
-        });
+	async createRequest(body: any, existingCustomerId?: number) {
+		const {
+			room,
+			event_type,
+			event_name,
+			event_description,
+			event_date,
+			requested_start_time,
+			requested_end_time,
+			attendees,
+			contact_name,
+			contact_email,
+			contact_phone,
+			document_number,
+		} = body;
 
-        return { request_id: created.id };
-    }
+		if (!room) throw new ValidationError('La sala es obligatoria');
+		if (!event_type) throw new ValidationError('El tipo de evento es obligatorio');
+		if (!event_name?.trim()) throw new ValidationError('El nombre del evento es obligatorio');
+		if (!event_date) throw new ValidationError('La fecha del evento es obligatoria');
+		if (!requested_start_time) throw new ValidationError('La hora de inicio es obligatoria');
+		if (!requested_end_time) throw new ValidationError('La hora de fin es obligatoria');
 
-    // ── Cambio de estado ──────────────────────────────────────────────────────
+		const start = new Date(requested_start_time);
+		const end = new Date(requested_end_time);
+		if (end <= start) throw new ValidationError('La hora de fin debe ser posterior a la de inicio');
 
-    /**
-     * PATCH /rentals/requests/:id/status — gerente aprueba o rechaza.
-     *
-     * APROBACIÓN (status → 2 — Pendiente de Pago):
-     *  1. LOCK sobre la solicitud para evitar aprobaciones concurrentes.
-     *  2. Validar price + currency.
-     *  3. INSERT en room_bookings. El índice GiST de exclusión de PostgreSQL
-     *     garantiza unicidad horaria — si hay overlap lanza ConflictError.
-     *  4. Enlazar booking a la solicitud y fijar precio/moneda.
-     *  5. Encolar job BullMQ con TTL de 48 h para expiración automática.
-     *
-     * RECHAZO (status → 4):
-     *  Solo permitido desde estado 1 (Pendiente de Revisión).
-     *
-     * CANCELACIÓN MANUAL (status → 5):
-     *  Libera la sala si ya estaba bloqueada.
-     */
-    async updateStatus(id: number, payload: { status: number; currency?: number; price?: string | number }, cinemaId: number) {
-        const { status: newStatus, currency, price } = payload;
+		if (!existingCustomerId) {
+			if (!contact_name?.trim()) throw new ValidationError('El nombre de contacto es obligatorio');
+			if (!contact_email?.trim()) throw new ValidationError('El email de contacto es obligatorio');
+			if (!document_number?.trim()) throw new ValidationError('El número de documento es obligatorio');
+		}
 
-        const validTransitions: number[] = [
-            RENTAL_STATUS.PENDING_PAYMENT,
-            RENTAL_STATUS.REJECTED,
-            RENTAL_STATUS.CANCELLED,
-        ];
-        if (!validTransitions.includes(newStatus)) {
-            throw new ValidationError(
-                `Estado inválido. El gerente puede establecer: ${validTransitions.join(', ')} (Pendiente de Pago, Rechazada, Cancelada)`,
-            );
-        }
+		const roomRecord = await this._rooms.getById(room, { attributes: ['id', 'cinema'] });
+		if (!roomRecord) throw new ValidationError('Sala no encontrada');
+		const cinemaId = roomRecord.cinema;
 
-        await this._rentalRequests.transaction(async (transaction: Transaction) => {
-            // LOCK: evitar que dos gerentes aprueben/rechacen simultáneamente
-            const request = await this._rentalRequests.getById(id, {
-                transaction,
-                lock: transaction.LOCK.UPDATE,
-            });
-            if (!request) throw new NotFoundError('Solicitud de alquiler no encontrada');
+		const created = await this._rentalRequests.transaction(async (transaction: Transaction) => {
+			let customerId = existingCustomerId;
 
-            // Verificar pertenencia al cine del gerente
-            const room = await this._rooms.getById(request.room, { attributes: ['id', 'cinema'] });
-            if (!room || room.cinema !== cinemaId) {
-                throw new NotFoundError('Solicitud de alquiler no encontrada en este cine');
-            }
+			if (!customerId) {
+				let person = await this._people.getOne(
+					{ document_number: document_number.trim() },
+					{ transaction, lock: transaction.LOCK.UPDATE },
+				);
+				if (!person) {
+					const parts = contact_name.trim().split(' ');
+					person = await this._people.create(
+						{
+							document_number: document_number.trim(),
+							first_name: parts[0] ?? contact_name.trim(),
+							last_name: parts.slice(1).join(' ') || parts[0],
+							personal_email: contact_email.trim(),
+							phone_number: contact_phone?.trim() ?? null,
+						},
+						{ transaction },
+					);
+				}
 
-            // Validar estado actual
-            if (request.status === RENTAL_STATUS.PAID) {
-                throw new ValidationError('La solicitud ya fue pagada y no puede modificarse');
-            }
-            if (request.status === RENTAL_STATUS.CANCELLED) {
-                throw new ValidationError('La solicitud ya fue cancelada');
-            }
-            if (request.status === RENTAL_STATUS.REJECTED) {
-                throw new ValidationError('La solicitud ya fue rechazada');
-            }
+				let customer = await this._customers.getOne(
+					{ person: person.id },
+					{ transaction, lock: transaction.LOCK.UPDATE },
+				);
+				if (!customer) {
+					customer = await this._customers.create({ person: person.id }, { transaction });
+				}
 
-            // ── APROBACIÓN ────────────────────────────────────────────────
-            if (newStatus === RENTAL_STATUS.PENDING_PAYMENT) {
-                if (request.status !== RENTAL_STATUS.PENDING_REVIEW) {
-                    throw new ValidationError('Solo se pueden aprobar solicitudes en estado "Pendiente de Revisión"');
-                }
-                if (!currency) throw new ValidationError('La moneda es obligatoria al aprobar');
-                if (!price || isNaN(Number(price)) || Number(price) <= 0) {
-                    throw new ValidationError('El precio debe ser un número positivo al aprobar');
-                }
+				customerId = customer.id;
+			}
 
-                // Bloquear sala — el índice GiST de PostgreSQL detecta overlap
-                let booking: any;
-                try {
-                    booking = await this._roomBookings.create(
-                        {
-                            room:         request.room,
-                            start_time:   request.requested_start_time,
-                            end_time:     request.requested_end_time,
-                            booking_type: BOOKING_TYPE_RENTAL,
-                        },
-                        { transaction },
-                    );
-                } catch (err: any) {
-                    if (
-                        err.name === 'SequelizeExclusionConstraintError' ||
-                        err.message?.includes('chk_room_bookings_no_overlap') ||
-                        err.message?.includes('exclusion constraint')
-                    ) {
-                        throw new ConflictError(
-                            'La sala ya está reservada en ese horario. Revisa el calendario antes de aprobar.',
-                            'ROOM_OVERLAP',
-                        );
-                    }
-                    throw err;
-                }
+			return this._rentalRequests.create(
+				{
+					customer: customerId,
+					room: Number(room),
+					cinema: cinemaId,
+					event_type: Number(event_type),
+					booking: null,
+					event_name: event_name.trim(),
+					event_description: event_description?.trim() ?? null,
+					event_date,
+					attendees: attendees ? Number(attendees) : null,
+					requested_start_time: start,
+					requested_end_time: end,
+					status: RENTAL_STATUS.PENDING_REVIEW,
+					currency: null,
+					price: null,
+				},
+				{ transaction },
+			);
+		});
 
-                await this._rentalRequests.update(
-                    id,
-                    {
-                        status:   RENTAL_STATUS.PENDING_PAYMENT,
-                        booking:  booking.id,
-                        currency: Number(currency),
-                        price:    Number(price),
-                    },
-                    { transaction },
-                );
+		return { request_id: created.id };
+	}
 
-                // Encolar expiración de proforma (se ejecuta tras el commit)
-                const queue = QueueProvider.getInstance();
-                await queue.add(
-                    RENTAL_EXPIRY_QUEUE,
-                    'rental-proforma-expiry',
-                    { rentalRequestId: id, bookingId: booking.id },
-                    { delay: PROFORMA_TTL_MS },
-                );
+	// ── Cambio de estado (gerente) ────────────────────────────────────────────
 
-            // ── RECHAZO ───────────────────────────────────────────────────
-            } else if (newStatus === RENTAL_STATUS.REJECTED) {
-                if (request.status !== RENTAL_STATUS.PENDING_REVIEW) {
-                    throw new ValidationError('Solo se pueden rechazar solicitudes en estado "Pendiente de Revisión"');
-                }
-                await this._rentalRequests.update(id, { status: RENTAL_STATUS.REJECTED }, { transaction });
+	async updateStatus(
+		id: number,
+		payload: { status: number; currency?: number; price?: string | number },
+		cinemaId: number | undefined,
+	) {
+		const { status: newStatus, currency, price } = payload;
 
-            // ── CANCELACIÓN MANUAL ────────────────────────────────────────
-            } else if (newStatus === RENTAL_STATUS.CANCELLED) {
-                await this._cancelRequest(id, request.booking, transaction);
-            }
-        });
-    }
+		const validTransitions: number[] = [
+			RENTAL_STATUS.PENDING_PAYMENT,
+			RENTAL_STATUS.REJECTED,
+			RENTAL_STATUS.CANCELLED,
+		];
+		if (!validTransitions.includes(newStatus)) {
+			throw new ValidationError(
+				`Estado inválido. Valores permitidos: ${validTransitions.join(', ')} (Pendiente de Pago, Rechazada, Cancelada)`,
+			);
+		}
 
-    // Cancelar solicitud y liberar sala si aplica. Debe llamarse dentro de una transacción activa.
-    async _cancelRequest(requestId: number, bookingId: number | null, transaction: Transaction) {
-        await this._rentalRequests.update(requestId, { status: RENTAL_STATUS.CANCELLED }, { transaction });
-        if (bookingId) {
-            await this._roomBookings.delete(bookingId, { transaction });
-        }
-    }
+		await this._rentalRequests.transaction(async (transaction: Transaction) => {
+			const request = await this._rentalRequests.getById(id, {
+				transaction,
+				lock: transaction.LOCK.UPDATE,
+			});
+			if (!request) throw new NotFoundError('Solicitud de alquiler no encontrada');
 
-    // Punto de entrada del worker BullMQ.
-    // Si la solicitud sigue en "Pendiente de Pago", la cancela y libera la sala.
-    async expireProforma(rentalRequestId: number, bookingId: number | null) {
-        await this._rentalRequests.transaction(async (transaction: Transaction) => {
-            const request = await this._rentalRequests.getById(rentalRequestId, {
-                transaction,
-                lock: transaction.LOCK.UPDATE,
-            });
-            // Si ya fue pagada o cancelada antes de que corriera el worker, no hacer nada
-            if (!request || request.status !== RENTAL_STATUS.PENDING_PAYMENT) return;
-            await this._cancelRequest(rentalRequestId, bookingId, transaction);
-        });
-    }
+			// Solo validar si el usuario tiene cine asignado (empleado, no superadmin)
+			if (cinemaId !== undefined && request.cinema !== cinemaId) {
+				throw new NotFoundError('Solicitud de alquiler no encontrada en este cine');
+			}
+
+			if (request.status === RENTAL_STATUS.PAID) throw new ValidationError('La solicitud ya fue pagada');
+			if (request.status === RENTAL_STATUS.CANCELLED) throw new ValidationError('La solicitud ya fue cancelada');
+			if (request.status === RENTAL_STATUS.REJECTED) throw new ValidationError('La solicitud ya fue rechazada');
+
+			// ── APROBACIÓN ────────────────────────────────────────────────
+			if (newStatus === RENTAL_STATUS.PENDING_PAYMENT) {
+				if (request.status !== RENTAL_STATUS.PENDING_REVIEW) {
+					throw new ValidationError('Solo se pueden aprobar solicitudes en estado "Pendiente de Revisión"');
+				}
+				if (!currency) throw new ValidationError('La moneda es obligatoria al aprobar');
+				if (!price || isNaN(Number(price)) || Number(price) <= 0) {
+					throw new ValidationError('El precio debe ser un número positivo al aprobar');
+				}
+
+				let booking: any;
+				try {
+					booking = await this._roomBookings.create(
+						{
+							room: request.room,
+							start_time: request.requested_start_time,
+							end_time: request.requested_end_time,
+							booking_type: BOOKING_TYPE_RENTAL,
+						},
+						{ transaction },
+					);
+				} catch (err: any) {
+					if (
+						err.name === 'SequelizeExclusionConstraintError' ||
+						err.message?.includes('exclusion constraint')
+					) {
+						throw new ConflictError('La sala ya está reservada en ese horario.', 'ROOM_OVERLAP');
+					}
+					throw err;
+				}
+
+				await this._rentalRequests.update(
+					id,
+					{
+						status: RENTAL_STATUS.PENDING_PAYMENT,
+						booking: booking.id,
+						currency: Number(currency),
+						price: Number(price),
+					},
+					{ transaction },
+				);
+
+				const queue = QueueProvider.getInstance();
+				await queue.add(
+					RENTAL_EXPIRY_QUEUE,
+					'rental-proforma-expiry',
+					{ rentalRequestId: id, bookingId: booking.id },
+					{ delay: PROFORMA_TTL_MS },
+				);
+
+				// ENVÍO DE NOTIFICACIÓN AL SOLICITANTE (fuera de transacción)
+				this._sendApprovalNotification(request, Number(price), booking.id, request.id);
+
+				// ── RECHAZO ───────────────────────────────────────────────────
+			} else if (newStatus === RENTAL_STATUS.REJECTED) {
+				if (request.status !== RENTAL_STATUS.PENDING_REVIEW) {
+					throw new ValidationError('Solo se pueden rechazar solicitudes en estado "Pendiente de Revisión"');
+				}
+				await this._rentalRequests.update(id, { status: RENTAL_STATUS.REJECTED }, { transaction });
+
+				// NOTIFICACIÓN DE RECHAZO
+				this._sendRejectionNotification(request);
+
+				// ── CANCELACIÓN ───────────────────────────────────────────────
+			} else if (newStatus === RENTAL_STATUS.CANCELLED) {
+				await this._cancelRequest(id, request.booking, transaction);
+			}
+		});
+	}
+
+	// ── Confirmación de pago ──────────────────────────────────────────────────
+
+	async confirmPayment(id: number, verifiedCustomerId?: number, cinemaId?: number) {
+		await this._rentalRequests.transaction(async (transaction: Transaction) => {
+			const request = await this._rentalRequests.getById(id, {
+				transaction,
+				lock: transaction.LOCK.UPDATE,
+			});
+			if (!request) throw new NotFoundError('Solicitud de alquiler no encontrada');
+
+			if (verifiedCustomerId && request.customer !== verifiedCustomerId) {
+				throw new NotFoundError('Solicitud de alquiler no encontrada');
+			}
+			// Solo validar si el usuario tiene cine asignado (empleado, no superadmin)
+			if (cinemaId !== undefined && request.cinema !== cinemaId) {
+				throw new NotFoundError('Solicitud de alquiler no encontrada en este cine');
+			}
+
+			if (request.status !== RENTAL_STATUS.PENDING_PAYMENT) {
+				throw new ValidationError(
+					request.status === RENTAL_STATUS.PAID
+						? 'La solicitud ya fue pagada'
+						: request.status === RENTAL_STATUS.CANCELLED
+							? 'La solicitud fue cancelada (la proforma expiró o fue cancelada manualmente)'
+							: 'La solicitud no está en estado "Pendiente de Pago"',
+				);
+			}
+
+			await this._rentalRequests.update(id, { status: RENTAL_STATUS.PAID }, { transaction });
+		});
+	}
+
+	// ── Helpers internos ──────────────────────────────────────────────────────
+
+	async _cancelRequest(requestId: number, bookingId: number | null, transaction: Transaction) {
+		await this._rentalRequests.update(requestId, { status: RENTAL_STATUS.CANCELLED }, { transaction });
+		if (bookingId) {
+			await this._roomBookings.delete(bookingId, { transaction });
+		}
+	}
+
+	async expireProforma(rentalRequestId: number, bookingId: number | null) {
+		await this._rentalRequests.transaction(async (transaction: Transaction) => {
+			const request = await this._rentalRequests.getById(rentalRequestId, {
+				transaction,
+				lock: transaction.LOCK.UPDATE,
+			});
+			if (!request || request.status !== RENTAL_STATUS.PENDING_PAYMENT) return;
+			await this._cancelRequest(rentalRequestId, bookingId, transaction);
+		});
+	}
+
+	private async _sendApprovalNotification(request: any, price: number, bookingId: number, roomId: number) {
+		try {
+			const customer = await this._customers.getById(request.customer, {
+				include: [{ association: '_People', attributes: ['personal_email', 'first_name', 'last_name'] }],
+			});
+
+			const email = customer?._People?.personal_email;
+			if (!email) {
+				Logger.warn(`No se pudo enviar notificación de aprobación: cliente ${request.customer} sin email`);
+				return;
+			}
+
+			const room = await this._rooms.getById(roomId, {
+				attributes: ['name'],
+				include: [{ association: '_Cinemas', attributes: ['id', 'name'] }],
+			});
+
+			const roomName = room?.name ?? 'Sala no especificada';
+			const cinemaName = room?._Cinemas?.name ?? 'Cine no especificado';
+
+			const { emailService } = await import('@services/email.service.js');
+
+			await emailService.sendRentalApproval(email, request.event_name, roomName, cinemaName, price, request.id);
+		} catch (err) {
+			const error = err instanceof Error ? err : new Error(String(err));
+			Logger.error('Error al enviar notificación de aprobación:', error);
+		}
+	}
+
+	private async _sendRejectionNotification(request: any) {
+		try {
+			const customer = await this._customers.getById(request.customer, {
+				include: [{ association: '_People', attributes: ['personal_email', 'first_name', 'last_name'] }],
+			});
+
+			const email = customer?._People?.personal_email;
+			if (!email) return;
+
+			const { emailService } = await import('@services/email.service.js');
+
+			await emailService.sendRentalRejection(email, request.event_name, request.id);
+		} catch (err) {
+			const error = err instanceof Error ? err : new Error(String(err));
+			Logger.error('Error al enviar notificación de rechazo:', error);
+		}
+	}
 }
 
 export default new RentalManagementService();

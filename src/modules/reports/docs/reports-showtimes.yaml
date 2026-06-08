@@ -1,0 +1,133 @@
+/reports/showtimes:
+    get:
+        summary: Get showtimes report (employee)
+        description: |
+            Retrieve occupancy and revenue per showtime for the employee's cinema.
+            Required permission: **CRUD:READ:REPORTS-SHOWTIMES**
+        tags:
+            - Reports
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: query
+              name: from
+              schema:
+                  type: string
+                  format: date
+              description: Start date (YYYY-MM-DD)
+            - in: query
+              name: to
+              schema:
+                  type: string
+                  format: date
+              description: End date (YYYY-MM-DD)
+        responses:
+            '200':
+                description: Showtimes report
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                message:
+                                    type: string
+                                data:
+                                    type: object
+                                    properties:
+                                        period:
+                                            type: object
+                                            properties:
+                                                from:
+                                                    type: string
+                                                    format: date
+                                                to:
+                                                    type: string
+                                                    format: date
+                                        showtimes:
+                                            type: array
+                                            items:
+                                                type: object
+                                                properties:
+                                                    showtime_id:
+                                                        type: integer
+                                                    booking_id:
+                                                        type: integer
+                                                    start_time:
+                                                        type: string
+                                                        format: date-time
+                                                    end_time:
+                                                        type: string
+                                                        format: date-time
+                                                    content:
+                                                        type: object
+                                                        properties:
+                                                            type:
+                                                                type: string
+                                                                enum: [movie, event]
+                                                            id:
+                                                                type: integer
+                                                            title:
+                                                                type: string
+                                                    room:
+                                                        type: object
+                                                        properties:
+                                                            id:
+                                                                type: integer
+                                                            name:
+                                                                type: string
+                                                    capacity:
+                                                        type: integer
+                                                    tickets_sold:
+                                                        type: integer
+                                                    occupancy_pct:
+                                                        type: number
+                                                    revenue:
+                                                        type: number
+            '401':
+                description: Unauthorized
+            '403':
+                description: Insufficient permissions
+
+/reports/cinemas/{cinemaId}/showtimes:
+    get:
+        summary: Get showtimes report for a specific cinema (superadmin)
+        tags:
+            - Reports Admin
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: path
+              name: cinemaId
+              required: true
+              schema:
+                  type: integer
+            - in: query
+              name: from
+              schema:
+                  type: string
+                  format: date
+            - in: query
+              name: to
+              schema:
+                  type: string
+                  format: date
+        responses:
+            '200':
+                description: Showtimes report for the specified cinema
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                message:
+                                    type: string
+                                data:
+                                    type: object
+            '401':
+                description: Unauthorized
+            '403':
+                description: Insufficient permissions

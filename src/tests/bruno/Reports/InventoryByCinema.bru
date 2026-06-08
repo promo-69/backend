@@ -1,0 +1,28 @@
+meta {
+  name: Inventory By Cinema (Super Admin)
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{baseUrl}}/reports/cinemas/{{cinemaId}}/inventory
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  from: {{fromDate}}
+  to: {{toDate}}
+}
+
+vars:pre-request {
+  cinemaId: 1
+}
+
+docs {
+  Reporte de inventario de una sucursal específica. Permiso: CRUD:READ:REPORTS-ALL
+}

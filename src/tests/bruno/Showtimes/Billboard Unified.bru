@@ -1,0 +1,15 @@
+meta {
+  name: Billboard Unified
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/showtimes/billboard/unified?cinemaId={{cinemaId}}
+  body: none
+  auth: none
+}
+
+vars:pre-request {
+  cinemaId: 1
+}

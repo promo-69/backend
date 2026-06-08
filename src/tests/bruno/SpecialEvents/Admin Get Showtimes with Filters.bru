@@ -1,0 +1,25 @@
+meta {
+  name: Admin Get Event Showtimes with Filters
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/special-events/admin/showtimes?cinemaId={{cinemaId}}&eventId={{eventId}}&startDate=2026-07-01&endDate=2026-07-31&onlyFuture=true
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+vars:pre-request {
+  cinemaId: 1
+  eventId: 1
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  bru.setVar('baseUrl', baseUrl);
+}
