@@ -1,0 +1,36 @@
+/users/me/movie-subscriptions:
+    get:
+        tags:
+            - Users (Self-Service)
+        summary: Get my movie subscriptions (not notified)
+        description: Returns movie subscriptions for the authenticated user where `is_notified` is false.
+        security:
+            - cookieAuth: []
+            - bearerAuth: []
+        responses:
+            '200':
+                description: Movie subscriptions retrieved successfully.
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                    example: true
+                                message:
+                                    type: string
+                                    example: Subscriptions retrieved successfully.
+                                data:
+                                    type: object
+                                    properties:
+                                        rows:
+                                            type: array
+                                            items:
+                                                type: object
+                                        count:
+                                            type: integer
+            '401':
+                description: Unauthorized
+            '500':
+                description: Internal server error

@@ -1,5 +1,6 @@
 import ShowtimeManagementService from '@services/showtime-management.service.js';
 import { ValidationError } from '@errors';
+import { Database } from '@database/index.js';
 
 export class ShowtimesService {
     // Públicos
@@ -17,9 +18,9 @@ export class ShowtimesService {
         return ShowtimeManagementService.getBillboardFiltered(filters);
     }
 
-    async getMovieShowtimesByCinema(movieId: number, cinemaId: number) {
+    async getMovieShowtimesByCinema(movieId: number, cinemaId: number, userId?: number) {
         if (!movieId || !cinemaId) throw new ValidationError('Se requieren movieId y cinemaId');
-        return ShowtimeManagementService.getMovieShowtimesByCinema(movieId, cinemaId);
+        return ShowtimeManagementService.getMovieShowtimesByCinema(movieId, cinemaId, userId);
     }
 
     // Administrativos
@@ -32,23 +33,14 @@ export class ShowtimesService {
         return ShowtimeManagementService.findShowtimeById(id);
     }
 
-    /**
-     * Crea una función (película o evento especial).
-     *
-     * cinemaId siempre llega ya resuelto desde el controlador:
-     *   - Super admin → viene de la URL (/cinemas/:cinemaId)
-     *   - Empleado    → viene de su sesión JWT (/cinemas/me)
-     *
-     * El cinemaId se inyecta en el body para que createShowtime pueda
-     * validar que la sala pertenece a esa sucursal.
-     */
-    async createShowtime(body: any, cinemaId?: number) {
-        if (!cinemaId) {
+    async createShowtime(body: any, sessionCinemaId?: number) {
+        const cinemaId = sessionCinemaId ?? body.cinema;
+        if (cinemaId === undefined) {
             throw new ValidationError(
-                'No se pudo determinar la sucursal. Usá /showtimes/cinemas/:cinemaId o /showtimes/cinemas/me.',
+                'No se puede determinar la sucursal. Especificá "cinema" en el cuerpo de la petición o iniciá sesión con una sucursal asignada.',
             );
         }
-        return ShowtimeManagementService.createShowtime({ ...body, cinemaId });
+        return ShowtimeManagementService.createShowtime(body);
     }
 
     async updateShowtime(id: number, body: any) {
@@ -59,8 +51,12 @@ export class ShowtimesService {
         return ShowtimeManagementService.deleteShowtime(id);
     }
 
-    async getSeatMap(showtimeId: number) {
-        return ShowtimeManagementService.getSeatMap(showtimeId);
+    async getSeatMap(showtimeId: number, userId?: number) {
+        return ShowtimeManagementService.getSeatMap(showtimeId, userId);
+    }
+
+    async getSeatsStatus(showtimeId: number) {
+        return ShowtimeManagementService.getSeatsStatus(showtimeId);
     }
 
     async getUnifiedBillboard(cinemaId?: number) {
@@ -77,7 +73,7 @@ export class ShowtimesService {
     async getAllMoviesByLifecycle(lifecycleState?: number, filters?: any) {
         const where: any = { deleted_at: null };
         if (lifecycleState !== undefined) where.lifecycle_state = lifecycleState;
-        const moviesRepo = (await import('@database/index.js')).Database.repository('main', 'movies');
+        const moviesRepo = Database.repository('main', 'movies') as any;
         return moviesRepo.getAll({ ...filters, count: true }, where);
     }
 

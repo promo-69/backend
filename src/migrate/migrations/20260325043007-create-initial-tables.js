@@ -667,6 +667,7 @@ module.exports = {
 				order: { type: Sequelize.INTEGER, allowNull: false },
 				booking: { type: Sequelize.INTEGER, allowNull: false },
 				seat: { type: Sequelize.INTEGER, allowNull: false },
+				audience_category: { type: Sequelize.INTEGER, allowNull: false },
 				original_price: { type: Sequelize.DECIMAL(10, 2), allowNull: false },
 				price: { type: Sequelize.DECIMAL(10, 2), allowNull: false },
 				quoted_exchange_rate: { type: Sequelize.INTEGER, allowNull: false },

@@ -1,0 +1,15 @@
+meta {
+  name: Cancel Session
+  type: http
+  seq: 7
+}
+
+delete {
+  url: {{baseUrl}}/orders/session
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

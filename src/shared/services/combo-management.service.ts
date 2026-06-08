@@ -2,6 +2,9 @@ import { Database } from '@database/index.js';
 import { ConflictError, NotFoundError, ValidationError } from '@errors';
 import { concessionImagesService } from '@services/concession-images.service.js';
 import { imageStorageService } from '@services/image-storage.service.js';
+import { PricingService } from '@services/pricing.service.js';
+import { PricingCacheService } from '@services/pricing-cache.service.js';
+import shoppingSessionService from '@services/shopping-session.service.js';
 import { Logger } from '@utils/logger.util.js';
 import { Transaction } from 'sequelize';
 
@@ -67,7 +70,7 @@ export class ComboManagementService {
         }
     }
 
-    async findAllCombos(filters?: any) {
+    async findAllCombos(filters?: any, userId?: number) {
         const options: any = {
             count: true,
             ...filters,
@@ -75,7 +78,73 @@ export class ComboManagementService {
         if (filters?.cinemaId) {
             options.where = { cinema: filters.cinemaId };
         }
-        return this._combos.getAll(options);
+        
+        const rawCombos = await this._combos.getAll(options);
+        let comboList = Array.isArray(rawCombos) ? rawCombos : rawCombos.rows || [];
+
+        let activeQuote = null;
+        let cacheData: any = null;
+
+        if (userId) {
+            activeQuote = await shoppingSessionService.getActiveQuote(userId);
+			if (activeQuote) {
+				cacheData = await PricingCacheService.getActiveModifiers();
+			}
+		}
+
+        const enrichedList = comboList.map((c: any) => {
+            const comboClone = { ...c };
+            
+            if (!activeQuote || !cacheData) {
+                // Remove nominal price if no session
+                delete comboClone.price;
+                delete comboClone.currency;
+                return comboClone;
+            }
+
+            const sessionDate = new Date(activeQuote.created_at || Date.now());
+            const currentDate = sessionDate.toISOString().split('T')[0];
+            const currentTime = sessionDate.toTimeString().split(' ')[0];
+            const currentDay = sessionDate.getDay() === 0 ? 7 : sessionDate.getDay();
+
+            const timeContext = { currentDate, currentTime, currentDay };
+            
+            const context = {
+                modifier_scope: 2, // Confitería
+                cinemaId: activeQuote.cinema,
+                line_type: null,
+                product_category: null,
+                product: null,
+                combo: c.id
+            };
+
+            const basePricing = PricingService.calculateFinalPrice(
+                c.price,
+                context,
+                cacheData.modifiers,
+                cacheData.opTypesMap,
+                activeQuote.exchange_rates,
+                timeContext
+            );
+
+            comboClone.pricing = {
+                base_price: c.price,
+                final_price: basePricing.finalPrice,
+                applied_modifiers: basePricing.appliedModifiers
+            };
+            
+            delete comboClone.price;
+
+            return comboClone;
+        });
+
+        if (!Array.isArray(rawCombos)) {
+            return {
+                ...rawCombos,
+                rows: enrichedList
+            };
+        }
+        return enrichedList;
     }
 }
 

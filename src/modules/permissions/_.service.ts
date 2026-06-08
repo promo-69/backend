@@ -1,6 +1,6 @@
 import { BaseService } from '@bases/service.base.js';
 import { Database } from '@database/index.js';
-import { ValidationError, NotFoundError } from '@errors';
+import { ValidationError, NotFoundError, DuplicateEntryError } from '@errors';
 
 class PermissionsService extends BaseService {
 	private get _permissions() {
@@ -47,6 +47,20 @@ class PermissionsService extends BaseService {
 		}
 
 		await this.validateForeignKeys(payload);
+
+		// Verificar si ya existe un permiso con la misma combinación
+		const existing = await this._permissions.getOne({
+			action: payload.action,
+			resource: payload.resource,
+			permission_type: payload.permission_type,
+		});
+
+		if (existing)
+			throw new DuplicateEntryError(
+				'permiso',
+				`${payload.action}-${payload.resource}-${payload.permission_type}`,
+			);
+
 		return this._permissions.create(payload);
 	}
 

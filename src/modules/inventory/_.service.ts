@@ -54,7 +54,7 @@ export class InventoryService extends BaseService {
      */
     async registerMovements(
         inventoryId: number,
-        movements: Array<{ operationType: number; quantity: number; remarks?: string }>,
+        movements: Array<{ operationType: number; quantity: number; remarks?: string; unit_cost?: number }>,
         userId: number,
     ) {
         if (!Array.isArray(movements) || movements.length === 0) {
@@ -68,14 +68,11 @@ export class InventoryService extends BaseService {
             });
             if (!inventory) throw new NotFoundError('Inventario no encontrado');
 
-            let newStock = inventory.stock;
-
             for (const mov of movements) {
                 if (!mov.quantity || mov.quantity <= 0) {
                     throw new ValidationError('La cantidad de cada movimiento debe ser un número positivo');
                 }
 
-                // Búsqueda por id (integer)
                 const opType = await this._operationTypes.getById(mov.operationType, { transaction });
                 if (!opType) {
                     throw new ValidationError(
@@ -83,13 +80,22 @@ export class InventoryService extends BaseService {
                     );
                 }
 
-                const delta = opType.is_increment ? mov.quantity : -mov.quantity;
-                newStock += delta;
+                const lastMovements = await this._inventoryMovements.getAll(
+                    { count: false, limit: 1, order: [['id', 'DESC']], operation: { transaction } },
+                    { inventory: inventoryId }
+                );
+                const currentStock = lastMovements.length > 0 ? Number(lastMovements[0].resulting_stock) : 0;
+                const currentCost = lastMovements.length > 0 ? Number(lastMovements[0].resulting_unit_cost_base_currency) : 0;
 
-                if (newStock < 0) {
-                    throw new ValidationError(
-                        'El stock resultante no puede ser negativo. Verifica las cantidades de salida',
-                    );
+                let newStock = currentStock;
+                let newUnitCost = currentCost;
+
+                if (opType.is_increment) {
+                    newStock += mov.quantity;
+                    newUnitCost = ((currentStock * currentCost) + (mov.quantity * (mov.unit_cost ?? 0))) / newStock;
+                } else {
+                    newStock -= mov.quantity;
+                    if (newStock < 0) throw new ValidationError('El stock resultante no puede ser negativo. Verifica las cantidades de salida');
                 }
 
                 await this._inventoryMovements.create(
@@ -97,14 +103,16 @@ export class InventoryService extends BaseService {
                         inventory: inventoryId,
                         operation_type: opType.id,
                         quantity: mov.quantity,
+                        unit_cost: mov.unit_cost ?? 0,
+                        currency: 1,
                         user: userId,
                         remarks: mov.remarks ?? null,
+                        resulting_stock: newStock,
+                        resulting_unit_cost_base_currency: newUnitCost
                     },
                     { transaction },
                 );
             }
-
-            await this._inventories.update(inventoryId, { stock: newStock }, { transaction });
         });
 
         return null;

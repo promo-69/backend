@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import concessionsController from './_.controller.js';
-import { verifySession, verifyPermission } from '@middlewares/auth.middleware.js';
+import { verifySession, verifyPermission, optionalAuth } from '@middlewares/auth.middleware.js';
 import { uploadFields } from '@middlewares/upload.middleware.js';
 
 const router = Router();
@@ -11,8 +11,8 @@ const imageUpload = uploadFields([{ name: 'image', maxCount: 1 }], {
 });
 
 // --- Products (GET públicos) ---
-router.get('/products', concessionsController.findAllProducts);
-router.get('/products/:id', concessionsController.findProductById);
+router.get('/products', optionalAuth, concessionsController.findAllProducts);
+router.get('/products/:id', optionalAuth, concessionsController.findProductById);
 
 // --- Products (gestión interna) ---
 router.post(
@@ -37,8 +37,8 @@ router.delete(
 );
 
 // --- Combos (GET públicos) ---
-router.get('/combos', concessionsController.findAllCombos);
-router.get('/combos/:id', concessionsController.findComboById);
+router.get('/combos', optionalAuth, concessionsController.findAllCombos);
+router.get('/combos/:id', optionalAuth, concessionsController.findComboById);
 
 // --- Combos (gestión interna) ---
 router.post(

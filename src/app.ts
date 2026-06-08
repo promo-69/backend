@@ -5,7 +5,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import { AppConfig, type IAppConfig } from '@config/app.config.js';
-import { AppError, NotFoundError } from '@errors';
+import { AppError, NotFoundError, BadRequestError } from '@errors';
 import { ANSI } from '@utils/ansi.util.js';
 import { Logger } from '@utils/logger.util.js';
 import { Database } from '@database/index.js';
@@ -28,7 +28,7 @@ export class App {
 		this.app = express();
 		this.appConfig = config;
 
-		Logger.natural(ANSI.success(`[+] Configuration loaded (${config.nodeEnv})`), { sepEnd: true });
+		Logger.natural(ANSI.success(`[+] Configuration loaded (${config.appEnv})`), { sepEnd: true });
 	}
 
 	async start(): Promise<http.Server> {
@@ -61,7 +61,9 @@ export class App {
 	}
 
 	private async setupRealtime(server: http.Server): Promise<void> {
-		RealtimeProvider.getInstance().attach(server);
+		await RealtimeProvider.getInstance().attach(server);
+		const { BookingSocketService } = await import('./shared/services/booking-socket.service.js');
+		BookingSocketService.initialize();
 	}
 
 	private async setupBackgroundTasks(): Promise<void> {
@@ -132,6 +134,15 @@ export class App {
 				},
 			}),
 		);
+		
+		// Catch JSON syntax errors
+		this.app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+			if (err instanceof SyntaxError && 'status' in err && err.status === 400 && 'body' in err) {
+				return next(new BadRequestError('El cuerpo de la petición contiene un JSON mal formado o inválido'));
+			}
+			next(err);
+		});
+
 		Logger.natural(ANSI.success('[+] Body Parsing middleware loaded'));
 
 		// 7. URL encoded parsing (para formularios)
@@ -176,10 +187,10 @@ export class App {
 				timestamp: new Date().toLocaleString('es-VE', { timeZone: 'America/Caracas' }),
 			};
 
-			if (this.appConfig.nodeEnv == 'development') {
+			if (this.appConfig.appEnv == 'development') {
 				health.uptime = process.uptime();
 				health.memoryUsage = process.memoryUsage();
-				health.environment = this.appConfig.nodeEnv;
+				health.environment = this.appConfig.appEnv;
 			}
 
 			res.json(health);
@@ -192,7 +203,7 @@ export class App {
 				message: 'Welcome to the API',
 				docs: `See ${this.appConfig.protocol}://${interfaceIp}${this.appConfig.docs?.path} for check the swagger of the API`,
 				health: `See ${this.appConfig.protocol}://${interfaceIp}/health for check the health of the API`,
-				...(this.appConfig.nodeEnv == 'development'
+				...(this.appConfig.appEnv == 'development'
 					? {
 							development: {
 								routes: `See ${this.appConfig.protocol}://${interfaceIp}/api/v[version-number]/[module]: API endpoints`,

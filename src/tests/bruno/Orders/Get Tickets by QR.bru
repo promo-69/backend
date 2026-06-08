@@ -1,0 +1,15 @@
+meta {
+  name: Get Tickets by QR
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/orders/qr/{{orderQrCode}}/tickets
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

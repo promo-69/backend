@@ -58,6 +58,9 @@ router.get(
 // Detalle de una función
 router.get('/:id', optionalAuth, showtimesController.findById);
 
+// Estado en vivo de los asientos (sold, locked)
+router.get('/:id/seats-status', optionalAuth, showtimesController.getSeatsStatus);
+
 // Mapa de asientos de una función (películas y eventos especiales)
 router.get('/:id/seat-map', optionalAuth, showtimesController.getSeatMap);
 

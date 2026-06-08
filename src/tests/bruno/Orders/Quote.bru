@@ -21,10 +21,5 @@ body:json {
 }
 
 script:post-response {
-  if (res.status === 200) {
-    const data = res.getBody();
-    if (data.data && data.data.queue_id) {
-      bru.setEnvVar("queueId", data.data.queue_id);
-    }
-  }
+  // Session is handled via user token now
 }
