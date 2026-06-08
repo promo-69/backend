@@ -6,69 +6,70 @@ import { uploadFields } from '@middlewares/upload.middleware.js';
 const router = Router();
 
 const imageUpload = uploadFields([{ name: 'image', maxCount: 1 }], {
-    maxSizeMB: 10,
-    allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp'],
+	maxSizeMB: 10,
+	allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp'],
 });
 
 // --- Products (GET públicos) ---
 router.get('/products', optionalAuth, concessionsController.findAllProducts);
+router.get('/products/available', optionalAuth, concessionsController.findAllAvailableProducts);
 router.get('/products/:id', optionalAuth, concessionsController.findProductById);
 
 // --- Products (gestión interna) ---
 router.post(
-    '/products',
-    verifySession,
-    verifyPermission('CRUD:CREATE:PRODUCTS'),
-    imageUpload,
-    concessionsController.createProduct,
+	'/products',
+	verifySession,
+	verifyPermission('CRUD:CREATE:PRODUCTS'),
+	imageUpload,
+	concessionsController.createProduct,
 );
 router.patch(
-    '/products/:id',
-    verifySession,
-    verifyPermission('CRUD:UPDATE:PRODUCTS'),
-    imageUpload,
-    concessionsController.updateProduct,
+	'/products/:id',
+	verifySession,
+	verifyPermission('CRUD:UPDATE:PRODUCTS'),
+	imageUpload,
+	concessionsController.updateProduct,
 );
 router.delete(
-    '/products/:id',
-    verifySession,
-    verifyPermission('CRUD:DELETE:PRODUCTS'),
-    concessionsController.deleteProduct,
+	'/products/:id',
+	verifySession,
+	verifyPermission('CRUD:DELETE:PRODUCTS'),
+	concessionsController.deleteProduct,
 );
 
 // --- Combos (GET públicos) ---
 router.get('/combos', optionalAuth, concessionsController.findAllCombos);
+router.get('/combos/available', optionalAuth, concessionsController.findAllAvailableCombos);
 router.get('/combos/:id', optionalAuth, concessionsController.findComboById);
 
 // --- Combos (gestión interna) ---
 router.post(
-    '/combos',
-    verifySession,
-    verifyPermission('CRUD:CREATE:COMBOS'),
-    imageUpload,
-    concessionsController.createCombo,
+	'/combos',
+	verifySession,
+	verifyPermission('CRUD:CREATE:COMBOS'),
+	imageUpload,
+	concessionsController.createCombo,
 );
 router.patch(
-    '/combos/:id',
-    verifySession,
-    verifyPermission('CRUD:UPDATE:COMBOS'),
-    imageUpload,
-    concessionsController.updateCombo,
+	'/combos/:id',
+	verifySession,
+	verifyPermission('CRUD:UPDATE:COMBOS'),
+	imageUpload,
+	concessionsController.updateCombo,
 );
 router.delete('/combos/:id', verifySession, verifyPermission('CRUD:DELETE:COMBOS'), concessionsController.deleteCombo);
-
 // --- Combo Items (BOM) ---
 router.post(
-    '/combos/:id/items',
-    verifySession,
-    verifyPermission('FEAT:MANAGE:COMBOS_ITEMS'),
-    concessionsController.addComboItems,
+	'/combos/:id/items',
+	verifySession,
+	verifyPermission('FEAT:MANAGE:COMBOS_ITEMS'),
+	concessionsController.addComboItems,
 );
 router.delete(
-    '/combos/:id/items/:itemId',
-    verifySession,
-    verifyPermission('FEAT:MANAGE:COMBOS_ITEMS'),
-    concessionsController.removeComboItem,
+	'/combos/:id/items/:itemId',
+	verifySession,
+	verifyPermission('FEAT:MANAGE:COMBOS_ITEMS'),
+	concessionsController.removeComboItem,
 );
 
 export default router;

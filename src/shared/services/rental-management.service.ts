@@ -125,7 +125,7 @@ export class RentalManagementService {
                     {
                         association: '_Customers',
                         attributes: ['id', 'person'],
-                        include: [{ association: '_People', attributes: ['first_name', 'last_name'] }],
+                        nested: [{ association: '_People', attributes: ['first_name', 'last_name'] }],
                     },
                 ],
                 ...filters,

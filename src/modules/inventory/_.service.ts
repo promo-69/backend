@@ -17,10 +17,11 @@ export class InventoryService extends BaseService {
     async getStockByCinema(cinemaId: number, filters?: any) {
         return this._inventories.getAllByCinema(cinemaId, {
             ...filters,
-            include: [
+            relations: [
                 {
-                    association: '_Product',
-                    include: [{ association: '_ProductCategory', attributes: ['id', 'description'] }],
+                    association: '_Products',
+                    required: true,
+                    nested: [{ association: '_ProductCategories', attributes: ['id', 'description'] }],
                 },
             ],
         });
@@ -30,9 +31,9 @@ export class InventoryService extends BaseService {
         const inv = await this._inventories.getById(inventoryId, {
             relations: [
                 {
-                    association: '_Product',
-                    attributes: ['id', 'name', 'sku', 'price', 'image_url'],
-                    include: [{ association: '_ProductCategory', attributes: ['id', 'description'] }],
+                    association: '_Products',
+                    attributes: ['id', 'name', 'sku', 'price', 'image_url', 'currency', 'product_category'],
+                    nested: [{ association: '_ProductCategories', attributes: ['id', 'description'] }],
                 },
             ],
         });

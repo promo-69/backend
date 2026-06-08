@@ -111,14 +111,7 @@ export class AuthService extends BaseService {
 
 		const permissions = await this._permisos.getAllFull(
 			{ count: false },
-			{ id: permissionIds },
-			{
-				include: [
-					{ association: '_Actions', attributes: ['code'] },
-					{ association: '_Resources', attributes: ['code'] },
-					{ association: '_PermissionTypes', attributes: ['code'] },
-				],
-			},
+			{ id: permissionIds }
 		);
 
 		const permList = Array.isArray(permissions) ? permissions : permissions.rows;
@@ -228,7 +221,7 @@ export class AuthService extends BaseService {
 
 		const foundUser = await this._users.getOne(
 			{ email, user_type: expectedUserType },
-			{ include: [{ association: '_People' }, { association: '_UserTypes' }] },
+			{ relations: [{ association: '_People' }, { association: '_UserTypes' }] },
 		);
 
 		if (!foundUser || !(await BcryptUtil.compare(password, foundUser.password)))

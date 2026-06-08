@@ -737,6 +737,7 @@ module.exports = {
 				'ALTER TABLE exchange_rates ADD CONSTRAINT chk_exchange_rates_rate CHECK (rate > 0);',
 				'ALTER TABLE movies ADD CONSTRAINT chk_movies_duration CHECK (duration_minutes > 0);',
 				'ALTER TABLE week_days ADD CONSTRAINT chk_week_days_range CHECK (day_number BETWEEN 1 AND 7);',
+				'ALTER TABLE price_modifiers ADD CONSTRAINT chk_price_modifiers_currency CHECK (is_percentage = true OR currency IS NOT NULL);',
 				`ALTER TABLE price_modifiers ADD CONSTRAINT chk_price_modifiers_logic
              CHECK (value > 0 AND
              ((modifier_scope = 1 AND product_category IS NULL AND product IS NULL AND combo IS NULL AND line_type IS NULL) OR

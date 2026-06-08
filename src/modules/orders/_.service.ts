@@ -426,6 +426,7 @@ export class OrdersService extends BaseService {
 					const result = await this._calculateConcessionsPrices(
 						concessions,
 						exchangeRatesDict,
+						quoteData.system_base_currency,
 						activeModifiers,
 						activeTaxes,
 						opTypesMap,
@@ -467,6 +468,7 @@ export class OrdersService extends BaseService {
 						tickets,
 						quoteData.cinema,
 						exchangeRatesDict,
+						quoteData.system_base_currency,
 						activeModifiers,
 						activeTaxes,
 						opTypesMap,
@@ -1044,6 +1046,7 @@ export class OrdersService extends BaseService {
 	private async _calculateConcessionsPrices(
 		concessions: any[],
 		exchangeRatesDict: any,
+		systemBaseCurrency: number,
 		activeModifiers: any[],
 		activeTaxes: any[],
 		opTypesMap: Map<number, any>,
@@ -1065,44 +1068,36 @@ export class OrdersService extends BaseService {
 				item.line_type === 1
 					? productPriceMap.get(item.product) || { price: 0, currency: 1 }
 					: comboPriceMap.get(item.combo) || { price: 0, currency: 1 };
+			
 			const rateObj = exchangeRatesDict[priceData.currency] || { rate: 1, id: 1 };
-			const basePrice = priceData.price * Number(rateObj.rate);
 			item.exchangeRateId = rateObj.id;
-			let finalUnitPrice = basePrice;
 			const productData = item.product ? productsMap.get(item.product) : null;
 
-			// Aplica modificadores especificos para confiteria filtrando por hora y alcance
-			const modifiers = activeModifiers.filter((m: any) => {
-				if (m.modifier_scope !== 2) return false;
-				if (!this._isValidTime(m, currentDate, currentTime, currentDay)) return false;
-				if (m.line_type && m.line_type !== item.line_type) return false;
-				if (m.product_category && productData && m.product_category !== productData.product_category)
-					return false;
-				if (m.product && m.product !== item.product) return false;
-				if (m.combo && m.combo !== item.combo) return false;
-				return true;
-			});
-			item.appliedModifiers = [];
-			for (const mod of modifiers) {
-				const opType = opTypesMap.get(mod.operation_type) || ({} as any);
-				let modValue = 0;
-				if (mod.is_percentage) {
-					modValue = basePrice * (Number(mod.value) / 100);
-				} else {
-					const modCurr = mod.currency || 1;
-					const modRate = exchangeRatesDict[modCurr] ? Number(exchangeRatesDict[modCurr].rate) : 1;
-					modValue = Number(mod.value) * modRate;
-				}
-				const netChange = opType.is_increment ? modValue : -modValue;
-				finalUnitPrice += netChange;
-				item.appliedModifiers.push({
-					price_modifier: mod.id,
-					applied_amount_base_currency: netChange * item.quantity,
-				});
-			}
+			const context = {
+				modifier_scope: 2, // Confitería
+				cinemaId: concessions[0]?.cinema, // Not exact but typically orders are per cinema
+				line_type: item.line_type,
+				product_category: productData ? productData.product_category : null,
+				product: item.product,
+				combo: item.combo,
+			};
 
-			// El precio final no puede ser negativo
-			finalUnitPrice = Math.max(0, finalUnitPrice);
+			const { finalPrice: finalPriceInItemCurrency, appliedModifiers } = PricingService.calculateFinalPrice(
+				priceData.price,
+				context,
+				priceData.currency,
+				activeModifiers,
+				opTypesMap,
+				{ currentDate, currentTime, currentDay }
+			);
+
+			const finalUnitPrice = finalPriceInItemCurrency * Number(rateObj.rate);
+
+			item.appliedModifiers = appliedModifiers.map((mod: any) => ({
+				price_modifier: mod.price_modifier,
+				applied_amount_base_currency: (mod.applied_amount * Number(rateObj.rate)) * item.quantity,
+			}));
+
 			subtotalBase += finalUnitPrice * item.quantity;
 
 			// Aplica reglas de impuestos vigentes basadas en la categoria de producto
@@ -1121,7 +1116,7 @@ export class OrdersService extends BaseService {
 				if (!orderTaxesCollector[rule.tax]) orderTaxesCollector[rule.tax] = { rate: taxRate, amount: 0 };
 				orderTaxesCollector[rule.tax].amount += taxAmount;
 			}
-			item.originalPrice = basePrice;
+			item.originalPrice = priceData.price * Number(rateObj.rate);
 			item.finalPrice = finalUnitPrice;
 		}
 		return { subtotalBase, taxesBase };
@@ -1131,6 +1126,7 @@ export class OrdersService extends BaseService {
 		tickets: any[],
 		cinemaId: number,
 		exchangeRatesDict: any,
+		systemBaseCurrency: number,
 		activeModifiers: any[],
 		activeTaxes: any[],
 		opTypesMap: Map<number, any>,
@@ -1169,17 +1165,21 @@ export class OrdersService extends BaseService {
 				audienceCategoryId: ticket.audienceCategoryId,
 			};
 
-			const { finalPrice, appliedModifiers } = PricingService.calculateFinalPrice(
-				basePrice,
+			const { finalPrice: finalPriceInItemCurrency, appliedModifiers } = PricingService.calculateFinalPrice(
+				rawBasePrice,
 				context,
+				currency,
 				activeModifiers,
 				opTypesMap,
-				exchangeRatesDict,
 				{ currentDate, currentTime, currentDay },
 			);
 
-			ticket.appliedModifiers = appliedModifiers;
-			const finalUnitPrice = finalPrice;
+			const finalUnitPrice = finalPriceInItemCurrency * Number(rateObj.rate);
+
+			ticket.appliedModifiers = appliedModifiers.map((mod: any) => ({
+				price_modifier: mod.price_modifier,
+				applied_amount_base_currency: mod.applied_amount * Number(rateObj.rate),
+			}));
 			subtotalBase += finalUnitPrice;
 			const ticketTaxes = activeTaxes.filter((t: any) => t.tax_scope === 1);
 			for (const rule of ticketTaxes) {

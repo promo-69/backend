@@ -16,10 +16,11 @@ export class InventoryManagementService {
     async getStockByCinema(cinemaId: number, filters?: any) {
         return this._inventories.getAllByCinema(cinemaId, {
             ...filters,
-            include: [
+            relations: [
                 {
-                    association: '_Product',
-                    include: [{ association: '_ProductCategory', attributes: ['id', 'description'] }],
+                    association: '_Products',
+                    required: true,
+                    nested: [{ association: '_ProductCategories', attributes: ['id', 'description'] }],
                 },
             ],
         });

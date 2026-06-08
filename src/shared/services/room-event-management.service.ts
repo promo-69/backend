@@ -45,7 +45,7 @@ export class RoomEventManagementService {
             {
                 association: '_RoomBookings',
                 attributes: ['id', 'start_time', 'end_time'],
-                include: [{ association: '_Rooms', attributes: ['id', 'name'] }],
+                nested: [{ association: '_Rooms', attributes: ['id', 'name'] }],
             },
             { association: '_BookingTypes', attributes: ['id', 'description'] },
             { association: '_Currencies', attributes: ['id', 'code'] },

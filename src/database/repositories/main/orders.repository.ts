@@ -26,7 +26,7 @@ class OrdersRepository extends SequelizeRepositoryBase<OrdersAttributes, number>
 			{
 				association: '_OrderLines',
 				required: false,
-				include: [
+				nested: [
 					{ association: '_Products', required: false },
 					{ association: '_Combos', required: false },
 				],
@@ -35,7 +35,7 @@ class OrdersRepository extends SequelizeRepositoryBase<OrdersAttributes, number>
 				association: '_Tickets',
 				separate: true,
 				required: false,
-				include: [{ association: '_RoomBookings', required: false }],
+				nested: [{ association: '_RoomBookings', required: false }],
 			},
 			{ association: '_OrderPayments', separate: true, required: false },
 			{ association: '_Cinemas', required: false },

@@ -32,7 +32,7 @@ class RentalRequestsRepository extends SequelizeRepositoryBase<RentalRequestsAtt
             {
                 association: '_Customers',
                 attributes: ['id', 'person'],
-                include: [
+                nested: [
                     {
                         association: '_People',
                         attributes: ['first_name', 'last_name', 'personal_email', 'phone_number'],
@@ -42,7 +42,7 @@ class RentalRequestsRepository extends SequelizeRepositoryBase<RentalRequestsAtt
             {
                 association: '_Rooms',
                 attributes: ['id', 'name', 'cinema'],
-                include: [{ association: '_Cinemas', attributes: ['id', 'name'] }],
+                nested: [{ association: '_Cinemas', attributes: ['id', 'name'] }],
             },
         ];
     }
@@ -55,7 +55,7 @@ class RentalRequestsRepository extends SequelizeRepositoryBase<RentalRequestsAtt
             {
                 association: '_Customers',
                 attributes: ['id', 'person'],
-                include: [
+                nested: [
                     {
                         association: '_People',
                         attributes: [
@@ -72,7 +72,7 @@ class RentalRequestsRepository extends SequelizeRepositoryBase<RentalRequestsAtt
             {
                 association: '_Rooms',
                 attributes: ['id', 'name', 'cinema'],
-                include: [{ association: '_Cinemas', attributes: ['id', 'name'] }],
+                nested: [{ association: '_Cinemas', attributes: ['id', 'name'] }],
             },
             { association: '_EventTypes', attributes: ['id', 'description'] },
             { association: '_Currencies', attributes: ['id', 'code', 'symbol'], required: false },

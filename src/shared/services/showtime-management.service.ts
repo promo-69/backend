@@ -454,12 +454,19 @@ export class ShowtimeManagementService {
 
 		let activeQuote = null;
 		let cacheData: any = null;
+
 		if (userId) {
 			activeQuote = await shoppingSessionService.getActiveQuote(userId);
-			if (activeQuote) {
-				cacheData = await PricingCacheService.getActiveModifiers();
-			}
 		}
+
+		if (activeQuote) {
+			cacheData = await PricingCacheService.getActiveModifiers();
+		} else {
+			cacheData = await PricingCacheService.getActiveModifiers();
+		}
+
+		const allCurrencies = await (Database.repository('main', 'currencies') as any).getAll({ count: false });
+		const sysCurrencyMap = new Map<number, string>(allCurrencies.map((c: any) => [c.id, c.description]));
 
 		const rows = await Promise.all(
 			showtimeList.map(async (s: any) => {
@@ -490,9 +497,9 @@ export class ShowtimeManagementService {
 					earned_loyalty_points: s.earned_loyalty_points,
 				};
 
-				if (activeQuote && cacheData) {
+				if (cacheData) {
 					// Time anchor based on session creation
-					const sessionDate = new Date(activeQuote.created_at || Date.now());
+					const sessionDate = activeQuote ? new Date(activeQuote.created_at) : new Date();
 					const currentDate = sessionDate.toISOString().split('T')[0];
 					const currentTime = sessionDate.toTimeString().split(' ')[0];
 					const currentDay = sessionDate.getDay() === 0 ? 7 : sessionDate.getDay();
@@ -510,12 +517,14 @@ export class ShowtimeManagementService {
 						// No seat nor audience yet
 					};
 
+					const showtimeCurr = s.currency || 1;
+
 					const basePricing = PricingService.calculateFinalPrice(
 						s.price,
 						baseContext,
+						showtimeCurr,
 						cacheData.modifiers,
 						cacheData.opTypesMap,
-						activeQuote.exchange_rates,
 						timeContext
 					);
 
@@ -529,29 +538,65 @@ export class ShowtimeManagementService {
 							};
 
 							const specificPricing = PricingService.calculateFinalPrice(
-								basePricing.finalPrice, // we apply on top of base
+								basePricing.finalPrice, // we apply on top of base (already in item currency)
 								specificContext,
+								showtimeCurr,
 								cacheData.modifiers,
 								cacheData.opTypesMap,
-								activeQuote.exchange_rates,
 								timeContext
 							);
 
-							pricingMatrix.push({
+							const matrixItem: any = {
 								audience_category: { id: audCat.id, name: audCat.description },
 								seat_category: { id: seatCat.id, name: seatCat.description },
 								final_price: specificPricing.finalPrice,
 								applied_modifiers: specificPricing.appliedModifiers
-							});
+							};
+
+							if (activeQuote && activeQuote.exchange_rates) {
+								const rateObj = activeQuote.exchange_rates[showtimeCurr] || { rate: 1 };
+								const exRate = Number(rateObj.rate);
+								matrixItem.base_currency_equivalent = {
+									currency: activeQuote.system_base_currency,
+									currency_description: sysCurrencyMap.get(activeQuote.system_base_currency) || 'Desconocido',
+									exchange_rate: exRate,
+									final_price: specificPricing.finalPrice * exRate,
+									applied_modifiers: specificPricing.appliedModifiers.map((mod: any) => ({
+										...mod,
+										applied_amount: mod.applied_amount * exRate,
+									}))
+								};
+							}
+
+							pricingMatrix.push(matrixItem);
 						}
 					}
 
-					resultObj.pricing = {
-						base_price: basePricing.finalPrice,
+					const pricingObj: any = {
+						currency: showtimeCurr,
+						currency_description: sysCurrencyMap.get(showtimeCurr) || 'Desconocido',
+						base_price: s.price,
 						showtime_applied_modifiers: basePricing.appliedModifiers,
 						pricing_matrix: pricingMatrix
 					};
-				} else {
+
+					if (activeQuote && activeQuote.exchange_rates) {
+						const rateObj = activeQuote.exchange_rates[showtimeCurr] || { rate: 1 };
+						const exRate = Number(rateObj.rate);
+						pricingObj.base_currency_equivalent = {
+							currency: activeQuote.system_base_currency,
+							currency_description: sysCurrencyMap.get(activeQuote.system_base_currency) || 'Desconocido',
+							exchange_rate: exRate,
+							base_price: s.price * exRate,
+							showtime_applied_modifiers: basePricing.appliedModifiers.map((mod: any) => ({
+								...mod,
+								applied_amount: mod.applied_amount * exRate,
+							}))
+						};
+					}
+
+					resultObj.pricing = pricingObj;
+					delete resultObj.price;
 					delete resultObj.currency;
 				}
 
@@ -1157,6 +1202,8 @@ export class ShowtimeManagementService {
 			const activeQuote = await shoppingSessionService.getActiveQuote(userId);
 			if (activeQuote) {
 				const cacheData = await PricingCacheService.getActiveModifiers();
+				const allCurrencies = await (Database.repository('main', 'currencies') as any).getAll({ count: false });
+				const sysCurrencyMap = new Map<number, string>(allCurrencies.map((c: any) => [c.id, c.description]));
 				if (cacheData) {
 					const sessionDate = new Date(activeQuote.created_at || Date.now());
 					const currentDate = sessionDate.toISOString().split('T')[0];
@@ -1179,9 +1226,9 @@ export class ShowtimeManagementService {
 					const basePricing = PricingService.calculateFinalPrice(
 						showtime.price,
 						baseContext,
+						showtime.currency || 1,
 						cacheData.modifiers,
 						cacheData.opTypesMap,
-						activeQuote.exchange_rates,
 						timeContext
 					);
 
@@ -1197,26 +1244,62 @@ export class ShowtimeManagementService {
 							const specificPricing = PricingService.calculateFinalPrice(
 								basePricing.finalPrice, 
 								specificContext,
+								showtime.currency || 1,
 								cacheData.modifiers,
 								cacheData.opTypesMap,
-								activeQuote.exchange_rates,
 								timeContext
 							);
 
-							pricingMatrix.push({
+							const matrixItem: any = {
 								audience_category: { id: audCat.id, name: audCat.description },
 								seat_category: { id: seatCat.id, name: seatCat.description },
 								final_price: specificPricing.finalPrice,
 								applied_modifiers: specificPricing.appliedModifiers
-							});
+							};
+
+							if (activeQuote && activeQuote.exchange_rates) {
+								const rateObj = activeQuote.exchange_rates[showtime.currency || 1] || { rate: 1 };
+								const exRate = Number(rateObj.rate);
+								matrixItem.base_currency_equivalent = {
+									currency: activeQuote.system_base_currency,
+									currency_description: sysCurrencyMap.get(activeQuote.system_base_currency) || 'Desconocido',
+									exchange_rate: exRate,
+									final_price: specificPricing.finalPrice * exRate,
+									applied_modifiers: specificPricing.appliedModifiers.map((mod: any) => ({
+										...mod,
+										applied_amount: mod.applied_amount * exRate,
+									}))
+								};
+							}
+
+							pricingMatrix.push(matrixItem);
 						}
 					}
 
-					pricing = {
+					const pricingObj: any = {
+						currency: showtime.currency || 1,
+						currency_description: sysCurrencyMap.get(showtime.currency || 1) || 'Desconocido',
 						base_price: basePricing.finalPrice,
 						showtime_applied_modifiers: basePricing.appliedModifiers,
 						pricing_matrix: pricingMatrix
 					};
+
+					if (activeQuote && activeQuote.exchange_rates) {
+						const rateObj = activeQuote.exchange_rates[showtime.currency || 1] || { rate: 1 };
+						const exRate = Number(rateObj.rate);
+						pricingObj.base_currency_equivalent = {
+							currency: activeQuote.system_base_currency,
+							currency_description: sysCurrencyMap.get(activeQuote.system_base_currency) || 'Desconocido',
+							exchange_rate: exRate,
+							base_price: basePricing.finalPrice * exRate,
+							showtime_applied_modifiers: basePricing.appliedModifiers.map((mod: any) => ({
+								...mod,
+								applied_amount: mod.applied_amount * exRate,
+							}))
+						};
+					}
+
+					pricing = pricingObj;
 				}
 			}
 		}

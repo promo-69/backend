@@ -17,5 +17,30 @@ router.post(
     imageUpload,
     cinemaCombosController.create,
 );
+router.patch(
+    '/:id',
+    verifySession,
+    verifyPermission('CRUD:UPDATE:CINEMAS-COMBOS'),
+    imageUpload,
+    cinemaCombosController.update,
+);
+router.delete(
+    '/:id',
+    verifySession,
+    verifyPermission('CRUD:DELETE:CINEMAS-COMBOS'),
+    cinemaCombosController.delete,
+);
+router.post(
+    '/:id/items',
+    verifySession,
+    verifyPermission('CRUD:UPDATE:CINEMAS-COMBOS'),
+    cinemaCombosController.addItems,
+);
+router.delete(
+    '/:id/items/:itemId',
+    verifySession,
+    verifyPermission('CRUD:UPDATE:CINEMAS-COMBOS'),
+    cinemaCombosController.removeItems,
+);
 
 export default router;

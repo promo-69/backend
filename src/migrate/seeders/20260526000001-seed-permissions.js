@@ -277,6 +277,40 @@ module.exports = {
                     });
                 }
             }
+
+            // ------------------------------------------------------------------
+            // 6. Asignar permisos específicos a GENERAL_MANAGER y CINEMA_MANAGER
+            // ------------------------------------------------------------------
+            const [gmRoleRows] = await queryInterface.sequelize.query(`SELECT id FROM roles WHERE code = 'GENERAL_MANAGER'`, { transaction });
+            const [cmRoleRows] = await queryInterface.sequelize.query(`SELECT id FROM roles WHERE code = 'CINEMA_MANAGER'`, { transaction });
+
+            if (gmRoleRows.length > 0) {
+                const gmRoleId = gmRoleRows[0].id;
+                const gmResourceCodes = ['PRODUCTS', 'CINEMAS-COMBOS'];
+                const inClause = gmResourceCodes.map(c => `'${c}'`).join(',');
+                const [permRows] = await queryInterface.sequelize.query(
+                    `SELECT p.id FROM permissions p JOIN resources r ON p.resource = r.id WHERE r.code IN (${inClause})`,
+                    { transaction }
+                );
+                const rolePermValues = permRows.map(p => ({ role: gmRoleId, permission: p.id }));
+                if (rolePermValues.length > 0) {
+                    await queryInterface.bulkInsert('role_permissions', rolePermValues, { ignoreDuplicates: true, transaction });
+                }
+            }
+
+            if (cmRoleRows.length > 0) {
+                const cmRoleId = cmRoleRows[0].id;
+                const cmResourceCodes = ['COMBOS', 'COMBOS_ITEMS'];
+                const inClause = cmResourceCodes.map(c => `'${c}'`).join(',');
+                const [permRows] = await queryInterface.sequelize.query(
+                    `SELECT p.id FROM permissions p JOIN resources r ON p.resource = r.id WHERE r.code IN (${inClause})`,
+                    { transaction }
+                );
+                const rolePermValues = permRows.map(p => ({ role: cmRoleId, permission: p.id }));
+                if (rolePermValues.length > 0) {
+                    await queryInterface.bulkInsert('role_permissions', rolePermValues, { ignoreDuplicates: true, transaction });
+                }
+            }
         });
     },
 
