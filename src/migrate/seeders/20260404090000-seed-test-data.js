@@ -228,6 +228,16 @@ module.exports = {
 					personal_email: 'admin.super@cineflix.com',
 					birth_date: '1985-01-01',
 				},
+				{
+					id: 3,
+					document_number: 'V-00000000',
+					first_name: 'Sucursal',
+					last_name: 'Cine',
+					gender: 1,
+					phone_number: '+58 212-555-0001',
+					personal_email: 'sucural@cineflix.com',
+					birth_date: '1985-01-02',
+				},
 			],
 			{},
 		);
@@ -254,6 +264,11 @@ module.exports = {
 					person: 2,
 					employee_code: 'ADM001',
 				},
+				{
+					id: 2,
+					person: 3,
+					employee_code: 'SUC001',
+				},
 			],
 			{},
 		);
@@ -265,6 +280,15 @@ module.exports = {
 					id: 1,
 					employee: 1,
 					job_position: 1, // Gerente General
+					cinema: 1,
+					start_date: '2026-04-01',
+					end_date: null,
+					salary_base: 5000.0,
+				},
+				{
+					id: 2,
+					employee: 2,
+					job_position: 2, // Gerente de Sucursal
 					cinema: 1,
 					start_date: '2026-04-01',
 					end_date: null,
@@ -302,6 +326,16 @@ module.exports = {
 					user_type: 1, // Empleado
 					role: 1, // SUPER_ADMIN
 					email: process.env.SUPER_ADMIN_EMAIL || 'admin@cineflix.com',
+					password: adminPassword,
+					signup_code: await bcrypt.hash(nanoid(20), 10),
+					signup_verified_at: new Date(),
+				},
+				{
+					id: 3,
+					person: 3,
+					user_type: 1, // Empleado
+					role: 1,
+					email: 'sucursal@cineflix.com',
 					password: adminPassword,
 					signup_code: await bcrypt.hash(nanoid(20), 10),
 					signup_verified_at: new Date(),

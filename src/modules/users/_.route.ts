@@ -15,6 +15,11 @@ router.get('/me/loyalty', verifySession, usersController.getMyLoyaltyInfo);
 router.get('/me/loyalty/ledgers', verifySession, usersController.getMyLoyaltyLedgers);
 router.get('/me/movie-subscriptions', verifySession, usersController.getMyMovieSubscriptions);
 
+// --- Géneros Favoritos del Cliente
+router.get('/me/movie-genres', verifySession, usersController.getMyMovieGenres);
+router.post('/me/movie-genres', verifySession, usersController.addMyMovieGenres);
+router.delete('/me/movie-genres', verifySession, usersController.removeMyMovieGenres);
+
 // --- Exclusivo para Gerencia
 router.get('/', ...managerMiddleware, usersController.getAllUsers);
 router.get('/:id/role', ...managerMiddleware, usersController.getUserRole);

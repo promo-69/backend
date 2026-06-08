@@ -38,6 +38,9 @@ export class UsersService extends BaseService {
 	private get _movieSubscriptions() {
 		return Database.repository('main', 'movie-user-subscriptions') as any;
 	}
+	private get _customerFavoriteGenres() {
+		return Database.repository('main', 'customer-favorite-genres') as any;
+	}
 	private get _roles() {
 		return Database.repository('main', 'roles') as any;
 	}
@@ -395,6 +398,60 @@ export class UsersService extends BaseService {
 		);
 
 		return result;
+	}
+
+	// --- Géneros Favoritos
+	async getMyMovieGenres(userId: number) {
+		const user = await this._users.getById(userId, { attributes: ['id', 'person'] });
+		if (!user) throw new NotFoundError('Usuario', userId.toString());
+
+		const customer = await this._customers.getOne({ person: user.person });
+		if (!customer) return [];
+
+		const result = await this._customerFavoriteGenres.getAll(
+			{ count: false, relations: [{ association: '_Genres' }] },
+			{ customer: customer.id }
+		);
+
+		return Array.isArray(result) ? result : result.rows;
+	}
+
+	async addMyMovieGenres(userId: number, genreIds: number[]) {
+		if (!Array.isArray(genreIds) || genreIds.length === 0) {
+			throw new ValidationError('Se requiere enviar al menos un género.', []);
+		}
+
+		const user = await this._users.getById(userId, { attributes: ['id', 'person'] });
+		if (!user) throw new NotFoundError('Usuario', userId.toString());
+
+		const customer = await this._customers.getOne({ person: user.person });
+		if (!customer) throw new NotFoundError('Cliente', userId.toString());
+
+		await this._customerFavoriteGenres.transaction(async (transaction: Transaction) => {
+			for (const genreId of genreIds) {
+				const exists = await this._customerFavoriteGenres.getOne({ customer: customer.id, genre: genreId }, { transaction });
+				if (!exists) {
+					await this._customerFavoriteGenres.create(
+						{ customer: customer.id, genre: genreId },
+						{ transaction }
+					);
+				}
+			}
+		});
+	}
+
+	async removeMyMovieGenres(userId: number, genreIds: number[]) {
+		if (!Array.isArray(genreIds) || genreIds.length === 0) {
+			throw new ValidationError('Se requiere enviar al menos un género a remover.', []);
+		}
+
+		const user = await this._users.getById(userId, { attributes: ['id', 'person'] });
+		if (!user) throw new NotFoundError('Usuario', userId.toString());
+
+		const customer = await this._customers.getOne({ person: user.person });
+		if (!customer) throw new NotFoundError('Cliente', userId.toString());
+
+		await this._customerFavoriteGenres.delete({ customer: customer.id, genre: genreIds });
 	}
 }
 

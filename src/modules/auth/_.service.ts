@@ -83,6 +83,9 @@ export class AuthService extends BaseService {
 	private get _roleInheritances() {
 		return Database.repository('main', 'role-inheritances') as any;
 	}
+	private get _customerFavoriteGenres() {
+		return Database.repository('main', 'customer-favorite-genres') as any;
+	}
 
 	private parsePermissions(permissions: any[]): string[] {
 		return Array.from(
@@ -178,6 +181,9 @@ export class AuthService extends BaseService {
 				payload.loyaltyLevelId = customer.loyalty_level ?? 1;
 				payload.loyaltyLevelName = level?.name ?? null;
 				payload.loyaltyPoints = customer.level_progress_points ?? 0;
+
+				const favoriteGenresCount = await this._customerFavoriteGenres.count({ customer: customer.id });
+				payload.hasFavoriteGenres = favoriteGenresCount > 0;
 			}
 		}
 
