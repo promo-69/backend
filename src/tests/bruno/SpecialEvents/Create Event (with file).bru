@@ -1,0 +1,40 @@
+meta {
+  name: Create Event (with file)
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{baseUrl}}/special-events
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:multipart-form {
+  title: Final Champions League 2026
+  description: Transmisión en vivo del partido final de la UEFA Champions League.
+  durationMinutes: 120
+  ageClassification: 1
+  lifecycleState: 1
+  trailerUrl: https://www.youtube.com/watch?v=dQw4w9WgXcQ
+  releaseDate: 2026-06-20
+  endDate: 2026-06-20
+  poster: @file(/path/to/poster.jpg)
+  # banner: @file(/path/to/banner.jpg)   # opcional
+}
+
+script:post-response {
+  const resBody = res.getBody();
+  if (res.getStatus() === 201 && resBody?.data?.id) {
+    bru.setEnvVar('eventId', resBody.data.id);
+  }
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  bru.setVar('baseUrl', baseUrl);
+}

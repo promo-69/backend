@@ -1,0 +1,587 @@
+/special-events:
+    get:
+        summary: Obtener catálogo de eventos especiales (público)
+        description: Lista paginada de eventos especiales no eliminados. Acepta filtros por `lifecycle_state`, `page`, `limit`, etc.
+        tags:
+            - Special Events
+        security: []
+        parameters:
+            - name: lifecycle_state
+              in: query
+              schema:
+                  type: integer
+              description: '1=Próximamente, 2=Estreno, 3=Regular, 4=Últimos días, 5=Fuera de cartelera'
+            - name: page
+              in: query
+              schema:
+                  type: integer
+            - name: limit
+              in: query
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Lista de eventos
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                message:
+                                    type: string
+                                data:
+                                    type: object
+                                    properties:
+                                        count:
+                                            type: integer
+                                        rows:
+                                            type: array
+                                            items:
+                                                type: object
+                                                properties:
+                                                    id:
+                                                        type: integer
+                                                    title:
+                                                        type: string
+                                                    description:
+                                                        type: string
+                                                    duration_minutes:
+                                                        type: integer
+                                                    age_classification:
+                                                        type: integer
+                                                    lifecycle_state:
+                                                        type: integer
+                                                    trailer_url:
+                                                        type: string
+                                                        nullable: true
+                                                    poster_url:
+                                                        type: string
+                                                        nullable: true
+                                                    banner_url:
+                                                        type: string
+                                                        nullable: true
+                                                    release_date:
+                                                        type: string
+                                                        format: date
+                                                    end_date:
+                                                        type: string
+                                                        format: date
+                                                        nullable: true
+            '500':
+                description: Error interno
+
+    post:
+        summary: Crear evento especial (solo super admin)
+        description: Registra un nuevo evento en el catálogo. Soporta subida de poster y banner mediante `multipart/form-data`.
+        tags:
+            - Special Events Admin
+        security:
+            - bearerAuth: []
+        requestBody:
+            required: true
+            content:
+                multipart/form-data:
+                    schema:
+                        type: object
+                        properties:
+                            title:
+                                type: string
+                            description:
+                                type: string
+                            durationMinutes:
+                                type: integer
+                            ageClassification:
+                                type: integer
+                            lifecycleState:
+                                type: integer
+                                default: 1
+                            trailerUrl:
+                                type: string
+                                format: uri
+                            releaseDate:
+                                type: string
+                                format: date
+                            endDate:
+                                type: string
+                                format: date
+                                nullable: true
+                            poster:
+                                type: string
+                                format: binary
+                            banner:
+                                type: string
+                                format: binary
+                            posterUrl:
+                                type: string
+                                format: uri
+                                description: URL externa (solo si no se envía archivo)
+                        required:
+                            - title
+                            - description
+                            - durationMinutes
+                            - ageClassification
+                            - releaseDate
+        responses:
+            '201':
+                description: Evento creado
+            '400':
+                description: Validación fallida
+            '401':
+                description: No autenticado
+            '403':
+                description: Permisos insuficientes
+            '409':
+                description: Título duplicado
+            '500':
+                description: Error interno
+
+/special-events/upcoming:
+    get:
+        summary: Obtener eventos próximos (público)
+        description: Filtra eventos con `lifecycle_state = 1` (Próximamente). Mismos parámetros de paginación.
+        tags:
+            - Special Events
+        security: []
+        parameters:
+            - name: page
+              in: query
+              schema:
+                  type: integer
+            - name: limit
+              in: query
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Lista de próximos eventos
+            '500':
+                description: Error interno
+
+/special-events/billboard:
+    get:
+        summary: Cartelera pública de eventos
+        description: Devuelve eventos con funciones futuras y estado visible (Próximamente, Estreno, Regular, Últimos días). Puede filtrarse por sucursal.
+        tags:
+            - Special Events
+        security: []
+        parameters:
+            - name: cinemaId
+              in: query
+              schema:
+                  type: integer
+              description: ID de sucursal (opcional)
+        responses:
+            '200':
+                description: Cartelera de eventos
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                message:
+                                    type: string
+                                data:
+                                    type: object
+                                    properties:
+                                        count:
+                                            type: integer
+                                        rows:
+                                            type: array
+                                            items:
+                                                type: object
+                                                properties:
+                                                    event:
+                                                        type: object
+                                                        properties:
+                                                            id:
+                                                                type: integer
+                                                            title:
+                                                                type: string
+                                                            duration_minutes:
+                                                                type: integer
+                                                            poster_url:
+                                                                type: string
+                                                                nullable: true
+                                                            lifecycle:
+                                                                type: object
+                                                                properties:
+                                                                    id:
+                                                                        type: integer
+                                                                    description:
+                                                                        type: string
+                                                            age_classification:
+                                                                type: object
+                                                                properties:
+                                                                    id:
+                                                                        type: integer
+                                                                    description:
+                                                                        type: string
+                                                    showtimes:
+                                                        type: array
+                                                        items:
+                                                            type: object
+                                                            properties:
+                                                                id:
+                                                                    type: integer
+                                                                booking:
+                                                                    type: object
+                                                                    properties:
+                                                                        id:
+                                                                            type: integer
+                                                                        start_time:
+                                                                            type: string
+                                                                            format: date-time
+                                                                        end_time:
+                                                                            type: string
+                                                                            format: date-time
+                                                                        room:
+                                                                            type: object
+                                                                            properties:
+                                                                                id:
+                                                                                    type: integer
+                                                                                name:
+                                                                                    type: string
+                                                                                cinema:
+                                                                                    type: object
+                                                                                    properties:
+                                                                                        id:
+                                                                                            type: integer
+                                                                                        name:
+                                                                                            type: string
+                                                                projection_type:
+                                                                    type: object
+                                                                    properties:
+                                                                        id:
+                                                                            type: integer
+                                                                        description:
+                                                                            type: string
+                                                                language:
+                                                                    type: object
+                                                                    properties:
+                                                                        id:
+                                                                            type: integer
+                                                                        description:
+                                                                            type: string
+                                                                currency:
+                                                                    type: object
+                                                                    properties:
+                                                                        id:
+                                                                            type: integer
+                                                                        code:
+                                                                            type: string
+                                                                        symbol:
+                                                                            type: string
+                                                                price:
+                                                                    type: number
+                                                                earned_loyalty_points:
+                                                                    type: integer
+                                                                    nullable: true
+            '404':
+                description: No se encontraron funciones (respuesta con count=0 pero sin error)
+
+/special-events/{id}:
+    get:
+        summary: Detalle público de un evento
+        tags:
+            - Special Events
+        security: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Evento encontrado
+            '404':
+                description: No existe
+
+    patch:
+        summary: Actualizar evento especial (solo super admin)
+        tags:
+            - Special Events Admin
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        requestBody:
+            required: true
+            content:
+                multipart/form-data:
+                    schema:
+                        type: object
+                        properties:
+                            title:
+                                type: string
+                            description:
+                                type: string
+                            durationMinutes:
+                                type: integer
+                            ageClassification:
+                                type: integer
+                            lifecycleState:
+                                type: integer
+                            trailerUrl:
+                                type: string
+                            releaseDate:
+                                type: string
+                                format: date
+                            endDate:
+                                type: string
+                                format: date
+                            poster:
+                                type: string
+                                format: binary
+                            banner:
+                                type: string
+                                format: binary
+                            posterUrl:
+                                type: string
+        responses:
+            '200':
+                description: Evento actualizado
+            '400':
+                description: Datos inválidos
+            '401':
+                description: No autenticado
+            '403':
+                description: Sin permiso
+            '404':
+                description: Evento no encontrado
+
+    delete:
+        summary: Eliminar evento especial (solo super admin)
+        description: Soft delete. Falla si el evento tiene funciones activas.
+        tags:
+            - Special Events Admin
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Evento eliminado
+            '401':
+                description: No autenticado
+            '403':
+                description: Sin permiso
+            '404':
+                description: No encontrado
+            '409':
+                description: Evento tiene funciones activas
+
+/special-events/{id}/showtimes:
+    get:
+        summary: Funciones de un evento en una sucursal (público)
+        description: Requiere `cinemaId` en query. Devuelve funciones futuras del evento en esa sucursal con disponibilidad de asientos.
+        tags:
+            - Special Events
+        security: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+            - name: cinemaId
+              in: query
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Lista de funciones
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                message:
+                                    type: string
+                                data:
+                                    type: object
+                                    properties:
+                                        event:
+                                            type: object
+                                            properties:
+                                                id:
+                                                    type: integer
+                                                title:
+                                                    type: string
+                                                duration_minutes:
+                                                    type: integer
+                                                poster_url:
+                                                    type: string
+                                                    nullable: true
+                                        count:
+                                            type: integer
+                                        rows:
+                                            type: array
+                                            items:
+                                                type: object
+                                                properties:
+                                                    id:
+                                                        type: integer
+                                                    booking:
+                                                        type: object
+                                                        properties:
+                                                            id:
+                                                                type: integer
+                                                            start_time:
+                                                                type: string
+                                                                format: date-time
+                                                            end_time:
+                                                                type: string
+                                                                format: date-time
+                                                            room:
+                                                                type: object
+                                                                properties:
+                                                                    id:
+                                                                        type: integer
+                                                                    name:
+                                                                        type: string
+                                                                    total_seats:
+                                                                        type: integer
+                                                                    available_seats:
+                                                                        type: integer
+                                                    projection_type:
+                                                        type: object
+                                                        properties:
+                                                            id:
+                                                                type: integer
+                                                            description:
+                                                                type: string
+                                                    language:
+                                                        type: object
+                                                        properties:
+                                                            id:
+                                                                type: integer
+                                                            description:
+                                                                type: string
+                                                    currency:
+                                                        type: object
+                                                        properties:
+                                                            id:
+                                                                type: integer
+                                                            code:
+                                                                type: string
+                                                            symbol:
+                                                                type: string
+                                                    price:
+                                                        type: number
+                                                    earned_loyalty_points:
+                                                        type: integer
+                                                        nullable: true
+            '404':
+                description: Evento o funciones no encontradas
+
+/special-events/admin:
+    get:
+        summary: Listado administrativo de eventos (todos los estados)
+        tags:
+            - Special Events Admin
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: page
+              in: query
+              schema:
+                  type: integer
+            - name: limit
+              in: query
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Lista completa
+            '401':
+                description: No autenticado
+            '403':
+                description: Sin permiso
+
+/special-events/admin/{id}:
+    get:
+        summary: Detalle administrativo de un evento
+        tags:
+            - Special Events Admin
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Evento encontrado
+            '404':
+                description: No encontrado
+
+/special-events/admin/showtimes:
+    get:
+        summary: Listado administrativo de funciones de eventos especiales
+        description: |
+            Filtros disponibles:
+            - `cinemaId` (super admin puede filtrar por cualquier sucursal; empleado solo ve su sucursal)
+            - `eventId` (filtrar por evento específico)
+            - `startDate` / `endDate` (rango de fechas, formato YYYY-MM-DD)
+            - `onlyFuture` (true por defecto, false para incluir pasadas)
+        tags:
+            - Special Events Admin
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: cinemaId
+              in: query
+              schema:
+                  type: integer
+            - name: eventId
+              in: query
+              schema:
+                  type: integer
+            - name: startDate
+              in: query
+              schema:
+                  type: string
+                  format: date
+            - name: endDate
+              in: query
+              schema:
+                  type: string
+                  format: date
+            - name: onlyFuture
+              in: query
+              schema:
+                  type: boolean
+                  default: true
+            - name: page
+              in: query
+              schema:
+                  type: integer
+            - name: limit
+              in: query
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Lista de funciones (mismo esquema que GET /showtimes)
+            '401':
+                description: No autenticado
+            '403':
+                description: Sin permiso

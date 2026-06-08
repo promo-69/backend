@@ -4,23 +4,34 @@ import { verifySession, optionalAuth, verifyPermission } from '@middlewares/auth
 
 const router = Router();
 
-// Rutas públicas o semi
+// ── Rutas públicas / semi-públicas ────────────────────────────────────────────
 
-// POST /rentals/requests - Formulario público de solicitud. optionalAuth: si hay token de cliente,
+// POST /rentals/requests (pública o con token)
 router.post('/requests', optionalAuth, rentalsController.create);
 
-// GET /rentals/requests/me - El cliente consulta su propio historial. Requiere token de cliente.
-router.get('/requests/me', verifySession, verifyPermission('VIEW:ACCESS:RENTALS-MY'), rentalsController.findMine);
+// GET /rentals/requests/me (solo cliente autenticado, sin permiso adicional)
+router.get('/requests/me', verifySession, rentalsController.findMine);
 
-//Backoffice
+// PATCH /rentals/requests/:id/payment (cliente o empleado)
+router.patch('/requests/:id/payment', verifySession, rentalsController.confirmPayment);
 
-// GET /rentals/requests - Gerente lista las solicitudes de su cine (cinemaId del JWT).
+// ── Rutas privadas (backoffice) ───────────────────────────────────────────────
+
+// GET /rentals/requests (gerente de sucursal)
 router.get('/requests', verifySession, verifyPermission('CRUD:READ:RENTALS'), rentalsController.findAll);
 
-// GET /rentals/requests/:id - Gerente consulta el detalle exhaustivo de una solicitud.
+// GET /rentals/admin/requests (superadmin / backoffice global)
+router.get(
+    '/admin/requests',
+    verifySession,
+    verifyPermission('CRUD:READ:RENTALS_GLOBAL'),
+    rentalsController.findAllAdmin,
+);
+
+// GET /rentals/requests/:id (detalle para gerente)
 router.get('/requests/:id', verifySession, verifyPermission('CRUD:READ:RENTALS'), rentalsController.findById);
 
-// PATCH /rentals/requests/:id/status - Gerente aprueba o rechaza la solicitud.
+// PATCH /rentals/requests/:id/status (aprobar/rechazar)
 router.patch(
     '/requests/:id/status',
     verifySession,

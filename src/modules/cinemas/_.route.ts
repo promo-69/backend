@@ -4,7 +4,6 @@ import { verifySession, verifyPermission } from '@middlewares/auth.middleware.js
 import roomsRouter from './rooms/rooms.route.js';
 import inventoryRouter from './inventory/inventory.route.js';
 import combosRouter from './combos/combos.route.js';
-import cinemaRoomEventsRouter from './room-events/room-events.route.js';
 import showtimesRouter from './showtimes/showtimes.route.js';
 
 const router = Router();
@@ -44,7 +43,6 @@ router.delete(
 router.use('/:cinemaId/rooms', roomsRouter);
 router.use('/:cinemaId/inventory', inventoryRouter);
 router.use('/:cinemaId/combos', combosRouter);
-router.use('/:cinemaId/room-events', cinemaRoomEventsRouter);
 router.use('/:cinemaId/showtimes', showtimesRouter);
 
 export default router;
