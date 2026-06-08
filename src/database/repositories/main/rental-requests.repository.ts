@@ -4,6 +4,7 @@ import RentalRequestsModel from '@database/models/main/rental-requests.model.js'
 export interface RentalRequestsAttributes {
     id?: number;
     customer: number;
+    cinema: number;
     room: number;
     event_type: number;
     booking?: number | null;
@@ -24,8 +25,6 @@ class RentalRequestsRepository extends SequelizeRepositoryBase<RentalRequestsAtt
         super(RentalRequestsModel);
     }
 
-    // Vista de lista: carga el estado y, a través de _Customers, la persona.
-    // La sala se incluye para poder derivar la sucursal.
     get listRelations() {
         return [
             { association: '_Statuses', attributes: ['id', 'description'] },
@@ -41,8 +40,13 @@ class RentalRequestsRepository extends SequelizeRepositoryBase<RentalRequestsAtt
             },
             {
                 association: '_Rooms',
-                attributes: ['id', 'name', 'cinema'],
-                include: [{ association: '_Cinemas', attributes: ['id', 'name'] }],
+                attributes: ['id', 'name'],
+                required: false,
+            },
+            {
+                association: '_Cinemas',
+                attributes: ['id', 'name'],
+                required: false,
             },
         ];
     }
@@ -71,11 +75,43 @@ class RentalRequestsRepository extends SequelizeRepositoryBase<RentalRequestsAtt
             },
             {
                 association: '_Rooms',
-                attributes: ['id', 'name', 'cinema'],
-                include: [{ association: '_Cinemas', attributes: ['id', 'name'] }],
+                attributes: ['id', 'name'],
+                required: false,
+            },
+            {
+                association: '_Cinemas',
+                attributes: ['id', 'name'],
+                required: false,
             },
             { association: '_EventTypes', attributes: ['id', 'description'] },
             { association: '_Currencies', attributes: ['id', 'code', 'symbol'], required: false },
+        ];
+    }
+
+    // Vista para listados administrativos globales (superadmin)
+    get adminListRelations() {
+        return [
+            { association: '_Statuses', attributes: ['id', 'description'] },
+            {
+                association: '_Customers',
+                attributes: ['id', 'person'],
+                include: [
+                    {
+                        association: '_People',
+                        attributes: ['first_name', 'last_name', 'personal_email'],
+                    },
+                ],
+            },
+            {
+                association: '_Rooms',
+                attributes: ['id', 'name'],
+                required: false,
+            },
+            {
+                association: '_Cinemas',
+                attributes: ['id', 'name'],
+                required: false,
+            },
         ];
     }
 
@@ -84,6 +120,7 @@ class RentalRequestsRepository extends SequelizeRepositoryBase<RentalRequestsAtt
             attributes: [
                 'id',
                 'customer',
+                'cinema',
                 'room',
                 'event_type',
                 'booking',
@@ -99,6 +136,43 @@ class RentalRequestsRepository extends SequelizeRepositoryBase<RentalRequestsAtt
             ],
             relations: this.detailRelations,
         });
+    }
+
+    // Obtener solicitudes por sucursal (para gerentes)
+    async findByCinema(cinemaId: number, filters?: any) {
+        return this.getAll(
+            {
+                count: true,
+                attributes: [
+                    'id',
+                    'event_name',
+                    'requested_start_time',
+                    'status',
+                    'price',
+                ],
+                relations: this.listRelations,
+                ...filters,
+            },
+            { cinema: cinemaId, ...(filters?.where || {}) },
+        );
+    }
+
+    // Obtener solicitudes por cliente (para clientes autenticados)
+    async findByCustomer(customerId: number, filters?: any) {
+        return this.getAll(
+            {
+                count: true,
+                attributes: [
+                    'id',
+                    'event_name',
+                    'requested_start_time',
+                    'status',
+                ],
+                relations: [{ association: '_Statuses', attributes: ['id', 'description'] }],
+                ...filters,
+            },
+            { customer: customerId, ...(filters?.where || {}) },
+        );
     }
 }
 

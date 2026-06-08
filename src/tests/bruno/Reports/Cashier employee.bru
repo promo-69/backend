@@ -1,0 +1,25 @@
+meta {
+  name: Cashier Report
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/reports/cashier
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  from: {{fromDate}}
+  to: {{toDate}}
+}
+
+docs {
+  Reporte de caja del turno del empleado autenticado.
+  Permiso requerido: CRUD:READ:REPORTS-CASHIER
+}

@@ -1,0 +1,51 @@
+/rentals/requests/{id}/payment:
+    patch:
+        summary: Confirm Payment (Customer or Cashier)
+        description: |
+            Confirms that the proforma has been paid.
+            Transitions the rental request from **Pendiente de Pago (2)** → **Pagada (3)**.
+
+            **Who can call this endpoint?**
+            - Authenticated customer (the one who owns the request)
+            - Cashier/Employee with valid session (cinemaId in JWT) for that cinema
+
+            After payment confirmation:
+            - The room booking becomes permanent (no longer subject to 48h expiration)
+            - The BullMQ expiry job will check the status before cancelling
+        tags:
+            - Rentals
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: path
+              name: id
+              required: true
+              schema:
+                  type: integer
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties: {}
+        responses:
+            '200':
+                description: Payment confirmed successfully
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                message:
+                                    type: string
+            '401':
+                description: Unauthorized
+            '403':
+                description: Insufficient permissions
+            '404':
+                description: Rental request not found
+            '409':
+                description: Request not in PENDING_PAYMENT state

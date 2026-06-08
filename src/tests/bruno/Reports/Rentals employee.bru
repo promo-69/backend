@@ -1,0 +1,25 @@
+meta {
+  name: Rentals Report
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/reports/rentals
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  from: {{fromDate}}
+  to: {{toDate}}
+}
+
+docs {
+  Reporte de solicitudes de alquiler: cantidad, estado, ingresos confirmados y proyectados.
+  Permiso requerido: CRUD:READ:REPORTS-RENTALS
+}
