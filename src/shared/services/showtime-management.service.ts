@@ -230,7 +230,10 @@ export class ShowtimeManagementService {
 
         if (!bookingList.length) {
             if (targetCinemaId) {
-                throw new NotFoundError('No se encontraron funciones programadas para la sucursal seleccionada');
+                const cinemasRepo = Database.repository('main', 'cinemas');
+                const cinema = await cinemasRepo.getById(targetCinemaId);
+                const cinemaName = cinema?.name ?? `sucursal ${targetCinemaId}`;
+                throw new NotFoundError(`No hay funciones disponibles en la sucursal ${cinemaName}`, 'NO_SHOWTIMES_IN_CINEMA');
             }
             return { count: 0, rows: [] };
         }
