@@ -29,10 +29,11 @@ class AuthController extends ControllerBase {
 			const security = AppConfig.load().security;
 			const accessName = security.jwtCookieAccessName || 'AT';
 			const refreshName = security.jwtCookieRefreshName || 'RT';
+			const req = this.getRequest();
 
 			this.setCookie(accessName, accessToken, { maxAge: JWTUtil.getAccessExpiresInMs() });
 			this.setCookie(refreshName, refreshToken, {
-				path: '/api/v1/auth/refresh',
+				path: `${req.baseUrl}/refresh`,
 				maxAge: JWTUtil.getRefreshExpiresInMs(),
 			});
 
@@ -90,7 +91,7 @@ class AuthController extends ControllerBase {
 			const accessName = security.jwtCookieAccessName || 'AT';
 			this.setCookie(accessName, accessToken, { maxAge: JWTUtil.getAccessExpiresInMs() });
 			this.setCookie(refreshName, refreshToken, {
-				path: '/api/v1/auth/refresh',
+				path: `${req.baseUrl}/refresh`,
 				maxAge: JWTUtil.getRefreshExpiresInMs(),
 			});
 			return this.success({ user }, 'Sesión renovada');
@@ -119,7 +120,7 @@ class AuthController extends ControllerBase {
 
 		if (this._getExpectedTransport() === 'cookie') {
 			this.clearCookie(accessName);
-			this.clearCookie(refreshName);
+			this.clearCookie(refreshName, { path: `${req.baseUrl}/refresh` });
 		}
 
 		return this.success(null, 'Sesión finalizada exitosamente');
