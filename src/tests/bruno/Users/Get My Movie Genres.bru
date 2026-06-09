@@ -1,0 +1,15 @@
+meta {
+  name: Get My Movie Genres
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/users/me/movie-genres
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
