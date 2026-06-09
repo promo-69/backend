@@ -44,6 +44,7 @@ export interface UserSession {
     loyaltyLevelId?: number;
     loyaltyLevelName?: string;
     loyaltyPoints?: number;
+    hasFavoriteGenres?: boolean | null;
 }
 
 /**

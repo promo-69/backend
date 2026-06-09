@@ -1,0 +1,165 @@
+/reports/rentals:
+    get:
+        summary: Get rentals report (employee)
+        description: |
+            Retrieve rental requests statistics for the employee's cinema.
+            Required permission: **CRUD:READ:REPORTS-RENTALS**
+        tags:
+            - Reports
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: query
+              name: from
+              schema:
+                  type: string
+                  format: date
+              description: Start date (YYYY-MM-DD)
+            - in: query
+              name: to
+              schema:
+                  type: string
+                  format: date
+              description: End date (YYYY-MM-DD)
+        responses:
+            '200':
+                description: Rentals report
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                message:
+                                    type: string
+                                data:
+                                    type: object
+                                    properties:
+                                        period:
+                                            type: object
+                                            properties:
+                                                from:
+                                                    type: string
+                                                    format: date
+                                                to:
+                                                    type: string
+                                                    format: date
+                                        summary:
+                                            type: object
+                                            properties:
+                                                total_requests:
+                                                    type: integer
+                                                pending_review:
+                                                    type: integer
+                                                confirmed_revenue:
+                                                    type: number
+                                                projected_revenue:
+                                                    type: number
+                                        breakdown_by_status:
+                                            type: array
+                                            items:
+                                                type: object
+                                                properties:
+                                                    status:
+                                                        type: object
+                                                        properties:
+                                                            id:
+                                                                type: integer
+                                                            description:
+                                                                type: string
+                                                    count:
+                                                        type: integer
+                                                    revenue:
+                                                        type: number
+                                        requests:
+                                            type: array
+                                            items:
+                                                type: object
+                                                properties:
+                                                    id:
+                                                        type: integer
+                                                    event_name:
+                                                        type: string
+                                                    event_date:
+                                                        type: string
+                                                        format: date
+                                                    requested_start_time:
+                                                        type: string
+                                                        format: date-time
+                                                    requested_end_time:
+                                                        type: string
+                                                        format: date-time
+                                                    room:
+                                                        type: object
+                                                        properties:
+                                                            id:
+                                                                type: integer
+                                                            name:
+                                                                type: string
+                                                    status:
+                                                        type: object
+                                                        properties:
+                                                            id:
+                                                                type: integer
+                                                            description:
+                                                                type: string
+                                                    price:
+                                                        type: number
+                                                        nullable: true
+                                                    currency:
+                                                        type: object
+                                                        nullable: true
+                                                        properties:
+                                                            id:
+                                                                type: integer
+                                                            code:
+                                                                type: string
+                                                            symbol:
+                                                                type: string
+            '401':
+                description: Unauthorized
+            '403':
+                description: Insufficient permissions
+
+/reports/cinemas/{cinemaId}/rentals:
+    get:
+        summary: Get rentals report for a specific cinema (superadmin)
+        tags:
+            - Reports Admin
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: path
+              name: cinemaId
+              required: true
+              schema:
+                  type: integer
+            - in: query
+              name: from
+              schema:
+                  type: string
+                  format: date
+            - in: query
+              name: to
+              schema:
+                  type: string
+                  format: date
+        responses:
+            '200':
+                description: Rentals report for the specified cinema
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                message:
+                                    type: string
+                                data:
+                                    type: object
+            '401':
+                description: Unauthorized
+            '403':
+                description: Insufficient permissions

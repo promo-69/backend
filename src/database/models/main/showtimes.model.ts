@@ -14,8 +14,14 @@ export default class ShowtimesModel extends SequelizeModelBase {
 				allowNull: false,
 				type: DataTypes.INTEGER,
 			},
+			// Puede ser null cuando la función es de un evento especial
 			movie: {
-				allowNull: false,
+				allowNull: true,
+				type: DataTypes.INTEGER,
+			},
+			// Puede ser null cuando la función es de una película regular
+			special_event_id: {
+				allowNull: true,
 				type: DataTypes.INTEGER,
 			},
 			projection_type: {
@@ -71,6 +77,18 @@ export default class ShowtimesModel extends SequelizeModelBase {
 				type: 'hasMany',
 				target: 'Movies',
 				options: { foreignKey: 'movie', targetKey: 'id', as: '_Showtimes' },
+			},
+			// Relación con eventos especiales
+			{
+				type: 'belongsTo',
+				target: 'SpecialEvents',
+				options: { foreignKey: 'special_event_id', targetKey: 'id', as: '_SpecialEvents' },
+			},
+			{
+				inversed: true,
+				type: 'hasMany',
+				target: 'SpecialEvents',
+				options: { foreignKey: 'special_event_id', targetKey: 'id', as: '_Showtimes' },
 			},
 			{
 				type: 'belongsTo',

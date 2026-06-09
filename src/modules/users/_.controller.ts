@@ -57,6 +57,27 @@ class UsersController extends ControllerBase {
 		return data;
 	}
 
+	// --- Géneros Favoritos
+	async getMyMovieGenres() {
+		const session = this.getSession();
+		const data = await UsersService.getMyMovieGenres(session.userId);
+		return this.success(data, 'Géneros favoritos recuperados exitosamente.');
+	}
+
+	async addMyMovieGenres() {
+		const session = this.getSession();
+		const { genreIds } = this.getBody();
+		await UsersService.addMyMovieGenres(session.userId, genreIds);
+		return this.success(null, 'Géneros favoritos actualizados correctamente.');
+	}
+
+	async removeMyMovieGenres() {
+		const session = this.getSession();
+		const { genreIds } = this.getBody();
+		await UsersService.removeMyMovieGenres(session.userId, genreIds);
+		return this.success(null, 'Géneros favoritos removidos correctamente.');
+	}
+
 	// --- Exclusivo para Gerente
 
 	async getAllUsers() {

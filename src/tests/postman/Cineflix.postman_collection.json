@@ -3545,7 +3545,7 @@
 						},
 						"body": {
 							"mode": "raw",
-							"raw": "  {\n    \"description\": \"Promoción martes\",\n    \"modifierScope\": 1,\n    \"operationType\": 2,\n    \"isPercentage\": true,\n    \"value\": 20,\n    \"weekDay\": 3,\n    \"cinema\": 1,\n    \"startDate\": \"2026-06-01\",\n    \"endDate\": \"2026-06-30\",\n    \"startTime\": \"09:00:00\",\n    \"endTime\": \"23:00:00\",\n    \"currency\": 1,\n    \"targetCurrency\": null,\n    \"targetCurrencyCondition\": false\n}",
+							"raw": "  {\n    \"description\": \"Promoción martes\",\n    \"modifierScope\": 1,\n    \"operationType\": 2,\n    \"isPercentage\": true,\n    \"value\": 20,\n    \"weekDay\": 3,\n    \"cinema\": 1,\n    \"startDate\": \"2026-06-01\",\n    \"endDate\": \"2026-06-30\",\n    \"startTime\": \"09:00:00\",\n    \"endTime\": \"23:00:00\",\n    \"currency\": null,\n    \"targetCurrency\": null,\n    \"targetCurrencyCondition\": false\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -4277,6 +4277,88 @@
 									"type": "string"
 								}
 							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Quote Order - Admin",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": ["// Session is handled via user token now"],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"cinema\": 1,\n    \"customerId\": 1\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/orders/quote",
+							"host": ["{{baseUrl}}"],
+							"path": ["orders", "quote"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Process Billing",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": ["pm.variables.set(\"orderId\", 1);"],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"orderId\": {{orderId}},\n    \"use_customer_data\": false,\n    \"billing_name\": \"Juan Perez\",\n    \"billing_document\": \"V-12345678\",\n    \"billing_address\": \"Av Principal\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/orders/billing",
+							"host": ["{{baseUrl}}"],
+							"path": ["orders", "billing"]
 						}
 					},
 					"response": []

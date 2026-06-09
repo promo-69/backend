@@ -94,7 +94,7 @@ export class EmployeeManagementService {
                     attributes: ['id', 'job_position', 'cinema', 'start_date', 'end_date', 'salary_base'],
                     required: !!cinemaId,
                     where: positionFilter,
-                    include: [
+                    nested: [
                         { association: '_JobPositions', attributes: ['id', 'title'] },
                         { association: '_Cinemas', attributes: ['id', 'name'] },
                     ],

@@ -1,0 +1,36 @@
+meta {
+  name: Create Event (external poster URL)
+  type: http
+  seq: 12
+}
+
+post {
+  url: {{baseUrl}}/special-events
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:multipart-form {
+  title: Concierto Bad Bunny 2026
+  description: Most Wanted Tour en vivo.
+  durationMinutes: 150
+  ageClassification: 1
+  releaseDate: 2026-07-10
+  posterUrl: https://example.com/poster.jpg
+}
+
+script:post-response {
+  const resBody = res.getBody();
+  if (res.getStatus() === 201 && resBody?.data?.id) {
+    bru.setEnvVar('eventId', resBody.data.id);
+  }
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  bru.setVar('baseUrl', baseUrl);
+}

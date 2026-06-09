@@ -1,0 +1,31 @@
+meta {
+  name: Confirm Rental Payment
+  type: http
+  seq: 7
+}
+
+patch {
+  url: {{baseUrl}}/rentals/requests/{{rentalRequestId}}/payment
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {}
+}
+
+vars:pre-request {
+  rentalRequestId: 88
+}
+
+docs {
+  Confirma el pago de una solicitud aprobada (status 2 → 3).
+  Puede ser llamado por:
+  - El cliente autenticado (dueño de la solicitud)
+  - Un empleado/cajero con sesión activa
+  Permiso: verificación de pertenencia (customerId o cinemaId)
+}

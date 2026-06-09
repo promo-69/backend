@@ -83,6 +83,9 @@ export class AuthService extends BaseService {
 	private get _roleInheritances() {
 		return Database.repository('main', 'role-inheritances') as any;
 	}
+	private get _customerFavoriteGenres() {
+		return Database.repository('main', 'customer-favorite-genres') as any;
+	}
 
 	private parsePermissions(permissions: any[]): string[] {
 		return Array.from(
@@ -111,14 +114,7 @@ export class AuthService extends BaseService {
 
 		const permissions = await this._permisos.getAllFull(
 			{ count: false },
-			{ id: permissionIds },
-			{
-				include: [
-					{ association: '_Actions', attributes: ['code'] },
-					{ association: '_Resources', attributes: ['code'] },
-					{ association: '_PermissionTypes', attributes: ['code'] },
-				],
-			},
+			{ id: permissionIds }
 		);
 
 		const permList = Array.isArray(permissions) ? permissions : permissions.rows;
@@ -185,6 +181,9 @@ export class AuthService extends BaseService {
 				payload.loyaltyLevelId = customer.loyalty_level ?? 1;
 				payload.loyaltyLevelName = level?.name ?? null;
 				payload.loyaltyPoints = customer.level_progress_points ?? 0;
+
+				const favoriteGenresCount = await this._customerFavoriteGenres.count({ customer: customer.id });
+				payload.hasFavoriteGenres = favoriteGenresCount > 0;
 			}
 		}
 
@@ -228,7 +227,7 @@ export class AuthService extends BaseService {
 
 		const foundUser = await this._users.getOne(
 			{ email, user_type: expectedUserType },
-			{ include: [{ association: '_People' }, { association: '_UserTypes' }] },
+			{ relations: [{ association: '_People' }, { association: '_UserTypes' }] },
 		);
 
 		if (!foundUser || !(await BcryptUtil.compare(password, foundUser.password)))

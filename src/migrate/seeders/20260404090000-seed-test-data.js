@@ -228,6 +228,16 @@ module.exports = {
 					personal_email: 'admin.super@cineflix.com',
 					birth_date: '1985-01-01',
 				},
+				{
+					id: 3,
+					document_number: 'V-00000000',
+					first_name: 'Sucursal',
+					last_name: 'Cine',
+					gender: 1,
+					phone_number: '+58 212-555-0001',
+					personal_email: 'sucural@cineflix.com',
+					birth_date: '1985-01-02',
+				},
 			],
 			{},
 		);
@@ -254,6 +264,11 @@ module.exports = {
 					person: 2,
 					employee_code: 'ADM001',
 				},
+				{
+					id: 2,
+					person: 3,
+					employee_code: 'SUC001',
+				},
 			],
 			{},
 		);
@@ -265,6 +280,15 @@ module.exports = {
 					id: 1,
 					employee: 1,
 					job_position: 1, // Gerente General
+					cinema: 1,
+					start_date: '2026-04-01',
+					end_date: null,
+					salary_base: 5000.0,
+				},
+				{
+					id: 2,
+					employee: 2,
+					job_position: 2, // Gerente de Sucursal
 					cinema: 1,
 					start_date: '2026-04-01',
 					end_date: null,
@@ -306,6 +330,16 @@ module.exports = {
 					signup_code: await bcrypt.hash(nanoid(20), 10),
 					signup_verified_at: new Date(),
 				},
+				{
+					id: 3,
+					person: 3,
+					user_type: 1, // Empleado
+					role: 1,
+					email: 'sucursal@cineflix.com',
+					password: adminPassword,
+					signup_code: await bcrypt.hash(nanoid(20), 10),
+					signup_verified_at: new Date(),
+				},
 			],
 			{},
 		);
@@ -341,9 +375,27 @@ module.exports = {
 			[
 				{
 					id: 1,
-					currency: 2, // Bolívares (VES)
+					currency: 1, // USD
 					rate: 36.5,
 					user: 2, // Empleado (Admin)
+				},
+				{
+					id: 2,
+					currency: 2, // Bolívares (VES)
+					rate: 1.0,
+					user: 2,
+				},
+				{
+					id: 3,
+					currency: 3, // Cinepuntos
+					rate: 0.5,
+					user: 2,
+				},
+				{
+					id: 4,
+					currency: 4, // COP
+					rate: 20,
+					user: 2,
 				},
 			],
 			{},
@@ -396,6 +448,51 @@ module.exports = {
 					price: 3.0,
 					earned_loyalty_points: 6,
 				},
+				{
+					id: 4,
+					name: 'Nachos con Queso',
+					sku: 'PROD-NACHO-CHZ',
+					product_category: 2, // Snacks
+					currency: 1, // USD
+					price: 4.5,
+					earned_loyalty_points: 9,
+				},
+				{
+					id: 5,
+					name: 'Tequeños',
+					sku: 'PROD-TEQ-001',
+					product_category: 2, // Snacks
+					currency: 1, // USD
+					price: 5.5,
+					earned_loyalty_points: 11,
+				},
+				{
+					id: 6,
+					name: 'Agua Mineral',
+					sku: 'PROD-WTR-SM',
+					product_category: 1, // Bebidas
+					currency: 1, // USD
+					price: 1.5,
+					earned_loyalty_points: 3,
+				},
+				{
+					id: 7,
+					name: 'Refresco Grande',
+					sku: 'PROD-SODA-LG',
+					product_category: 1, // Bebidas
+					currency: 1, // USD
+					price: 3.5,
+					earned_loyalty_points: 7,
+				},
+				{
+					id: 8,
+					name: 'Cotufas Pequeñas',
+					sku: 'PROD-POPCORN-SM',
+					product_category: 2, // Snacks
+					currency: 1, // USD
+					price: 3.0,
+					earned_loyalty_points: 6,
+				},
 			],
 			{},
 		);
@@ -413,6 +510,46 @@ module.exports = {
 					price: 8.5,
 					earned_loyalty_points: 18,
 				},
+				{
+					id: 2,
+					cinema: 1,
+					name: 'Combo Familiar',
+					sku: 'CMB-FAM',
+					description: '2 Cotufas Grandes + 4 Refrescos Medianos',
+					currency: 1,
+					price: 18.0,
+					earned_loyalty_points: 36,
+				},
+				{
+					id: 3,
+					cinema: 2,
+					name: 'Combo Solitario',
+					sku: 'CMB-SOLO',
+					description: '1 Cotufas Pequeñas + 1 Refresco Mediano',
+					currency: 1,
+					price: 5.0,
+					earned_loyalty_points: 10,
+				},
+				{
+					id: 4,
+					cinema: 2,
+					name: 'Combo Snack',
+					sku: 'CMB-SNK',
+					description: '1 Nachos + 1 Tequeños + 2 Aguas',
+					currency: 1,
+					price: 12.0,
+					earned_loyalty_points: 24,
+				},
+				{
+					id: 5,
+					cinema: 1,
+					name: 'Combo Premium',
+					sku: 'CMB-PRM',
+					description: '1 Cotufa Grande + 2 Refrescos Grandes + 1 Chocolate',
+					currency: 1,
+					price: 14.0,
+					earned_loyalty_points: 28,
+				},
 			],
 			{},
 		);
@@ -422,6 +559,16 @@ module.exports = {
 			[
 				{ id: 1, combo: 1, product: 1, quantity: 1 },
 				{ id: 2, combo: 1, product: 2, quantity: 2 },
+				{ id: 3, combo: 2, product: 1, quantity: 2 },
+				{ id: 4, combo: 2, product: 2, quantity: 4 },
+				{ id: 5, combo: 3, product: 8, quantity: 1 },
+				{ id: 6, combo: 3, product: 2, quantity: 1 },
+				{ id: 7, combo: 4, product: 4, quantity: 1 },
+				{ id: 8, combo: 4, product: 5, quantity: 1 },
+				{ id: 9, combo: 4, product: 6, quantity: 2 },
+				{ id: 10, combo: 5, product: 1, quantity: 1 },
+				{ id: 11, combo: 5, product: 7, quantity: 2 },
+				{ id: 12, combo: 5, product: 3, quantity: 1 },
 			],
 			{},
 		);
@@ -432,6 +579,15 @@ module.exports = {
 				{ id: 1, cinema: 1, product: 1, minimum_stock: 10 },
 				{ id: 2, cinema: 1, product: 2, minimum_stock: 20 },
 				{ id: 3, cinema: 1, product: 3, minimum_stock: 5 },
+				{ id: 4, cinema: 1, product: 4, minimum_stock: 10 },
+				{ id: 5, cinema: 1, product: 5, minimum_stock: 10 },
+				{ id: 6, cinema: 1, product: 6, minimum_stock: 10 },
+				{ id: 7, cinema: 1, product: 7, minimum_stock: 10 },
+				{ id: 8, cinema: 1, product: 8, minimum_stock: 10 },
+				{ id: 9, cinema: 2, product: 5, minimum_stock: 10 },
+				{ id: 10, cinema: 2, product: 6, minimum_stock: 10 },
+				{ id: 11, cinema: 2, product: 7, minimum_stock: 10 },
+				{ id: 12, cinema: 2, product: 8, minimum_stock: 10 },
 			],
 			{},
 		);
@@ -475,6 +631,18 @@ module.exports = {
 					resulting_unit_cost_base_currency: 1.0,
 					remarks: 'Carga inicial de stock',
 				},
+				...Array.from({ length: 8 }, (_, i) => ({
+					id: 4 + i,
+					inventory: 4 + i,
+					operation_type: 3,
+					quantity: 100,
+					unit_cost: 1.0,
+					currency: 1,
+					user: 2,
+					resulting_stock: 100,
+					resulting_unit_cost_base_currency: 1.0,
+					remarks: 'Carga inicial de stock',
+				})),
 			],
 			{},
 		);

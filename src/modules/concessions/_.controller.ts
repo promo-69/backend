@@ -11,8 +11,17 @@ class ConcessionsController extends ControllerBase {
 	// ----- Products -----
 	async findAllProducts() {
 		const session = this.getSession<any>();
-		console.log(session);
 		const data = await ConcessionsService.findAllProducts(this.getQueryFilters(), session?.userId);
+		return data;
+	}
+
+	async findAllAvailableProducts() {
+		const session = this.getSession<any>();
+		const { cinemaId } = this.getQuery();
+		const data = await ConcessionsService.findAllAvailableProducts(this.getQueryFilters(), {
+			cinemaId,
+			userId: session?.userId,
+		});
 		return data;
 	}
 
@@ -47,10 +56,18 @@ class ConcessionsController extends ControllerBase {
 	// ----- Combos -----
 	async findAllCombos() {
 		const session = this.getSession<any>();
+		const data = await ComboManagementService.findAllCombos(this.getQueryFilters(), session?.userId);
+		return data;
+	}
+
+	async findAllAvailableCombos() {
+		const session = this.getSession<any>();
+		const { cinemaId } = this.getQuery();
+		if (!cinemaId) throw new ValidationError('La sucursal es requerida');
 		const data = await ComboManagementService.findAllCombos(
 			{
 				...this.getQueryFilters(),
-				cinemaId: session?.cinemaId,
+				cinemaId: Number(cinemaId),
 			},
 			session?.userId,
 		);
@@ -69,13 +86,8 @@ class ConcessionsController extends ControllerBase {
 		const body = this.getBody();
 		const req = this.getRequest();
 
-		// Permitir que el SUPER_ADMIN pase cinema en el body
-		const cinemaId = session?.cinemaId ?? body.cinema;
-		if (cinemaId === undefined) {
-			throw new ValidationError(
-				'No se puede determinar la sucursal. Especificá "cinema" en el cuerpo de la petición o iniciá sesión con una sucursal asignada.',
-			);
-		}
+		const cinemaId = session?.cinemaId;
+		if (cinemaId === undefined) throw new ValidationError('Inicia sesión con una sucursal asignada.');
 
 		const data = await ComboManagementService.createCombo(body, req.files as any, Number(cinemaId));
 		return this.created(data, 'Combo registrado exitosamente');
@@ -85,13 +97,15 @@ class ConcessionsController extends ControllerBase {
 		const { id } = this.getParams();
 		const body = this.getBody();
 		const req = this.getRequest();
-		await ConcessionsService.updateCombo(Number(id), body, req.files as any);
+		const session = this.getSession<any>();
+		await ConcessionsService.updateCombo(Number(id), body, req.files as any, session?.cinemaId);
 		return this.success(null, 'Combo actualizado exitosamente');
 	}
 
 	async deleteCombo() {
 		const { id } = this.getParams();
-		await ConcessionsService.deleteCombo(Number(id));
+		const session = this.getSession<any>();
+		await ConcessionsService.deleteCombo(Number(id), session?.cinemaId);
 		return this.success(null, 'Combo eliminado exitosamente');
 	}
 
@@ -99,13 +113,15 @@ class ConcessionsController extends ControllerBase {
 	async addComboItems() {
 		const { id } = this.getParams();
 		const { items } = this.getBody();
-		await ConcessionsService.addItemsToCombo(Number(id), items);
+		const session = this.getSession<any>();
+		await ConcessionsService.addItemsToCombo(Number(id), items, session?.cinemaId);
 		return this.created(null, 'Ítems agregados al combo exitosamente');
 	}
 
 	async removeComboItem() {
 		const { id, itemId } = this.getParams();
-		await ConcessionsService.removeItemFromCombo(Number(id), Number(itemId));
+		const session = this.getSession<any>();
+		await ConcessionsService.removeItemFromCombo(Number(id), Number(itemId), session?.cinemaId);
 		return this.success(null, 'Ítem eliminado del combo exitosamente');
 	}
 }
