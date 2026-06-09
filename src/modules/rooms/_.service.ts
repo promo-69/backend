@@ -128,15 +128,28 @@ export class RoomsService extends BaseService {
 
                 const typesToRemove = currentTypeIds.filter((ptId: number) => !projectionTypes.includes(ptId));
                 if (typesToRemove.length > 0) {
-                    const futureCount = await this._showtimes.count(
+                    const futureBookings = await this._roomBookings.getAll(
+                        { count: false, attributes: ['id'] },
                         {
                             room: id,
                             start_time: { [Op.gt]: new Date() },
-                            projection_type: typesToRemove,
                             deleted_at: null,
                         },
                         { transaction },
                     );
+                    const bookingIds = (Array.isArray(futureBookings) ? futureBookings : futureBookings.rows || []).map((b: any) => b.id);
+
+                    let futureCount = 0;
+                    if (bookingIds.length > 0) {
+                        futureCount = await this._showtimes.count(
+                            {
+                                booking: bookingIds,
+                                projection_type: typesToRemove,
+                                deleted_at: null,
+                            },
+                            { transaction },
+                        );
+                    }
                     if (futureCount > 0)
                         throw new ValidationError(
                             'No se pueden quitar tipos de proyección con funciones futuras programadas',
