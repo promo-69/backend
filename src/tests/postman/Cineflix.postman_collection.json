@@ -3182,6 +3182,74 @@
 						}
 					},
 					"response": []
+				},
+				{
+					"name": "Bulk Update Seats",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "[\n    {\n        \"seatId\": 1,\n        \"seatCategoryId\": 2,\n        \"seatConditionId\": 1\n    }\n]",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/rooms/{{testRoomId}}/seats",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"rooms",
+								"{{testRoomId}}",
+								"seats"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Configure Seat Grid",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"gridRows\": 10,\n    \"gridColumns\": 15\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/rooms/{{testRoomId}}/seat-grid",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"rooms",
+								"{{testRoomId}}",
+								"seat-grid"
+							]
+						}
+					},
+					"response": []
 				}
 			]
 		},
