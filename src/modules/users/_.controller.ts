@@ -66,15 +66,15 @@ class UsersController extends ControllerBase {
 
 	async addMyMovieGenres() {
 		const session = this.getSession();
-		const { genreIds } = this.getBody();
-		await UsersService.addMyMovieGenres(session.userId, genreIds);
+		const { genres } = this.getBody();
+		await UsersService.addMyMovieGenres(session.userId, genres);
 		return this.success(null, 'Géneros favoritos actualizados correctamente.');
 	}
 
 	async removeMyMovieGenres() {
 		const session = this.getSession();
-		const { genreIds } = this.getBody();
-		await UsersService.removeMyMovieGenres(session.userId, genreIds);
+		const { genres } = this.getBody();
+		await UsersService.removeMyMovieGenres(session.userId, genres);
 		return this.success(null, 'Géneros favoritos removidos correctamente.');
 	}
 
