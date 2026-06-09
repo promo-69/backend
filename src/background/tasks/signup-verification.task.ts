@@ -21,10 +21,7 @@ export async function signupVerificationTask(userId: number, personId: number): 
 	// Si aún es nulo (no verificado), abre una transacción SQL
 	await usersRepo.transaction(async (transaction: Transaction) => {
 		// Bloqueo pesimista: volver a consultar el usuario con lock para evitar carreras
-		const lockedUser = await usersRepo.getOne(
-			{ id: userId },
-			{ transaction, lock: transaction.LOCK.UPDATE },
-		);
+		const lockedUser = await usersRepo.getOne({ id: userId }, { transaction, lock: transaction.LOCK.UPDATE });
 
 		// Si el usuario desapareció o se verificó en este instante, abortar
 		if (!lockedUser || lockedUser.signup_verified_at !== null) return;
@@ -32,15 +29,8 @@ export async function signupVerificationTask(userId: number, personId: number): 
 		await usersRepo.delete({ id: userId }, { transaction, force: true });
 		await customersRepo.delete({ person: personId }, { transaction, force: true });
 
-		const otherUsers = await usersRepo.getAll({ count: true }, { person: personId }, { transaction });
-		const countUsers = Array.isArray(otherUsers) ? otherUsers.length : otherUsers.count;
-
-		const otherEmployees = await employeesRepo.getAll(
-			{ count: true },
-			{ person: personId },
-			{ transaction },
-		);
-		const countEmployees = Array.isArray(otherEmployees) ? otherEmployees.length : otherEmployees.count;
+		const countUsers = await usersRepo.count({ person: personId }, { transaction });
+		const countEmployees = await employeesRepo.count({ person: personId }, { transaction });
 
 		if (countUsers === 0 && countEmployees === 0)
 			await peopleRepo.delete({ id: personId }, { transaction, force: true });
