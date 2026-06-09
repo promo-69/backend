@@ -4,6 +4,13 @@
         description: Retrieve all concession combos that are active and available for sale.
         tags:
             - Concessions
+        parameters:
+            - in: query
+              name: cinemaId
+              required: true
+              schema:
+                  type: integer
+              description: ID of the cinema to check availability for
         responses:
             '200':
                 description: A list of available concession combos

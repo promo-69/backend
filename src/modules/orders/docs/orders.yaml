@@ -2,7 +2,7 @@ tags:
   - name: Orders
     description: "Operaciones transaccionales y de compra"
 paths:
-  /api/v1/orders/quote:
+  /orders/quote:
     post:
       summary: "Generar Cotización (Punto de inicio)"
       description: "Genera un queue_id temporal bloqueando tasas de cambio"
@@ -27,7 +27,7 @@ paths:
       responses:
         '201':
           description: "Cotización creada"
-  /api/v1/orders/checkout:
+  /orders/checkout:
     post:
       summary: "Procesar Checkout"
       description: "Verifica inventario físico y crea la orden PENDING"
@@ -69,7 +69,7 @@ paths:
       responses:
         '201':
           description: "Orden creada"
-  /api/v1/orders/payments:
+  /orders/payments:
     post:
       summary: "Registrar Pago"
       description: "Registra pago para una orden PENDING"
@@ -99,7 +99,7 @@ paths:
       responses:
         '201':
           description: "Pago registrado"
-  /api/v1/orders/billing:
+  /orders/billing:
     post:
       summary: "Completar Facturación (Solo Empleados)"
       description: "Genera la factura de una orden pagada, usando datos provistos o del cliente asociado"
@@ -130,7 +130,7 @@ paths:
       responses:
         '200':
           description: "Facturación completada"
-  /api/v1/orders/{id}:
+  /orders/{id}:
     get:
       summary: "Obtener Orden"
       tags:
@@ -144,7 +144,7 @@ paths:
       responses:
         '200':
           description: "Detalle de orden"
-  /api/v1/orders/qr/{qrCode}/concessions:
+  /orders/qr/{qrCode}/concessions:
     get:
       summary: "Ver dulcería de orden por QR"
       tags:
@@ -160,7 +160,7 @@ paths:
       responses:
         '200':
           description: "Concesiones de la orden"
-  /api/v1/orders/qr/{qrCode}/tickets:
+  /orders/qr/{qrCode}/tickets:
     get:
       summary: "Ver boletos de orden por QR"
       tags:
@@ -176,7 +176,7 @@ paths:
       responses:
         '200':
           description: "Boletos de la orden"
-  /api/v1/orders/validate-qr/{qrCode}:
+  /orders/validate-qr/{qrCode}:
     post:
       summary: "Validar QR (Consumir beneficios)"
       tags:
@@ -204,7 +204,7 @@ paths:
       responses:
         '200':
           description: "Beneficio consumido"
-  /api/v1/orders/session:
+  /orders/session:
     delete:
       summary: "Cancelar Sesión de Compra"
       description: "Cancela una sesión de compra y libera los asientos"
@@ -225,7 +225,7 @@ paths:
       responses:
         '200':
           description: "Estado de la sesión"
-  /api/v1/orders/session/details:
+  /orders/session/details:
     get:
       summary: "Obtener Detalles de la Sesión"
       description: "Obtiene detalles de precios e inventario para una sesión en curso"
