@@ -1,0 +1,46 @@
+/concessions/combos/available:
+    get:
+        summary: List Available Combos
+        description: Retrieve all concession combos that are active and available for sale.
+        tags:
+            - Concessions
+        responses:
+            '200':
+                description: A list of available concession combos
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                data:
+                                    type: array
+                                    items:
+                                        type: object
+                                        properties:
+                                            id:
+                                                type: integer
+                                            name:
+                                                type: string
+                                            description:
+                                                type: string
+                                            price:
+                                                type: number
+                                            earned_loyalty_points:
+                                                type: integer
+                                                nullable: true
+                                            image_url:
+                                                type: string
+                                                nullable: true
+                                            pricing:
+                                                type: object
+                                                properties:
+                                                    base_price:
+                                                        type: number
+                                                    final_price:
+                                                        type: number
+                                                    applied_modifiers:
+                                                        type: array
+                                                        items:
+                                                            type: object
+            '500':
+                description: Internal server error
