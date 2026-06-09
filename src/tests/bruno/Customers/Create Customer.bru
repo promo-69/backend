@@ -28,8 +28,8 @@ body:json {
 
 script:post-response {
   const resBody = res.getBody();
-  if (res.getStatus() === 201 && resBody && resBody.data && resBody.data.id) {
-    bru.setEnvVar('testCustomerId', resBody.data.id);
+  if (res.getStatus() === 201 && resBody && resBody.data && resBody.data.customer && resBody.data.customer.id) {
+    bru.setEnvVar('testCustomerId', resBody.data.customer.id);
   }
 }
 
