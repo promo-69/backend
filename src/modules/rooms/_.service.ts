@@ -177,28 +177,43 @@ export class RoomsService extends BaseService {
             const room = await this._rooms.getById(id, { transaction, lock: transaction.LOCK.UPDATE });
             if (!room) throw new NotFoundError('Sala no encontrada');
 
-            // Obtener IDs de room_bookings asociadas a esta sala
+            // 1. Obtener todas las reservas de sala asociadas (engloba funciones y eventos privados)
             const bookings = await this._roomBookings.getAll(
-                { count: false, attributes: ['id'] },
+                { count: false, attributes: ['id', 'end_time'] },
                 { room: id, deleted_at: null },
                 { transaction },
             );
-            const bookingIds = (Array.isArray(bookings) ? bookings : bookings.rows || []).map((b: any) => b.id);
+            const bookingsArr = Array.isArray(bookings) ? bookings : bookings.rows || [];
+            
+            // 2. Verificar si existe al menos una reserva o función que aún no ha culminado
+            const now = new Date();
+            const activeBookings = bookingsArr.filter((b: any) => new Date(b.end_time) > now);
 
-            let activeShowtimes = 0;
-            if (bookingIds.length > 0) {
-                activeShowtimes = await this._showtimes.count(
-                    { booking: bookingIds, deleted_at: null },
-                    { transaction },
-                );
-            }
-
-            if (activeShowtimes > 0) {
+            if (activeBookings.length > 0) {
                 throw new ConflictError(
-                    'No se puede clausurar la sala porque tiene funciones activas',
-                    'ROOM_HAS_ACTIVE_SHOWTIMES',
+                    'No se puede clausurar la sala porque tiene funciones o reservas activas o programadas en el futuro',
+                    'ROOM_HAS_ACTIVE_BOOKINGS',
                 );
             }
+
+            // 3. Si no hay reservas activas, aplicar Soft-Delete en Cascada
+            const deletedAt = new Date();
+
+            // Desactivar todos los asientos de la sala
+            await this._seats.update(
+                { room: id, deleted_at: null }, 
+                { deleted_at: deletedAt }, 
+                { transaction }
+            );
+
+            // Desactivar todos los tipos de proyección asignados a la sala
+            await this._roomProjectionTypes.update(
+                { room: id, deleted_at: null }, 
+                { deleted_at: deletedAt }, 
+                { transaction }
+            );
+
+            // Finalmente, clausurar (soft delete) la sala
             await this._rooms.delete(id, { transaction });
         });
         return null;
