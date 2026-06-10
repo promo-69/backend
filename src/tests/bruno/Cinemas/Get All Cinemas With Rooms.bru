@@ -1,11 +1,11 @@
 meta {
-  name: Delete Cinema
+  name: Get All Cinemas With Rooms
   type: http
-  seq: 7
+  seq: 2
 }
 
-delete {
-  url: {{baseUrl}}/cinemas/{{testCinemaId}}
+get {
+  url: {{baseUrl}}/cinemas/rooms-available
   body: none
   auth: bearer
 }

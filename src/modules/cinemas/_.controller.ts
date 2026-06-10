@@ -21,6 +21,14 @@ class CinemasController extends ControllerBase {
         return this.success(data, 'Sucursal obtenida exitosamente');
     }
 
+
+    // GET /cinemas/rooms-available — gerencia general
+    async findAllWithRooms() {
+		console.log('by rooms')
+        const data = await CinemasService.findAllWithRooms(this.getQueryFilters());
+        return data;
+    }
+
     // POST /cinemas — gerencia general
     async create() {
         const body = this.getBody();
