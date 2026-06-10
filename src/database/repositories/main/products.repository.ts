@@ -18,8 +18,8 @@ class ProductsRepository extends SequelizeRepositoryBase<any, number> {
 
 	private get _relations() {
 		return [
-			{ association: '_ProductCategory', attributes: ['description'], required: true },
-			{ association: '_Currency', attributes: ['code', 'symbol'], required: true },
+			{ association: '_ProductCategories', attributes: ['description'], required: true },
+			{ association: '_Currencies', attributes: ['code', 'symbol'], required: true },
 		];
 	}
 

@@ -22,10 +22,15 @@ class ShowtimesRepository extends SequelizeRepositoryBase<ShowtimesAttributes, n
 
     private get _relations() {
         return [
-            { association: '_Movie', attributes: ['title', 'duration_minutes'], required: true },
-            { association: '_Room', attributes: ['name'], required: true },
-            { association: '_ProjectionType', attributes: ['description'], required: true },
-            { association: '_Currency', attributes: ['code', 'symbol'], required: true },
+            { association: '_Movies', attributes: ['title', 'duration_minutes'], required: true },
+            {
+                association: '_RoomBookings',
+                attributes: ['start_time', 'end_time'],
+                required: true,
+                nested: [{ association: '_Rooms', attributes: ['name'], required: true }],
+            },
+            { association: '_ProjectionTypes', attributes: ['description'], required: true },
+            { association: '_Currencies', attributes: ['code', 'symbol'], required: true },
         ];
     }
 

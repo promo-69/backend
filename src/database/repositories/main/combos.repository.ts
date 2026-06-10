@@ -18,12 +18,12 @@ class CombosRepository extends SequelizeRepositoryBase<any, number> {
 
 	private get _relations() {
 		return [
-			{ association: '_Currency', attributes: ['code', 'symbol'], required: true },
+			{ association: '_Currencies', attributes: ['code', 'symbol'], required: true },
 			{
 				association: '_ComboProducts',
 				attributes: ['id', 'product', 'quantity'],
 				required: false,
-				nested: [{ association: '_Product', attributes: ['name', 'sku'], required: true }],
+				nested: [{ association: '_Products', attributes: ['name', 'sku'], required: true }],
 			},
 		];
 	}

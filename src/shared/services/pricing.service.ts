@@ -57,7 +57,10 @@ export class PricingService {
 		});
 
 		for (const mod of applicableModifiers) {
-			const opType = opTypesMap.get(mod.operation_type) || ({} as any);
+			const opType =
+				(typeof opTypesMap.get === 'function'
+					? opTypesMap.get(mod.operation_type)
+					: (opTypesMap as any)[mod.operation_type]) || ({} as any);
 			let modValue = 0;
 
 			if (mod.is_percentage) {

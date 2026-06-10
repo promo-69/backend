@@ -11,9 +11,8 @@ class ConcessionsController extends ControllerBase {
 	// ----- Products -----
 	async findAllProducts() {
 		const session = this.getSession<any>();
-		console.log(session);
 		const data = await ConcessionsService.findAllProducts(this.getQueryFilters(), session?.userId);
-		return data;
+		return this.success(data, 'Productos obtenidos exitosamente');
 	}
 
 	async findProductById() {
@@ -54,7 +53,7 @@ class ConcessionsController extends ControllerBase {
 			},
 			session?.userId,
 		);
-		return data;
+		return this.success(data, 'Combos obtenidos exitosamente');
 	}
 
 	async findComboById() {

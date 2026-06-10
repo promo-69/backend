@@ -96,9 +96,6 @@ export class ComboManagementService {
             const comboClone = { ...c };
             
             if (!activeQuote || !cacheData) {
-                // Remove nominal price if no session
-                delete comboClone.price;
-                delete comboClone.currency;
                 return comboClone;
             }
 
@@ -133,7 +130,7 @@ export class ComboManagementService {
                 applied_modifiers: basePricing.appliedModifiers
             };
             
-            delete comboClone.price;
+            comboClone.price = basePricing.finalPrice;
 
             return comboClone;
         });

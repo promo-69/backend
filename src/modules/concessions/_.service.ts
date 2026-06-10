@@ -185,9 +185,6 @@ export class ConcessionsService extends BaseService {
 			const productClone = { ...p };
 
 			if (!activeQuote || !cacheData) {
-				// Remove nominal price if no session
-				delete productClone.price;
-				delete productClone.currency;
 				return productClone;
 			}
 
@@ -222,7 +219,7 @@ export class ConcessionsService extends BaseService {
 				applied_modifiers: basePricing.appliedModifiers,
 			};
 
-			delete productClone.price;
+			productClone.price = basePricing.finalPrice;
 
 			return productClone;
 		});
@@ -250,8 +247,6 @@ export class ConcessionsService extends BaseService {
 		const productClone = { ...p };
 
 		if (!activeQuote || !cacheData) {
-			delete productClone.price;
-			delete productClone.currency;
 			return productClone;
 		}
 
@@ -286,7 +281,7 @@ export class ConcessionsService extends BaseService {
 			applied_modifiers: basePricing.appliedModifiers,
 		};
 
-		delete productClone.price;
+		productClone.price = basePricing.finalPrice;
 
 		return productClone;
 	}
@@ -395,8 +390,6 @@ export class ConcessionsService extends BaseService {
 		const comboClone = { ...c };
 
 		if (!activeQuote || !cacheData) {
-			delete comboClone.price;
-			delete comboClone.currency;
 			return comboClone;
 		}
 
@@ -431,7 +424,7 @@ export class ConcessionsService extends BaseService {
 			applied_modifiers: basePricing.appliedModifiers,
 		};
 
-		delete comboClone.price;
+		comboClone.price = basePricing.finalPrice;
 
 		return comboClone;
 	}

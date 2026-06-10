@@ -343,7 +343,11 @@ export class OrdersService extends BaseService {
 					if (!showtimeId) throw new NotFoundError('Showtime no encontrado para el boleto.');
 
 					const lockKey = `lock:showtime:${showtimeId}:seat:${ticket.seatId}`;
-					const lockedUserId = await this._redis.get(lockKey);
+					let lockedUserId = await this._redis.get(lockKey);
+					if (!lockedUserId) {
+						await this._redis.set(lockKey, String(session.userId), 'EX', 600, 'NX');
+						lockedUserId = await this._redis.get(lockKey);
+					}
 					if (!lockedUserId || lockedUserId !== String(session.userId)) {
 						throw new ConflictError(
 							'Uno de los asientos seleccionados ya no está disponible o expiró su tiempo de reserva',
