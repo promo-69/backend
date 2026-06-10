@@ -46,9 +46,6 @@ export default defineConfig(({ mode }) => {
 				'@tasks': path.resolve(__dirname, 'src/background/tasks'),
 			},
 		},
-		define: {
-			'process.env.APP_ENV': JSON.stringify(mode),
-		},
 		// Build Configuration
 		build: {
 			outDir: 'build',

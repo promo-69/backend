@@ -14,8 +14,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/concessions/combos",
-							"host": ["{{baseUrl}}"],
-							"path": ["concessions", "combos"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"concessions",
+								"combos"
+							],
 							"query": []
 						},
 						"auth": {
@@ -52,8 +57,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/concessions/combos/{{testComboId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["concessions", "combos", "{{testComboId}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"concessions",
+								"combos",
+								"{{testComboId}}"
+							],
 							"query": []
 						},
 						"auth": {
@@ -76,8 +87,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/concessions/combos/{{testComboId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["concessions", "combos", "{{testComboId}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"concessions",
+								"combos",
+								"{{testComboId}}"
+							],
 							"query": []
 						},
 						"auth": {
@@ -100,8 +117,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/concessions/products/{{testProductId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["concessions", "products", "{{testProductId}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"concessions",
+								"products",
+								"{{testProductId}}"
+							],
 							"query": []
 						},
 						"auth": {
@@ -124,8 +147,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/concessions/products/{{testProductId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["concessions", "products", "{{testProductId}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"concessions",
+								"products",
+								"{{testProductId}}"
+							],
 							"query": []
 						}
 					},
@@ -138,8 +167,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/concessions/products",
-							"host": ["{{baseUrl}}"],
-							"path": ["concessions", "products"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"concessions",
+								"products"
+							],
 							"query": []
 						},
 						"auth": {
@@ -176,8 +210,15 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/concessions/combos/{{testComboId}}/items",
-							"host": ["{{baseUrl}}"],
-							"path": ["concessions", "combos", "{{testComboId}}", "items"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"concessions",
+								"combos",
+								"{{testComboId}}",
+								"items"
+							],
 							"query": []
 						},
 						"body": {
@@ -209,8 +250,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/concessions/combos",
-							"host": ["{{baseUrl}}"],
-							"path": ["concessions", "combos"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"concessions",
+								"combos"
+							],
 							"query": []
 						}
 					},
@@ -223,8 +269,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/concessions/combos/{{testComboId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["concessions", "combos", "{{testComboId}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"concessions",
+								"combos",
+								"{{testComboId}}"
+							],
 							"query": []
 						}
 					},
@@ -237,8 +289,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/concessions/products/{{testProductId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["concessions", "products", "{{testProductId}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"concessions",
+								"products",
+								"{{testProductId}}"
+							],
 							"query": []
 						},
 						"auth": {
@@ -261,8 +319,16 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/concessions/combos/{{testComboId}}/items/{{testComboItemId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["concessions", "combos", "{{testComboId}}", "items", "{{testComboItemId}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"concessions",
+								"combos",
+								"{{testComboId}}",
+								"items",
+								"{{testComboItemId}}"
+							],
 							"query": []
 						},
 						"auth": {
@@ -285,8 +351,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/concessions/products",
-							"host": ["{{baseUrl}}"],
-							"path": ["concessions", "products"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"concessions",
+								"products"
+							],
 							"query": []
 						}
 					},
@@ -304,8 +375,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/auth/forgot-password/{{userType}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["auth", "forgot-password", "{{userType}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"forgot-password",
+								"{{userType}}"
+							],
 							"query": []
 						},
 						"body": {
@@ -327,8 +404,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/auth/signup",
-							"host": ["{{baseUrl}}"],
-							"path": ["auth", "signup"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"signup"
+							],
 							"query": []
 						},
 						"body": {
@@ -355,8 +437,13 @@
 						],
 						"url": {
 							"raw": "{{baseUrl}}/auth/logout",
-							"host": ["{{baseUrl}}"],
-							"path": ["auth", "logout"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"logout"
+							],
 							"query": []
 						},
 						"auth": {
@@ -393,8 +480,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/auth/verify-reset-code/{{userType}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["auth", "verify-reset-code", "{{userType}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"verify-reset-code",
+								"{{userType}}"
+							],
 							"query": []
 						},
 						"body": {
@@ -441,8 +534,14 @@
 						],
 						"url": {
 							"raw": "{{baseUrl}}/auth/login/admin",
-							"host": ["{{baseUrl}}"],
-							"path": ["auth", "login", "admin"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"login",
+								"admin"
+							],
 							"query": []
 						},
 						"body": {
@@ -485,8 +584,13 @@
 						],
 						"url": {
 							"raw": "{{baseUrl}}/auth/refresh",
-							"host": ["{{baseUrl}}"],
-							"path": ["auth", "refresh"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"refresh"
+							],
 							"query": []
 						},
 						"auth": {
@@ -526,8 +630,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/auth/reset-password/{{userType}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["auth", "reset-password", "{{userType}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"reset-password",
+								"{{userType}}"
+							],
 							"query": []
 						},
 						"body": {
@@ -562,8 +672,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/auth/verify-signup",
-							"host": ["{{baseUrl}}"],
-							"path": ["auth", "verify-signup"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"verify-signup"
+							],
 							"query": []
 						},
 						"body": {
@@ -590,8 +705,13 @@
 						],
 						"url": {
 							"raw": "{{baseUrl}}/auth/login",
-							"host": ["{{baseUrl}}"],
-							"path": ["auth", "login"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							],
 							"query": []
 						},
 						"body": {
@@ -635,8 +755,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/inventory/{{testInventoryId}}/movements",
-							"host": ["{{baseUrl}}"],
-							"path": ["inventory", "{{testInventoryId}}", "movements"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"inventory",
+								"{{testInventoryId}}",
+								"movements"
+							],
 							"query": []
 						},
 						"body": {
@@ -668,8 +794,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/inventory/{{testInventoryId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["inventory", "{{testInventoryId}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"inventory",
+								"{{testInventoryId}}"
+							],
 							"query": []
 						},
 						"auth": {
@@ -692,8 +823,12 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/inventory",
-							"host": ["{{baseUrl}}"],
-							"path": ["inventory"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"inventory"
+							],
 							"query": []
 						},
 						"auth": {
@@ -721,8 +856,12 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/exchange-rates",
-							"host": ["{{baseUrl}}"],
-							"path": ["exchange-rates"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"exchange-rates"
+							],
 							"query": []
 						},
 						"body": {
@@ -768,8 +907,15 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/exchange-rates/currency/{{testCurrencyId}}/history?startDate=2025-01-01T00:00:00Z&endDate=2030-01-01T00:00:00Z",
-							"host": ["{{baseUrl}}"],
-							"path": ["exchange-rates", "currency", "{{testCurrencyId}}", "history"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"exchange-rates",
+								"currency",
+								"{{testCurrencyId}}",
+								"history"
+							],
 							"query": [
 								{
 									"key": "startDate",
@@ -801,8 +947,12 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/exchange-rates",
-							"host": ["{{baseUrl}}"],
-							"path": ["exchange-rates"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"exchange-rates"
+							],
 							"query": []
 						},
 						"auth": {
@@ -825,8 +975,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/exchange-rates/{{testExchangeRateId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["exchange-rates", "{{testExchangeRateId}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"exchange-rates",
+								"{{testExchangeRateId}}"
+							],
 							"query": []
 						},
 						"auth": {
@@ -854,8 +1009,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/movies/{{testMovieId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["movies", "{{testMovieId}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"movies",
+								"{{testMovieId}}"
+							],
 							"query": []
 						},
 						"auth": {
@@ -878,8 +1038,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/movies/upcoming",
-							"host": ["{{baseUrl}}"],
-							"path": ["movies", "upcoming"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"movies",
+								"upcoming"
+							],
 							"query": []
 						}
 					},
@@ -892,8 +1057,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/movies/{{testMovieId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["movies", "{{testMovieId}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"movies",
+								"{{testMovieId}}"
+							],
 							"query": []
 						}
 					},
@@ -906,8 +1076,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/movies/{{testMovieId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["movies", "{{testMovieId}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"movies",
+								"{{testMovieId}}"
+							],
 							"query": []
 						},
 						"auth": {
@@ -930,8 +1105,12 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/movies",
-							"host": ["{{baseUrl}}"],
-							"path": ["movies"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"movies"
+							],
 							"query": []
 						},
 						"auth": {
@@ -968,8 +1147,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/movies/showtimes",
-							"host": ["{{baseUrl}}"],
-							"path": ["movies", "showtimes"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"movies",
+								"showtimes"
+							],
 							"query": []
 						}
 					},
@@ -982,8 +1166,12 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/movies",
-							"host": ["{{baseUrl}}"],
-							"path": ["movies"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"movies"
+							],
 							"query": []
 						},
 						"auth": {
@@ -1011,8 +1199,15 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/rentals/requests/{{rentalRequestId}}/status",
-							"host": ["{{baseUrl}}"],
-							"path": ["rentals", "requests", "{{rentalRequestId}}", "status"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"rentals",
+								"requests",
+								"{{rentalRequestId}}",
+								"status"
+							],
 							"query": []
 						},
 						"body": {
@@ -1044,8 +1239,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/rentals/requests",
-							"host": ["{{baseUrl}}"],
-							"path": ["rentals", "requests"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"rentals",
+								"requests"
+							],
 							"query": []
 						},
 						"auth": {
@@ -1068,8 +1268,15 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/rentals/requests/{{rentalRequestId}}/status",
-							"host": ["{{baseUrl}}"],
-							"path": ["rentals", "requests", "{{rentalRequestId}}", "status"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"rentals",
+								"requests",
+								"{{rentalRequestId}}",
+								"status"
+							],
 							"query": []
 						},
 						"body": {
@@ -1101,8 +1308,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/rentals/requests",
-							"host": ["{{baseUrl}}"],
-							"path": ["rentals", "requests"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"rentals",
+								"requests"
+							],
 							"query": []
 						},
 						"body": {
@@ -1138,8 +1350,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/rentals/requests/me",
-							"host": ["{{baseUrl}}"],
-							"path": ["rentals", "requests", "me"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"rentals",
+								"requests",
+								"me"
+							],
 							"query": []
 						},
 						"auth": {
@@ -1162,8 +1380,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/rentals/requests/{{rentalRequestId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["rentals", "requests", "{{rentalRequestId}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"rentals",
+								"requests",
+								"{{rentalRequestId}}"
+							],
 							"query": []
 						},
 						"auth": {
@@ -1186,8 +1410,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/rentals/requests",
-							"host": ["{{baseUrl}}"],
-							"path": ["rentals", "requests"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"rentals",
+								"requests"
+							],
 							"query": []
 						},
 						"body": {
@@ -1238,8 +1467,12 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/roles",
-							"host": ["{{baseUrl}}"],
-							"path": ["roles"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"roles"
+							],
 							"query": []
 						},
 						"auth": {
@@ -1262,8 +1495,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/roles/{{testRoleId}}/permissions",
-							"host": ["{{baseUrl}}"],
-							"path": ["roles", "{{testRoleId}}", "permissions"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"roles",
+								"{{testRoleId}}",
+								"permissions"
+							],
 							"query": []
 						},
 						"body": {
@@ -1295,8 +1534,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/roles/{{testRoleId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["roles", "{{testRoleId}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"roles",
+								"{{testRoleId}}"
+							],
 							"query": []
 						},
 						"auth": {
@@ -1319,8 +1563,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/roles/{{testRoleId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["roles", "{{testRoleId}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"roles",
+								"{{testRoleId}}"
+							],
 							"query": []
 						},
 						"auth": {
@@ -1343,8 +1592,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/roles/{{testRoleId}}/permissions",
-							"host": ["{{baseUrl}}"],
-							"path": ["roles", "{{testRoleId}}", "permissions"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"roles",
+								"{{testRoleId}}",
+								"permissions"
+							],
 							"query": []
 						},
 						"body": {
@@ -1376,8 +1631,12 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/roles",
-							"host": ["{{baseUrl}}"],
-							"path": ["roles"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"roles"
+							],
 							"query": []
 						},
 						"body": {
@@ -1423,8 +1682,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/roles/{{testRoleId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["roles", "{{testRoleId}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"roles",
+								"{{testRoleId}}"
+							],
 							"query": []
 						},
 						"body": {
@@ -1461,8 +1725,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/rooms/{{testRoomId}}/seats",
-							"host": ["{{baseUrl}}"],
-							"path": ["rooms", "{{testRoomId}}", "seats"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"rooms",
+								"{{testRoomId}}",
+								"seats"
+							],
 							"query": []
 						},
 						"auth": {
@@ -1485,8 +1755,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/seats/{{testSeatId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["seats", "{{testSeatId}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"seats",
+								"{{testSeatId}}"
+							],
 							"query": []
 						},
 						"body": {
@@ -1518,8 +1793,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/seats/{{testSeatId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["seats", "{{testSeatId}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"seats",
+								"{{testSeatId}}"
+							],
 							"query": []
 						},
 						"auth": {
@@ -1542,8 +1822,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/rooms/{{testRoomId}}/seats",
-							"host": ["{{baseUrl}}"],
-							"path": ["rooms", "{{testRoomId}}", "seats"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"rooms",
+								"{{testRoomId}}",
+								"seats"
+							],
 							"query": []
 						},
 						"body": {
@@ -1575,8 +1861,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/seats/{{testSeatId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["seats", "{{testSeatId}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"seats",
+								"{{testSeatId}}"
+							],
 							"query": []
 						},
 						"auth": {
@@ -1604,8 +1895,12 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/room-events",
-							"host": ["{{baseUrl}}"],
-							"path": ["room-events"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"room-events"
+							],
 							"query": []
 						},
 						"auth": {
@@ -1628,8 +1923,12 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/room-events",
-							"host": ["{{baseUrl}}"],
-							"path": ["room-events"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"room-events"
+							],
 							"query": []
 						},
 						"body": {
@@ -1661,8 +1960,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/room-events/{{testRoomEventId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["room-events", "{{testRoomEventId}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"room-events",
+								"{{testRoomEventId}}"
+							],
 							"query": []
 						},
 						"body": {
@@ -1694,8 +1998,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/room-events/{{testRoomEventId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["room-events", "{{testRoomEventId}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"room-events",
+								"{{testRoomEventId}}"
+							],
 							"query": []
 						},
 						"auth": {
@@ -1718,8 +2027,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/cinemas/{{testCinemaId}}/room-events",
-							"host": ["{{baseUrl}}"],
-							"path": ["cinemas", "{{testCinemaId}}", "room-events"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cinemas",
+								"{{testCinemaId}}",
+								"room-events"
+							],
 							"query": []
 						},
 						"body": {
@@ -1751,8 +2066,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/room-events/{{testRoomEventId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["room-events", "{{testRoomEventId}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"room-events",
+								"{{testRoomEventId}}"
+							],
 							"query": []
 						},
 						"auth": {
@@ -1775,8 +2095,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/cinemas/{{testCinemaId}}/room-events",
-							"host": ["{{baseUrl}}"],
-							"path": ["cinemas", "{{testCinemaId}}", "room-events"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cinemas",
+								"{{testCinemaId}}",
+								"room-events"
+							],
 							"query": []
 						},
 						"auth": {
@@ -1804,8 +2130,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/customers/{{testCustomerId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["customers", "{{testCustomerId}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"customers",
+								"{{testCustomerId}}"
+							],
 							"query": []
 						},
 						"auth": {
@@ -1828,8 +2159,12 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/customers",
-							"host": ["{{baseUrl}}"],
-							"path": ["customers"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"customers"
+							],
 							"query": []
 						},
 						"auth": {
@@ -1852,8 +2187,12 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/customers",
-							"host": ["{{baseUrl}}"],
-							"path": ["customers"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"customers"
+							],
 							"query": []
 						},
 						"body": {
@@ -1899,8 +2238,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/customers/{{testCustomerId}}/loyalty-points",
-							"host": ["{{baseUrl}}"],
-							"path": ["customers", "{{testCustomerId}}", "loyalty-points"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"customers",
+								"{{testCustomerId}}",
+								"loyalty-points"
+							],
 							"query": []
 						},
 						"body": {
@@ -1932,8 +2277,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/customers/{{testCustomerId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["customers", "{{testCustomerId}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"customers",
+								"{{testCustomerId}}"
+							],
 							"query": []
 						},
 						"body": {
@@ -1970,8 +2320,12 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/employees",
-							"host": ["{{baseUrl}}"],
-							"path": ["employees"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"employees"
+							],
 							"query": []
 						},
 						"body": {
@@ -2017,8 +2371,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/employees/{{testEmployeeId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["employees", "{{testEmployeeId}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"employees",
+								"{{testEmployeeId}}"
+							],
 							"query": []
 						},
 						"auth": {
@@ -2041,8 +2400,12 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/employees",
-							"host": ["{{baseUrl}}"],
-							"path": ["employees"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"employees"
+							],
 							"query": []
 						},
 						"auth": {
@@ -2065,8 +2428,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/employees/{{testEmployeeId}}/position",
-							"host": ["{{baseUrl}}"],
-							"path": ["employees", "{{testEmployeeId}}", "position"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"employees",
+								"{{testEmployeeId}}",
+								"position"
+							],
 							"query": []
 						},
 						"body": {
@@ -2098,8 +2467,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/employees/{{testEmployeeId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["employees", "{{testEmployeeId}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"employees",
+								"{{testEmployeeId}}"
+							],
 							"query": []
 						},
 						"auth": {
@@ -2122,8 +2496,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/employees/{{testEmployeeId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["employees", "{{testEmployeeId}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"employees",
+								"{{testEmployeeId}}"
+							],
 							"query": []
 						},
 						"body": {
@@ -2160,8 +2539,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/permissions/{{testPermissionId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["permissions", "{{testPermissionId}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"permissions",
+								"{{testPermissionId}}"
+							],
 							"query": []
 						},
 						"auth": {
@@ -2184,8 +2568,12 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/permissions",
-							"host": ["{{baseUrl}}"],
-							"path": ["permissions"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"permissions"
+							],
 							"query": []
 						},
 						"auth": {
@@ -2208,8 +2596,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/permissions/{{testPermissionId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["permissions", "{{testPermissionId}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"permissions",
+								"{{testPermissionId}}"
+							],
 							"query": []
 						},
 						"body": {
@@ -2241,8 +2634,12 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/permissions",
-							"host": ["{{baseUrl}}"],
-							"path": ["permissions"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"permissions"
+							],
 							"query": []
 						},
 						"body": {
@@ -2288,8 +2685,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/permissions/{{testPermissionId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["permissions", "{{testPermissionId}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"permissions",
+								"{{testPermissionId}}"
+							],
 							"query": []
 						},
 						"auth": {
@@ -2317,8 +2719,12 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/rooms",
-							"host": ["{{baseUrl}}"],
-							"path": ["rooms"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"rooms"
+							],
 							"query": []
 						},
 						"auth": {
@@ -2341,8 +2747,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/rooms/{{testRoomId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["rooms", "{{testRoomId}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"rooms",
+								"{{testRoomId}}"
+							],
 							"query": []
 						},
 						"body": {
@@ -2374,8 +2785,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/rooms/{{testRoomId}}/seats",
-							"host": ["{{baseUrl}}"],
-							"path": ["rooms", "{{testRoomId}}", "seats"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"rooms",
+								"{{testRoomId}}",
+								"seats"
+							],
 							"query": []
 						},
 						"body": {
@@ -2421,8 +2838,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/rooms/{{testRoomId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["rooms", "{{testRoomId}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"rooms",
+								"{{testRoomId}}"
+							],
 							"query": []
 						},
 						"auth": {
@@ -2464,8 +2886,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/rooms/{{testRoomId}}/seats",
-							"host": ["{{baseUrl}}"],
-							"path": ["rooms", "{{testRoomId}}", "seats"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"rooms",
+								"{{testRoomId}}",
+								"seats"
+							],
 							"query": []
 						},
 						"auth": {
@@ -2488,8 +2916,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/rooms/{{testRoomId}}/projection-types",
-							"host": ["{{baseUrl}}"],
-							"path": ["rooms", "{{testRoomId}}", "projection-types"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"rooms",
+								"{{testRoomId}}",
+								"projection-types"
+							],
 							"query": []
 						},
 						"auth": {
@@ -2512,8 +2946,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/seats/room/{{testRoomId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["seats", "room", "{{testRoomId}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"seats",
+								"room",
+								"{{testRoomId}}"
+							],
 							"query": []
 						},
 						"auth": {
@@ -2555,8 +2995,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/cinemas/{{testCinemaId}}/rooms",
-							"host": ["{{baseUrl}}"],
-							"path": ["cinemas", "{{testCinemaId}}", "rooms"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cinemas",
+								"{{testCinemaId}}",
+								"rooms"
+							],
 							"query": []
 						},
 						"body": {
@@ -2602,8 +3048,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/catalogs/projection-types",
-							"host": ["{{baseUrl}}"],
-							"path": ["catalogs", "projection-types"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"catalogs",
+								"projection-types"
+							],
 							"query": []
 						},
 						"auth": {
@@ -2626,8 +3077,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/rooms/{{testRoomId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["rooms", "{{testRoomId}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"rooms",
+								"{{testRoomId}}"
+							],
 							"query": []
 						},
 						"auth": {
@@ -2650,8 +3106,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/rooms/{{testRoomId}}/projection-types",
-							"host": ["{{baseUrl}}"],
-							"path": ["rooms", "{{testRoomId}}", "projection-types"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"rooms",
+								"{{testRoomId}}",
+								"projection-types"
+							],
 							"query": []
 						},
 						"body": {
@@ -2697,8 +3159,15 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/rooms/{{testRoomId}}/projection-types/{{testRoomProjectionTypeId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["rooms", "{{testRoomId}}", "projection-types", "{{testRoomProjectionTypeId}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"rooms",
+								"{{testRoomId}}",
+								"projection-types",
+								"{{testRoomProjectionTypeId}}"
+							],
 							"query": []
 						},
 						"auth": {
@@ -2709,6 +3178,74 @@
 									"value": "{{accessToken}}",
 									"type": "string"
 								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Bulk Update Seats",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "[\n    {\n        \"seatId\": 1,\n        \"seatCategoryId\": 2,\n        \"seatConditionId\": 1\n    }\n]",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/rooms/{{testRoomId}}/seats",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"rooms",
+								"{{testRoomId}}",
+								"seats"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Configure Seat Grid",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"gridRows\": 10,\n    \"gridColumns\": 15\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/rooms/{{testRoomId}}/seat-grid",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"rooms",
+								"{{testRoomId}}",
+								"seat-grid"
 							]
 						}
 					},
@@ -2726,8 +3263,12 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/cinemas",
-							"host": ["{{baseUrl}}"],
-							"path": ["cinemas"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cinemas"
+							],
 							"query": []
 						}
 					},
@@ -2740,8 +3281,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/cinemas/{{testCinemaId}}/combos",
-							"host": ["{{baseUrl}}"],
-							"path": ["cinemas", "{{testCinemaId}}", "combos"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cinemas",
+								"{{testCinemaId}}",
+								"combos"
+							],
 							"query": []
 						},
 						"auth": {
@@ -2764,8 +3311,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/cinemas/{{testCinemaId}}/employees",
-							"host": ["{{baseUrl}}"],
-							"path": ["cinemas", "{{testCinemaId}}", "employees"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cinemas",
+								"{{testCinemaId}}",
+								"employees"
+							],
 							"query": []
 						},
 						"body": {
@@ -2797,8 +3350,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/cinemas/{{testCinemaId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["cinemas", "{{testCinemaId}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cinemas",
+								"{{testCinemaId}}"
+							],
 							"query": []
 						},
 						"auth": {
@@ -2821,8 +3379,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/cinemas/{{testCinemaId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["cinemas", "{{testCinemaId}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cinemas",
+								"{{testCinemaId}}"
+							],
 							"query": []
 						},
 						"body": {
@@ -2854,8 +3417,15 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/cinemas/{{testCinemaId}}/employees/{{testEmployeeId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["cinemas", "{{testCinemaId}}", "employees", "{{testEmployeeId}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cinemas",
+								"{{testCinemaId}}",
+								"employees",
+								"{{testEmployeeId}}"
+							],
 							"query": []
 						},
 						"auth": {
@@ -2878,8 +3448,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/cinemas/{{testCinemaId}}/combos",
-							"host": ["{{baseUrl}}"],
-							"path": ["cinemas", "{{testCinemaId}}", "combos"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cinemas",
+								"{{testCinemaId}}",
+								"combos"
+							],
 							"query": []
 						},
 						"auth": {
@@ -2902,8 +3478,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/cinemas/{{testCinemaId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["cinemas", "{{testCinemaId}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cinemas",
+								"{{testCinemaId}}"
+							],
 							"query": []
 						}
 					},
@@ -2916,8 +3497,12 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/cinemas",
-							"host": ["{{baseUrl}}"],
-							"path": ["cinemas"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cinemas"
+							],
 							"query": []
 						},
 						"body": {
@@ -2963,8 +3548,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/cinemas/{{testCinemaId}}/employees",
-							"host": ["{{baseUrl}}"],
-							"path": ["cinemas", "{{testCinemaId}}", "employees"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cinemas",
+								"{{testCinemaId}}",
+								"employees"
+							],
 							"query": []
 						},
 						"auth": {
@@ -2987,8 +3578,12 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/cinemas",
-							"host": ["{{baseUrl}}"],
-							"path": ["cinemas"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cinemas"
+							],
 							"query": []
 						},
 						"body": {
@@ -3025,8 +3620,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/cinemas/{{cinemaId}}/showtimes?date=2026-07-16",
-							"host": ["{{baseUrl}}"],
-							"path": ["cinemas", "{{cinemaId}}", "showtimes"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cinemas",
+								"{{cinemaId}}",
+								"showtimes"
+							],
 							"query": [
 								{
 									"key": "date",
@@ -3044,8 +3645,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/showtimes/admin?startDate=2026-07-01&endDate=2026-09-30&movieId={{movieId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["showtimes", "admin"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"showtimes",
+								"admin"
+							],
 							"query": [
 								{
 									"key": "startDate",
@@ -3071,8 +3677,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/showtimes/billboard",
-							"host": ["{{baseUrl}}"],
-							"path": ["showtimes", "billboard"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"showtimes",
+								"billboard"
+							],
 							"query": []
 						}
 					},
@@ -3085,8 +3696,12 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/showtimes",
-							"host": ["{{baseUrl}}"],
-							"path": ["showtimes"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"showtimes"
+							],
 							"query": []
 						},
 						"body": {
@@ -3122,8 +3737,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/showtimes/{{showtimeId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["showtimes", "{{showtimeId}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"showtimes",
+								"{{showtimeId}}"
+							],
 							"query": []
 						}
 					},
@@ -3136,8 +3756,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/showtimes/{{showtimeId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["showtimes", "{{showtimeId}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"showtimes",
+								"{{showtimeId}}"
+							],
 							"query": []
 						},
 						"body": {
@@ -3159,8 +3784,16 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/cinemas/{{cinemaId}}/showtimes/movies/{{movieId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["cinemas", "{{cinemaId}}", "showtimes", "movies", "{{movieId}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cinemas",
+								"{{cinemaId}}",
+								"showtimes",
+								"movies",
+								"{{movieId}}"
+							],
 							"query": []
 						}
 					},
@@ -3187,8 +3820,16 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/cinemas/{{cinemaId}}/showtimes/{{showtimeId}}/seat-map",
-							"host": ["{{baseUrl}}"],
-							"path": ["cinemas", "{{cinemaId}}", "showtimes", "{{showtimeId}}", "seat-map"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cinemas",
+								"{{cinemaId}}",
+								"showtimes",
+								"{{showtimeId}}",
+								"seat-map"
+							],
 							"query": []
 						}
 					},
@@ -3201,8 +3842,12 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/showtimes",
-							"host": ["{{baseUrl}}"],
-							"path": ["showtimes"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"showtimes"
+							],
 							"query": []
 						}
 					},
@@ -3229,8 +3874,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/cinemas/{{cinemaId}}/showtimes",
-							"host": ["{{baseUrl}}"],
-							"path": ["cinemas", "{{cinemaId}}", "showtimes"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cinemas",
+								"{{cinemaId}}",
+								"showtimes"
+							],
 							"query": []
 						},
 						"body": {
@@ -3252,8 +3903,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/showtimes/billboard?cinemaId=1&projectionType=2D",
-							"host": ["{{baseUrl}}"],
-							"path": ["showtimes", "billboard"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"showtimes",
+								"billboard"
+							],
 							"query": [
 								{
 									"key": "cinemaId",
@@ -3275,8 +3931,15 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/cinemas/{{cinemaId}}/showtimes/billboard",
-							"host": ["{{baseUrl}}"],
-							"path": ["cinemas", "{{cinemaId}}", "showtimes", "billboard"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cinemas",
+								"{{cinemaId}}",
+								"showtimes",
+								"billboard"
+							],
 							"query": []
 						}
 					},
@@ -3289,8 +3952,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/showtimes/{{showtimeId}}/seat-map",
-							"host": ["{{baseUrl}}"],
-							"path": ["showtimes", "{{showtimeId}}", "seat-map"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"showtimes",
+								"{{showtimeId}}",
+								"seat-map"
+							],
 							"query": []
 						}
 					},
@@ -3303,8 +3972,15 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/cinemas/{{cinemaId}}/showtimes/{{showtimeId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["cinemas", "{{cinemaId}}", "showtimes", "{{showtimeId}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cinemas",
+								"{{cinemaId}}",
+								"showtimes",
+								"{{showtimeId}}"
+							],
 							"query": []
 						}
 					},
@@ -3317,8 +3993,12 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/showtimes?date=2026-07-16",
-							"host": ["{{baseUrl}}"],
-							"path": ["showtimes"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"showtimes"
+							],
 							"query": [
 								{
 									"key": "date",
@@ -3336,8 +4016,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/showtimes/{{showtimeId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["showtimes", "{{showtimeId}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"showtimes",
+								"{{showtimeId}}"
+							],
 							"query": []
 						}
 					},
@@ -3350,8 +4035,16 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/showtimes/admin/movies/{{movieId}}/showtimes?onlyFuture=true",
-							"host": ["{{baseUrl}}"],
-							"path": ["showtimes", "admin", "movies", "{{movieId}}", "showtimes"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"showtimes",
+								"admin",
+								"movies",
+								"{{movieId}}",
+								"showtimes"
+							],
 							"query": [
 								{
 									"key": "onlyFuture",
@@ -3369,8 +4062,12 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/showtimes?startDate=2026-07-15&endDate=2026-07-31",
-							"host": ["{{baseUrl}}"],
-							"path": ["showtimes"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"showtimes"
+							],
 							"query": [
 								{
 									"key": "startDate",
@@ -3392,8 +4089,16 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/showtimes/admin/cinemas/{{cinemaId}}/showtimes?startDate=2026-07-01&endDate=2026-07-31",
-							"host": ["{{baseUrl}}"],
-							"path": ["showtimes", "admin", "cinemas", "{{cinemaId}}", "showtimes"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"showtimes",
+								"admin",
+								"cinemas",
+								"{{cinemaId}}",
+								"showtimes"
+							],
 							"query": [
 								{
 									"key": "startDate",
@@ -3415,8 +4120,12 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/showtimes?movieId={{movieId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["showtimes"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"showtimes"
+							],
 							"query": [
 								{
 									"key": "movieId",
@@ -3434,8 +4143,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/showtimes/admin/movies?lifecycle=3",
-							"host": ["{{baseUrl}}"],
-							"path": ["showtimes", "admin", "movies"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"showtimes",
+								"admin",
+								"movies"
+							],
 							"query": [
 								{
 									"key": "lifecycle",
@@ -3458,8 +4173,12 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/price-modifiers",
-							"host": ["{{baseUrl}}"],
-							"path": ["price-modifiers"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"price-modifiers"
+							],
 							"query": []
 						},
 						"auth": {
@@ -3482,8 +4201,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/price-modifiers/1",
-							"host": ["{{baseUrl}}"],
-							"path": ["price-modifiers", "1"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"price-modifiers",
+								"1"
+							],
 							"query": []
 						},
 						"body": {
@@ -3515,8 +4239,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/price-modifiers/1",
-							"host": ["{{baseUrl}}"],
-							"path": ["price-modifiers", "1"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"price-modifiers",
+								"1"
+							],
 							"query": []
 						},
 						"auth": {
@@ -3539,13 +4268,17 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/price-modifiers",
-							"host": ["{{baseUrl}}"],
-							"path": ["price-modifiers"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"price-modifiers"
+							],
 							"query": []
 						},
 						"body": {
 							"mode": "raw",
-							"raw": "  {\n    \"description\": \"Promoción martes\",\n    \"modifierScope\": 1,\n    \"operationType\": 2,\n    \"isPercentage\": true,\n    \"value\": 20,\n    \"weekDay\": 3,\n    \"cinema\": 1,\n    \"startDate\": \"2026-06-01\",\n    \"endDate\": \"2026-06-30\",\n    \"startTime\": \"09:00:00\",\n    \"endTime\": \"23:00:00\",\n    \"currency\": 1,\n    \"targetCurrency\": null,\n    \"targetCurrencyCondition\": false\n}",
+							"raw": "  {\n    \"description\": \"Promoción martes\",\n    \"modifierScope\": 1,\n    \"operationType\": 2,\n    \"isPercentage\": true,\n    \"value\": 20,\n    \"weekDay\": 3,\n    \"cinema\": 1,\n    \"startDate\": \"2026-06-01\",\n    \"endDate\": \"2026-06-30\",\n    \"startTime\": \"09:00:00\",\n    \"endTime\": \"23:00:00\",\n    \"currency\": null,\n    \"targetCurrency\": null,\n    \"targetCurrencyCondition\": false\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -3572,8 +4305,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/price-modifiers/1",
-							"host": ["{{baseUrl}}"],
-							"path": ["price-modifiers", "1"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"price-modifiers",
+								"1"
+							],
 							"query": []
 						},
 						"auth": {
@@ -3601,8 +4339,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/users/{{testUserId}}/role",
-							"host": ["{{baseUrl}}"],
-							"path": ["users", "{{testUserId}}", "role"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{testUserId}}",
+								"role"
+							],
 							"query": []
 						},
 						"auth": {
@@ -3625,8 +4369,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/users/{{testUserId}}/role",
-							"host": ["{{baseUrl}}"],
-							"path": ["users", "{{testUserId}}", "role"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{testUserId}}",
+								"role"
+							],
 							"query": []
 						},
 						"auth": {
@@ -3649,8 +4399,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/users/1/status",
-							"host": ["{{baseUrl}}"],
-							"path": ["users", "1", "status"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"1",
+								"status"
+							],
 							"query": []
 						},
 						"body": {
@@ -3682,8 +4438,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/users/{{testUserId}}/permissions",
-							"host": ["{{baseUrl}}"],
-							"path": ["users", "{{testUserId}}", "permissions"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{testUserId}}",
+								"permissions"
+							],
 							"query": []
 						},
 						"auth": {
@@ -3706,8 +4468,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/users/{{testUserId}}/permissions",
-							"host": ["{{baseUrl}}"],
-							"path": ["users", "{{testUserId}}", "permissions"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{testUserId}}",
+								"permissions"
+							],
 							"query": []
 						},
 						"body": {
@@ -3739,8 +4507,12 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/users?page=1&limit=10",
-							"host": ["{{baseUrl}}"],
-							"path": ["users"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users"
+							],
 							"query": [
 								{
 									"key": "page",
@@ -3772,8 +4544,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/users/{{testUserId}}/permissions",
-							"host": ["{{baseUrl}}"],
-							"path": ["users", "{{testUserId}}", "permissions"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{testUserId}}",
+								"permissions"
+							],
 							"query": []
 						},
 						"body": {
@@ -3805,8 +4583,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/users/me/security",
-							"host": ["{{baseUrl}}"],
-							"path": ["users", "me", "security"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"me",
+								"security"
+							],
 							"query": []
 						},
 						"body": {
@@ -3838,8 +4622,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/users/me",
-							"host": ["{{baseUrl}}"],
-							"path": ["users", "me"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"me"
+							],
 							"query": []
 						},
 						"auth": {
@@ -3862,8 +4651,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/users/me/profile",
-							"host": ["{{baseUrl}}"],
-							"path": ["users", "me", "profile"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"me",
+								"profile"
+							],
 							"query": []
 						},
 						"body": {
@@ -3895,8 +4690,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/users/{{testUserId}}/role",
-							"host": ["{{baseUrl}}"],
-							"path": ["users", "{{testUserId}}", "role"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{testUserId}}",
+								"role"
+							],
 							"query": []
 						},
 						"body": {
@@ -3920,6 +4721,90 @@
 						}
 					},
 					"response": []
+				},
+				{
+					"name": "Get My Movie Genres",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/users/me/movie-genres",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"me",
+								"movie-genres"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add My Movie Genres",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"genres\": [1, 2]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/me/movie-genres",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"me",
+								"movie-genres"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Remove My Movie Genres",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/users/me/movie-genres",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"me",
+								"movie-genres"
+							]
+						}
+					},
+					"response": []
 				}
 			]
 		},
@@ -3933,8 +4818,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/orders/payments",
-							"host": ["{{baseUrl}}"],
-							"path": ["orders", "payments"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"orders",
+								"payments"
+							],
 							"query": []
 						},
 						"body": {
@@ -3987,7 +4877,9 @@
 						],
 						"url": {
 							"raw": "ws://{{baseUrl}}",
-							"host": ["{{baseUrl}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
 							"path": [],
 							"protocol": "ws"
 						},
@@ -4012,8 +4904,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/orders/checkout",
-							"host": ["{{baseUrl}}"],
-							"path": ["orders", "checkout"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"orders",
+								"checkout"
+							],
 							"query": []
 						},
 						"body": {
@@ -4062,8 +4959,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/orders/{{orderId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["orders", "{{orderId}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"orders",
+								"{{orderId}}"
+							],
 							"query": []
 						},
 						"auth": {
@@ -4086,8 +4988,15 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/orders/qr/{{orderQrCode}}/concessions",
-							"host": ["{{baseUrl}}"],
-							"path": ["orders", "qr", "{{orderQrCode}}", "concessions"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"orders",
+								"qr",
+								"{{orderQrCode}}",
+								"concessions"
+							],
 							"query": []
 						},
 						"auth": {
@@ -4110,8 +5019,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/orders/quote",
-							"host": ["{{baseUrl}}"],
-							"path": ["orders", "quote"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"orders",
+								"quote"
+							],
 							"query": []
 						},
 						"body": {
@@ -4159,8 +5073,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/orders/session",
-							"host": ["{{baseUrl}}"],
-							"path": ["orders", "session"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"orders",
+								"session"
+							],
 							"query": []
 						},
 						"auth": {
@@ -4183,8 +5102,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/orders/session",
-							"host": ["{{baseUrl}}"],
-							"path": ["orders", "session"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"orders",
+								"session"
+							],
 							"query": []
 						},
 						"auth": {
@@ -4207,8 +5131,15 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/orders/qr/{{orderQrCode}}/tickets",
-							"host": ["{{baseUrl}}"],
-							"path": ["orders", "qr", "{{orderQrCode}}", "tickets"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"orders",
+								"qr",
+								"{{orderQrCode}}",
+								"tickets"
+							],
 							"query": []
 						},
 						"auth": {
@@ -4231,8 +5162,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/orders/session/details",
-							"host": ["{{baseUrl}}"],
-							"path": ["orders", "session", "details"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"orders",
+								"session",
+								"details"
+							],
 							"query": []
 						},
 						"auth": {
@@ -4255,8 +5192,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/orders/validate-qr/{{orderQrCode}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["orders", "validate-qr", "{{orderQrCode}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"orders",
+								"validate-qr",
+								"{{orderQrCode}}"
+							],
 							"query": []
 						},
 						"body": {
@@ -4280,6 +5223,102 @@
 						}
 					},
 					"response": []
+				},
+				{
+					"name": "Quote Order - Admin",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Session is handled via user token now"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"cinema\": 1,\n    \"customerId\": 1\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/orders/quote",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"orders",
+								"quote"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Process Billing",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"pm.variables.set(\"orderId\", 1);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"orderId\": {{orderId}},\n    \"use_customer_data\": false,\n    \"billing_name\": \"Juan Perez\",\n    \"billing_document\": \"V-12345678\",\n    \"billing_address\": \"Av Principal\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/orders/billing",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"orders",
+								"billing"
+							]
+						}
+					},
+					"response": []
 				}
 			]
 		},
@@ -4293,8 +5332,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/catalogs/resources?limit=-1",
-							"host": ["{{baseUrl}}"],
-							"path": ["catalogs", "resources"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"catalogs",
+								"resources"
+							],
 							"query": [
 								{
 									"key": "limit",
@@ -4322,8 +5366,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/catalogs/{{catalog}}/1",
-							"host": ["{{baseUrl}}"],
-							"path": ["catalogs", "{{catalog}}", "1"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"catalogs",
+								"{{catalog}}",
+								"1"
+							],
 							"query": []
 						},
 						"body": {
@@ -4355,8 +5405,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/catalogs/{{catalog}}/3",
-							"host": ["{{baseUrl}}"],
-							"path": ["catalogs", "{{catalog}}", "3"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"catalogs",
+								"{{catalog}}",
+								"3"
+							],
 							"query": []
 						},
 						"auth": {
@@ -4379,8 +5435,12 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/catalogs",
-							"host": ["{{baseUrl}}"],
-							"path": ["catalogs"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"catalogs"
+							],
 							"query": []
 						},
 						"auth": {
@@ -4403,8 +5463,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/catalogs/{{catalog}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["catalogs", "{{catalog}}"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"catalogs",
+								"{{catalog}}"
+							],
 							"query": []
 						},
 						"body": {
@@ -4436,8 +5501,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/catalogs/{{catalog}}/metadata",
-							"host": ["{{baseUrl}}"],
-							"path": ["catalogs", "{{catalog}}", "metadata"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"catalogs",
+								"{{catalog}}",
+								"metadata"
+							],
 							"query": []
 						},
 						"auth": {
@@ -4460,8 +5531,14 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/catalogs/{{catalog}}/1",
-							"host": ["{{baseUrl}}"],
-							"path": ["catalogs", "{{catalog}}", "1"],
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"catalogs",
+								"{{catalog}}",
+								"1"
+							],
 							"query": []
 						},
 						"auth": {

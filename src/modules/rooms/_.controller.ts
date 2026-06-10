@@ -72,6 +72,14 @@ class RoomsController extends ControllerBase {
         return this.created(null, 'Asiento(s) agregado(s) exitosamente');
     }
 
+    // PATCH /rooms/:id/seats — delega actualización masiva
+    async bulkUpdateSeats() {
+        const { id } = this.getParams();
+        const body = this.getBody();
+        await SeatManagementService.bulkUpdateSeats(Number(id), body);
+        return this.success(null, 'Asientos actualizados exitosamente');
+    }
+
     // PUT /rooms/:id/seat-grid — Configurar grilla de asientos (regenerar todos)
     async configureSeatGrid() {
         const { id } = this.getParams();

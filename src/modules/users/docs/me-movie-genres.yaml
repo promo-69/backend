@@ -1,0 +1,129 @@
+/users/me/movie-genres:
+    get:
+        tags:
+            - Users
+        summary: Get my movie genres
+        description: Returns the favorite movie genres of the currently logged-in user.
+        security:
+            - cookieAuth: []
+            - bearerAuth: []
+        responses:
+            '200':
+                description: Genres retrieved successfully.
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                    example: true
+                                message:
+                                    type: string
+                                    example: Géneros favoritos recuperados exitosamente.
+                                data:
+                                    type: array
+                                    items:
+                                        type: object
+                                        properties:
+                                            id:
+                                                type: integer
+                                                example: 1
+                                            name:
+                                                type: string
+                                                example: Acción
+                                            description:
+                                                type: string
+                                                example: Películas de acción.
+            '401':
+                description: Unauthorized
+            '500':
+                description: Internal server error
+    post:
+        tags:
+            - Users
+        summary: Add movie genres to my profile
+        description: Adds new favorite movie genres to the currently logged-in user's profile.
+        security:
+            - cookieAuth: []
+            - bearerAuth: []
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            genres:
+                                type: array
+                                items:
+                                    type: integer
+                                example: [1, 2, 3]
+                        required:
+                            - genres
+        responses:
+            '200':
+                description: Genres added successfully.
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                    example: true
+                                message:
+                                    type: string
+                                    example: Géneros favoritos actualizados correctamente.
+                                data:
+                                    type: 'null'
+            '400':
+                description: Validation error
+            '401':
+                description: Unauthorized
+            '500':
+                description: Internal server error
+    delete:
+        tags:
+            - Users
+        summary: Remove movie genres from my profile
+        description: Removes favorite movie genres from the currently logged-in user's profile.
+        security:
+            - cookieAuth: []
+            - bearerAuth: []
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            genres:
+                                type: array
+                                items:
+                                    type: integer
+                                example: [1, 2]
+                        required:
+                            - genres
+        responses:
+            '200':
+                description: Genres removed successfully.
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                    example: true
+                                message:
+                                    type: string
+                                    example: Géneros favoritos removidos correctamente.
+                                data:
+                                    type: 'null'
+            '400':
+                description: Validation error
+            '401':
+                description: Unauthorized
+            '500':
+                description: Internal server error

@@ -1,5 +1,5 @@
 import { BaseService } from '@bases/service.base.js';
-import { Database } from '@database/index.js';
+import { Database, Ops } from '@database/index.js';
 import { ConflictError, NotFoundError, ValidationError } from '@errors';
 import { type ProcessedQueryFilters } from '@rules/api-query.type.js';
 import { type Transaction } from 'sequelize';
@@ -32,6 +32,30 @@ export class CinemasService extends BaseService {
 	}
 	private get _rooms() {
 		return Database.repository('main', 'rooms') as any;
+	}
+	private get _employeePositions() {
+		return Database.repository('main', 'employee-positions') as any;
+	}
+	private get _roomBookings() {
+		return Database.repository('main', 'room-bookings') as any;
+	}
+	private get _showtimes() {
+		return Database.repository('main', 'showtimes') as any;
+	}
+	private get _tickets() {
+		return Database.repository('main', 'tickets') as any;
+	}
+	private get _orders() {
+		return Database.repository('main', 'orders') as any;
+	}
+	private get _orderLines() {
+		return Database.repository('main', 'order-lines') as any;
+	}
+	private get _inventories() {
+		return Database.repository('main', 'inventories') as any;
+	}
+	private get _combos() {
+		return Database.repository('main', 'combos') as any;
 	}
 
 	private _validateTimeFormat(time: string, fieldName: string): void {
@@ -119,8 +143,6 @@ export class CinemasService extends BaseService {
 		});
 	}
 
-	// setCinemaStatus eliminado: la tabla cinemas NO tiene columna 'status' en la migración.
-	// La eliminación lógica se hace via deleted_at (soft delete).
 	async deleteCinema(id: number) {
 		return this._cinemas.transaction(async (transaction: Transaction) => {
 			const cinema = await this._cinemas.getById(id, {
@@ -129,20 +151,149 @@ export class CinemasService extends BaseService {
 			});
 			if (!cinema) throw new NotFoundError('Sucursal no encontrada');
 
-			// Verificar que no tenga salas activas
-			const activeRooms = await this._rooms.count({ cinema: id, deleted_at: null }, { transaction });
-			if (activeRooms > 0)
+			// Regla 1: Empleados activos
+			const activeEmployees = await this._employeePositions.count(
+				{
+					cinema: id,
+					deleted_at: null,
+					end_date: null,
+				},
+				{ transaction },
+			);
+			if (activeEmployees > 0) {
 				throw new ConflictError(
-					'No se puede eliminar la sucursal porque tiene salas activas',
-					'CINEMA_HAS_ACTIVE_ROOMS',
+					'No se puede eliminar la sucursal porque tiene empleados activos asignados.',
+					'CINEMA_HAS_ACTIVE_EMPLOYEES',
+				);
+			}
+
+			// Entidades Base: Salas y Reservas
+			const rooms = await this._rooms.getAll(
+				{ count: false, attributes: ['id'] },
+				{ cinema: id, deleted_at: null },
+				{ transaction }
+			);
+			const roomIds = (Array.isArray(rooms) ? rooms : rooms.rows || []).map((r: any) => r.id);
+
+			let bookingIds: number[] = [];
+			let activeBookingIds: number[] = [];
+
+			if (roomIds.length > 0) {
+				const bookings = await this._roomBookings.getAll(
+					{ count: false, attributes: ['id', 'end_time'] },
+					{ room: roomIds, deleted_at: null },
+					{ transaction }
+				);
+				const bookingsArr = Array.isArray(bookings) ? bookings : bookings.rows || [];
+				bookingIds = bookingsArr.map((b: any) => b.id);
+
+				const now = new Date();
+				activeBookingIds = bookingsArr
+					.filter((b: any) => new Date(b.end_time) > now)
+					.map((b: any) => b.id);
+			}
+
+			// Regla 2: Boletos válidos en funciones activas
+			if (activeBookingIds.length > 0) {
+				const activeTickets = await this._tickets.getAll(
+					{ count: false, attributes: ['id', 'order'] },
+					{ booking: activeBookingIds, deleted_at: null },
+					{ transaction }
+				);
+				const ticketsArr = Array.isArray(activeTickets) ? activeTickets : activeTickets.rows || [];
+
+				if (ticketsArr.length > 0) {
+					const orderIds = [...new Set(ticketsArr.map((t: any) => t.order))];
+
+					const validOrders = await this._orders.count(
+						{
+							id: orderIds,
+							order_status: { [Ops.ne]: 3 }, // 3 = Cancelada
+							deleted_at: null,
+						},
+						{ transaction }
+					);
+
+					if (validOrders > 0) {
+						throw new ConflictError(
+							'No se puede eliminar la sucursal porque existen boletos vendidos para funciones activas.',
+							'CINEMA_HAS_ACTIVE_TICKETS'
+						);
+					}
+				}
+			}
+
+			// Regla 3: Confitería pendiente por entregar
+			const pendingOrders = await this._orders.getAll(
+				{ count: false, attributes: ['id'] },
+				{
+					cinema: id,
+					order_status: [1, 2], // Pendiente de pago o Pagada
+					concessions_validated_at: null,
+					deleted_at: null,
+				},
+				{ transaction }
+			);
+			const pendingOrderIds = (Array.isArray(pendingOrders) ? pendingOrders : pendingOrders.rows || []).map((o: any) => o.id);
+
+			if (pendingOrderIds.length > 0) {
+				const pendingConcessions = await this._orderLines.count(
+					{
+						order: pendingOrderIds,
+						line_type: [1, 2], // Producto o Combo
+						deleted_at: null,
+					},
+					{ transaction }
 				);
 
+				if (pendingConcessions > 0) {
+					throw new ConflictError(
+						'No se puede eliminar la sucursal porque hay órdenes de confitería pendientes por entregar.',
+						'CINEMA_HAS_PENDING_CONCESSIONS'
+					);
+				}
+			}
+
+			// Eliminación Lógica en Cascada
+			const deletedAt = new Date();
+
+			// Inventarios y Combos
+			await this._inventories.update({ cinema: id, deleted_at: null }, { deleted_at: deletedAt }, { transaction });
+			await this._combos.update({ cinema: id, deleted_at: null }, { deleted_at: deletedAt }, { transaction });
+
+			// Showtimes y Room Bookings
+			if (bookingIds.length > 0) {
+				await this._showtimes.update({ booking: bookingIds, deleted_at: null }, { deleted_at: deletedAt }, { transaction });
+				await this._roomBookings.update({ id: bookingIds, deleted_at: null }, { deleted_at: deletedAt }, { transaction });
+			}
+
+			// Rooms
+			if (roomIds.length > 0) {
+				await this._rooms.update({ id: roomIds, deleted_at: null }, { deleted_at: deletedAt }, { transaction });
+			}
+
+			// Finalmente la Sucursal
 			await this._cinemas.delete(id, { transaction });
 		});
 	}
 
 	async findAll(filters?: ProcessedQueryFilters) {
 		return this._cinemas.getAllFull(filters);
+	}
+
+	async findAllWithRooms(filters?: ProcessedQueryFilters) {
+		console.log('wirh rooms')
+		const data = await this._cinemas.getAll({
+			...filters,
+			relations: [
+				{
+					association: '_Rooms',
+					required: true
+				}
+			]
+		});
+
+		return data;
 	}
 
 	async findById(id: number) {

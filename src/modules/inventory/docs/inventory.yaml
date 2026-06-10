@@ -8,6 +8,12 @@
             - Inventory
         security:
             - bearerAuth: []
+        parameters:
+            - name: cinemaId
+              in: query
+              description: Optional cinema ID to filter inventory. Used if the user is not assigned to a cinema.
+              schema:
+                  type: integer
         responses:
             '200':
                 description: Inventory list

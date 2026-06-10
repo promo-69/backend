@@ -14,15 +14,40 @@ export class InventoryManagementService {
     }
 
     async getStockByCinema(cinemaId: number, filters?: any) {
-        return this._inventories.getAllByCinema(cinemaId, {
+        const result = await this._inventories.getAllByCinema(cinemaId, {
             ...filters,
-            include: [
+            relations: [
                 {
-                    association: '_Product',
-                    include: [{ association: '_ProductCategory', attributes: ['id', 'description'] }],
+                    association: '_Products',
+                    required: true,
+                    nested: [{ association: '_ProductCategories', attributes: ['id', 'description'] }],
                 },
             ],
         });
+
+        const rows = Array.isArray(result) ? result : result.rows;
+
+        const populatedRows = await Promise.all(
+            rows.map(async (row: any) => {
+                const plainRow = row.toJSON ? row.toJSON() : { ...row };
+                const lastMovements = await this._inventoryMovements.getAll(
+                    { count: false, limit: 1, order: [['id', 'DESC']] },
+                    { inventory: plainRow.id }
+                );
+
+                if (lastMovements.length > 0) {
+                    plainRow.stock = Number(lastMovements[0].resulting_stock);
+                    plainRow.current_unit_cost_base_currency = Number(lastMovements[0].resulting_unit_cost_base_currency);
+                } else {
+                    plainRow.stock = 0;
+                    plainRow.current_unit_cost_base_currency = 0;
+                }
+
+                return plainRow;
+            })
+        );
+
+        return Array.isArray(result) ? populatedRows : { count: result.count, rows: populatedRows };
     }
 
     async registerMovements(
@@ -47,7 +72,12 @@ export class InventoryManagementService {
                 if (!opType) throw new ValidationError(`El tipo de operación con ID ${mov.operationType} no existe`);
 
                 const lastMovements = await this._inventoryMovements.getAll(
-                    { count: false, limit: 1, order: [['id', 'DESC']], operation: { transaction } },
+                    {
+                        count: false,
+                        limit: 1,
+                        order: [['id', 'DESC']],
+                        operation: { transaction, lock: transaction.LOCK.UPDATE },
+                    },
                     { inventory: inventoryId }
                 );
                 const currentStock = lastMovements.length > 0 ? Number(lastMovements[0].resulting_stock) : 0;

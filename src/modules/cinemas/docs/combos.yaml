@@ -85,3 +85,133 @@
                 description: Unauthorized
             '500':
                 description: Internal server error
+
+/cinemas/{cinemaId}/combos/{id}:
+    patch:
+        summary: Update Combo in Cinema
+        tags:
+            - Cinemas
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: cinemaId
+              in: path
+              required: true
+              schema:
+                  type: integer
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        requestBody:
+            required: true
+            content:
+                multipart/form-data:
+                    schema:
+                        type: object
+                        properties:
+                            name:
+                                type: string
+                            description:
+                                type: string
+                            currencyId:
+                                type: integer
+                            price:
+                                type: number
+                            image:
+                                type: string
+                                format: binary
+        responses:
+            '200':
+                description: Combo updated
+    delete:
+        summary: Delete Combo from Cinema
+        tags:
+            - Cinemas
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: cinemaId
+              in: path
+              required: true
+              schema:
+                  type: integer
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Combo deleted
+
+/cinemas/{cinemaId}/combos/{id}/items:
+    post:
+        summary: Add Items to Combo
+        tags:
+            - Cinemas
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: cinemaId
+              in: path
+              required: true
+              schema:
+                  type: integer
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        required:
+                            - items
+                        properties:
+                            items:
+                                type: array
+                                items:
+                                    type: object
+                                    required:
+                                        - productId
+                                        - quantity
+                                    properties:
+                                        productId:
+                                            type: integer
+                                        quantity:
+                                            type: integer
+        responses:
+            '201':
+                description: Items added to combo
+
+/cinemas/{cinemaId}/combos/{id}/items/{itemId}:
+    delete:
+        summary: Remove Item from Combo
+        tags:
+            - Cinemas
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: cinemaId
+              in: path
+              required: true
+              schema:
+                  type: integer
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+            - name: itemId
+              in: path
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Item removed from combo

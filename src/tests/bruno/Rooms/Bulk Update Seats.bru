@@ -1,0 +1,34 @@
+meta {
+  name: Bulk Update Seats
+  type: http
+  seq: 1
+}
+
+patch {
+  url: {{baseUrl}}/rooms/{{testRoomId}}/seats
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  [
+    {
+      "seatId": 3,
+      "seatCategoryId": 2,
+      "seatConditionId": 1
+    }
+  ]
+}
+
+vars:pre-request {
+  testRoomId: 1
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  bru.setVar('baseUrl', baseUrl);
+}

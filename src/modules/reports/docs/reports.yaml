@@ -1,0 +1,52 @@
+/reports/{reportType}/export:
+    get:
+        summary: Export any report
+        description: |
+            Export a report in JSON, CSV, XLSX, or PDF format.
+            Required permission: **CRUD:READ:REPORTS-EXPORT**
+        tags:
+            - Reports Export
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: path
+              name: reportType
+              required: true
+              schema:
+                  type: string
+                  enum: [sales, movies, events, inventory, cashier, showtimes, rentals]
+            - in: query
+              name: format
+              schema:
+                  type: string
+                  enum: [json, csv, xlsx, pdf]
+                  default: json
+            - in: query
+              name: from
+              schema:
+                  type: string
+                  format: date
+            - in: query
+              name: to
+              schema:
+                  type: string
+                  format: date
+            - in: query
+              name: channel
+              schema:
+                  type: string
+                  enum: [all, taquilla, web, app]
+        responses:
+            '200':
+                description: Exported file
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                    text/csv: {}
+                    application/vnd.openxmlformats-officedocument.spreadsheetml.sheet: {}
+                    application/pdf: {}
+            '401':
+                description: Unauthorized
+            '403':
+                description: Insufficient permissions

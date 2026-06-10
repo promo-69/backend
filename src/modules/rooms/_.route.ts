@@ -35,6 +35,7 @@ router.delete(
 // Asientos
 router.get('/:id/seats', verifySession, verifyPermission('CRUD:READ:SEATS'), roomsController.getSeatMap);
 router.post('/:id/seats', verifySession, verifyPermission('CRUD:CREATE:SEATS'), roomsController.createSeat);
+router.patch('/:id/seats', verifySession, verifyPermission('CRUD:UPDATE:SEATS'), roomsController.bulkUpdateSeats);
 
 //Configurar grilla de asientos (regenerar todos)
 router.put('/:id/seat-grid', verifySession, verifyPermission('CRUD:UPDATE:ROOMS'), roomsController.configureSeatGrid);

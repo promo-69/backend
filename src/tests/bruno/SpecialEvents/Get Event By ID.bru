@@ -1,0 +1,20 @@
+meta {
+  name: Get Event By ID
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/special-events/{{eventId}}
+  body: none
+  auth: none
+}
+
+vars:pre-request {
+  eventId: 1
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  bru.setVar('baseUrl', baseUrl);
+}

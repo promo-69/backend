@@ -1,0 +1,36 @@
+meta {
+  name: Add Combo Items in Cinema
+  type: http
+  seq: 14
+}
+
+post {
+  url: {{baseUrl}}/cinemas/:cinemaId/combos/:id/items
+  body: json
+  auth: bearer
+}
+
+params:path {
+  cinemaId: 1
+  id: 1
+}
+
+body:json {
+  {
+    "items": [
+      {
+        "productId": 1,
+        "quantity": 2
+      }
+    ]
+  }
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  bru.setVar('baseUrl', baseUrl);
+}

@@ -1,0 +1,21 @@
+meta {
+  name: Add My Movie Genres
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/users/me/movie-genres
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "genres": [1, 2]
+  }
+}

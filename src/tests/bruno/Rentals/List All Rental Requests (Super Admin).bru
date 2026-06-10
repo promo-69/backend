@@ -1,0 +1,32 @@
+meta {
+  name: List All Rental Requests (Super Admin)
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/rentals/admin/requests
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  status: 1
+  page: 1
+  limit: 10
+}
+
+docs {
+  Listado GLOBAL de solicitudes (todas las sucursales).
+  Requiere token de SUPER_ADMIN.
+  Permiso: CRUD:READ:RENTALS_GLOBAL
+
+  Filtros opcionales:
+  - status: 1=Pendiente, 2=PendientePago, 3=Pagada, 4=Rechazada, 5=Cancelada
+  - startDate: YYYY-MM-DD
+  - endDate: YYYY-MM-DD
+}

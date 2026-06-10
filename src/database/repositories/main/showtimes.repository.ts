@@ -3,16 +3,17 @@ import ShowtimesModel from '@database/models/main/showtimes.model.js';
 import { Op } from 'sequelize';
 
 export interface ShowtimesAttributes {
-    id?: number;
-    movie: number;
-    room: number;
-    projection_type: number;
-    start_time: Date;
-    end_time: Date;
-    currency: number;
-    price: number;
-    earned_loyalty_points?: number;
-    deleted_at?: Date;
+	id?: number;
+	booking: number;
+	// Exactamente uno de los dos debe ser no nulo (garantizado por CHECK en BD)
+	movie?: number | null;
+	special_event_id?: number | null;
+	projection_type: number;
+	language: number;
+	currency: number;
+	price: number;
+	earned_loyalty_points?: number | null;
+	deleted_at?: Date | null;
 }
 
 class ShowtimesRepository extends SequelizeRepositoryBase<ShowtimesAttributes, number> {
