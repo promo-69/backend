@@ -7,7 +7,7 @@ export default class JobPositionsModel extends SequelizeModelBase {
 			id: {
 				primaryKey: true,
 				autoIncrement: true,
-				allowNull: true,
+				allowNull: false,
 				type: DataTypes.INTEGER,
 			},
 			title: {

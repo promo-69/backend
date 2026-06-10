@@ -20,6 +20,32 @@ class OrdersRepository extends SequelizeRepositoryBase<OrdersAttributes, number>
 	constructor() {
 		super(OrdersModel);
 	}
+
+	private _getRelations() {
+		return [
+			{
+				association: '_OrderLines',
+				required: false,
+				nested: [
+					{ association: '_Products', required: false },
+					{ association: '_Combos', required: false },
+				],
+			},
+			{
+				association: '_Tickets',
+				separate: true,
+				required: false,
+				nested: [{ association: '_RoomBookings', required: false }],
+			},
+			{ association: '_OrderPayments', separate: true, required: false },
+			{ association: '_Cinemas', required: false },
+			{ association: '_Customers', required: false },
+		];
+	}
+
+	async getById(id: number) {
+		return super.getById(id, { relations: this._getRelations() });
+	}
 }
 
 export default new OrdersRepository();

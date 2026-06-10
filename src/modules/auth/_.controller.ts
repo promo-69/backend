@@ -8,36 +8,45 @@ class AuthController extends ControllerBase {
 		super();
 	}
 
-	/**
-	 * Determina el canal de respuesta adecuado (Cookie o Bearer JSON)
-	 * basado en cabeceras explícitas o inferencia de la petición.
-	 */
 	private _getExpectedTransport(): 'cookie' | 'bearer' {
 		const req = this.getRequest();
-
-		// 1. Identificación explícita del cliente (Mejor práctica)
-		// El frontend web debe enviar { 'x-client-channel': 'web' }
-		// La app móvil debe enviar { 'x-client-channel': 'mobile' }
 		const clientChannel = req.headers['x-client-channel'];
 		if (clientChannel === 'web') return 'cookie';
 		if (clientChannel === 'mobile') return 'bearer';
 
-		// 2. Inferencia de canal (Útil para refresh/logout si omiten la cabecera)
 		const security = AppConfig.load().security;
 		const refreshName = security.jwtCookieRefreshName || 'RT';
+		if (req.cookies?.[refreshName]) return 'cookie';
 
-		// Si la petición trae nuestra cookie, asumimos que es un cliente Web
-		if (req.cookies && req.cookies[refreshName]) return 'cookie';
-
-		// 3. Fallback por defecto (Comportamiento API estándar)
 		return 'bearer';
+	}
+
+	private _sendLoginResponse(loginResponse: { user: any; accessToken: string; refreshToken: string }) {
+		const { user, accessToken, refreshToken } = loginResponse;
+		const transport = this._getExpectedTransport();
+
+		if (transport === 'cookie') {
+			const security = AppConfig.load().security;
+			const accessName = security.jwtCookieAccessName || 'AT';
+			const refreshName = security.jwtCookieRefreshName || 'RT';
+			const req = this.getRequest();
+
+			this.setCookie(accessName, accessToken, { maxAge: JWTUtil.getAccessExpiresInMs() });
+			this.setCookie(refreshName, refreshToken, {
+				path: `${req.baseUrl}/refresh`,
+				maxAge: JWTUtil.getRefreshExpiresInMs(),
+			});
+
+			return this.success({ user }, 'Autenticación exitosa');
+		}
+
+		return this.success({ user, tokens: { accessToken, refreshToken } }, 'Autenticación exitosa');
 	}
 
 	// --- Auth & Session ---
 
 	async signup() {
-		const result = await AuthService.registerUser(this.getBody());
-
+		await AuthService.registerUser(this.getBody());
 		return this.created(
 			{},
 			'Usuario registrado exitosamente. Por favor verifica tu correo electrónico con el código enviado.',
@@ -46,43 +55,20 @@ class AuthController extends ControllerBase {
 
 	async verifySignup() {
 		const { email, code } = this.getBody();
-		const result = await AuthService.verifySignupCode(email, code);
-
+		await AuthService.verifySignupCode(email, code);
 		return this.success({}, 'Cuenta verificada y autenticada exitosamente');
 	}
 
+	// POST /auth/login — exclusivo para clientes (user_type = 2, role IS NULL)
 	async login() {
-		const body = this.getBody();
+		const loginResponse = await AuthService.authenticateCustomer(this.getBody());
+		return this._sendLoginResponse(loginResponse);
+	}
 
-		const {
-			user,
-			accessToken,
-			refreshToken,
-		}: {
-			user: Record<string, any>;
-			accessToken: string;
-			refreshToken: string;
-		} = await AuthService.authenticateUser(body);
-
-		const transport = this._getExpectedTransport();
-
-		if (transport === 'cookie') {
-			const security = AppConfig.load().security;
-			const accessName = security.jwtCookieAccessName || 'AT';
-			const refreshName = security.jwtCookieRefreshName || 'RT';
-
-			this.setCookie(accessName, accessToken, { maxAge: JWTUtil.getAccessExpiresInMs() });
-			this.setCookie(refreshName, refreshToken, {
-				path: '/api/v1/auth/refresh',
-				maxAge: JWTUtil.getRefreshExpiresInMs(),
-			});
-
-			// Retorna SOLO el usuario. Protege al frontend de malas prácticas.
-			return this.success({ user }, 'Autenticación exitosa');
-		}
-
-		// Canal Móvil (Bearer): Retorna los tokens en el payload. No setea cookies.
-		return this.success({ user, tokens: { accessToken, refreshToken } }, 'Autenticación exitosa');
+	// POST /auth/login/admin — exclusivo para empleados (user_type = 1, role IS NOT NULL)
+	async loginAdmin() {
+		const loginResponse = await AuthService.authenticateEmployee(this.getBody());
+		return this._sendLoginResponse(loginResponse);
 	}
 
 	async refresh() {
@@ -91,28 +77,26 @@ class AuthController extends ControllerBase {
 		const refreshName = security.jwtCookieRefreshName || 'RT';
 		let currentToken: string | null = null;
 
-		// Extraer token priorizando la cookie, luego el header
-		if (req.cookies && req.cookies[refreshName]) {
+		if (req.cookies?.[refreshName]) {
 			currentToken = req.cookies[refreshName];
 		} else {
 			const authHeader = this.getHeaders().authorization;
 			if (authHeader?.startsWith('Bearer ')) currentToken = authHeader.split(' ')[1];
 		}
 
-		const { accessToken, refreshToken, user } = await AuthService.refreshUserSession(currentToken);
-
+		const { user, accessToken, refreshToken } = await AuthService.refreshUserSession(currentToken);
 		const transport = this._getExpectedTransport();
 
 		if (transport === 'cookie') {
 			const accessName = security.jwtCookieAccessName || 'AT';
 			this.setCookie(accessName, accessToken, { maxAge: JWTUtil.getAccessExpiresInMs() });
-			if (refreshToken) this.setCookie(refreshName, refreshToken, { maxAge: JWTUtil.getRefreshExpiresInMs() });
-
-			// Retorna SOLO el usuario
+			this.setCookie(refreshName, refreshToken, {
+				path: `${req.baseUrl}/refresh`,
+				maxAge: JWTUtil.getRefreshExpiresInMs(),
+			});
 			return this.success({ user }, 'Sesión renovada');
 		}
 
-		// Canal Móvil
 		return this.success({ user, tokens: { accessToken, refreshToken } }, 'Sesión renovada');
 	}
 
@@ -122,26 +106,21 @@ class AuthController extends ControllerBase {
 		const refreshName = security.jwtCookieRefreshName || 'RT';
 		const accessName = security.jwtCookieAccessName || 'AT';
 
-		const accessToken = req.token || null; // Extraído por el middleware
+		const accessToken = (req as any).token ?? null;
 		let refreshToken: string | null = null;
 
-		// Extraer refresh token a invalidar
-		if (req.cookies && req.cookies[refreshName]) {
+		if (req.cookies?.[refreshName]) {
 			refreshToken = req.cookies[refreshName];
 		} else {
 			const authHeader = this.getHeaders().authorization;
 			if (authHeader?.startsWith('Bearer ')) refreshToken = authHeader.split(' ')[1];
 		}
 
-		// Ejecutar invalidación en la base de datos de cache
 		await AuthService.logoutUser(accessToken, refreshToken);
 
-		const transport = this._getExpectedTransport();
-
-		if (transport === 'cookie') {
-			// Limpiar cookies explícitamente en el navegador
+		if (this._getExpectedTransport() === 'cookie') {
 			this.clearCookie(accessName);
-			this.clearCookie(refreshName);
+			this.clearCookie(refreshName, { path: `${req.baseUrl}/refresh` });
 		}
 
 		return this.success(null, 'Sesión finalizada exitosamente');
@@ -149,21 +128,44 @@ class AuthController extends ControllerBase {
 
 	// --- Password Reset ---
 
+	private _parseAccountType(accountType: string): number {
+		if (accountType === 'admin' || accountType === 'employee') return 1;
+		if (accountType === 'customer' || accountType === 'client') return 2;
+		return Number(accountType);
+	}
+
 	async forgotPassword() {
+		const { accountType } = this.getRequest().params || {};
+		if (!accountType) throw new Error('El tipo de cuenta es requerido');
+
 		const { email } = this.getBody();
-		const result = await AuthService.forgotPassword(email);
+		const result = await AuthService.forgotPassword(this._parseAccountType(accountType as string), email);
+
 		return this.success(null, result.message);
 	}
 
 	async verifyResetCode() {
+		const { accountType } = this.getRequest().params || {};
+		if (!accountType) throw new Error('El tipo de cuenta es requerido');
+
 		const { email, code } = this.getBody();
-		const result = await AuthService.verifyResetCode(email, code);
+		const result = await AuthService.verifyResetCode(this._parseAccountType(accountType as string), email, code);
+
 		return this.success(result, 'Código verificado correctamente');
 	}
 
 	async resetPassword() {
+		const { accountType } = this.getRequest().params || {};
+		if (!accountType) throw new Error('El tipo de cuenta es requerido');
+
 		const { email, resetToken, newPassword } = this.getBody();
-		const result = await AuthService.resetPassword(email, resetToken, newPassword);
+		const result = await AuthService.resetPassword(
+			this._parseAccountType(accountType as string),
+			email,
+			resetToken,
+			newPassword,
+		);
+
 		return this.success(null, result.message);
 	}
 }

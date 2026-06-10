@@ -7,7 +7,7 @@ export default class OrdersModel extends SequelizeModelBase {
 			id: {
 				primaryKey: true,
 				autoIncrement: true,
-				allowNull: true,
+				allowNull: false,
 				type: DataTypes.INTEGER,
 			},
 			customer: {
@@ -42,15 +42,26 @@ export default class OrdersModel extends SequelizeModelBase {
 				allowNull: false,
 				type: DataTypes.INTEGER,
 			},
+			remarks: {
+				allowNull: true,
+				type: DataTypes.TEXT,
+			},
+			qr_code: {
+				allowNull: true,
+				type: DataTypes.STRING(500),
+			},
+			tickets_validated_at: {
+				allowNull: true,
+				type: DataTypes.DATE,
+			},
+			concessions_validated_at: {
+				allowNull: true,
+				type: DataTypes.DATE,
+			},
 			order_status: {
 				allowNull: false,
 				type: DataTypes.INTEGER,
 				defaultValue: 1,
-			},
-			created_at: {
-				allowNull: false,
-				type: DataTypes.DATE,
-				defaultValue: DataTypes.NOW,
 			},
 			deleted_at: {
 				allowNull: true,
@@ -66,7 +77,7 @@ export default class OrdersModel extends SequelizeModelBase {
 			createdAt: 'created_at',
 			updatedAt: false,
 			deletedAt: 'deleted_at',
-			isBasicTable: true,
+			isBasicTable: false,
 			schema: 'public',
 			tableName: 'orders',
 			appRawName: 'orders',

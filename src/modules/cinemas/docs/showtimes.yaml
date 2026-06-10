@@ -1,0 +1,166 @@
+/cinemas/{cinemaId}/showtimes:
+    get:
+        summary: List Showtimes by Cinema (Explicit)
+        description: |
+            Returns all showtimes for a specific cinema.
+            Required permission: **CRUD:READ:CINEMAS-SHOWTIMES**
+        tags:
+            - Showtimes
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: path
+              name: cinemaId
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: List of showtimes
+    post:
+        summary: Create Showtime for Cinema (Explicit)
+        description: |
+            Schedule a new showtime in a specific cinema.
+            Required permission: **CRUD:CREATE:CINEMAS-SHOWTIMES**
+        tags:
+            - Showtimes
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: path
+              name: cinemaId
+              required: true
+              schema:
+                  type: integer
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        required:
+                            - room
+                            - movie
+                            - projection_type
+                            - start_time
+                            - end_time
+                            - currency
+                        properties:
+                            room:
+                                type: integer
+                                example: 4
+                            movie:
+                                type: integer
+                                example: 12
+                            projection_type:
+                                type: integer
+                                example: 2
+                            start_time:
+                                type: string
+                                format: date-time
+                                example: '2026-06-15T18:00:00Z'
+                            end_time:
+                                type: string
+                                format: date-time
+                                example: '2026-06-15T20:15:00Z'
+                            currency:
+                                type: integer
+                                example: 2
+                            price:
+                                type: number
+                                example: 5.00
+                            earned_loyalty_points:
+                                type: integer
+                                example: 10
+        responses:
+            '201':
+                description: Showtime created
+
+/cinemas/{cinemaId}/showtimes/billboard:
+    get:
+        summary: Get Billboard by Cinema
+        description: Retrieves the billboard (movies with their showtimes) for a specific cinema.
+        tags:
+            - Showtimes
+        parameters:
+            - name: cinemaId
+              in: path
+              required: true
+              schema:
+                  type: integer
+            - name: movieId
+              in: query
+              schema:
+                  type: integer
+            - name: projectionType
+              in: query
+              schema:
+                  type: integer
+            - name: language
+              in: query
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Billboard data
+
+/cinemas/{cinemaId}/showtimes/movies/{movieId}:
+    get:
+        summary: Get Showtimes for Movie in Cinema
+        tags:
+            - Showtimes
+        parameters:
+            - name: cinemaId
+              in: path
+              required: true
+              schema:
+                  type: integer
+            - name: movieId
+              in: path
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: List of showtimes
+
+/cinemas/{cinemaId}/showtimes/{id}:
+    get:
+        summary: Get Showtime by ID
+        tags:
+            - Showtimes
+        parameters:
+            - name: cinemaId
+              in: path
+              required: true
+              schema:
+                  type: integer
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Showtime detail
+
+/cinemas/{cinemaId}/showtimes/{id}/seat-map:
+    get:
+        summary: Get Seat Map for Showtime
+        description: Retrieves the seat map with booking status for a specific showtime.
+        tags:
+            - Showtimes
+        parameters:
+            - name: cinemaId
+              in: path
+              required: true
+              schema:
+                  type: integer
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Seat map data

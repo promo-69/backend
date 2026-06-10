@@ -1,0 +1,25 @@
+meta {
+  name: Export Movies Report
+  type: http
+  seq: 21
+}
+
+get {
+  url: {{baseUrl}}/reports/movies/export
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  format: csv
+  from: {{fromDate}}
+  to: {{toDate}}
+}
+
+docs {
+  Exporta el reporte de películas.
+}

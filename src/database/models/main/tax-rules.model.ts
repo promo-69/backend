@@ -7,7 +7,7 @@ export default class TaxRulesModel extends SequelizeModelBase {
 			id: {
 				primaryKey: true,
 				autoIncrement: true,
-				allowNull: true,
+				allowNull: false,
 				type: DataTypes.INTEGER,
 			},
 			tax: {
@@ -41,7 +41,7 @@ export default class TaxRulesModel extends SequelizeModelBase {
 			deleted_at: {
 				allowNull: true,
 				type: DataTypes.DATE,
-			},
+			}
 		};
 	}
 
@@ -52,7 +52,7 @@ export default class TaxRulesModel extends SequelizeModelBase {
 			createdAt: false,
 			updatedAt: false,
 			deletedAt: 'deleted_at',
-			isBasicTable: true,
+			isBasicTable: false,
 			schema: 'public',
 			tableName: 'tax_rules',
 			appRawName: 'tax-rules',

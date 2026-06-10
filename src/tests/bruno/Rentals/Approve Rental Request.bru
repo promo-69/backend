@@ -1,0 +1,36 @@
+meta {
+  name: Approve Rental Request (Manager)
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}/rentals/requests/{{rentalRequestId}}/status
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "status": 2,
+    "currency": 1,
+    "price": "500.00"
+  }
+}
+
+vars:pre-request {
+  rentalRequestId: 88
+}
+
+docs {
+  Aprueba la solicitud (status → 2 = Pendiente de Pago).
+  Requiere price y currency. Bloquea la sala en room_bookings.
+  Encola job BullMQ con TTL de 48 h para expiración de proforma.
+  Permiso: CRUD:UPDATE:RENTALS
+
+  Si la sala ya está ocupada → 409 Conflict (GiST overlap).
+}

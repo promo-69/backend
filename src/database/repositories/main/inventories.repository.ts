@@ -16,11 +16,12 @@ class InventoriesRepository extends SequelizeRepositoryBase<any, number> {
 	}
 
 	private get _relations() {
-		return [{ association: '_Product', attributes: ['name', 'sku'], required: true }];
+		return [{ association: '_Products', attributes: ['name', 'sku'], required: true }];
 	}
 
 	async getAllByCinema(cinemaId: number, filters?: any) {
-		return this.getAll({ ...filters, count: true, relations: this._relations }, { cinema: cinemaId });
+		const relations = filters?.relations || this._relations;
+		return this.getAll({ ...filters, count: true, relations }, { cinema: cinemaId });
 	}
 }
 

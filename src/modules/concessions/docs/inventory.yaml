@@ -1,7 +1,7 @@
 /concessions/inventory/{cinemaId}:
     get:
         summary: Get Inventory By Cinema
-        description: Retrieve the current stock of all concession products at a specific cinema location.
+        description: Retrieve the current stock of all concession products at a specific cinema location, including product category.
         tags:
             - Concessions
         security:
@@ -37,6 +37,76 @@
                                             updated_at:
                                                 type: string
                                                 format: date-time
+                                            _Product:
+                                                type: object
+                                                properties:
+                                                    _ProductCategory:
+                                                        type: object
+                                                        properties:
+                                                            id:
+                                                                type: integer
+                                                            name:
+                                                                type: string
+            '401':
+                description: Unauthorized
+            '404':
+                description: Cinema not found
+            '500':
+                description: Internal server error
+
+/concessions/inventory/{cinemaId}/grouped:
+    get:
+        summary: Get Inventory Grouped by Category
+        description: Retrieve the stock of all products at a cinema, grouped by product category.
+        tags:
+            - Concessions
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: path
+              name: cinemaId
+              required: true
+              schema:
+                  type: integer
+              description: Cinema (branch) ID
+        responses:
+            '200':
+                description: Grouped inventory
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                data:
+                                    type: array
+                                    items:
+                                        type: object
+                                        properties:
+                                            categoryId:
+                                                type: integer
+                                            categoryName:
+                                                type: string
+                                            products:
+                                                type: array
+                                                items:
+                                                    type: object
+                                                    properties:
+                                                        productId:
+                                                            type: integer
+                                                        name:
+                                                            type: string
+                                                        sku:
+                                                            type: string
+                                                        stock:
+                                                            type: integer
+                                                        price:
+                                                            type: number
+                                                        earnedLoyaltyPoints:
+                                                            type: integer
+                                                            nullable: true
+                                                        image_url:
+                                                            type: string
+                                                            nullable: true
             '401':
                 description: Unauthorized
             '404':

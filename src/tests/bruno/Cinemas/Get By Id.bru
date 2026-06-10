@@ -7,11 +7,11 @@ meta {
 get {
   url: {{baseUrl}}/cinemas/{{testCinemaId}}
   body: none
-  auth: bearer
+  auth: none
 }
 
-auth:bearer {
-  token: {{accessToken}}
+vars:pre-request {
+  testCinemaId: 1
 }
 
 script:pre-request {

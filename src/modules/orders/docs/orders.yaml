@@ -1,0 +1,238 @@
+tags:
+  - name: Orders
+    description: "Operaciones transaccionales y de compra"
+paths:
+  /orders/quote:
+    post:
+      summary: "Generar Cotización (Punto de inicio)"
+      description: "Genera un queue_id temporal bloqueando tasas de cambio"
+      tags:
+        - Orders
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - cinema
+              properties:
+                cinema:
+                  type: integer
+                customerId:
+                  type: integer
+                  description: "Requerido si la venta es en taquilla (empleado)"
+      responses:
+        '201':
+          description: "Cotización creada"
+  /orders/checkout:
+    post:
+      summary: "Procesar Checkout"
+      description: "Verifica inventario físico y crea la orden PENDING"
+      tags:
+        - Orders
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                concessions:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      line_type:
+                        type: integer
+                      product:
+                        type: integer
+                      combo:
+                        type: integer
+                      quantity:
+                        type: integer
+                tickets:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      booking:
+                        type: integer
+                      seatId:
+                        type: integer
+                      audienceCategoryId:
+                        type: integer
+      responses:
+        '201':
+          description: "Orden creada"
+  /orders/payments:
+    post:
+      summary: "Registrar Pago"
+      description: "Registra pago para una orden PENDING"
+      tags:
+        - Orders
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - payment_method
+                - amount
+                - currency
+              properties:
+                payment_method:
+                  type: integer
+                amount:
+                  type: string
+                currency:
+                  type: integer
+                reference_number:
+                  type: string
+      responses:
+        '201':
+          description: "Pago registrado"
+  /orders/billing:
+    post:
+      summary: "Completar Facturación (Solo Empleados)"
+      description: "Genera la factura de una orden pagada, usando datos provistos o del cliente asociado"
+      tags:
+        - Orders
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - orderId
+                - use_customer_data
+              properties:
+                orderId:
+                  type: integer
+                use_customer_data:
+                  type: boolean
+                billing_name:
+                  type: string
+                billing_document:
+                  type: string
+                billing_address:
+                  type: string
+      responses:
+        '200':
+          description: "Facturación completada"
+  /orders/{id}:
+    get:
+      summary: "Obtener Orden"
+      tags:
+        - Orders
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: "Detalle de orden"
+  /orders/qr/{qrCode}/concessions:
+    get:
+      summary: "Ver dulcería de orden por QR"
+      tags:
+        - Orders
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: qrCode
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "Concesiones de la orden"
+  /orders/qr/{qrCode}/tickets:
+    get:
+      summary: "Ver boletos de orden por QR"
+      tags:
+        - Orders
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: qrCode
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "Boletos de la orden"
+  /orders/validate-qr/{qrCode}:
+    post:
+      summary: "Validar QR (Consumir beneficios)"
+      tags:
+        - Orders
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: qrCode
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - validation_type
+              properties:
+                validation_type:
+                  type: integer
+                  description: "1 = CONCESSIONS, 2 = TICKETS"
+      responses:
+        '200':
+          description: "Beneficio consumido"
+  /orders/session:
+    delete:
+      summary: "Cancelar Sesión de Compra"
+      description: "Cancela una sesión de compra y libera los asientos"
+      tags:
+        - Orders
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: "Sesión de compra cancelada exitosamente y recursos devueltos"
+    get:
+      summary: "Obtener Estado de la Sesión"
+      description: "Obtiene el estado actual de la sesión de compra (cotización)"
+      tags:
+        - Orders
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: "Estado de la sesión"
+  /orders/session/details:
+    get:
+      summary: "Obtener Detalles de la Sesión"
+      description: "Obtiene detalles de precios e inventario para una sesión en curso"
+      tags:
+        - Orders
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: "Detalles de la sesión en curso"

@@ -2,6 +2,8 @@ import { BaseService } from '@bases/service.base.js';
 import { Database } from '@database/index.js';
 import { ConflictError, NotFoundError, ValidationError } from '@errors';
 import { movieImagesService } from '@services/movie-images.service.js';
+import { imageStorageService } from '@services/image-storage.service.js';
+import { Logger } from '@utils/logger.util.js';
 import { type ProcessedQueryFilters } from '@rules/api-query.type.js';
 import { type Transaction } from 'sequelize';
 
@@ -16,6 +18,8 @@ interface CreateMovieBody {
 	trailerUrl?: string;
 	releaseDate: string;
 	genres: number[] | string;
+	languages: number[] | string;
+	projectionTypes: number[] | string;
 }
 
 interface UpdateMovieBody {
@@ -25,6 +29,8 @@ interface UpdateMovieBody {
 	bannerUrl?: string;
 	trailerUrl?: string;
 	genres?: number[] | string;
+	languages?: number[] | string;
+	projectionTypes?: number[] | string;
 }
 
 export class MoviesService extends BaseService {
@@ -41,38 +47,57 @@ export class MoviesService extends BaseService {
 	private get _genres() {
 		return Database.repository('main', 'genres') as any;
 	}
+	private get _movieLanguages() {
+		return Database.repository('main', 'movie-languages') as any;
+	}
+	private get _languages() {
+		return Database.repository('main', 'languages') as any;
+	}
+	private get _movieProjectionTypes() {
+		return Database.repository('main', 'movie-projection-types') as any;
+	}
+	private get _projectionTypes() {
+		return Database.repository('main', 'projection-types') as any;
+	}
 	private get _ageClassifications() {
 		return Database.repository('main', 'age-classifications') as any;
 	}
 
-	// --- HU-APP-WEB-06: Cartelera pública ---
-	async getBillboard(filters?: ProcessedQueryFilters) {
-		return this._movies.getAllOnBillboard(filters);
+	async getMovies(filters?: ProcessedQueryFilters) {
+		return this._movies.getAllFull(filters);
 	}
 
-	// --- HU-APP-WEB-07: Detalle público de película ---
+	async getMoviesWithShowtimes(filters?: ProcessedQueryFilters) {
+		return this._movies.getWithShowtimes(filters);
+	}
+
+	async getUpcoming(filters?: ProcessedQueryFilters) {
+		return this._movies.getUpcoming(filters);
+	}
+
 	async getMovieDetail(id: number) {
 		const movie = await this._movies.getFull(id);
 		if (!movie) throw new NotFoundError('Película no encontrada');
 		return movie;
 	}
 
-	// --- HU-OPERATIVA-12/13: Registrar película ---
 	async createMovie(
 		body: CreateMovieBody,
 		rawFiles?: Express.Multer.File[] | { [fieldname: string]: Express.Multer.File[] },
 	) {
 		const { title, synopsis, releaseDate, trailerUrl } = body;
 
-		// Casteo explícito: multipart/form-data envía todo como string
 		const durationMinutes = Number(body.durationMinutes);
 		const ageClassification = Number(body.ageClassification);
 		const lifecycleState = Number(body.lifecycleState);
-
-		// genres puede llegar como string JSON desde multipart
 		const genres: number[] = typeof body.genres === 'string' ? JSON.parse(body.genres) : (body.genres as number[]);
+		const languages: number[] =
+			typeof body.languages === 'string' ? JSON.parse(body.languages) : (body.languages as number[]);
+		const projectionTypes: number[] =
+			typeof body.projectionTypes === 'string'
+				? JSON.parse(body.projectionTypes)
+				: (body.projectionTypes as number[]);
 
-		// 1. Validaciones de campos requeridos
 		this.validateRequired(
 			{ title, durationMinutes, ageClassification, lifecycleState, synopsis, releaseDate } as any,
 			['title', 'durationMinutes', 'ageClassification', 'lifecycleState', 'synopsis', 'releaseDate'],
@@ -80,33 +105,43 @@ export class MoviesService extends BaseService {
 
 		if (!Array.isArray(genres) || genres.length === 0)
 			throw new ValidationError('Debe especificar al menos un género', ['genres']);
+		if (!Array.isArray(languages) || languages.length === 0)
+			throw new ValidationError('Debe especificar al menos un idioma', ['languages']);
+		if (!Array.isArray(projectionTypes) || projectionTypes.length === 0)
+			throw new ValidationError('Debe especificar al menos un formato de proyección', ['projectionTypes']);
 
 		if (!Number.isInteger(durationMinutes) || durationMinutes <= 0)
 			throw new ValidationError('La duración debe ser un entero mayor a 0', ['durationMinutes']);
 
-		// Validar formato de URL del tráiler antes de tocar ImageKit
 		movieImagesService.validateTrailerUrl(trailerUrl);
 
-		// 2. Verificar unicidad del título
 		const existing = await this._movies.getByTitle(title);
 		if (existing) throw new ConflictError('Ya existe una película con ese título', 'MOVIE_TITLE_DUPLICATE');
 
-		// 3. Verificar que ageClassification exista
 		const ageClass = await this._ageClassifications.getById(ageClassification);
 		if (!ageClass) throw new ValidationError('La clasificación de edad indicada no existe', ['ageClassification']);
 
-		// 4. Verificar que todos los géneros existan
 		for (const genreId of genres) {
 			const genre = await this._genres.getById(genreId);
 			if (!genre) throw new ValidationError(`El género con ID ${genreId} no existe en el catálogo`, ['genres']);
 		}
+		for (const languageId of languages) {
+			const language = await this._languages.getById(languageId);
+			if (!language)
+				throw new ValidationError(`El idioma con ID ${languageId} no existe en el catálogo`, ['languages']);
+		}
+		for (const projectionId of projectionTypes) {
+			const projectionType = await this._projectionTypes.getById(projectionId);
+			if (!projectionType)
+				throw new ValidationError(`El formato de proyección con ID ${projectionId} no existe en el catálogo`, [
+					'projectionTypes',
+				]);
+		}
 
-		// 5. Solo subir imágenes DESPUÉS de que todas las validaciones pasen
 		const imageFiles = movieImagesService.extractFromRequest(rawFiles);
 		const { posterUrl, bannerUrl, posterFileId, bannerFileId } =
 			await movieImagesService.uploadMovieImages(imageFiles);
 
-		// 6. Persistir con rollback de imágenes si falla la transacción
 		try {
 			const createdMovie = await this._movies.transaction(async (transaction: Transaction) => {
 				const movie = await this._movies.create(
@@ -129,20 +164,29 @@ export class MoviesService extends BaseService {
 					genre: gId,
 					status: 1,
 				}));
+				const languageRecords = languages.map((lId: number) => ({
+					movie: movie.id,
+					language: lId,
+				}));
+				const projectionRecords = projectionTypes.map((pId: number) => ({
+					movie: movie.id,
+					projection_type: pId,
+				}));
 
 				await this._movieGenres.bulkCreate(genreRecords, { transaction });
+				await this._movieLanguages.bulkCreate(languageRecords, { transaction });
+				await this._movieProjectionTypes.bulkCreate(projectionRecords, { transaction });
 
 				return movie;
 			});
 
-			return createdMovie;
+			return this.getMovieDetail(createdMovie.id);
 		} catch (error) {
 			await movieImagesService.rollbackUploadedImages([posterFileId, bannerFileId]);
 			throw error;
 		}
 	}
 
-	// --- HU-OPERATIVA-13 (Edición): Editar película ---
 	async updateMovie(
 		id: number,
 		body: UpdateMovieBody,
@@ -151,12 +195,11 @@ export class MoviesService extends BaseService {
 		const movie = await this._movies.getFull(id);
 		if (!movie) throw new NotFoundError('Película no encontrada');
 
+		const previousPosterUrl: string | null = movie.poster_url ?? null;
+		const previousBannerUrl: string | null = movie.banner_url ?? null;
+
 		const { synopsis, trailerUrl } = body;
-
-		// Casteo de campos numéricos que pueden venir como string por multipart
 		const lifecycleState = body.lifecycleState !== undefined ? Number(body.lifecycleState) : undefined;
-
-		// genres puede llegar como string JSON desde multipart
 		const genres: number[] | undefined =
 			body.genres === undefined
 				? undefined
@@ -164,7 +207,20 @@ export class MoviesService extends BaseService {
 					? JSON.parse(body.genres)
 					: (body.genres as number[]);
 
-		// Validar trailer URL antes de procesar imágenes
+		const languages: number[] | undefined =
+			body.languages === undefined
+				? undefined
+				: typeof body.languages === 'string'
+					? JSON.parse(body.languages)
+					: (body.languages as number[]);
+
+		const projectionTypes: number[] | undefined =
+			body.projectionTypes === undefined
+				? undefined
+				: typeof body.projectionTypes === 'string'
+					? JSON.parse(body.projectionTypes)
+					: (body.projectionTypes as number[]);
+
 		movieImagesService.validateTrailerUrl(trailerUrl);
 
 		const updateData: Record<string, any> = {};
@@ -172,10 +228,15 @@ export class MoviesService extends BaseService {
 		if (synopsis !== undefined) updateData.synopsis = synopsis;
 		if (trailerUrl !== undefined) updateData.trailer_url = trailerUrl;
 
-		if (Object.keys(updateData).length === 0 && genres === undefined && !rawFiles)
+		if (
+			Object.keys(updateData).length === 0 &&
+			genres === undefined &&
+			languages === undefined &&
+			projectionTypes === undefined &&
+			!rawFiles
+		)
 			throw new ValidationError('No se proporcionaron datos para actualizar', []);
 
-		// Validar géneros ANTES de subir imágenes
 		if (genres !== undefined) {
 			for (const genreId of genres) {
 				const genre = await this._genres.getById(genreId);
@@ -183,7 +244,23 @@ export class MoviesService extends BaseService {
 			}
 		}
 
-		// Subir imágenes solo si se enviaron archivos y las validaciones básicas pasaron
+		if (languages !== undefined) {
+			for (const languageId of languages) {
+				const language = await this._languages.getById(languageId);
+				if (!language) throw new ValidationError(`El idioma con ID ${languageId} no existe`, ['languages']);
+			}
+		}
+
+		if (projectionTypes !== undefined) {
+			for (const projectionId of projectionTypes) {
+				const projectionType = await this._projectionTypes.getById(projectionId);
+				if (!projectionType)
+					throw new ValidationError(`El formato de proyección con ID ${projectionId} no existe`, [
+						'projectionTypes',
+					]);
+			}
+		}
+
 		const imageFiles = movieImagesService.extractFromRequest(rawFiles);
 		const { posterUrl, bannerUrl, posterFileId, bannerFileId } =
 			await movieImagesService.uploadMovieImages(imageFiles);
@@ -191,7 +268,6 @@ export class MoviesService extends BaseService {
 		if (posterUrl) updateData.poster_url = posterUrl;
 		if (bannerUrl) updateData.banner_url = bannerUrl;
 
-		// Transacción con rollback de imágenes si algo falla
 		try {
 			await this._movies.transaction(async (transaction: Transaction) => {
 				if (Object.keys(updateData).length > 0) await this._movies.update(id, updateData, { transaction });
@@ -199,11 +275,24 @@ export class MoviesService extends BaseService {
 				if (genres !== undefined) {
 					await this._movieGenres.deleteByMovie(id, { transaction });
 					if (genres.length > 0) {
-						const records = genres.map((gId: number) => ({
-							movie: id,
-							genre: gId,
-						}));
+						const records = genres.map((gId: number) => ({ movie: id, genre: gId }));
 						await this._movieGenres.bulkCreate(records, { transaction });
+					}
+				}
+
+				if (languages !== undefined) {
+					await this._movieLanguages.deleteByMovie(id, { transaction });
+					if (languages.length > 0) {
+						const records = languages.map((lId: number) => ({ movie: id, language: lId }));
+						await this._movieLanguages.bulkCreate(records, { transaction });
+					}
+				}
+
+				if (projectionTypes !== undefined) {
+					await this._movieProjectionTypes.deleteByMovie(id, { transaction });
+					if (projectionTypes.length > 0) {
+						const records = projectionTypes.map((pId: number) => ({ movie: id, projection_type: pId }));
+						await this._movieProjectionTypes.bulkCreate(records, { transaction });
 					}
 				}
 			});
@@ -212,10 +301,20 @@ export class MoviesService extends BaseService {
 			throw error;
 		}
 
-		return null;
+		if (posterUrl && previousPosterUrl) {
+			imageStorageService
+				.deleteImageByUrl(previousPosterUrl)
+				.catch((err) => Logger.error('updateMovie: failed to delete old poster', err));
+		}
+		if (bannerUrl && previousBannerUrl) {
+			imageStorageService
+				.deleteImageByUrl(previousBannerUrl)
+				.catch((err) => Logger.error('updateMovie: failed to delete old banner', err));
+		}
+
+		return this._movies.getFull(id);
 	}
 
-	// --- HU-OPERATIVA-13 (Desactivación): Soft delete ---
 	async deleteMovie(id: number) {
 		const movie = await this._movies.getFull(id);
 		if (!movie) throw new NotFoundError('Película no encontrada');

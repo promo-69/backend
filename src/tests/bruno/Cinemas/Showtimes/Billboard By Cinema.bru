@@ -1,0 +1,15 @@
+meta {
+  name: Cartelera por Sucursal
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/cinemas/{{cinemaId}}/showtimes/billboard
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

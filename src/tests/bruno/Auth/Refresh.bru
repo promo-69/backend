@@ -1,0 +1,29 @@
+meta {
+  name: Refresh
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/auth/refresh
+  body: none
+  auth: bearer
+}
+
+headers {
+  x-client-channel: mobile
+}
+
+auth:bearer {
+  token: {{refreshToken}}
+}
+
+script:post-response {
+  if (res.status === 200) {
+    const data = res.getBody();
+    if (data.data && data.data.tokens) {
+      bru.setEnvVar("accessToken", data.data.tokens.accessToken);
+      bru.setEnvVar("refreshToken", data.data.tokens.refreshToken);
+    }
+  }
+}

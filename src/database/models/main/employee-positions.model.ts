@@ -7,7 +7,7 @@ export default class EmployeePositionsModel extends SequelizeModelBase {
 			id: {
 				primaryKey: true,
 				autoIncrement: true,
-				allowNull: true,
+				allowNull: false,
 				type: DataTypes.INTEGER,
 			},
 			employee: {
@@ -48,7 +48,7 @@ export default class EmployeePositionsModel extends SequelizeModelBase {
 			createdAt: false,
 			updatedAt: false,
 			deletedAt: 'deleted_at',
-			isBasicTable: true,
+			isBasicTable: false,
 			schema: 'public',
 			tableName: 'employee_positions',
 			appRawName: 'employee-positions',
@@ -63,32 +63,14 @@ export default class EmployeePositionsModel extends SequelizeModelBase {
 				options: { foreignKey: 'employee', targetKey: 'id', as: '_Employees' },
 			},
 			{
-				inversed: true,
-				type: 'hasMany',
-				target: 'Employees',
-				options: { foreignKey: 'employee', targetKey: 'id', as: '_EmployeePositions' },
-			},
-			{
 				type: 'belongsTo',
 				target: 'JobPositions',
 				options: { foreignKey: 'job_position', targetKey: 'id', as: '_JobPositions' },
 			},
 			{
-				inversed: true,
-				type: 'hasMany',
-				target: 'JobPositions',
-				options: { foreignKey: 'job_position', targetKey: 'id', as: '_EmployeePositions' },
-			},
-			{
 				type: 'belongsTo',
 				target: 'Cinemas',
 				options: { foreignKey: 'cinema', targetKey: 'id', as: '_Cinemas' },
-			},
-			{
-				inversed: true,
-				type: 'hasMany',
-				target: 'Cinemas',
-				options: { foreignKey: 'cinema', targetKey: 'id', as: '_EmployeePositions' },
 			},
 		];
 	}

@@ -6,7 +6,7 @@ meta {
 
 post {
   url: {{baseUrl}}/concessions/products
-  body: json
+  body: multipartForm
   auth: bearer
 }
 
@@ -14,15 +14,19 @@ auth:bearer {
   token: {{accessToken}}
 }
 
-body:json {
-  {
-    "name": "Test Product Bruno",
-    "sku": "TST-PRD-001",
-    "productCategory": 1,
-    "currencyId": 1,
-    "price": 5.50,
-    "earnedLoyaltyPoints": 5
-  }
+body:multipart-form {
+  name: Test Product Bruno
+  sku: TST-PRD-001
+  productCategory: 1
+  currencyId: 1
+  price: 5.50
+  earnedLoyaltyPoints: 5
+  ~image: @file(/path/to/your/product-image.jpg)
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  bru.setVar('baseUrl', baseUrl);
 }
 
 script:post-response {
@@ -30,9 +34,4 @@ script:post-response {
   if (res.getStatus() === 201 && resBody && resBody.data && resBody.data.id) {
     bru.setEnvVar('testProductId', resBody.data.id);
   }
-}
-
-script:pre-request {
-  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
-  bru.setVar('baseUrl', baseUrl);
 }

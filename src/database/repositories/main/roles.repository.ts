@@ -1,5 +1,6 @@
 import { SequelizeRepositoryBase } from '@repositories/bases/sequelize.repository.js';
 import RolesModel from '@database/models/main/roles.model.js';
+
 export interface RolesAttributes {
 	id?: number;
 	code: string;
@@ -8,15 +9,8 @@ export interface RolesAttributes {
 	deleted_at?: Date;
 }
 
-export interface Roles {
+export interface Roles extends RolesAttributes {
 	id: number;
-	user: number;
-	device: string;
-	jti: string;
-	token_status: number;
-	expires_at: Date;
-	created_at: Date;
-	updated_at: Date;
 }
 
 class RolesRepository extends SequelizeRepositoryBase<Roles, number> {
@@ -24,12 +18,33 @@ class RolesRepository extends SequelizeRepositoryBase<Roles, number> {
 		super(RolesModel);
 	}
 
+	private get _relations() {
+		return [
+			{
+				association: '_RolePermissions',
+				required: false,
+				nested: [
+					{
+						association: '_Permissions',
+						required: true,
+						nested: [
+							{ association: '_Actions', attributes: ['code'], required: true },
+							{ association: '_Resources', attributes: ['code'], required: true },
+							{ association: '_PermissionTypes', attributes: ['code'], required: true },
+						],
+					},
+				],
+			},
+		];
+	}
+
 	async getFull(id: number): Promise<Roles | null> {
-		return this.getById(id);
+		return this.getById(id, { relations: this._relations });
 	}
 
 	async getAllFull(filters?: any) {
-		return this.getAll({ ...filters, count: true });
+		const operation = { ...(filters?.operation ?? {}), subQuery: false };
+		return this.getAll({ ...filters, count: true, relations: this._relations, operation });
 	}
 }
 

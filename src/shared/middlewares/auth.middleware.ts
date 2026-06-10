@@ -6,11 +6,8 @@ import { SessionNotFoundError } from '@errors/auth.error.js';
 import { UserSession } from '@rules/api.type.js';
 import { tokenBlacklistService } from '@services/token-blacklist.service.js';
 
-// Configuración simple
 interface AuthConfig {
-	/** Nombre de la cookie (si se usan cookies) */
 	cookieNames?: string[];
-	/** Nombre del header (si se usan headers) */
 	headerName?: string;
 }
 
@@ -38,9 +35,6 @@ export class AuthMiddleware {
 		return session as UserSession;
 	}
 
-	/**
-	 * Configurar globalmente el middleware
-	 */
 	static configure(config: Partial<AuthConfig>): void {
 		this.config = { ...this.DEFAULT_CONFIG, ...config };
 
@@ -50,38 +44,26 @@ export class AuthMiddleware {
 			});
 	}
 
-	/**
-	 * Extraer token de la request con Estrategia Omnicanal (Fallback: Cookie -> Header)
-	 */
 	private static extractToken(req: Request, tokenType: 'access' | 'refresh' = 'access'): string | null {
 		const security = AppConfig.load().security;
 
-		// 1. Prioridad 1 (Web): Buscar en las Cookies
 		const cookieName = tokenType === 'refresh' ? security.jwtCookieRefreshName : security.jwtCookieAccessName;
 		const cookieToken = req.cookies ? req.cookies[cookieName] : null;
 
 		if (cookieToken) return cookieToken;
 
-		// 2. Prioridad 2 (Móvil - Fallback): Buscar en la cabecera Authorization
-		// El cliente móvil enviará el token adecuado (Access o Refresh) en este header según el endpoint
 		const authHeader = req.header(this.config.headerName!);
 
-		if (authHeader?.startsWith('Bearer ')) return authHeader.slice(7); // Retorna el token limpio
+		if (authHeader?.startsWith('Bearer ')) return authHeader.slice(7);
 
-		// 3. No se encontró en ningún transporte
 		return null;
 	}
 
-	/**
-	 * Obtener sesión validada.
-	 */
-	private static async getValidatedSession(req: Request): Promise<{ session: UserSession; token: string }> {
-		const token = this.extractToken(req, 'access');
-
+	private static async validateToken(token: string): Promise<{ session: UserSession; token: string }> {
 		try {
 			if (!token) throw new AuthError('Token de autenticación no encontrado', { code: 'TOKEN_NOT_FOUND' });
 
-			const payload = JWTUtil.verifyToken(token) as JWTPayload & UserSession & { iat: number };
+			const payload = JWTUtil.verifyAccessToken(token) as JWTPayload & UserSession & { iat: number };
 
 			if (!payload || !payload.userId || !payload.type)
 				throw new AuthError('Token inválido', { code: 'TOKEN_INVALID' });
@@ -97,19 +79,69 @@ export class AuthMiddleware {
 		} catch (error: any) {
 			if (error instanceof AuthError) throw error;
 
-			if (error.message === 'Token has expired')
+			if (error.message === 'El token ha expirado')
 				throw new AuthError('El token de sesión ha expirado', { code: 'TOKEN_EXPIRED' });
 
-			if (error.message === 'Invalid token type')
+			if (error.message === 'Tipo de token inválido')
 				throw new AuthError('El tipo de token es inválido', { code: 'INVALID_TOKEN' });
 
 			throw new AuthError(`Error de autenticación: ${error.message}`, { code: 'AUTH_FAILED' });
 		}
 	}
 
-	/**
-	 * 1. Verificar y obtener sesión (OBLIGATORIO)
-	 */
+	private static async getValidatedSession(req: Request): Promise<{ session: UserSession; token: string }> {
+		const token = this.extractToken(req, 'access');
+		return this.validateToken(token as string);
+	}
+
+	private static extractTokenFromSocket(socket: any, tokenType: 'access' | 'refresh' = 'access'): string | null {
+		const security = AppConfig.load().security;
+		const cookieName = tokenType === 'refresh' ? security.jwtCookieRefreshName : security.jwtCookieAccessName;
+
+		let token: string | null = null;
+
+		const cookieHeader = socket.handshake?.headers?.cookie;
+		if (cookieHeader) {
+			const cookies = Object.fromEntries(
+				cookieHeader.split(';').map((c: string) => {
+					const parts = c.trim().split('=');
+					return [parts[0], parts.slice(1).join('=')];
+				}),
+			);
+			if (cookies[cookieName]) token = cookies[cookieName];
+		}
+
+		if (token) return token;
+
+		const authFallback = socket.handshake?.auth?.token || socket.handshake?.headers?.authorization;
+		if (typeof authFallback === 'string') {
+			if (authFallback.toLowerCase().startsWith('bearer ')) return authFallback.slice(7);
+
+			return authFallback;
+		}
+
+		return null;
+	}
+
+	static async socketAuth(socket: any, next: (err?: any) => void): Promise<void> {
+		try {
+			const token = AuthMiddleware.extractTokenFromSocket(socket, 'access');
+			const result = await AuthMiddleware.validateToken(token as string);
+
+			if (!socket.data) socket.data = {};
+			socket.data.session = result.session;
+
+			next();
+		} catch (error: any) {
+			const socketError: any = new Error(error.message || 'Falló la autenticación');
+			socketError.data = {
+				code: error.code || 'AUTH_FAILED',
+				details: error.details || error.message,
+			};
+			next(socketError);
+		}
+	}
+
 	static async verifySession(req: Request, _res: Response, next: NextFunction): Promise<void> {
 		try {
 			const result = await AuthMiddleware.getValidatedSession(req);
@@ -123,9 +155,6 @@ export class AuthMiddleware {
 		}
 	}
 
-	/**
-	 * 1.2. Verificar y obtener sesión (opcional)
-	 */
 	static async optionalAuth(req: Request, _res: Response, next: NextFunction): Promise<void> {
 		try {
 			const result = await AuthMiddleware.getValidatedSession(req);
@@ -137,19 +166,19 @@ export class AuthMiddleware {
 		next();
 	}
 
-	/**
-	 * 2. Verificar permiso
-	 */
 	static verifyPermission(permission: string | string[]) {
 		return (req: Request, _res: Response, next: NextFunction): void => {
 			try {
 				if (!req.session) throw new SessionNotFoundError();
 
+				// Bypass para SUPER_ADMIN
+				if (req.session.roleCode === 'SUPER_ADMIN') {
+					return next();
+				}
+
 				const userPermissions = (req.session.permissions || []).map((p: any) => p.toUpperCase());
 
-				// Normalizar permisos requeridos
 				let requiredPermissions: string[] = [];
-
 				if (typeof permission === 'string') requiredPermissions.push(permission.toUpperCase());
 				else if (Array.isArray(permission)) requiredPermissions = permission.map((p) => p.toUpperCase());
 				else
@@ -157,10 +186,12 @@ export class AuthMiddleware {
 						code: 'INVALID_PERMISSION_FORMAT',
 					});
 
-				// Verificar que el usuario tenga TODOS los permisos requeridos
 				const hasAllPermissions = requiredPermissions.every((perm) => userPermissions.includes(perm));
 
-				if (!hasAllPermissions) throw new ForbiddenError();
+				if (!hasAllPermissions)
+					throw new ForbiddenError('Usuario no tiene los permisos necesarios para realizar esta acción', {
+						code: 'INSUFFICIENT_PERMISSIONS',
+					});
 
 				next();
 			} catch (error) {
@@ -169,9 +200,6 @@ export class AuthMiddleware {
 		};
 	}
 
-	/**
-	 * 3. Verificar rol
-	 */
 	static verifyRole(role: string | string[]) {
 		return (req: Request, _res: Response, next: NextFunction): void => {
 			try {
@@ -197,36 +225,27 @@ export class AuthMiddleware {
 		};
 	}
 
-	/**
-	 * 4. Prevenir que usuarios autenticados correctamente accedan a rutas.
-	 */
 	static async preventAuthenticatedAccess(req: Request, _res: Response, next: NextFunction): Promise<void> {
 		try {
 			const token = this.extractToken(req, 'access');
 
-			// Si no hay token, puede pasar
 			if (!token) return next();
 
-			// 1. Verificar validez del token de sesión
-			const session = JWTUtil.verifyToken(token) as JWTPayload & UserSession & { iat: number };
+			const session = JWTUtil.verifyAccessToken(token) as JWTPayload & UserSession & { iat: number };
 
-			// 2. Verificar si el token fue revocado
 			const isBlacklisted = await tokenBlacklistService.isBlacklisted(token);
 
-			// Si el token es válido Y NO está revocado, entonces SÍ tiene una sesión activa
 			if (session && !isBlacklisted)
 				return next(new ConflictError('Ya tienes una sesión activa', 'ACTIVE_SESSION_EXISTS'));
 
-			// Si llegamos aquí, no hay una sesión correctamente iniciada.
 			next();
 		} catch (error) {
-			// Cualquier error en la verificación significa que el usuario no está autenticado correctamente, por lo que puede pasar.
 			next();
 		}
 	}
 }
 
-// Exportar funciones individuales para uso directo
+export const socketAuth = AuthMiddleware.socketAuth.bind(AuthMiddleware);
 export const verifySession = AuthMiddleware.verifySession.bind(AuthMiddleware);
 export const optionalAuth = AuthMiddleware.optionalAuth.bind(AuthMiddleware);
 export const verifyPermission = AuthMiddleware.verifyPermission;

@@ -7,7 +7,7 @@ export default class PermissionsModel extends SequelizeModelBase {
 			id: {
 				primaryKey: true,
 				autoIncrement: true,
-				allowNull: true,
+				allowNull: false,
 				type: DataTypes.INTEGER,
 			},
 			action: {
@@ -36,7 +36,7 @@ export default class PermissionsModel extends SequelizeModelBase {
 			createdAt: false,
 			updatedAt: false,
 			deletedAt: 'deleted_at',
-			isBasicTable: true,
+			isBasicTable: false,
 			schema: 'public',
 			tableName: 'permissions',
 			appRawName: 'permissions',
@@ -51,32 +51,14 @@ export default class PermissionsModel extends SequelizeModelBase {
 				options: { foreignKey: 'action', targetKey: 'id', as: '_Actions' },
 			},
 			{
-				inversed: true,
-				type: 'hasMany',
-				target: 'Actions',
-				options: { foreignKey: 'action', targetKey: 'id', as: '_Permissions' },
-			},
-			{
 				type: 'belongsTo',
 				target: 'Resources',
 				options: { foreignKey: 'resource', targetKey: 'id', as: '_Resources' },
 			},
 			{
-				inversed: true,
-				type: 'hasMany',
-				target: 'Resources',
-				options: { foreignKey: 'resource', targetKey: 'id', as: '_Permissions' },
-			},
-			{
 				type: 'belongsTo',
 				target: 'PermissionTypes',
 				options: { foreignKey: 'permission_type', targetKey: 'id', as: '_PermissionTypes' },
-			},
-			{
-				inversed: true,
-				type: 'hasMany',
-				target: 'PermissionTypes',
-				options: { foreignKey: 'permission_type', targetKey: 'id', as: '_Permissions' },
 			},
 		];
 	}

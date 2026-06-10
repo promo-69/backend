@@ -15,5 +15,5 @@ module.exports = {
 
 	// Rutas donde el CLI guardará y leerá las migraciones y seeders
 	'seeders-path': path.resolve('src', 'migrate', 'seeders'),
-	'migrations-path': path.resolve('src', 'migrate', 'migrations'),
+	'migrations-path': path.resolve('src', 'migrate', 'new-migrations'),
 };

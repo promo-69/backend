@@ -1,0 +1,57 @@
+/users/:
+    get:
+        tags:
+        - Users (Manager)
+        summary: Get all users
+        description: Retrieve a list of all users in the system. Exclusive for users
+            with FEAT:DO:MANAGE_USERS permission.
+        security:
+        -   cookieAuth: []
+        -   bearerAuth: []
+        parameters:
+        -   in: query
+            name: page
+            schema:
+                type: integer
+            description: Page number for pagination
+        -   in: query
+            name: limit
+            schema:
+                type: integer
+            description: Number of records per page
+        responses:
+            '200':
+                description: Users retrieved successfully.
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                    example: true
+                                message:
+                                    type: string
+                                    example: Registros recuperados exitosamente.
+                                data:
+                                    type: object
+                                    properties:
+                                        rows:
+                                            type: array
+                                            items:
+                                                type: object
+                                        count:
+                                            type: integer
+                                            example: 10
+                                        currentPage:
+                                            type: integer
+                                            example: 1
+                                        totalPages:
+                                            type: integer
+                                            example: 1
+            '401':
+                description: Unauthorized
+            '403':
+                description: Forbidden
+            '500':
+                description: Internal server error

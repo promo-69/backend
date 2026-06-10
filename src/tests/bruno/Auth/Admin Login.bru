@@ -1,0 +1,37 @@
+meta {
+  name: Admin Login
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/auth/login/admin
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  x-client-channel: mobile
+}
+
+body:json {
+  {
+    "email": "admin@cineflix.com",
+    "password": "Admin123456*"
+  }
+}
+
+script:post-response {
+  const resBody = res.getBody();
+  if (res.getStatus() === 200 && resBody && resBody.data && resBody.data.tokens) {
+    bru.setEnvVar('accessToken', resBody.data.tokens.accessToken);
+    bru.setEnvVar('refreshToken', resBody.data.tokens.refreshToken);
+    console.log('Token de administrador guardado');
+  }
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'https://backend-jog6.onrender.com/api/v1/test';
+  bru.setVar('baseUrl', baseUrl);
+}

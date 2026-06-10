@@ -7,7 +7,7 @@ export default class CustomersModel extends SequelizeModelBase {
 			id: {
 				primaryKey: true,
 				autoIncrement: true,
-				allowNull: true,
+				allowNull: false,
 				type: DataTypes.INTEGER,
 			},
 			person: {
@@ -20,11 +20,6 @@ export default class CustomersModel extends SequelizeModelBase {
 				defaultValue: 1,
 			},
 			level_progress_points: {
-				allowNull: false,
-				type: DataTypes.INTEGER,
-				defaultValue: 0,
-			},
-			current_points_balance: {
 				allowNull: false,
 				type: DataTypes.INTEGER,
 				defaultValue: 0,
@@ -48,7 +43,7 @@ export default class CustomersModel extends SequelizeModelBase {
 			createdAt: false,
 			updatedAt: false,
 			deletedAt: 'deleted_at',
-			isBasicTable: true,
+			isBasicTable: false,
 			schema: 'public',
 			tableName: 'customers',
 			appRawName: 'customers',

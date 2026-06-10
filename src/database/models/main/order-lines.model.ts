@@ -7,7 +7,7 @@ export default class OrderLinesModel extends SequelizeModelBase {
 			id: {
 				primaryKey: true,
 				autoIncrement: true,
-				allowNull: true,
+				allowNull: false,
 				type: DataTypes.INTEGER,
 			},
 			order: {
@@ -34,10 +34,6 @@ export default class OrderLinesModel extends SequelizeModelBase {
 				allowNull: false,
 				type: DataTypes.DECIMAL(10, 2),
 			},
-			price_modifier: {
-				allowNull: true,
-				type: DataTypes.INTEGER,
-			},
 			unit_price: {
 				allowNull: false,
 				type: DataTypes.DECIMAL(10, 2),
@@ -60,7 +56,7 @@ export default class OrderLinesModel extends SequelizeModelBase {
 			createdAt: false,
 			updatedAt: false,
 			deletedAt: 'deleted_at',
-			isBasicTable: true,
+			isBasicTable: false,
 			schema: 'public',
 			tableName: 'order_lines',
 			appRawName: 'order-lines',
@@ -112,17 +108,6 @@ export default class OrderLinesModel extends SequelizeModelBase {
 				type: 'hasMany',
 				target: 'Combos',
 				options: { foreignKey: 'combo', targetKey: 'id', as: '_OrderLines' },
-			},
-			{
-				type: 'belongsTo',
-				target: 'PriceModifiers',
-				options: { foreignKey: 'price_modifier', targetKey: 'id', as: '_PriceModifiers' },
-			},
-			{
-				inversed: true,
-				type: 'hasMany',
-				target: 'PriceModifiers',
-				options: { foreignKey: 'price_modifier', targetKey: 'id', as: '_OrderLines' },
 			},
 			{
 				type: 'belongsTo',

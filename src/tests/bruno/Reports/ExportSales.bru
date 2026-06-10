@@ -1,0 +1,27 @@
+meta {
+  name: Export Sales Report
+  type: http
+  seq: 20
+}
+
+get {
+  url: {{baseUrl}}/reports/sales/export
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  format: csv
+  from: {{fromDate}}
+  to: {{toDate}}
+  channel: all
+}
+
+docs {
+  Exporta el reporte de ventas en formato json, csv, xlsx o pdf.
+  format: json | csv | xlsx | pdf
+}

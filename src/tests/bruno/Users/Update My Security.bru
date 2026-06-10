@@ -1,0 +1,23 @@
+meta {
+  name: Update My Security
+  type: http
+  seq: 3
+}
+
+patch {
+  url: {{baseUrl}}/users/me/security
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "currentPassword": "current_password",
+    "email": "new.email@example.com",
+    "newPassword": "NewStrongPassword123!"
+  }
+}

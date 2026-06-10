@@ -1,7 +1,9 @@
 /rooms/{id}/projection-types/{projectionTypeId}:
     delete:
         summary: Remove Projection Type From Room
-        description: Remove a projection type assignment from a room (soft delete).
+        description: |
+            Remove a projection type assignment from a room (soft delete).
+            Required permission: **CRUD:UPDATE:ROOMS**
         tags:
             - Rooms
         security:

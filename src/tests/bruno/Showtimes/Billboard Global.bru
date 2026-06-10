@@ -1,0 +1,20 @@
+meta {
+  name: Billboard Global
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/showtimes/billboard
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+docs {
+  Cartelera pública global (sin filtros).
+  No requiere token.
+}

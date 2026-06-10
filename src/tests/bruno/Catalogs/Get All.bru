@@ -5,9 +5,13 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/catalogs/{{catalog}}
+  url: {{baseUrl}}/test/catalogs/{{catalog}}?limit=-1
   body: none
   auth: bearer
+}
+
+params:query {
+  limit: -1
 }
 
 auth:bearer {
@@ -15,5 +19,5 @@ auth:bearer {
 }
 
 vars:pre-request {
-  catalog: currencies
+  catalog: age-classifications
 }

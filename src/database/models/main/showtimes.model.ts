@@ -7,28 +7,30 @@ export default class ShowtimesModel extends SequelizeModelBase {
 			id: {
 				primaryKey: true,
 				autoIncrement: true,
+				allowNull: false,
+				type: DataTypes.INTEGER,
+			},
+			booking: {
+				allowNull: false,
+				type: DataTypes.INTEGER,
+			},
+			// Puede ser null cuando la función es de un evento especial
+			movie: {
 				allowNull: true,
 				type: DataTypes.INTEGER,
 			},
-			movie: {
-				allowNull: false,
-				type: DataTypes.INTEGER,
-			},
-			room: {
-				allowNull: false,
+			// Puede ser null cuando la función es de una película regular
+			special_event_id: {
+				allowNull: true,
 				type: DataTypes.INTEGER,
 			},
 			projection_type: {
 				allowNull: false,
 				type: DataTypes.INTEGER,
 			},
-			start_time: {
+			language: {
 				allowNull: false,
-				type: DataTypes.DATE,
-			},
-			end_time: {
-				allowNull: false,
-				type: DataTypes.DATE,
+				type: DataTypes.INTEGER,
 			},
 			currency: {
 				allowNull: false,
@@ -56,7 +58,7 @@ export default class ShowtimesModel extends SequelizeModelBase {
 			createdAt: false,
 			updatedAt: false,
 			deletedAt: 'deleted_at',
-			isBasicTable: true,
+			isBasicTable: false,
 			schema: 'public',
 			tableName: 'showtimes',
 			appRawName: 'showtimes',
@@ -76,16 +78,28 @@ export default class ShowtimesModel extends SequelizeModelBase {
 				target: 'Movies',
 				options: { foreignKey: 'movie', targetKey: 'id', as: '_Showtimes' },
 			},
+			// Relación con eventos especiales
 			{
 				type: 'belongsTo',
-				target: 'Rooms',
-				options: { foreignKey: 'room', targetKey: 'id', as: '_Rooms' },
+				target: 'SpecialEvents',
+				options: { foreignKey: 'special_event_id', targetKey: 'id', as: '_SpecialEvents' },
 			},
 			{
 				inversed: true,
 				type: 'hasMany',
-				target: 'Rooms',
-				options: { foreignKey: 'room', targetKey: 'id', as: '_Showtimes' },
+				target: 'SpecialEvents',
+				options: { foreignKey: 'special_event_id', targetKey: 'id', as: '_Showtimes' },
+			},
+			{
+				type: 'belongsTo',
+				target: 'RoomBookings',
+				options: { foreignKey: 'booking', targetKey: 'id', as: '_RoomBookings' },
+			},
+			{
+				inversed: true,
+				type: 'hasMany',
+				target: 'RoomBookings',
+				options: { foreignKey: 'booking', targetKey: 'id', as: '_Showtimes' },
 			},
 			{
 				type: 'belongsTo',
@@ -97,6 +111,17 @@ export default class ShowtimesModel extends SequelizeModelBase {
 				type: 'hasMany',
 				target: 'ProjectionTypes',
 				options: { foreignKey: 'projection_type', targetKey: 'id', as: '_Showtimes' },
+			},
+			{
+				type: 'belongsTo',
+				target: 'Languages',
+				options: { foreignKey: 'language', targetKey: 'id', as: '_Languages' },
+			},
+			{
+				inversed: true,
+				type: 'hasMany',
+				target: 'Languages',
+				options: { foreignKey: 'language', targetKey: 'id', as: '_Showtimes' },
 			},
 			{
 				type: 'belongsTo',

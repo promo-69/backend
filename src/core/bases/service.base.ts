@@ -25,4 +25,15 @@ export abstract class BaseService {
 
 		return sanitized;
 	}
+
+	protected validateRegexpFields(
+		rules: { value: any; regex: RegExp; message: string }[],
+		throwError = true,
+	): void | string[] {
+		const errors = rules.filter((rule) => !rule.regex.test(String(rule.value || ''))).map((rule) => rule.message);
+
+		if (errors.length > 0 && throwError) throw new ValidationError('Los datos de registro no son validos', errors);
+
+		return errors;
+	}
 }

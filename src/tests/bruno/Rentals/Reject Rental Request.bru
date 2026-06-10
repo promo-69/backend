@@ -1,0 +1,32 @@
+meta {
+  name: Reject Rental Request (Manager)
+  type: http
+  seq: 5
+}
+
+patch {
+  url: {{baseUrl}}/rentals/requests/{{rentalRequestId}}/status
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "status": 4
+  }
+}
+
+vars:pre-request {
+  rentalRequestId: 88
+}
+
+docs {
+  Rechaza la solicitud (status → 4 = Rechazada).
+  Solo permitido desde status 1 (Pendiente de Revisión).
+  No bloquea ninguna sala.
+  Permiso: CRUD:UPDATE:RENTALS
+}

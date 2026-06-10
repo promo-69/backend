@@ -1,0 +1,60 @@
+/users/{id}/status:
+    patch:
+        tags:
+        - Users (Manager)
+        summary: Change user status
+        description: Block or unblock a user. Blocking a user applies logical deletion
+            and invalidates active sessions. Exclusive for users with FEAT:DO:MANAGE_USERS
+            permission.
+        security:
+        -   cookieAuth: []
+        -   bearerAuth: []
+        parameters:
+        -   in: path
+            name: id
+            required: true
+            schema:
+                type: integer
+            description: User ID
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        required:
+                        - status
+                        properties:
+                            status:
+                                type: integer
+                                enum:
+                                - 0
+                                - 1
+                                description: 0 = Block, 1 = Unblock
+                                example: 0
+        responses:
+            '200':
+                description: User status changed successfully.
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                    example: true
+                                message:
+                                    type: string
+                                    example: Usuario baneado (acceso suspendido) exitosamente.
+                                data:
+                                    type: 'null'
+            '400':
+                description: Bad request (validation errors)
+            '401':
+                description: Unauthorized
+            '403':
+                description: Forbidden
+            '404':
+                description: Not Found
+            '500':
+                description: Internal server error

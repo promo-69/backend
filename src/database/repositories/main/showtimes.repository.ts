@@ -4,15 +4,16 @@ import { Op } from 'sequelize';
 
 export interface ShowtimesAttributes {
 	id?: number;
-	movie: number;
-	room: number;
+	booking: number;
+	// Exactamente uno de los dos debe ser no nulo (garantizado por CHECK en BD)
+	movie?: number | null;
+	special_event_id?: number | null;
 	projection_type: number;
-	start_time: Date;
-	end_time: Date;
+	language: number;
 	currency: number;
 	price: number;
-	earned_loyalty_points?: number;
-	deleted_at?: Date;
+	earned_loyalty_points?: number | null;
+	deleted_at?: Date | null;
 }
 
 class ShowtimesRepository extends SequelizeRepositoryBase<ShowtimesAttributes, number> {
@@ -22,10 +23,11 @@ class ShowtimesRepository extends SequelizeRepositoryBase<ShowtimesAttributes, n
 
 	private get _relations() {
 		return [
-			{ association: '_Movie', attributes: ['title', 'duration_minutes'], required: true },
-			{ association: '_Room', attributes: ['name'], required: true },
-			{ association: '_ProjectionType', attributes: ['description'], required: true },
-			{ association: '_Currency', attributes: ['code', 'symbol'], required: true },
+			{ association: '_Movies', attributes: ['title', 'duration_minutes'], required: false },
+			{ association: '_SpecialEvents', attributes: ['title', 'duration_minutes'], required: false },
+			{ association: '_RoomBookings', attributes: ['room', 'start_time', 'end_time'], required: true },
+			{ association: '_ProjectionTypes', attributes: ['description'], required: true },
+			{ association: '_Currencies', attributes: ['code', 'symbol'], required: true },
 		];
 	}
 
@@ -41,11 +43,19 @@ class ShowtimesRepository extends SequelizeRepositoryBase<ShowtimesAttributes, n
 		return this.getAll({ ...filters, count: true, relations: this._relations }, { movie: movieId });
 	}
 
-	async getAllByRoom(roomId: number, filters?: any) {
-		return this.getAll({ ...filters, count: true, relations: this._relations }, { room: roomId });
+	async getAllBySpecialEvent(eventId: number, filters?: any) {
+		return this.getAll(
+			{ ...filters, count: true, relations: this._relations },
+			{ special_event_id: eventId },
+		);
 	}
 
-	// Detectar solapamiento de horarios en la misma sala
+	async getAllByRoom(roomId: number, filters?: any) {
+		return this.getAll({ ...filters, count: true, relations: this._relations }, { booking: roomId });
+	}
+
+	// Detectar solapamiento de horarios en la misma sala (delega en room_bookings,
+	// pero se mantiene aquí para retrocompatibilidad con código existente)
 	async hasConflict(roomId: number, startTime: Date, endTime: Date, excludeId?: number): Promise<boolean> {
 		const where: any = {
 			room: roomId,

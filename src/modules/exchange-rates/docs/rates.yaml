@@ -1,0 +1,115 @@
+/exchange-rates:
+    get:
+        summary: List exchange rates
+        tags:
+            - Exchange Rates
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: query
+              name: page
+              schema:
+                  type: integer
+                  minimum: 1
+            - in: query
+              name: limit
+              schema:
+                  type: integer
+                  minimum: 1
+        responses:
+            '200':
+                description: Exchange rate list returned
+                content:
+                    application/json:
+                        schema:
+                            type: object
+            '401':
+                description: Unauthorized
+    post:
+        summary: Create an exchange rate record
+        tags:
+            - Exchange Rates
+        security:
+            - bearerAuth: []
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        required:
+                            - currency
+                            - rate
+                        properties:
+                            currency:
+                                type: integer
+                            rate:
+                                type: number
+                                format: decimal
+        responses:
+            '201':
+                description: Exchange rate created
+                content:
+                    application/json:
+                        schema:
+                            type: object
+            '400':
+                description: Validation error
+            '404':
+                description: Currency not found
+/exchange-rates/{id}:
+    get:
+        summary: Get exchange rate by id
+        tags:
+            - Exchange Rates
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: path
+              name: id
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Exchange rate details returned
+                content:
+                    application/json:
+                        schema:
+                            type: object
+            '404':
+                description: Exchange rate not found
+/exchange-rates/currency/{currencyId}/history:
+    get:
+        summary: Get exchange rate history for a currency
+        tags:
+            - Exchange Rates
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: path
+              name: currencyId
+              required: true
+              schema:
+                  type: integer
+            - in: query
+              name: startDate
+              schema:
+                  type: string
+                  format: date-time
+            - in: query
+              name: endDate
+              schema:
+                  type: string
+                  format: date-time
+        responses:
+            '200':
+                description: Exchange rate history returned
+                content:
+                    application/json:
+                        schema:
+                            type: object
+            '400':
+                description: Invalid date filter
+            '404':
+                description: Currency not found

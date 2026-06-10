@@ -1,0 +1,15 @@
+meta {
+  name: Get My Order Ticket
+  type: http
+  seq: 12
+}
+
+get {
+  url: {{baseUrl}}/users/me/orders/{{orderId}}/ticket
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

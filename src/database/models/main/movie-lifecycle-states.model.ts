@@ -7,7 +7,7 @@ export default class MovieLifecycleStatesModel extends SequelizeModelBase {
 			id: {
 				primaryKey: true,
 				autoIncrement: true,
-				allowNull: true,
+				allowNull: false,
 				type: DataTypes.INTEGER,
 			},
 			description: {
@@ -17,7 +17,7 @@ export default class MovieLifecycleStatesModel extends SequelizeModelBase {
 			deleted_at: {
 				allowNull: true,
 				type: DataTypes.DATE,
-			},
+			}
 		};
 	}
 
@@ -31,7 +31,7 @@ export default class MovieLifecycleStatesModel extends SequelizeModelBase {
 			isBasicTable: true,
 			schema: 'public',
 			tableName: 'movie_lifecycle_states',
-			appRawName: 'movie-lifecycle_states',
+			appRawName: 'movie-lifecycle-states',
 		};
 	}
 

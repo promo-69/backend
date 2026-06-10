@@ -1,5 +1,7 @@
-import { SequelizeRepositoryBase } from '@repositories/bases/sequelize.repository.js';
+import { type RelationConfig, SequelizeRepositoryBase } from '@repositories/bases/sequelize.repository.js';
 import MoviesModel from '@database/models/main/movies.model.js';
+import { Ops } from '@database/index.js';
+import { literal } from 'sequelize';
 
 export interface MoviesAttributes {
 	id?: number;
@@ -23,6 +25,16 @@ export interface MovieFull extends MoviesAttributes {
 		genre: number;
 		_Genre: { description: string };
 	}>;
+	_MovieLanguages?: Array<{
+		id: number;
+		language: number;
+		_Language: { description: string };
+	}>;
+	_MovieProjectionTypes?: Array<{
+		id: number;
+		projection_type: number;
+		_ProjectionType: { description: string };
+	}>;
 }
 
 class MoviesRepository extends SequelizeRepositoryBase<MoviesAttributes, number> {
@@ -30,25 +42,52 @@ class MoviesRepository extends SequelizeRepositoryBase<MoviesAttributes, number>
 		super(MoviesModel);
 	}
 
-	private get _relations() {
+	private get _relations(): RelationConfig[] {
 		return [
 			{
-				association: '_AgeClassification',
+				association: '_AgeClassifications',
 				attributes: ['description'],
-				required: true,
+				required: false,
 			},
 			{
-				association: '_LifecycleState',
+				association: '_LifecycleStates',
 				attributes: ['description'],
-				required: true,
+				required: false,
 			},
 			{
 				association: '_MovieGenres',
 				attributes: ['id', 'genre'],
 				required: false,
+				separate: true,
 				nested: [
 					{
-						association: '_Genre',
+						association: '_Genres',
+						attributes: ['description'],
+						required: true,
+					},
+				],
+			},
+			{
+				association: '_MovieLanguages',
+				attributes: ['id', 'language'],
+				required: false,
+				separate: true,
+				nested: [
+					{
+						association: '_Languages',
+						attributes: ['description'],
+						required: true,
+					},
+				],
+			},
+			{
+				association: '_MovieProjectionTypes',
+				attributes: ['id', 'projection_type'],
+				required: false,
+				separate: true,
+				nested: [
+					{
+						association: '_ProjectionTypes',
 						attributes: ['description'],
 						required: true,
 					},
@@ -57,19 +96,102 @@ class MoviesRepository extends SequelizeRepositoryBase<MoviesAttributes, number>
 		];
 	}
 
-	async getFull(id: number): Promise<MovieFull | null> {
-		return this.getOne({ id }, { relations: this._relations }) as Promise<MovieFull | null>;
+	private readonly _aliasMap: Record<string, string> = {
+		_AgeClassifications: 'age_classification',
+		_LifecycleStates: 'lifecycle_state',
+		_MovieGenres: 'genres',
+		_MovieLanguages: 'languages',
+		_MovieProjectionTypes: 'projection_types',
+		_Showtimes: 'showtimes',
+	};
+
+	private parseResponse<R>(data: R | null): R | null {
+		if (!data) return null;
+
+		if (Array.isArray(data)) return data.map((item) => this.parseResponse(item)) as unknown as R;
+
+		if (typeof data === 'object' && data !== null) {
+			const parsed = { ...data } as Record<string, unknown>;
+
+			for (const key of Object.keys(parsed)) {
+				if (this._aliasMap[key]) {
+					const newKey = this._aliasMap[key];
+					parsed[newKey] = parsed[key];
+					delete parsed[key];
+				}
+			}
+
+			return parsed as unknown as R;
+		}
+
+		return data;
 	}
 
-	async getAllOnBillboard(filters?: any): Promise<{ rows: MovieFull[]; count: number }> {
-		return this.getAll({ ...filters, count: true, relations: this._relations }) as Promise<{
-			rows: MovieFull[];
+	async getFull(id: number): Promise<MovieFull | null> {
+		const result = await this.getOne({ id }, { relations: this._relations });
+		return this.parseResponse(result) as MovieFull | null;
+	}
+
+	async getAllFull(filters?: any): Promise<{ rows: MovieFull[]; count: number }> {
+		const result = (await this.getAll({ ...filters, count: true, relations: this._relations })) as {
+			rows: any[];
 			count: number;
-		}>;
+		};
+		return {
+			count: result.count,
+			rows: this.parseResponse(result.rows) as MovieFull[],
+		};
+	}
+
+	async getUpcoming(filters?: any): Promise<{ rows: MovieFull[]; count: number }> {
+		const result = (await this.getAll(
+			{ ...filters, count: true, relations: this._relations },
+			{ lifecycle_state: 1 },
+		)) as { rows: any[]; count: number };
+
+		return {
+			count: result.count,
+			rows: this.parseResponse(result.rows) as MovieFull[],
+		};
 	}
 
 	async getByTitle(title: string): Promise<MoviesAttributes | null> {
-		return this.getOne({ title }) as Promise<MoviesAttributes | null>;
+		const result = await this.getOne({ title });
+		return this.parseResponse(result) as MoviesAttributes | null;
+	}
+
+	async getWithShowtimes(filters?: any): Promise<{ rows: MovieFull[]; count: number }> {
+		const activeMovieIdsLiteral = literal(
+			`(SELECT DISTINCT "movie" FROM "showtimes" s INNER JOIN "room_bookings" rb ON s."booking" = rb."id" WHERE rb."start_time" > NOW())`,
+		);
+
+		const result = (await this.getAll(
+			{
+				...filters,
+				count: true,
+				relations: [
+					...this._relations,
+					{
+						association: '_Showtimes',
+						separate: true,
+						nested: [
+							{
+								association: '_RoomBookings',
+								required: true,
+							},
+						],
+					},
+				],
+			},
+			{
+				id: { [Ops.in]: activeMovieIdsLiteral },
+			},
+		)) as { rows: any[]; count: number };
+
+		return {
+			count: result.count,
+			rows: this.parseResponse(result.rows) as MovieFull[],
+		};
 	}
 }
 

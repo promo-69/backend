@@ -1,7 +1,7 @@
 meta {
-  name: Get Room Projection Types
+  name: Get Room Projection Types (by room)
   type: http
-  seq: 8
+  seq: 7
 }
 
 get {
@@ -12,6 +12,10 @@ get {
 
 auth:bearer {
   token: {{accessToken}}
+}
+
+vars:pre-request {
+  testRoomId: 1
 }
 
 script:pre-request {

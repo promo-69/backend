@@ -1,36 +1,45 @@
 import { BaseService } from '@bases/service.base.js';
 import { Database } from '@database/index.js';
 import { ConflictError, NotFoundError, ValidationError } from '@errors';
+import { concessionImagesService } from '@services/concession-images.service.js';
+import { imageStorageService } from '@services/image-storage.service.js';
+import { PricingService } from '@services/pricing.service.js';
+import { PricingCacheService } from '@services/pricing-cache.service.js';
+import shoppingSessionService from '@services/shopping-session.service.js';
+import inventoryManagementService from '@services/inventory-management.service.js';
+import { Logger } from '@utils/logger.util.js';
 import { type ProcessedQueryFilters } from '@rules/api-query.type.js';
 import { type Transaction } from 'sequelize';
 
 interface CreateProductBody {
 	name: string;
 	sku: string;
-	productCategory: number;
-	currencyId: number;
-	price: number;
-	earnedLoyaltyPoints?: number;
+	productCategory: number | string;
+	currencyId: number | string;
+	price: number | string;
+	earnedLoyaltyPoints?: number | string;
 }
 
 interface CreateComboBody {
 	name: string;
 	sku: string;
 	description: string;
-	currencyId: number;
-	price: number;
-	earnedLoyaltyPoints?: number;
-	products: Array<{ productId: number; quantity: number }>;
+	currencyId: number | string;
+	price: number | string;
+	earnedLoyaltyPoints?: number | string;
+	products: Array<{ productId: number; quantity: number }> | string;
 }
 
 interface UpdateProductBody {
 	name?: string;
-	price?: number;
-	currencyId?: number;
-	earnedLoyaltyPoints?: number;
+	price?: number | string;
+	currencyId?: number | string;
+	earnedLoyaltyPoints?: number | string;
 }
 
-export class ConfiteriaService extends BaseService {
+type RawFiles = Express.Multer.File[] | { [fieldname: string]: Express.Multer.File[] } | undefined;
+
+export class ConcessionsService extends BaseService {
 	constructor() {
 		super();
 	}
@@ -44,19 +53,15 @@ export class ConfiteriaService extends BaseService {
 	private get _comboProducts() {
 		return Database.repository('main', 'combo-products') as any;
 	}
-	private get _inventories() {
-		return Database.repository('main', 'inventories') as any;
-	}
-	private get _inventoryMovements() {
-		return Database.repository('main', 'inventory-movements') as any;
-	}
-	private get _cinemas() {
-		return Database.repository('main', 'cinemas') as any;
-	}
 
-	// --- HU-OPERATIVA-29: Registrar producto ---
-	async createProduct(body: CreateProductBody) {
-		const { name, sku, productCategory, currencyId, price, earnedLoyaltyPoints } = body;
+	async createProduct(body: CreateProductBody, rawFiles?: RawFiles) {
+		const { name, sku } = body;
+
+		const price = Number(body.price);
+		const productCategory = Number(body.productCategory);
+		const currencyId = Number(body.currencyId);
+		const earnedLoyaltyPoints =
+			body.earnedLoyaltyPoints !== undefined ? Number(body.earnedLoyaltyPoints) : undefined;
 
 		this.validateRequired({ name, sku, productCategory, currencyId, price } as any, [
 			'name',
@@ -66,198 +71,548 @@ export class ConfiteriaService extends BaseService {
 			'price',
 		]);
 
-		if (typeof price !== 'number' || price <= 0)
-			throw new ValidationError('El precio debe ser un número positivo', ['price']);
+		if (isNaN(price) || price <= 0) throw new ValidationError('El precio debe ser un número positivo', ['price']);
 
 		const existing = await this._products.getOne({ sku });
 		if (existing) throw new ConflictError('Ya existe un producto con ese SKU', 'PRODUCT_SKU_DUPLICATE');
 
-		const created = await this._products.create({
-			name,
-			sku,
-			product_category: productCategory,
-			currency: currencyId,
-			price,
-			earned_loyalty_points: earnedLoyaltyPoints ?? null,
-		});
+		const imageFile = concessionImagesService.extractImage(rawFiles);
+		const { imageUrl, imageFileId } = await concessionImagesService.uploadProductImage(imageFile);
 
-		return this._products.getFull(created.id);
-	}
+		try {
+			const created = await this._products.create({
+				name,
+				sku,
+				product_category: productCategory,
+				currency: currencyId,
+				price,
+				earned_loyalty_points: earnedLoyaltyPoints ?? null,
+				image_url: imageUrl ?? null,
+			});
 
-	// --- HU-OPERATIVA-30: Crear combo ---
-	async createCombo(body: CreateComboBody) {
-		const { name, sku, description, currencyId, price, earnedLoyaltyPoints, products } = body;
-
-		this.validateRequired({ name, sku, description, currencyId, price } as any, [
-			'name',
-			'sku',
-			'description',
-			'currencyId',
-			'price',
-		]);
-
-		if (!Array.isArray(products) || products.length === 0)
-			throw new ValidationError('El combo debe tener al menos un producto', ['products']);
-
-		if (typeof price !== 'number' || price <= 0)
-			throw new ValidationError('El precio debe ser un número positivo', ['price']);
-
-		const existing = await this._combos.getOne({ sku });
-		if (existing) throw new ConflictError('Ya existe un combo con ese SKU', 'COMBO_SKU_DUPLICATE');
-
-		const created = await this._combos.transaction(async (transaction: Transaction) => {
-			const combo = await this._combos.create(
-				{
-					name,
-					sku,
-					description,
-					currency: currencyId,
-					price,
-					earned_loyalty_points: earnedLoyaltyPoints ?? null,
-				},
-				{ transaction },
-			);
-
-			const comboProductRecords = products.map(({ productId, quantity }) => ({
-				combo: combo.id,
-				product: productId,
-				quantity,
-			}));
-			await this._comboProducts.bulkCreate(comboProductRecords, { transaction });
-
-			return combo;
-		});
-
-		return this._combos.getFull(created.id);
-	}
-
-	// --- HU-OPERATIVA-31: Editar producto o combo ---
-	async updateProduct(id: number, body: UpdateProductBody) {
-		const product = await this._products.getFull(id);
-		if (!product) throw new NotFoundError('Producto no encontrado');
-
-		const updateData: Record<string, any> = {};
-		if (body.name !== undefined) updateData.name = body.name;
-		if (body.price !== undefined) {
-			if (typeof body.price !== 'number' || body.price <= 0)
-				throw new ValidationError('El precio debe ser un número positivo', ['price']);
-			updateData.price = body.price;
+			return this._products.getFull(created.id);
+		} catch (error) {
+			await concessionImagesService.rollbackUploadedImages([imageFileId]);
+			throw error;
 		}
-		if (body.currencyId !== undefined) updateData.currency = body.currencyId;
-		if (body.earnedLoyaltyPoints !== undefined) updateData.earned_loyalty_points = body.earnedLoyaltyPoints;
+	}
 
-		if (Object.keys(updateData).length === 0)
-			throw new ValidationError('No se proporcionaron datos para actualizar', []);
+	async updateProduct(id: number, body: UpdateProductBody, rawFiles?: RawFiles) {
+		return this._products.transaction(async (transaction: Transaction) => {
+			const product = await this._products.getById(id, {
+				transaction,
+				lock: transaction.LOCK.UPDATE,
+			});
+			if (!product) throw new NotFoundError('Producto no encontrado');
 
-		await this._products.update(id, updateData);
-		return null;
+			const previousImageUrl: string | null = product.image_url ?? null;
+
+			const safeBody = body ?? {};
+			const updateData: Record<string, any> = {};
+
+			if (safeBody.name !== undefined) updateData.name = safeBody.name;
+
+			if (safeBody.price !== undefined) {
+				const price = Number(safeBody.price);
+				if (isNaN(price) || price <= 0)
+					throw new ValidationError('El precio debe ser un número positivo', ['price']);
+				updateData.price = price;
+			}
+
+			if (safeBody.currencyId !== undefined) updateData.currency = Number(safeBody.currencyId);
+			if (safeBody.earnedLoyaltyPoints !== undefined)
+				updateData.earned_loyalty_points = Number(safeBody.earnedLoyaltyPoints);
+
+			const imageFile = concessionImagesService.extractImage(rawFiles);
+			const hasImageUpdate = imageFile !== undefined;
+
+			if (Object.keys(updateData).length === 0 && !hasImageUpdate)
+				throw new ValidationError('No se proporcionaron datos para actualizar', []);
+
+			const { imageUrl, imageFileId } = await concessionImagesService.uploadProductImage(imageFile);
+			if (imageUrl) updateData.image_url = imageUrl;
+
+			try {
+				await this._products.update(id, updateData, { transaction });
+			} catch (error) {
+				await concessionImagesService.rollbackUploadedImages([imageFileId]);
+				throw error;
+			}
+
+			if (imageUrl && previousImageUrl) {
+				imageStorageService
+					.deleteImageByUrl(previousImageUrl)
+					.catch((err) => Logger.error('updateProduct: failed to delete old image', err));
+			}
+
+			return this._products.getFull(id);
+		});
+	}
+
+	async deleteProduct(id: number) {
+		return this._products.transaction(async (transaction: Transaction) => {
+			const product = await this._products.getById(id, {
+				transaction,
+				lock: transaction.LOCK.UPDATE,
+			});
+			if (!product) throw new NotFoundError('Producto no encontrado');
+
+			const usageCount = await this._comboProducts.count({ product: id, deleted_at: null }, { transaction });
+			if (usageCount > 0)
+				throw new ConflictError(
+					'No se puede eliminar el producto porque pertenece a combos activos',
+					'PRODUCT_IN_COMBO',
+				);
+
+			await this._products.delete(id, { transaction });
+		});
+	}
+
+	async findAllProducts(filters?: ProcessedQueryFilters, userId?: number) {
+		const rawProducts = await this._products.getAllFull(filters);
+		let productList = Array.isArray(rawProducts) ? rawProducts : rawProducts.rows || [];
+
+		let activeQuote = null;
+		let cacheData: any = null;
+
+		if (userId) activeQuote = await shoppingSessionService.getActiveQuote(userId);
+		cacheData = await PricingCacheService.getActiveModifiers();
+		const allCurrencies = await (Database.repository('main', 'currencies') as any).getAll({ count: false });
+		const currencyMap = new Map<number, string>(allCurrencies.map((c: any) => [c.id, c.description]));
+
+		const enrichedList = productList.map((p: any) => {
+			const productClone = { ...p };
+
+			if (!cacheData) return productClone;
+
+			const sessionDate = activeQuote ? new Date(activeQuote.created_at) : new Date();
+			const currentDate = sessionDate.toISOString().split('T')[0];
+			const currentTime = sessionDate.toTimeString().split(' ')[0];
+			const currentDay = sessionDate.getDay() === 0 ? 7 : sessionDate.getDay();
+			const timeContext = { currentDate, currentTime, currentDay };
+			const context = {
+				modifier_scope: 2, // Confitería
+				cinemaId: activeQuote ? activeQuote.cinema : null, // Si no hay sesión, los mod de sucursal específica podrían no aplicar si requiere null
+				line_type: null,
+				product_category: p.product_category,
+				product: p.id,
+				combo: null,
+			};
+			const itemCurr = p.currency || 1;
+			const basePricing = PricingService.calculateFinalPrice(
+				p.price,
+				context,
+				itemCurr,
+				cacheData.modifiers,
+				cacheData.opTypesMap,
+				timeContext,
+			);
+			const pricingObj: any = {
+				currency: itemCurr,
+				currency_description: currencyMap.get(itemCurr) || 'Desconocido',
+				base_price: p.price,
+				final_price: basePricing.finalPrice,
+				applied_modifiers: basePricing.appliedModifiers,
+			};
+
+			if (activeQuote && activeQuote.exchange_rates) {
+				const rateObj = activeQuote.exchange_rates[itemCurr] || { rate: 1 };
+				const exRate = Number(rateObj.rate);
+				pricingObj.base_currency_equivalent = {
+					currency: activeQuote.system_base_currency,
+					currency_description: currencyMap.get(activeQuote.system_base_currency) || 'Desconocido',
+					exchange_rate: exRate,
+					base_price: p.price * exRate,
+					final_price: basePricing.finalPrice * exRate,
+					applied_modifiers: basePricing.appliedModifiers.map((mod: any) => ({
+						...mod,
+						applied_amount: mod.applied_amount * exRate,
+					})),
+				};
+			}
+
+			productClone.pricing = pricingObj;
+			delete productClone.price;
+			delete productClone.currency;
+
+			return productClone;
+		});
+
+		//if (!Array.isArray(rawProducts)) return { ...rawProducts, rows: enrichedList };
+		return enrichedList;
+	}
+
+	async findAllAvailableProducts(filters?: ProcessedQueryFilters, context?: { cinemaId?: number; userId?: number }) {
+		if (!context?.cinemaId) throw new ValidationError('cinemaId es requerido');
+		
+		const rawInventories = await inventoryManagementService.getStockByCinema(context.cinemaId, filters);
+		let inventoryList = Array.isArray(rawInventories) ? rawInventories : rawInventories.rows || [];
+
+		let activeQuote = null;
+		let cacheData: any = null;
+
+		if (context.userId) activeQuote = await shoppingSessionService.getActiveQuote(context.userId);
+		cacheData = await PricingCacheService.getActiveModifiers();
+		const allCurrencies = await (Database.repository('main', 'currencies') as any).getAll({ count: false });
+		const currencyMap = new Map<number, string>(allCurrencies.map((c: any) => [c.id, c.description]));
+
+		const enrichedList = inventoryList.map((inv: any) => {
+			if (!inv._Products) return null;
+			const p = inv._Products;
+			const productClone = { ...p.toJSON ? p.toJSON() : p };
+
+			if (!cacheData) return productClone;
+
+			const sessionDate = activeQuote ? new Date(activeQuote.created_at) : new Date();
+			const currentDate = sessionDate.toISOString().split('T')[0];
+			const currentTime = sessionDate.toTimeString().split(' ')[0];
+			const currentDay = sessionDate.getDay() === 0 ? 7 : sessionDate.getDay();
+			const timeContext = { currentDate, currentTime, currentDay };
+			const pricingContext = {
+				modifier_scope: 2, // Confitería
+				cinemaId: activeQuote ? activeQuote.cinema : context.cinemaId,
+				line_type: null,
+				product_category: p.product_category,
+				product: p.id,
+				combo: null,
+			};
+			const itemCurr = p.currency || 1;
+			const basePricing = PricingService.calculateFinalPrice(
+				p.price,
+				pricingContext,
+				itemCurr,
+				cacheData.modifiers,
+				cacheData.opTypesMap,
+				timeContext,
+			);
+			const pricingObj: any = {
+				currency: itemCurr,
+				currency_description: currencyMap.get(itemCurr) || 'Desconocido',
+				base_price: inv._Products.price,
+				final_price: basePricing.finalPrice,
+				applied_modifiers: basePricing.appliedModifiers,
+			};
+
+			if (activeQuote && activeQuote.exchange_rates) {
+				const rateObj = activeQuote.exchange_rates[itemCurr] || { rate: 1 };
+				const exRate = Number(rateObj.rate);
+				pricingObj.base_currency_equivalent = {
+					currency: activeQuote.system_base_currency,
+					currency_description: currencyMap.get(activeQuote.system_base_currency) || 'Desconocido',
+					exchange_rate: exRate,
+					base_price: p.price * exRate,
+					final_price: basePricing.finalPrice * exRate,
+					applied_modifiers: basePricing.appliedModifiers.map((mod: any) => ({
+						...mod,
+						applied_amount: mod.applied_amount * exRate,
+					})),
+				};
+			}
+
+			productClone.pricing = pricingObj;
+			delete productClone.price;
+			delete productClone.currency;
+
+			return productClone;
+		}).filter(Boolean);
+
+		return enrichedList;
+	}
+
+	async findProductById(id: number, userId?: number) {
+		const _product = await this._products.getFull(id);
+		if (!_product) throw new NotFoundError('Producto no encontrado');
+
+		let activeQuote = null;
+		let cacheData: any = null;
+
+		if (userId) activeQuote = await shoppingSessionService.getActiveQuote(userId);
+		const allCurrencies = await (Database.repository('main', 'currencies') as any).getAll({ count: false });
+		const currencyMap = new Map<number, string>(allCurrencies.map((c: any) => [c.id, c.description]));
+
+		cacheData = await PricingCacheService.getActiveModifiers();
+		const productClone = { ..._product };
+		if (!cacheData) return productClone;
+
+		const sessionDate = activeQuote ? new Date(activeQuote.created_at) : new Date();
+		const currentDate = sessionDate.toISOString().split('T')[0];
+		const currentTime = sessionDate.toTimeString().split(' ')[0];
+		const currentDay = sessionDate.getDay() === 0 ? 7 : sessionDate.getDay();
+		const timeContext = { currentDate, currentTime, currentDay };
+		const context = {
+			modifier_scope: 2, // Confitería
+			cinemaId: activeQuote ? activeQuote.cinema : null,
+			line_type: null,
+			product_category: _product.product_category,
+			product: _product.id,
+			combo: null,
+		};
+
+		const itemCurr = _product.currency || 1;
+		const basePricing = PricingService.calculateFinalPrice(
+			_product.price,
+			context,
+			itemCurr,
+			cacheData.modifiers,
+			cacheData.opTypesMap,
+			timeContext,
+		);
+		const pricingObj: any = {
+			currency: itemCurr,
+			currency_description: currencyMap.get(itemCurr) || 'Desconocido',
+			base_price: _product.price,
+			final_price: basePricing.finalPrice,
+			applied_modifiers: basePricing.appliedModifiers,
+		};
+
+		if (activeQuote && activeQuote.exchange_rates) {
+			const rateObj = activeQuote.exchange_rates[itemCurr] || { rate: 1 };
+			const exRate = Number(rateObj.rate);
+			pricingObj.base_currency_equivalent = {
+				currency: activeQuote.system_base_currency,
+				currency_description: currencyMap.get(activeQuote.system_base_currency) || 'Desconocido',
+				exchange_rate: exRate,
+				base_price: _product.price * exRate,
+				final_price: basePricing.finalPrice * exRate,
+				applied_modifiers: basePricing.appliedModifiers.map((mod: any) => ({
+					...mod,
+					applied_amount: mod.applied_amount * exRate,
+				})),
+			};
+		}
+
+		productClone.pricing = pricingObj;
+		delete productClone.price;
+		delete productClone.currency;
+
+		return productClone;
 	}
 
 	async updateCombo(
 		id: number,
-		body: UpdateProductBody & { products?: Array<{ productId: number; quantity: number }> },
+		body: UpdateProductBody & { products?: Array<{ productId: number; quantity: number }> | string },
+		rawFiles?: RawFiles,
+		enforceCinemaId?: number,
 	) {
-		const combo = await this._combos.getFull(id);
-		if (!combo) throw new NotFoundError('Combo no encontrado');
+		return this._combos.transaction(async (transaction: Transaction) => {
+			const combo = await this._combos.getById(id, {
+				transaction,
+				lock: transaction.LOCK.UPDATE,
+			});
+			if (!combo) throw new NotFoundError('Combo no encontrado');
+			if (enforceCinemaId !== undefined && combo.cinema !== enforceCinemaId)
+				throw new ConflictError('No tienes permisos para modificar este combo', 'FORBIDDEN');
 
-		const { products, ...rest } = body;
-		const updateData: Record<string, any> = {};
+			const previousImageUrl: string | null = combo.image_url ?? null;
 
-		if (rest.name !== undefined) updateData.name = rest.name;
-		if (rest.price !== undefined) {
-			if (typeof rest.price !== 'number' || rest.price <= 0)
-				throw new ValidationError('El precio debe ser un número positivo', ['price']);
-			updateData.price = rest.price;
-		}
-		if (rest.currencyId !== undefined) updateData.currency = rest.currencyId;
-		if (rest.earnedLoyaltyPoints !== undefined) updateData.earned_loyalty_points = rest.earnedLoyaltyPoints;
+			const safeBody = body ?? {};
+			const updateData: Record<string, any> = {};
 
-		if (Object.keys(updateData).length === 0 && !products)
-			throw new ValidationError('No se proporcionaron datos para actualizar', []);
+			if (safeBody.name !== undefined) updateData.name = safeBody.name;
 
-		await this._combos.transaction(async (transaction: Transaction) => {
-			if (Object.keys(updateData).length > 0) await this._combos.update(id, updateData, { transaction });
-
-			if (products !== undefined) {
-				await this._comboProducts.deleteByCombo(id, { transaction });
-				if (products.length > 0) {
-					const records = products.map(({ productId, quantity }) => ({
-						combo: id,
-						product: productId,
-						quantity,
-					}));
-					await this._comboProducts.bulkCreate(records, { transaction });
-				}
+			if (safeBody.price !== undefined) {
+				const price = Number(safeBody.price);
+				if (isNaN(price) || price <= 0)
+					throw new ValidationError('El precio debe ser un número positivo', ['price']);
+				updateData.price = price;
 			}
-		});
 
-		return null;
+			if (safeBody.currencyId !== undefined) updateData.currency = Number(safeBody.currencyId);
+			if (safeBody.earnedLoyaltyPoints !== undefined)
+				updateData.earned_loyalty_points = Number(safeBody.earnedLoyaltyPoints);
+
+			const products: Array<{ productId: number; quantity: number }> | undefined =
+				safeBody.products === undefined
+					? undefined
+					: typeof safeBody.products === 'string'
+						? JSON.parse(safeBody.products)
+						: (safeBody.products as Array<{ productId: number; quantity: number }>);
+
+			const imageFile = concessionImagesService.extractImage(rawFiles);
+			const hasImageUpdate = imageFile !== undefined;
+
+			if (Object.keys(updateData).length === 0 && products === undefined && !hasImageUpdate)
+				throw new ValidationError('No se proporcionaron datos para actualizar', []);
+
+			const { imageUrl, imageFileId } = await concessionImagesService.uploadComboImage(imageFile);
+			if (imageUrl) updateData.image_url = imageUrl;
+
+			try {
+				if (Object.keys(updateData).length > 0) await this._combos.update(id, updateData, { transaction });
+
+				if (products !== undefined) {
+					await this._comboProducts.deleteByCombo(id, { transaction, force: true });
+					if (products.length > 0) {
+						const records = products.map(({ productId, quantity }) => ({
+							combo: id,
+							product: productId,
+							quantity,
+						}));
+						await this._comboProducts.bulkCreate(records, { transaction });
+					}
+				}
+			} catch (error) {
+				await concessionImagesService.rollbackUploadedImages([imageFileId]);
+				throw error;
+			}
+
+			if (imageUrl && previousImageUrl) {
+				imageStorageService
+					.deleteImageByUrl(previousImageUrl)
+					.catch((err) => Logger.error('updateCombo: failed to delete old image', err));
+			}
+
+			return this._combos.getFull(id);
+		});
 	}
 
-	// --- HU-OPERATIVA-34: Registrar reposición de inventario ---
-	async replenishInventory(cinemaId: number, productId: number, quantity: number, userId: number, remarks?: string) {
-		if (!Number.isInteger(quantity) || quantity <= 0)
-			throw new ValidationError('La cantidad debe ser un entero positivo', ['quantity']);
+	async deleteCombo(id: number, enforceCinemaId?: number) {
+		return this._combos.transaction(async (transaction: Transaction) => {
+			const combo = await this._combos.getById(id, {
+				transaction,
+				lock: transaction.LOCK.UPDATE,
+			});
+			if (!combo) throw new NotFoundError('Combo no encontrado');
+			if (enforceCinemaId !== undefined && combo.cinema !== enforceCinemaId)
+				throw new ConflictError('No tienes permisos para modificar este combo', 'FORBIDDEN');
 
-		const cinema = await this._cinemas.getFull(cinemaId);
-		if (!cinema) throw new NotFoundError('Sucursal no encontrada');
+			await this._combos.delete(id, { transaction });
+		});
+	}
 
-		const product = await this._products.getFull(productId);
-		if (!product) throw new NotFoundError('Producto no encontrado');
+	async addItemsToCombo(comboId: number, items: Array<{ productId: number; quantity: number }>, enforceCinemaId?: number) {
+		if (!Array.isArray(items) || items.length === 0)
+			throw new ValidationError('Debe enviar al menos un ítem', ['items']);
 
-		await this._inventories.transaction(async (transaction: Transaction) => {
-			// Buscar o crear registro de inventario para esta sucursal+producto
-			let inventory = await this._inventories.getOne({ cinema: cinemaId, product: productId });
+		return this._combos.transaction(async (transaction: Transaction) => {
+			const combo = await this._combos.getById(comboId, {
+				transaction,
+				lock: transaction.LOCK.UPDATE,
+			});
+			if (!combo) throw new NotFoundError('Combo no encontrado');
+			if (enforceCinemaId !== undefined && combo.cinema !== enforceCinemaId)
+				throw new ConflictError('No tienes permisos para modificar este combo', 'FORBIDDEN');
 
-			if (!inventory) {
-				inventory = await this._inventories.create(
-					{ cinema: cinemaId, product: productId, stock: 0 },
+			for (const item of items) {
+				if (!item.productId || !item.quantity || item.quantity <= 0)
+					throw new ValidationError('Cada ítem debe tener productId y quantity positivos', ['items']);
+
+				const product = await this._products.getById(item.productId, { transaction });
+				if (!product) throw new NotFoundError(`Producto con ID ${item.productId} no encontrado`);
+
+				// Verificar si el producto ya está en el combo
+				const existing = await this._comboProducts.getOne(
+					{
+						combo: comboId,
+						product: item.productId,
+					},
+					{ transaction },
+				);
+
+				if (existing)
+					throw new ConflictError(
+						`El producto con ID ${item.productId} ya está en el combo`,
+						'COMBO_ITEM_ALREADY_EXISTS',
+					);
+
+				await this._comboProducts.create(
+					{
+						combo: comboId,
+						product: item.productId,
+						quantity: item.quantity,
+					},
 					{ transaction },
 				);
 			}
-
-			const newStock = inventory.stock + quantity;
-			await this._inventories.update(inventory.id, { stock: newStock }, { transaction });
-
-			// Registrar movimiento — operation_type 3 = Entrada de Inventario (seeder)
-			await this._inventoryMovements.create(
-				{
-					inventory: inventory.id,
-					operation_type: 3,
-					quantity,
-					user: userId,
-					remarks: remarks ?? null,
-				},
-				{ transaction },
-			);
 		});
-
-		return null;
 	}
 
-	async findAllProducts(filters?: ProcessedQueryFilters) {
-		return this._products.getAllFull(filters);
+	async removeItemFromCombo(comboId: number, itemId: number, enforceCinemaId?: number) {
+		if (isNaN(comboId) || isNaN(itemId))
+			throw new ValidationError('Los identificadores deben ser numéricos', ['id', 'itemId']);
+
+		return this._comboProducts.transaction(async (transaction: Transaction) => {
+			const item = await this._comboProducts.getById(itemId, {
+				transaction,
+				lock: transaction.LOCK.UPDATE,
+			});
+			if (!item || item.combo !== comboId) throw new NotFoundError('Ítem no encontrado en el combo');
+			
+			const combo = await this._combos.getById(comboId, { transaction });
+			if (enforceCinemaId !== undefined && combo && combo.cinema !== enforceCinemaId)
+				throw new ConflictError('No tienes permisos para modificar este combo', 'FORBIDDEN');
+
+			await this._comboProducts.delete(itemId, { transaction });
+		});
 	}
 
-	async findAllCombos(filters?: ProcessedQueryFilters) {
-		return this._combos.getAllFull(filters);
-	}
+	async findComboById(id: number, userId?: number) {
+		const _combo = await this._combos.getFull(id);
+		if (!_combo) throw new NotFoundError('Combo no encontrado');
 
-	async findProductById(id: number) {
-		const p = await this._products.getFull(id);
-		if (!p) throw new NotFoundError('Producto no encontrado');
-		return p;
-	}
+		let activeQuote = null;
+		let cacheData: any = null;
 
-	async findComboById(id: number) {
-		const c = await this._combos.getFull(id);
-		if (!c) throw new NotFoundError('Combo no encontrado');
-		return c;
-	}
+		if (userId) activeQuote = await shoppingSessionService.getActiveQuote(userId);
+		const allCurrencies = await (Database.repository('main', 'currencies') as any).getAll({ count: false });
+		const currencyMap = new Map<number, string>(allCurrencies.map((c: any) => [c.id, c.description]));
 
-	async findInventoryByCinema(cinemaId: number, filters?: ProcessedQueryFilters) {
-		return this._inventories.getAllByCinema(cinemaId, filters);
+		cacheData = await PricingCacheService.getActiveModifiers();
+		const comboClone = { ..._combo };
+		if (!cacheData) return comboClone;
+
+		const sessionDate = activeQuote ? new Date(activeQuote.created_at) : new Date();
+		const currentDate = sessionDate.toISOString().split('T')[0];
+		const currentTime = sessionDate.toTimeString().split(' ')[0];
+		const currentDay = sessionDate.getDay() === 0 ? 7 : sessionDate.getDay();
+		const timeContext = { currentDate, currentTime, currentDay };
+		const context = {
+			modifier_scope: 2, // Confitería
+			cinemaId: activeQuote ? activeQuote.cinema : _combo.cinema || null,
+			line_type: null,
+			product_category: null,
+			product: null,
+			combo: _combo.id,
+		};
+		const itemCurr = _combo.currency || 1;
+		const basePricing = PricingService.calculateFinalPrice(
+			_combo.price,
+			context,
+			itemCurr,
+			cacheData.modifiers,
+			cacheData.opTypesMap,
+			timeContext,
+		);
+		const pricingObj: any = {
+			currency: itemCurr,
+			currency_description: currencyMap.get(itemCurr) || 'Desconocido',
+			base_price: _combo.price,
+			final_price: basePricing.finalPrice,
+			applied_modifiers: basePricing.appliedModifiers,
+		};
+
+		if (activeQuote && activeQuote.exchange_rates) {
+			const rateObj = activeQuote.exchange_rates[itemCurr] || { rate: 1 };
+			const exRate = Number(rateObj.rate);
+			pricingObj.base_currency_equivalent = {
+				currency: activeQuote.system_base_currency,
+				currency_description: currencyMap.get(activeQuote.system_base_currency) || 'Desconocido',
+				exchange_rate: exRate,
+				base_price: _combo.price * exRate,
+				final_price: basePricing.finalPrice * exRate,
+				applied_modifiers: basePricing.appliedModifiers.map((mod: any) => ({
+					...mod,
+					applied_amount: mod.applied_amount * exRate,
+				})),
+			};
+		}
+
+		comboClone.pricing = pricingObj;
+		delete comboClone.price;
+		delete comboClone.currency;
+
+		return comboClone;
 	}
 }
 
-export default new ConfiteriaService();
+export default new ConcessionsService();

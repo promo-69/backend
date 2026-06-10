@@ -7,7 +7,7 @@ export default class RoomProjectionTypesModel extends SequelizeModelBase {
 			id: {
 				primaryKey: true,
 				autoIncrement: true,
-				allowNull: true,
+				allowNull: false,
 				type: DataTypes.INTEGER,
 			},
 			room: {
@@ -21,7 +21,7 @@ export default class RoomProjectionTypesModel extends SequelizeModelBase {
 			deleted_at: {
 				allowNull: true,
 				type: DataTypes.DATE,
-			},
+			}
 		};
 	}
 
@@ -32,10 +32,10 @@ export default class RoomProjectionTypesModel extends SequelizeModelBase {
 			createdAt: false,
 			updatedAt: false,
 			deletedAt: 'deleted_at',
-			isBasicTable: true,
+			isBasicTable: false,
 			schema: 'public',
 			tableName: 'room_projection_types',
-			appRawName: 'room-projection_types',
+			appRawName: 'room-projection-types',
 		};
 	}
 

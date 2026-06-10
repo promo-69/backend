@@ -1,0 +1,126 @@
+/customers/{id}:
+    get:
+        summary: Get Customer By ID
+        description: |
+            Retrieves a customer's full profile including biographical data and
+            loyalty summary. Response shape matches _formatCustomerResponse.
+        tags:
+            - Customers
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Customer found
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                data:
+                                    type: object
+                                    properties:
+                                        person:
+                                            type: object
+                                            properties:
+                                                id:
+                                                    type: integer
+                                                document_number:
+                                                    type: string
+                                                first_name:
+                                                    type: string
+                                                last_name:
+                                                    type: string
+                                                gender:
+                                                    type: integer
+                                                    nullable: true
+                                                phone_number:
+                                                    type: string
+                                                    nullable: true
+                                                personal_email:
+                                                    type: string
+                                                    nullable: true
+                                                birth_date:
+                                                    type: string
+                                                    format: date
+                                                    nullable: true
+                                        customer:
+                                            type: object
+                                            properties:
+                                                id:
+                                                    type: integer
+                                                loyalty_level:
+                                                    type: integer
+                                                level_progress_points:
+                                                    type: integer
+                                                registration_date:
+                                                    type: string
+                                                    format: date-time
+                                                loyalty:
+                                                    type: object
+                                                    properties:
+                                                        level_id:
+                                                            type: integer
+                                                        level_name:
+                                                            type: string
+                                                            nullable: true
+                                                        progress_points:
+                                                            type: integer
+            '401':
+                description: Unauthorized
+            '404':
+                description: Customer not found
+            '500':
+                description: Internal server error
+    patch:
+        summary: Update Customer Biographical Data
+        description: |
+            Corrects the customer's biographical information stored in the
+            people table (name, phone, email, birth date, gender).
+        tags:
+            - Customers
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            firstName:
+                                type: string
+                            lastName:
+                                type: string
+                            phoneNumber:
+                                type: string
+                            email:
+                                type: string
+                                format: email
+                            birthDate:
+                                type: string
+                                format: date
+                            gender:
+                                type: integer
+        responses:
+            '200':
+                description: Customer updated successfully
+            '400':
+                description: Validation error
+            '401':
+                description: Unauthorized
+            '404':
+                description: Customer not found
+            '500':
+                description: Internal server error

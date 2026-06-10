@@ -1,14 +1,115 @@
-import { AppConfig } from '@config/app.config.js';
+export const VerificationTokenEmailTemplate = (code: string, name: string) => {
+	const digits = String(code).split('').concat(['', '', '', '']).slice(0, 4);
 
-export const VerificationTokenEmailTemplate = (email: string, token: string) => `
-	<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-		<h1 style="color: #E50914;">Verificación de Cuenta</h1>
-		<p>Te encuentras finalizando el proceso de registro en Cineflix. Para confirmar tu dirección de correo electrónico y activar tu cuenta, por favor ingresa al siguiente enlace:</p>
-		<div style="background-color: #f4f4f4; padding: 15px; text-align: center; border-radius: 5px; margin: 20px 0;">
-			<h2 style="letter-spacing: 5px; margin: 0; color: #333;">${AppConfig.load().clientWebAppUrl}/activate?email=${email}&token=${token}</h2>
-		</div>
-		<p>Si no fuiste tú quien solicitó este código, puedes ignorar este mensaje con seguridad.</p>
-		<hr style="border: 1px solid #eee; margin: 20px 0;" />
-		<p style="font-size: 12px; color: #777;">El equipo de Cineflix</p>
-	</div>
+	return `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Código de Verificación - Cineflix</title>
+    <style type="text/css">
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', 'Montserrat', 'Arial', sans-serif;
+            background-color: #f5f5f5;
+        }
+        table {
+            border-collapse: collapse;
+            border-spacing: 0;
+        }
+        img {
+            border: 0;
+            display: block;
+            outline: none;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f5f5f5;">
+
+    <table width="100%" border="0" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5;">
+        <tr>
+            <td align="center" style="padding: 20px;">
+
+                <table width="100%" max-width="600" border="0" cellpadding="0" cellspacing="0" style="max-width: 600px; background-color: #ffffff; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+
+                    <tr>
+                        <td align="center" style="padding: 40px 20px; background-color: #3d2456; background: linear-gradient(135deg, #3d2456 0%, #4a2f68 100%);">
+
+                            <table width="100%" border="0" cellpadding="0" cellspacing="0" style="max-width: 500px;">
+                                <tr>
+                                    <td align="center" style="padding: 0;">
+                                        <img src="https://ik.imagekit.io/cineflix/cineflix/resources/logo-cineflix.png" alt="Cineflix Logo" width="300" style="width: 100%; max-width: 350px; height: auto; margin: 20px 0;">
+                                    </td>
+                                </tr>
+                            </table>
+
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td align="center" style="padding: 20px; background-color: #1a1a2e;">
+                            <h2 style="margin: 0; font-size: 24px; font-weight: bold; color: #ffffff; font-family: 'Arial', sans-serif; letter-spacing: 2px;">CÓDIGO DE VERIFICACIÓN</h2>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="padding: 40px 30px;">
+
+                            <p style="margin: 0 0 25px 0; font-size: 16px; color: #333333; font-family: 'Arial', sans-serif; line-height: 1.6;">
+                                Hola<strong>${' ' + name}</strong>,
+                            </p>
+
+                            <p style="margin: 0 0 30px 0; font-size: 15px; color: #555555; font-family: 'Arial', sans-serif; line-height: 1.8; text-align: center;">
+                                Gracias por unirte a Cineflix. Para confirmar tu identidad y completar tu registro, ingresa el siguiente código de 4 dígitos en la aplicación:
+                            </p>
+
+                            <table align="center" border="0" cellpadding="0" cellspacing="0" style="margin: 40px auto;">
+                                <tr>
+                                    <td align="center" style="background-color: #1a1a2e; border: 2px solid #d4a444; border-radius: 12px; width: 60px; height: 75px; font-size: 36px; font-weight: bold; color: #d4a444; font-family: 'Arial', sans-serif; padding: 0; line-height: 75px;">
+                                        ${digits[0]}
+                                    </td>
+                                    <td width="15" style="width: 15px; padding: 0;"></td>
+                                    <td align="center" style="background-color: #1a1a2e; border: 2px solid #d4a444; border-radius: 12px; width: 60px; height: 75px; font-size: 36px; font-weight: bold; color: #d4a444; font-family: 'Arial', sans-serif; padding: 0; line-height: 75px;">
+                                        ${digits[1]}
+                                    </td>
+                                    <td width="15" style="width: 15px; padding: 0;"></td>
+                                    <td align="center" style="background-color: #1a1a2e; border: 2px solid #d4a444; border-radius: 12px; width: 60px; height: 75px; font-size: 36px; font-weight: bold; color: #d4a444; font-family: 'Arial', sans-serif; padding: 0; line-height: 75px;">
+                                        ${digits[2]}
+                                    </td>
+                                    <td width="15" style="width: 15px; padding: 0;"></td>
+                                    <td align="center" style="background-color: #1a1a2e; border: 2px solid #d4a444; border-radius: 12px; width: 60px; height: 75px; font-size: 36px; font-weight: bold; color: #d4a444; font-family: 'Arial', sans-serif; padding: 0; line-height: 75px;">
+                                        ${digits[3]}
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <p style="margin: 30px 0; font-size: 14px; color: #777777; font-family: 'Arial', sans-serif; text-align: center;">
+                                Este código expirará pronto. No compartas este número con nadie.
+                            </p>
+
+                            <p style="margin: 35px 0 0 0; font-size: 13px; color: #333333; font-family: 'Arial', sans-serif; line-height: 1.7; border-top: 1px solid #e0e0e0; padding-top: 20px;">
+                                <strong>AVISO IMPORTANTE:</strong> Si tú no solicitaste este registro, por favor ignora este mensaje. No se realizará ninguna acción sin tu consentimiento.
+                            </p>
+
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td align="center" style="padding: 20px; background-color: #1a1a2e; border-top: 3px solid #3d2456;">
+                            <p style="margin: 0; font-size: 12px; color: #999999; font-family: 'Arial', sans-serif; line-height: 1.6;">
+                                © Cineflix | Todos los derechos reservados | <a href="#" style="color: #d4a444; text-decoration: none;">Términos y Condiciones</a>
+                            </p>
+                        </td>
+                    </tr>
+
+                </table>
+                </td>
+        </tr>
+    </table>
+    </body>
+</html>
 `;
+};

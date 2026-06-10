@@ -1,0 +1,28 @@
+meta {
+  name: Adjust Loyalty Points
+  type: http
+  seq: 5
+}
+
+patch {
+  url: {{baseUrl}}/customers/{{testCustomerId}}/loyalty-points
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "operationType": 1,
+    "points": 200,
+    "remarks": "Ajuste manual de prueba"
+  }
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  bru.setVar('baseUrl', baseUrl);
+}

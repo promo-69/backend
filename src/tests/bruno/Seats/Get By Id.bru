@@ -1,15 +1,20 @@
 meta {
-  name: Get Seats By Id
+  name: Get Seat By Id
   type: http
   seq: 2
 }
 
 get {
-  url: {{baseUrl}}/seats/1
+  url: {{baseUrl}}/seats/{{testSeatId}}
   body: none
   auth: bearer
 }
 
 auth:bearer {
   token: {{accessToken}}
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  bru.setVar('baseUrl', baseUrl);
 }

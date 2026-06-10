@@ -1,0 +1,217 @@
+/cinemas/{cinemaId}/combos:
+    get:
+        summary: List Combos by Cinema
+        description: |
+            Returns all combos belonging to a specific cinema.
+            Required permission: **CRUD:READ:CINEMAS-COMBOS**
+        tags:
+            - Cinemas
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: cinemaId
+              in: path
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: A list of combos
+            '401':
+                description: Unauthorized
+            '500':
+                description: Internal server error
+    post:
+        summary: Create Combo in Cinema
+        description: |
+            Creates a new combo for a specific cinema.
+            Required permission: **CRUD:CREATE:CINEMAS-COMBOS**
+        tags:
+            - Cinemas
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: cinemaId
+              in: path
+              required: true
+              schema:
+                  type: integer
+        requestBody:
+            required: true
+            content:
+                multipart/form-data:
+                schema:
+                    type: object
+                    required:
+                        - name
+                        - sku
+                        - description
+                        - currencyId
+                        - price
+                        - products
+                    properties:
+                        name:
+                            type: string
+                            example: Combo Cine
+                        sku:
+                            type: string
+                            example: CMB-CINE-001
+                        description:
+                            type: string
+                            example: Combo del cine
+                        currencyId:
+                            type: integer
+                            example: 1
+                        price:
+                            type: number
+                            example: 12.00
+                        earnedLoyaltyPoints:
+                            type: integer
+                            example: 20
+                        products:
+                            type: string
+                            description: JSON string of array [{ productId, quantity }]
+                            example: '[{"productId":1,"quantity":2}]'
+                        image:
+                            type: string
+                            format: binary
+                            description: Combo image (optional)
+        responses:
+            '201':
+                description: Combo created
+            '400':
+                description: Validation error
+            '401':
+                description: Unauthorized
+            '500':
+                description: Internal server error
+
+/cinemas/{cinemaId}/combos/{id}:
+    patch:
+        summary: Update Combo in Cinema
+        tags:
+            - Cinemas
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: cinemaId
+              in: path
+              required: true
+              schema:
+                  type: integer
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        requestBody:
+            required: true
+            content:
+                multipart/form-data:
+                    schema:
+                        type: object
+                        properties:
+                            name:
+                                type: string
+                            description:
+                                type: string
+                            currencyId:
+                                type: integer
+                            price:
+                                type: number
+                            image:
+                                type: string
+                                format: binary
+        responses:
+            '200':
+                description: Combo updated
+    delete:
+        summary: Delete Combo from Cinema
+        tags:
+            - Cinemas
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: cinemaId
+              in: path
+              required: true
+              schema:
+                  type: integer
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Combo deleted
+
+/cinemas/{cinemaId}/combos/{id}/items:
+    post:
+        summary: Add Items to Combo
+        tags:
+            - Cinemas
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: cinemaId
+              in: path
+              required: true
+              schema:
+                  type: integer
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        required:
+                            - items
+                        properties:
+                            items:
+                                type: array
+                                items:
+                                    type: object
+                                    required:
+                                        - productId
+                                        - quantity
+                                    properties:
+                                        productId:
+                                            type: integer
+                                        quantity:
+                                            type: integer
+        responses:
+            '201':
+                description: Items added to combo
+
+/cinemas/{cinemaId}/combos/{id}/items/{itemId}:
+    delete:
+        summary: Remove Item from Combo
+        tags:
+            - Cinemas
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: cinemaId
+              in: path
+              required: true
+              schema:
+                  type: integer
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+            - name: itemId
+              in: path
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Item removed from combo

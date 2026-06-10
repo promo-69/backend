@@ -5,6 +5,17 @@ module.exports = {
 	async up(queryInterface, Sequelize) {
 		// --- MÓDULO 3: INFRAESTRUCTURA ---
 		await queryInterface.bulkInsert(
+			'room_types',
+			[
+				{ id: 1, description: 'Tradicional' },
+				{ id: 2, description: 'Premium' },
+				{ id: 3, description: 'VIP' },
+				{ id: 4, description: 'IMAX' },
+			],
+			{},
+		);
+
+		await queryInterface.bulkInsert(
 			'projection_types',
 			[
 				{ id: 1, description: '2D Digital' },
@@ -44,13 +55,27 @@ module.exports = {
 					code: 'USD',
 					description: 'Dólar Estadounidense',
 					symbol: '$',
-					is_base_currency: true,
+					is_base_currency: false,
 				},
 				{
 					id: 2,
 					code: 'VES',
 					description: 'Bolívar Soberano',
 					symbol: 'Bs.',
+					is_base_currency: true,
+				},
+				{
+					id: 3,
+					code: 'PTS',
+					description: 'Cinepuntos',
+					symbol: 'Pts',
+					is_base_currency: false,
+				},
+				{
+					id: 4,
+					code: 'COP',
+					description: 'Peso Colombiano',
+					symbol: '$',
 					is_base_currency: false,
 				},
 			],
@@ -100,7 +125,6 @@ module.exports = {
 				{ id: 1, description: 'Adulto' },
 				{ id: 2, description: 'Niño' },
 				{ id: 3, description: 'Tercera Edad' },
-				{ id: 4, description: 'Estudiante' },
 			],
 			{},
 		);
@@ -129,20 +153,36 @@ module.exports = {
 			{},
 		);
 
+		await queryInterface.bulkInsert(
+			'languages',
+			[
+				{ id: 1, description: 'Español' },
+				{ id: 2, description: 'Inglés' },
+				{ id: 3, description: 'Portugués' },
+				{ id: 4, description: 'Francés' },
+				{ id: 5, description: 'Italiano' },
+			],
+			{},
+		);
+
+		await queryInterface.bulkInsert(
+			'booking_types',
+			[
+				{ id: 1, description: 'Película' },
+				{ id: 2, description: 'Evento Alternativo' },
+				{ id: 3, description: 'Alquiler Privado' },
+			],
+			{},
+		);
+
 		// --- GAMIFICACIÓN: Niveles Minerales ---
 		await queryInterface.bulkInsert(
 			'loyalty_levels',
 			[
-				{ id: 1, name: 'Cuarzo', required_points: 300 },
-				{ id: 2, name: 'Ámbar', required_points: 900 },
-				{ id: 3, name: 'Jade', required_points: 2100 },
-				{ id: 4, name: 'Ópalo', required_points: 4500 },
-				{ id: 5, name: 'Topacio', required_points: 9300 },
-				{ id: 6, name: 'Zafiro', required_points: 18900 },
-				{ id: 7, name: 'Esmeralda', required_points: 38100 },
-				{ id: 8, name: 'Rubí', required_points: 76500 },
-				{ id: 9, name: 'Diamante', required_points: 153300 },
-				{ id: 10, name: 'Obsidiana', required_points: 306900 },
+				{ id: 1, name: 'Bronce', required_points: 300 },
+				{ id: 2, name: 'Plata', required_points: 900 },
+				{ id: 3, name: 'Oro', required_points: 2100 },
+				{ id: 4, name: 'VIP', required_points: 4500 },
 			],
 			{},
 		);
@@ -164,9 +204,9 @@ module.exports = {
 			'order_statuses',
 			[
 				{ id: 1, description: 'Pendiente de Pago' },
-				{ id: 2, description: 'Pagada / Completada' },
+				{ id: 2, description: 'Pagada' },
 				{ id: 3, description: 'Cancelada' },
-				{ id: 4, description: 'Reembolsada' },
+				{ id: 4, description: 'Completada' },
 			],
 			{},
 		);
@@ -205,13 +245,16 @@ module.exports = {
 			'loyalty_levels',
 			'modifier_scopes',
 			'week_days',
+			'booking_types',
 			'audience_categories',
 			'movie_lifecycle_states',
 			'age_classifications',
+			'languages',
 			'genres',
 			'currencies',
 			'seat_conditions',
 			'seat_categories',
+			'room_types',
 			'projection_types',
 		];
 

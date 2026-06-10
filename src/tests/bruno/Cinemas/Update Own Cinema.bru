@@ -1,0 +1,29 @@
+meta {
+  name: Update Own Cinema
+  type: http
+  seq: 6
+}
+
+patch {
+  url: {{baseUrl}}/cinemas
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "name": "My Cinema Updated",
+    "address": "789 Manager Ave",
+    "openingTime": "10:00",
+    "closingTime": "22:30"
+  }
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  bru.setVar('baseUrl', baseUrl);
+}

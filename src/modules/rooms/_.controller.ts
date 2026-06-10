@@ -1,86 +1,92 @@
 import { ControllerBase } from '@bases/controller.base.js';
 import RoomsService from './_.service.js';
+import SeatManagementService from '@services/seat-management.service.js';
 
 class RoomsController extends ControllerBase {
-	constructor() {
-		super();
-	}
+    constructor() {
+        super();
+    }
 
-	// GET /api/v1/cinemas/:cinemaId/rooms
-	async findAll() {
-		const { cinemaId } = this.getParams();
+    // GET /rooms — stock de la sede implícita (cinemaId del JWT)
+    async findAll() {
+        const session = this.getSession<any>();
+        const data = await RoomsService.findAll(session?.cinemaId, this.getQueryFilters());
+        return data;
+    }
 
-		if (cinemaId !== undefined) {
-			const data = await RoomsService.findAll(Number(cinemaId), this.getQueryFilters());
-			return data;
-		}
+    // GET /rooms/:id
+    async findById() {
+        const { id } = this.getParams();
+        const data = await RoomsService.findById(Number(id));
+        return this.success(data, 'Sala obtenida exitosamente');
+    }
 
-		const data = await RoomsService.findAll(undefined, this.getQueryFilters());
-		return data;
-	}
+    // GET /rooms/:id/projection-types
+    async findProjectionTypes() {
+        const { id } = this.getParams();
+        return RoomsService.findRoomProjectionTypes(Number(id));
+    }
 
-	async findProjectionTypes() {
-		const { id } = this.getParams();
-		const roomId = Number(id);
-		return RoomsService.findRoomProjectionTypes(roomId, this.getQueryFilters());
-	}
+    // POST /rooms/:id/projection-types
+    async createProjectionType() {
+        const { id } = this.getParams();
+        const { projectionType } = this.getBody();
+        const data = await RoomsService.createRoomProjectionType(Number(id), Number(projectionType));
+        return this.created(data, 'Tipo de proyección asignado');
+    }
 
-	async createProjectionType() {
-		const { id } = this.getParams();
-		const roomId = Number(id);
-		const projectionType = this.getBody().projection_type;
+    // DELETE /rooms/:id/projection-types/:projectionTypeId
+    async deleteProjectionType() {
+        const { id, projectionTypeId } = this.getParams();
+        await RoomsService.deleteRoomProjectionType(Number(id), Number(projectionTypeId));
+        return this.noContent();
+    }
 
-		const data = await RoomsService.createRoomProjectionType(roomId, { projection_type: projectionType });
-		this.created(data, 'Room projection type created successfully');
-	}
+    // PATCH /rooms/:id
+    async update() {
+        const { id } = this.getParams();
+        const body = this.getBody();
+        await RoomsService.updateRoom(Number(id), body);
+        return this.success(null, 'Sala actualizada exitosamente');
+    }
 
-	async deleteProjectionType() {
-		const { id, projectionTypeId } = this.getParams();
-		const roomPk = Number(id);
-		const projectionPk = Number(projectionTypeId);
+    // DELETE /rooms/:id
+    async remove() {
+        const { id } = this.getParams();
+        await RoomsService.deleteRoom(Number(id));
+        return this.success(null, 'Sala clausurada exitosamente');
+    }
 
-		await RoomsService.deleteRoomProjectionType(projectionPk, roomPk);
-		this.noContent();
-	}
+    // GET /rooms/:id/seats
+    async getSeatMap() {
+        const { id } = this.getParams();
+        const data = await RoomsService.getSeatMap(Number(id), this.getQueryFilters());
+        return this.success(data, 'Mapa de asientos obtenido exitosamente');
+    }
 
-	// GET /api/v1/rooms/:id
-	async findById() {
-		const { id } = this.getParams();
-		const data = await RoomsService.findById(Number(id));
-		return this.success(data, 'Sala obtenida exitosamente');
-	}
+    // POST /rooms/:id/seats — delega al caso de uso compartido de asientos
+    async createSeat() {
+        const { id } = this.getParams();
+        const body = this.getBody();
+        await SeatManagementService.createSeats(Number(id), body);
+        return this.created(null, 'Asiento(s) agregado(s) exitosamente');
+    }
 
-	// POST /api/v1/cinemas/:cinemaId/rooms
-	async create() {
-		const { cinemaId } = this.getParams();
-		const body = { ...this.getBody(), cinemaId: Number(cinemaId) };
-		const session = this.getSession<any>();
+    // PATCH /rooms/:id/seats — delega actualización masiva
+    async bulkUpdateSeats() {
+        const { id } = this.getParams();
+        const body = this.getBody();
+        await SeatManagementService.bulkUpdateSeats(Number(id), body);
+        return this.success(null, 'Asientos actualizados exitosamente');
+    }
 
-		const data = await RoomsService.createRoom(body, session?.userId);
-		return this.created(data, 'Sala registrada exitosamente. Pendiente por configurar asientos.');
-	}
-
-	// PUT /api/v1/rooms/:id
-	async update() {
-		const { id } = this.getParams();
-		const body = this.getBody();
-		await RoomsService.updateRoom(Number(id), body);
-		return this.success(null, 'Datos técnicos de la sala actualizados exitosamente.');
-	}
-
-	// DELETE /api/v1/rooms/:id
-	async remove() {
-		const { id } = this.getParams();
-		await RoomsService.deleteRoom(Number(id));
-		return this.success(null, 'Sala clausurada exitosamente.');
-	}
-
-	// GET /api/v1/rooms/:id/seats
-	async getSeatMap() {
-		const { id } = this.getParams();
-		const data = await RoomsService.getSeatMap(Number(id), this.getQueryFilters());
-		return this.success(data, 'Mapa de asientos obtenido exitosamente');
-	}
+    // PUT /rooms/:id/seat-grid — Configurar grilla de asientos (regenerar todos)
+    async configureSeatGrid() {
+        const { id } = this.getParams();
+        const body = this.getBody();
+        await RoomsService.configureSeatGrid(Number(id), body);
+        return this.success(null, 'Distribución de asientos actualizada exitosamente');
+    }
 }
 
 export default new RoomsController();

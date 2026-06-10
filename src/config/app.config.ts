@@ -13,7 +13,7 @@ export interface IAppConfig {
 	port: number;
 	host: string;
 	protocol: string;
-	nodeEnv: string;
+	appEnv: string;
 	apiBaseUrl: string;
 	corsOptions: CorsOptions;
 	enableCors: boolean;
@@ -28,6 +28,7 @@ export interface IAppConfig {
 	};
 	security: {
 		jwtSecret: string;
+		jwtCommonSecret: string;
 		jwtRefreshSecret: string;
 		jwtAccessExpiresIn: string;
 		jwtRefreshExpiresIn: string;
@@ -80,7 +81,7 @@ export class AppConfig {
 	static load(): IAppConfig {
 		if (this._configCache) return this._configCache;
 
-		const nodeEnv = (process.env.NODE_ENV || 'development').toLocaleLowerCase();
+		const appEnv = (process.env.APP_ENV || 'development').toLocaleLowerCase();
 		const protocol = (process.env.SECURE_PROTOCOL === 'true' ? 'https' : 'http').toLocaleLowerCase();
 		const host = (process.env.DOMAIN || process.env.API_HOST || '127.0.0.1').toLocaleLowerCase();
 		const port = parseInt((process.env.PORT || '3000').toString(), 10);
@@ -96,7 +97,7 @@ export class AppConfig {
 			port,
 			host,
 			protocol,
-			nodeEnv,
+			appEnv,
 			apiBaseUrl,
 			corsOptions: {
 				methods: ['GET', 'PUT', 'POST', 'DELETE', 'PATCH', 'OPTIONS'],
@@ -118,6 +119,7 @@ export class AppConfig {
 			},
 			security: {
 				jwtSecret: process.env.JWT_SECRET || 'your-secret-key-change-in-production',
+				jwtCommonSecret: process.env.JWT_COMMON_SECRET || '',
 				jwtRefreshSecret: process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key-change-in-production',
 				jwtAccessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '1h',
 				jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
@@ -169,11 +171,11 @@ export class AppConfig {
 	}
 
 	static isProduction(): boolean {
-		return this.load().nodeEnv.toLocaleLowerCase() === 'production';
+		return this.load().appEnv.toLocaleLowerCase() === 'production';
 	}
 
 	static isDevelopment(): boolean {
-		return this.load().nodeEnv.toLocaleLowerCase() === 'development';
+		return this.load().appEnv.toLocaleLowerCase() === 'development';
 	}
 
 	static getEnabledDatabases(): string[] {

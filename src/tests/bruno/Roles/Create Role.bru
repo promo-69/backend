@@ -1,0 +1,35 @@
+meta {
+  name: Create Role
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/roles
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "code": "BRU_ROLE",
+    "name": "Bruno Role",
+    "description": "Rol de prueba para Bruno"
+  }
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  bru.setVar('baseUrl', baseUrl);
+}
+
+script:post-response {
+  const resBody = res.getBody();
+  if (res.getStatus() === 200 && resBody && resBody.data && resBody.data.id) {
+    bru.setEnvVar('testRoleId', resBody.data.id);
+  }
+}

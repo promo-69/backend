@@ -6,6 +6,7 @@ const { nanoid } = require('nanoid');
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
 	async up(queryInterface, Sequelize) {
+		// --- MÓDULO 2: SUCURSALES ---
 		await queryInterface.bulkInsert(
 			'cinemas',
 			[
@@ -35,6 +36,7 @@ module.exports = {
 				{
 					id: 1,
 					cinema: 1,
+					room_type: 1,
 					name: 'Sala 1',
 					grid_rows: 5,
 					grid_columns: 8,
@@ -42,6 +44,7 @@ module.exports = {
 				{
 					id: 2,
 					cinema: 1,
+					room_type: 1,
 					name: 'Sala 2',
 					grid_rows: 4,
 					grid_columns: 6,
@@ -107,6 +110,7 @@ module.exports = {
 			{},
 		);
 
+		// --- MÓDULO 5: CARTELERA ---
 		await queryInterface.bulkInsert(
 			'movies',
 			[
@@ -146,26 +150,52 @@ module.exports = {
 		);
 
 		await queryInterface.bulkInsert(
+			'room_bookings',
+			[
+				{
+					id: 1,
+					room: 1,
+					start_time: '2026-06-10 18:00:00',
+					end_time: '2026-06-10 20:00:00',
+					booking_type: 1,
+				},
+				{
+					id: 2,
+					room: 2,
+					start_time: '2026-06-17 20:30:00',
+					end_time: '2026-06-17 22:05:00',
+					booking_type: 1,
+				},
+				{
+					id: 3,
+					room: 2,
+					start_time: '2026-06-21 14:00:00',
+					end_time: '2026-06-21 18:00:00',
+					booking_type: 3,
+				},
+			],
+			{},
+		);
+
+		await queryInterface.bulkInsert(
 			'showtimes',
 			[
 				{
 					id: 1,
+					booking: 1,
 					movie: 1,
-					room: 1,
 					projection_type: 1,
-					start_time: '2026-05-01 18:00:00',
-					end_time: '2026-05-01 20:00:00',
+					language: 1,
 					currency: 1,
 					price: 12.5,
 					earned_loyalty_points: 25,
 				},
 				{
 					id: 2,
+					booking: 2,
 					movie: 2,
-					room: 2,
 					projection_type: 1,
-					start_time: '2026-05-01 20:30:00',
-					end_time: '2026-05-01 22:05:00',
+					language: 1,
 					currency: 1,
 					price: 10.0,
 					earned_loyalty_points: 20,
@@ -174,6 +204,7 @@ module.exports = {
 			{},
 		);
 
+		// --- MÓDULO 2: PERSONAS, CLIENTES Y EMPLEADOS ---
 		await queryInterface.bulkInsert(
 			'people',
 			[
@@ -197,6 +228,16 @@ module.exports = {
 					personal_email: 'admin.super@cineflix.com',
 					birth_date: '1985-01-01',
 				},
+				{
+					id: 3,
+					document_number: 'V-00000000',
+					first_name: 'Sucursal',
+					last_name: 'Cine',
+					gender: 1,
+					phone_number: '+58 212-555-0001',
+					personal_email: 'sucural@cineflix.com',
+					birth_date: '1985-01-02',
+				},
 			],
 			{},
 		);
@@ -208,7 +249,7 @@ module.exports = {
 					id: 1,
 					person: 1,
 					loyalty_level: 1,
-					level_progress_points: 80,
+					level_progress_points: 281,
 					registration_date: '2026-04-01 12:00:00',
 				},
 			],
@@ -223,6 +264,11 @@ module.exports = {
 					person: 2,
 					employee_code: 'ADM001',
 				},
+				{
+					id: 2,
+					person: 3,
+					employee_code: 'SUC001',
+				},
 			],
 			{},
 		);
@@ -233,7 +279,16 @@ module.exports = {
 				{
 					id: 1,
 					employee: 1,
-					job_position: 1,
+					job_position: 1, // Gerente General
+					cinema: 1,
+					start_date: '2026-04-01',
+					end_date: null,
+					salary_base: 5000.0,
+				},
+				{
+					id: 2,
+					employee: 2,
+					job_position: 2, // Gerente de Sucursal
 					cinema: 1,
 					start_date: '2026-04-01',
 					end_date: null,
@@ -244,13 +299,13 @@ module.exports = {
 		);
 
 		await queryInterface.bulkInsert(
-			'movie_subscriptions',
+			'movie_user_subscriptions',
 			[{ id: 1, customer: 1, movie: 1, is_notified: true }],
 			{},
 		);
 
-		const mariaPassword = await bcrypt.hash('password123.', 10);
-		const adminPassword = await bcrypt.hash(process.env.SUPER_ADMIN_PASSWORD, 10);
+		const mariaPassword = await bcrypt.hash('Password123.', 10);
+		const adminPassword = await bcrypt.hash(process.env.SUPER_ADMIN_PASSWORD || 'Admin123456*', 10);
 
 		await queryInterface.bulkInsert(
 			'users',
@@ -258,7 +313,7 @@ module.exports = {
 				{
 					id: 1,
 					person: 1,
-					user_type: 2,
+					user_type: 2, // Cliente
 					role: null,
 					email: 'maria.perez@example.com',
 					password: mariaPassword,
@@ -268,9 +323,19 @@ module.exports = {
 				{
 					id: 2,
 					person: 2,
-					user_type: 1,
+					user_type: 1, // Empleado
+					role: 1, // SUPER_ADMIN
+					email: process.env.SUPER_ADMIN_EMAIL || 'admin@cineflix.com',
+					password: adminPassword,
+					signup_code: await bcrypt.hash(nanoid(20), 10),
+					signup_verified_at: new Date(),
+				},
+				{
+					id: 3,
+					person: 3,
+					user_type: 1, // Empleado
 					role: 1,
-					email: process.env.SUPER_ADMIN_EMAIL,
+					email: 'sucursal@cineflix.com',
 					password: adminPassword,
 					signup_code: await bcrypt.hash(nanoid(20), 10),
 					signup_verified_at: new Date(),
@@ -278,18 +343,534 @@ module.exports = {
 			],
 			{},
 		);
+
+		// --- MÓDULO 4 Y 7: ECONOMÍA, IMPUESTOS Y REGLAS ---
+		await queryInterface.bulkInsert(
+			'taxes',
+			[
+				{
+					id: 1,
+					name: 'IVA 16%',
+					rate: 16.0,
+					is_percentage: true,
+				},
+			],
+			{},
+		);
+
+		await queryInterface.bulkInsert(
+			'tax_rules',
+			[
+				{
+					id: 1,
+					tax: 1,
+					tax_scope: 3, // Global
+				},
+			],
+			{},
+		);
+
+		await queryInterface.bulkInsert(
+			'exchange_rates',
+			[
+				{
+					id: 1,
+					currency: 1, // USD
+					rate: 36.5,
+					user: 2, // Empleado (Admin)
+				},
+				{
+					id: 2,
+					currency: 2, // Bolívares (VES)
+					rate: 1.0,
+					user: 2,
+				},
+				{
+					id: 3,
+					currency: 3, // Cinepuntos
+					rate: 0.5,
+					user: 2,
+				},
+				{
+					id: 4,
+					currency: 4, // COP
+					rate: 20,
+					user: 2,
+				},
+			],
+			{},
+		);
+
+		await queryInterface.bulkInsert(
+			'price_modifiers',
+			[
+				{
+					id: 1,
+					description: 'Descuento Estudiantil (20% en boletería)',
+					operation_type: 2, // Resta (descuento)
+					is_percentage: true,
+					value: 20.0,
+					modifier_scope: 1, // Boletería
+					audience_category: 3, // Estudiante
+				},
+			],
+			{},
+		);
+
+		// --- MÓDULO 6: INVENTARIO, PRODUCTOS Y COMBOS ---
+		await queryInterface.bulkInsert(
+			'products',
+			[
+				{
+					id: 1,
+					name: 'Cotufas Grandes',
+					sku: 'PROD-POPCORN-LG',
+					product_category: 2, // Snacks
+					currency: 1, // USD
+					price: 5.0,
+					earned_loyalty_points: 10,
+				},
+				{
+					id: 2,
+					name: 'Refresco Mediano',
+					sku: 'PROD-SODA-MD',
+					product_category: 1, // Bebidas
+					currency: 1, // USD
+					price: 2.5,
+					earned_loyalty_points: 5,
+				},
+				{
+					id: 3,
+					name: 'Chocolate Extremo',
+					sku: 'PROD-CHOCO-EXT',
+					product_category: 3, // Chocolatería y Dulces
+					currency: 1, // USD
+					price: 3.0,
+					earned_loyalty_points: 6,
+				},
+				{
+					id: 4,
+					name: 'Nachos con Queso',
+					sku: 'PROD-NACHO-CHZ',
+					product_category: 2, // Snacks
+					currency: 1, // USD
+					price: 4.5,
+					earned_loyalty_points: 9,
+				},
+				{
+					id: 5,
+					name: 'Tequeños',
+					sku: 'PROD-TEQ-001',
+					product_category: 2, // Snacks
+					currency: 1, // USD
+					price: 5.5,
+					earned_loyalty_points: 11,
+				},
+				{
+					id: 6,
+					name: 'Agua Mineral',
+					sku: 'PROD-WTR-SM',
+					product_category: 1, // Bebidas
+					currency: 1, // USD
+					price: 1.5,
+					earned_loyalty_points: 3,
+				},
+				{
+					id: 7,
+					name: 'Refresco Grande',
+					sku: 'PROD-SODA-LG',
+					product_category: 1, // Bebidas
+					currency: 1, // USD
+					price: 3.5,
+					earned_loyalty_points: 7,
+				},
+				{
+					id: 8,
+					name: 'Cotufas Pequeñas',
+					sku: 'PROD-POPCORN-SM',
+					product_category: 2, // Snacks
+					currency: 1, // USD
+					price: 3.0,
+					earned_loyalty_points: 6,
+				},
+			],
+			{},
+		);
+
+		await queryInterface.bulkInsert(
+			'combos',
+			[
+				{
+					id: 1,
+					cinema: 1,
+					name: 'Combo Pareja',
+					sku: 'CMB-DUO',
+					description: '1 Cotufa Grande + 2 Refrescos Medianos con descuento especial',
+					currency: 1, // USD
+					price: 8.5,
+					earned_loyalty_points: 18,
+				},
+				{
+					id: 2,
+					cinema: 1,
+					name: 'Combo Familiar',
+					sku: 'CMB-FAM',
+					description: '2 Cotufas Grandes + 4 Refrescos Medianos',
+					currency: 1,
+					price: 18.0,
+					earned_loyalty_points: 36,
+				},
+				{
+					id: 3,
+					cinema: 2,
+					name: 'Combo Solitario',
+					sku: 'CMB-SOLO',
+					description: '1 Cotufas Pequeñas + 1 Refresco Mediano',
+					currency: 1,
+					price: 5.0,
+					earned_loyalty_points: 10,
+				},
+				{
+					id: 4,
+					cinema: 2,
+					name: 'Combo Snack',
+					sku: 'CMB-SNK',
+					description: '1 Nachos + 1 Tequeños + 2 Aguas',
+					currency: 1,
+					price: 12.0,
+					earned_loyalty_points: 24,
+				},
+				{
+					id: 5,
+					cinema: 1,
+					name: 'Combo Premium',
+					sku: 'CMB-PRM',
+					description: '1 Cotufa Grande + 2 Refrescos Grandes + 1 Chocolate',
+					currency: 1,
+					price: 14.0,
+					earned_loyalty_points: 28,
+				},
+			],
+			{},
+		);
+
+		await queryInterface.bulkInsert(
+			'combo_products',
+			[
+				{ id: 1, combo: 1, product: 1, quantity: 1 },
+				{ id: 2, combo: 1, product: 2, quantity: 2 },
+				{ id: 3, combo: 2, product: 1, quantity: 2 },
+				{ id: 4, combo: 2, product: 2, quantity: 4 },
+				{ id: 5, combo: 3, product: 8, quantity: 1 },
+				{ id: 6, combo: 3, product: 2, quantity: 1 },
+				{ id: 7, combo: 4, product: 4, quantity: 1 },
+				{ id: 8, combo: 4, product: 5, quantity: 1 },
+				{ id: 9, combo: 4, product: 6, quantity: 2 },
+				{ id: 10, combo: 5, product: 1, quantity: 1 },
+				{ id: 11, combo: 5, product: 7, quantity: 2 },
+				{ id: 12, combo: 5, product: 3, quantity: 1 },
+			],
+			{},
+		);
+
+		await queryInterface.bulkInsert(
+			'inventories',
+			[
+				{ id: 1, cinema: 1, product: 1, minimum_stock: 10 },
+				{ id: 2, cinema: 1, product: 2, minimum_stock: 20 },
+				{ id: 3, cinema: 1, product: 3, minimum_stock: 5 },
+				{ id: 4, cinema: 1, product: 4, minimum_stock: 10 },
+				{ id: 5, cinema: 1, product: 5, minimum_stock: 10 },
+				{ id: 6, cinema: 1, product: 6, minimum_stock: 10 },
+				{ id: 7, cinema: 1, product: 7, minimum_stock: 10 },
+				{ id: 8, cinema: 1, product: 8, minimum_stock: 10 },
+				{ id: 9, cinema: 2, product: 5, minimum_stock: 10 },
+				{ id: 10, cinema: 2, product: 6, minimum_stock: 10 },
+				{ id: 11, cinema: 2, product: 7, minimum_stock: 10 },
+				{ id: 12, cinema: 2, product: 8, minimum_stock: 10 },
+			],
+			{},
+		);
+
+		await queryInterface.bulkInsert(
+			'inventory_movements',
+			[
+				{
+					id: 1,
+					inventory: 1,
+					operation_type: 3, // Entrada
+					quantity: 100,
+					unit_cost: 1.5,
+					currency: 1,
+					user: 2,
+					resulting_stock: 100,
+					resulting_unit_cost_base_currency: 1.5,
+					remarks: 'Carga inicial de stock',
+				},
+				{
+					id: 2,
+					inventory: 2,
+					operation_type: 3, // Entrada
+					quantity: 200,
+					unit_cost: 0.8,
+					currency: 1,
+					user: 2,
+					resulting_stock: 200,
+					resulting_unit_cost_base_currency: 0.8,
+					remarks: 'Carga inicial de stock',
+				},
+				{
+					id: 3,
+					inventory: 3,
+					operation_type: 3, // Entrada
+					quantity: 50,
+					unit_cost: 1.0,
+					currency: 1,
+					user: 2,
+					resulting_stock: 50,
+					resulting_unit_cost_base_currency: 1.0,
+					remarks: 'Carga inicial de stock',
+				},
+				...Array.from({ length: 8 }, (_, i) => ({
+					id: 4 + i,
+					inventory: 4 + i,
+					operation_type: 3,
+					quantity: 100,
+					unit_cost: 1.0,
+					currency: 1,
+					user: 2,
+					resulting_stock: 100,
+					resulting_unit_cost_base_currency: 1.0,
+					remarks: 'Carga inicial de stock',
+				})),
+			],
+			{},
+		);
+
+		// --- MÓDULO 7: ORDENES, DETALLES, TICKETS Y PAGOS ---
+
+		// ORDEN 1: Alquiler de Sala Privada (Aceptado y Pagado)
+		// Cotización: Alquiler espacio ($150) + Catering de 10 Cotufas ($50) y 20 Refrescos ($50) = Subtotal $250.00
+		// Impuestos: IVA 16% = $40.00. Total = $290.00
+		await queryInterface.bulkInsert(
+			'orders',
+			[
+				{
+					id: 1,
+					customer: 1,
+					employee: 1, // Admin aprobador
+					cinema: 1,
+					system_base_currency: 1, // USD
+					subtotal_base_currency: 250.0,
+					tax_amount_base_currency: 40.0,
+					total_amount_base_currency: 290.0,
+					generated_points: 250,
+					order_status: 2, // Pagada / Completada
+				},
+			],
+			{},
+		);
+
+		await queryInterface.bulkInsert(
+			'order_taxes',
+			[
+				{
+					id: 1,
+					order: 1,
+					tax: 1, // IVA 16%
+					applied_rate: 16.0,
+					tax_amount_base_currency: 40.0,
+				},
+			],
+			{},
+		);
+
+		await queryInterface.bulkInsert(
+			'order_payments',
+			[
+				{
+					id: 1,
+					order: 1,
+					payment_method: 1, // Efectivo Divisas
+					amount: 290.0,
+					quoted_exchange_rate: 1, // Tasa USD base = 1
+					reference_number: 'PAY-RENTAL-001',
+					is_approved: true,
+				},
+			],
+			{},
+		);
+
+		// ORDEN 2: Compra Regular en Taquilla
+		// Detalle: 2 boletos para Showtime 1. Boleto 1 aplica Descuento Estudiantil ($12.50 -> $10.00). Boleto 2 normal ($12.50)
+		// Adicional: 1 Combo Pareja ($8.50)
+		// Subtotal = $10.00 + $12.50 + $8.50 = $31.00
+		// Impuestos: IVA 16% = $4.96. Total = $35.96
+		await queryInterface.bulkInsert(
+			'orders',
+			[
+				{
+					id: 2,
+					customer: 1,
+					employee: null, // Compra web por la cliente
+					cinema: 1,
+					system_base_currency: 1, // USD
+					subtotal_base_currency: 31.0,
+					tax_amount_base_currency: 4.96,
+					total_amount_base_currency: 35.96,
+					generated_points: 31,
+					order_status: 2, // Pagada
+				},
+			],
+			{},
+		);
+
+		await queryInterface.bulkInsert(
+			'order_taxes',
+			[
+				{
+					id: 2,
+					order: 2,
+					tax: 1, // IVA 16%
+					applied_rate: 16.0,
+					tax_amount_base_currency: 4.96,
+				},
+			],
+			{},
+		);
+
+		await queryInterface.bulkInsert(
+			'order_lines',
+			[
+				{
+					id: 1,
+					order: 2,
+					line_type: 2, // Combo
+					product: null,
+					combo: 1,
+					quantity: 1,
+					original_unit_price: 8.5,
+					unit_price: 8.5,
+					quoted_exchange_rate: 1,
+				},
+			],
+			{},
+		);
+
+		await queryInterface.bulkInsert(
+			'tickets',
+			[
+				{
+					id: 1,
+					order: 2,
+					booking: 1, // Showtime 1 booking
+					audience_category: 3,
+					seat: 1,
+					original_price: 12.5,
+					price: 10.0, // Con descuento
+					quoted_exchange_rate: 1,
+					validation_time: null,
+				},
+				{
+					id: 2,
+					order: 2,
+					booking: 1,
+					audience_category: 1,
+					seat: 2,
+					original_price: 12.5,
+					price: 12.5, // Normal
+					quoted_exchange_rate: 1,
+					validation_time: null,
+				},
+			],
+			{},
+		);
+
+		// Aplicar el descuento polimórfico al Ticket 1
+		await queryInterface.bulkInsert(
+			'applied_price_modifiers',
+			[
+				{
+					id: 1,
+					price_modifier: 1, // Descuento Estudiantil
+					order: null,
+					ticket: 1,
+					order_line: null,
+					rental_request: null,
+					rental_catering: null,
+					applied_amount_base_currency: 2.5, // Se descontaron 2.50$
+				},
+			],
+			{},
+		);
+
+		await queryInterface.bulkInsert(
+			'order_payments',
+			[
+				{
+					id: 2,
+					order: 2,
+					payment_method: 3, // Punto de venta
+					amount: 35.96,
+					quoted_exchange_rate: 1,
+					reference_number: 'PAY-TICKET-001',
+					is_approved: true,
+				},
+			],
+			{},
+		);
+
+		// --- MÓDULO 2 Y FIDELIDAD: REGISTRO EN EL LIBRO DE FIDELIDAD (LEDGER) ---
+		await queryInterface.bulkInsert(
+			'loyalty_ledgers',
+			[
+				{
+					id: 1,
+					customer: 1,
+					order: 1,
+					operation_type: 1, // Suma de puntos por compra
+					points: 250,
+					points_balance: 250,
+				},
+				{
+					id: 2,
+					customer: 1,
+					order: 2,
+					operation_type: 1, // Suma de puntos por compra
+					points: 31,
+					points_balance: 281, // Balance total actual del cliente (250 + 31 = 281)
+				},
+			],
+			{},
+		);
 	},
 
 	async down(queryInterface, Sequelize) {
+		// Reversión estricta en orden inverso de dependencias de claves foráneas
+		await queryInterface.bulkDelete('loyalty_ledgers', null, {});
+		await queryInterface.bulkDelete('applied_price_modifiers', null, {});
+		await queryInterface.bulkDelete('order_payments', null, {});
+		await queryInterface.bulkDelete('tickets', null, {});
+		await queryInterface.bulkDelete('order_lines', null, {});
+		await queryInterface.bulkDelete('order_taxes', null, {});
+		await queryInterface.bulkDelete('orders', null, {});
+		await queryInterface.bulkDelete('inventory_movements', null, {});
+		await queryInterface.bulkDelete('inventories', null, {});
+		await queryInterface.bulkDelete('combo_products', null, {});
+		await queryInterface.bulkDelete('combos', null, {});
+		await queryInterface.bulkDelete('products', null, {});
+		await queryInterface.bulkDelete('price_modifiers', null, {});
+		await queryInterface.bulkDelete('exchange_rates', null, {});
+		await queryInterface.bulkDelete('tax_rules', null, {});
+		await queryInterface.bulkDelete('taxes', null, {});
 		await queryInterface.bulkDelete('users', null, {});
 		await queryInterface.bulkDelete('employee_positions', null, {});
 		await queryInterface.bulkDelete('employees', null, {});
-		await queryInterface.bulkDelete('movie_subscriptions', null, {});
+		await queryInterface.bulkDelete('movie_user_subscriptions', null, {});
 		await queryInterface.bulkDelete('customers', null, {});
 		await queryInterface.bulkDelete('people', null, {});
 		await queryInterface.bulkDelete('showtimes', null, {});
-		await queryInterface.bulkDelete('movie_genres', null, {});
-		await queryInterface.bulkDelete('movies', null, {});
+		await queryInterface.bulkDelete('room_bookings', null, {});
 		await queryInterface.bulkDelete('seats', null, {});
 		await queryInterface.bulkDelete('room_projection_types', null, {});
 		await queryInterface.bulkDelete('rooms', null, {});

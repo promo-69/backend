@@ -1,0 +1,93 @@
+/inventory:
+    get:
+        summary: Get My Inventory
+        description: |
+            Returns the stock of all products in the cinema assigned to the authenticated user (JWT).
+            Required permission: **CRUD:READ:INVENTORY**
+        tags:
+            - Inventory
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: cinemaId
+              in: query
+              description: Optional cinema ID to filter inventory. Used if the user is not assigned to a cinema.
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Inventory list
+            '401':
+                description: Unauthorized
+            '500':
+                description: Internal server error
+
+/inventory/{id}:
+    get:
+        summary: Get Inventory Detail
+        description: |
+            Returns the inventory record with all its movements.
+            Required permission: **CRUD:READ:INVENTORY**
+        tags:
+            - Inventory
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Inventory detail
+            '401':
+                description: Unauthorized
+            '404':
+                description: Inventory not found
+            '500':
+                description: Internal server error
+
+/inventory/{id}/movements:
+    post:
+        summary: Register Movements
+        description: |
+            Register one or more inventory movements. The body is an array of movement objects.
+            Required permission: **CRUD:CREATE:INVENTORY_MOVEMENT**
+        tags:
+            - Inventory
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: array
+                        items:
+                            type: object
+                            required:
+                                - operationType
+                                - quantity
+                            properties:
+                                operationType:
+                                    type: integer
+                                quantity:
+                                    type: integer
+                                remarks:
+                                    type: string
+        responses:
+            '201':
+                description: Movements registered
+            '400':
+                description: Validation error
+            '401':
+                description: Unauthorized
+            '500':
+                description: Internal server error

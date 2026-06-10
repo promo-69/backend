@@ -1,29 +1,75 @@
 import { Router } from 'express';
 import concessionsController from './_.controller.js';
-import { verifySession, verifyRole } from '@middlewares/auth.middleware.js';
+import { verifySession, verifyPermission, optionalAuth } from '@middlewares/auth.middleware.js';
+import { uploadFields } from '@middlewares/upload.middleware.js';
 
 const router = Router();
-const adminRoles = ['SUPER_ADMIN', 'CINEMA_MANAGER'];
 
-// Products
-router.get('/products', concessionsController.findAllProducts);
-router.get('/products/:id', concessionsController.findProductById);
-router.post('/products', verifySession, verifyRole(adminRoles), concessionsController.createProduct);
-router.put('/products/:id', verifySession, verifyRole(adminRoles), concessionsController.updateProduct);
+const imageUpload = uploadFields([{ name: 'image', maxCount: 1 }], {
+	maxSizeMB: 10,
+	allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp'],
+});
 
-// Combos
-router.get('/combos', concessionsController.findAllCombos);
-router.get('/combos/:id', concessionsController.findComboById);
-router.post('/combos', verifySession, verifyRole(adminRoles), concessionsController.createCombo);
-router.put('/combos/:id', verifySession, verifyRole(adminRoles), concessionsController.updateCombo);
+// --- Products (GET públicos) ---
+router.get('/products', optionalAuth, concessionsController.findAllProducts);
+router.get('/products/available', optionalAuth, concessionsController.findAllAvailableProducts);
+router.get('/products/:id', optionalAuth, concessionsController.findProductById);
 
-// Inventario por sucursal
-router.get('/inventory/:cinemaId', verifySession, concessionsController.findInventoryByCinema);
+// --- Products (gestión interna) ---
 router.post(
-	'/inventory/:cinemaId/products/:productId/replenish',
+	'/products',
 	verifySession,
-	verifyRole(adminRoles),
-	concessionsController.replenishInventory,
+	verifyPermission('CRUD:CREATE:PRODUCTS'),
+	imageUpload,
+	concessionsController.createProduct,
+);
+router.patch(
+	'/products/:id',
+	verifySession,
+	verifyPermission('CRUD:UPDATE:PRODUCTS'),
+	imageUpload,
+	concessionsController.updateProduct,
+);
+router.delete(
+	'/products/:id',
+	verifySession,
+	verifyPermission('CRUD:DELETE:PRODUCTS'),
+	concessionsController.deleteProduct,
+);
+
+// --- Combos (GET públicos) ---
+router.get('/combos', optionalAuth, concessionsController.findAllCombos);
+router.get('/combos/available', optionalAuth, concessionsController.findAllAvailableCombos);
+router.get('/combos/:id', optionalAuth, concessionsController.findComboById);
+
+// --- Combos (gestión interna) ---
+router.post(
+	'/combos',
+	verifySession,
+	verifyPermission('CRUD:CREATE:COMBOS'),
+	imageUpload,
+	concessionsController.createCombo,
+);
+router.patch(
+	'/combos/:id',
+	verifySession,
+	verifyPermission('CRUD:UPDATE:COMBOS'),
+	imageUpload,
+	concessionsController.updateCombo,
+);
+router.delete('/combos/:id', verifySession, verifyPermission('CRUD:DELETE:COMBOS'), concessionsController.deleteCombo);
+// --- Combo Items (BOM) ---
+router.post(
+	'/combos/:id/items',
+	verifySession,
+	verifyPermission('FEAT:MANAGE:COMBOS_ITEMS'),
+	concessionsController.addComboItems,
+);
+router.delete(
+	'/combos/:id/items/:itemId',
+	verifySession,
+	verifyPermission('FEAT:MANAGE:COMBOS_ITEMS'),
+	concessionsController.removeComboItem,
 );
 
 export default router;

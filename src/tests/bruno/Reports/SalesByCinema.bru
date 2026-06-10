@@ -1,0 +1,30 @@
+meta {
+  name: Sales By Cinema (Super Admin)
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/reports/cinemas/{{cinemaId}}/sales
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  from: {{fromDate}}
+  to: {{toDate}}
+  channel: all
+}
+
+vars:pre-request {
+  cinemaId: 1
+}
+
+docs {
+  Reporte de ventas de una sucursal específica. Requiere SUPER_ADMIN.
+  Permiso: CRUD:READ:REPORTS-ALL
+}

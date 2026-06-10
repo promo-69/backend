@@ -1,23 +1,43 @@
 import { Router } from 'express';
 import roomsController from './_.controller.js';
-import seatsController from '../seats/_.controller.js';
-import { verifySession, verifyRole } from '@middlewares/auth.middleware.js';
+import { verifySession, verifyPermission } from '@middlewares/auth.middleware.js';
 
-const router = Router();
+const router = Router({ mergeParams: true });
 
-const adminRoles = ['SUPER_ADMIN', 'CINEMA_MANAGER'];
+// GET /rooms — todas las salas del sistema (o de la sucursal implícita si el usuario tiene cinemaId)
+router.get('/', verifySession, verifyPermission('CRUD:READ:ROOMS'), roomsController.findAll);
 
-// Salas
-router.get('/', verifySession, roomsController.findAll);
-router.get('/:id/projection-types', verifySession, roomsController.findProjectionTypes);
-router.post('/:id/projection-types', verifySession, roomsController.createProjectionType);
-router.delete('/:id/projection-types/:projectionTypeId', verifySession, roomsController.deleteProjectionType);
-router.get('/:id', verifySession, roomsController.findById);
-router.put('/:id', verifySession, /* verifyRole(adminRoles), */ roomsController.update);
-router.delete('/:id', verifySession, /* verifyRole(['SUPER_ADMIN']), */ roomsController.remove);
+// Detalle y actualización de sala
+router.get('/:id', verifySession, verifyPermission('CRUD:READ:ROOMS'), roomsController.findById);
+router.patch('/:id', verifySession, verifyPermission('CRUD:UPDATE:ROOMS'), roomsController.update);
+router.delete('/:id', verifySession, verifyPermission('CRUD:DELETE:ROOMS'), roomsController.remove);
 
-// Asientos de una sala
-router.get('/:id/seats', verifySession, roomsController.getSeatMap);
-router.post('/:id/seats', verifySession, /* verifyRole(adminRoles), */ seatsController.create);
+// Tipos de proyección
+router.get(
+    '/:id/projection-types',
+    verifySession,
+    verifyPermission('CRUD:READ:ROOMS'),
+    roomsController.findProjectionTypes,
+);
+router.post(
+    '/:id/projection-types',
+    verifySession,
+    verifyPermission('CRUD:UPDATE:ROOMS'),
+    roomsController.createProjectionType,
+);
+router.delete(
+    '/:id/projection-types/:projectionTypeId',
+    verifySession,
+    verifyPermission('CRUD:UPDATE:ROOMS'),
+    roomsController.deleteProjectionType,
+);
+
+// Asientos
+router.get('/:id/seats', verifySession, verifyPermission('CRUD:READ:SEATS'), roomsController.getSeatMap);
+router.post('/:id/seats', verifySession, verifyPermission('CRUD:CREATE:SEATS'), roomsController.createSeat);
+router.patch('/:id/seats', verifySession, verifyPermission('CRUD:UPDATE:SEATS'), roomsController.bulkUpdateSeats);
+
+//Configurar grilla de asientos (regenerar todos)
+router.put('/:id/seat-grid', verifySession, verifyPermission('CRUD:UPDATE:ROOMS'), roomsController.configureSeatGrid);
 
 export default router;

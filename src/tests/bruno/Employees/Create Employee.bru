@@ -16,26 +16,28 @@ auth:bearer {
 
 body:json {
   {
-    "documentNumber": "BRU123456",
+    "documentNumber": "V-123456",
     "firstName": "Bruno",
     "lastName": "Test",
     "employeeCode": "BRU-EMP-001",
     "jobPosition": 1,
-    "cinema": 1,
     "startDate": "2026-04-23",
+    "role": 2,
+	"cinema": 1,
     "salaryBase": 1200.0,
-    "status": 1
+    "email": "bruno.test@cineflix.com",
+    "password": "SecurePass123!"
+  }
+}
+
+script:post-response {
+  const resBody = res.getBody();
+  if (res.getStatus() === 201 && resBody?.data?.employee?.id) {
+    bru.setEnvVar('testEmployeeId', resBody.data.employee.id);
   }
 }
 
 script:pre-request {
   const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
   bru.setVar('baseUrl', baseUrl);
-}
-
-script:post-response {
-  const resBody = res.getBody();
-  if (res.getStatus() === 201 && resBody && resBody.data && resBody.data.id) {
-    bru.setEnvVar('testEmployeeId', resBody.data.id);
-  }
 }

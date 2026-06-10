@@ -1,7 +1,7 @@
 meta {
   name: Logout
   type: http
-  seq: 7
+  seq: 5
 }
 
 post {
@@ -10,21 +10,17 @@ post {
   auth: bearer
 }
 
+headers {
+  x-client-channel: mobile
+}
+
 auth:bearer {
   token: {{accessToken}}
 }
 
 script:post-response {
-    // Obtener los datos de la respuesta (Response)
-    const resBody = res.getBody();
-    const resStatus = res.getStatus();
-
-    // Solo eliminamos variables si la petición fue exitosa (HTTP 2xx)
-    if (200 <= resStatus && resStatus <= 299 && resBody && resBody.data) {
-        if (resBody.data.accessToken)
-            bru.setEnvVar("accessToken", "");
-
-        if (resBody.data.refreshToken)
-            bru.setEnvVar("refreshToken", "");
-    }
+  if (res.status === 200) {
+    bru.deleteEnvVar("accessToken");
+    bru.deleteEnvVar("refreshToken");
+  }
 }

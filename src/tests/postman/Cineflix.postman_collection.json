@@ -1,0 +1,5560 @@
+{
+	"info": {
+		"name": "Cineflix",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Concessions",
+			"item": [
+				{
+					"name": "Create Combo",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/concessions/combos",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"concessions",
+								"combos"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"  const resBody = pm.response.json();",
+									"  if (pm.response.code === 201 && resBody && resBody.data && resBody.data.id) {",
+									"    pm.environment.set('testComboId', resBody.data.id);",
+									"    }"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Delete Combo",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/concessions/combos/{{testComboId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"concessions",
+								"combos",
+								"{{testComboId}}"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Combo",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/concessions/combos/{{testComboId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"concessions",
+								"combos",
+								"{{testComboId}}"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Product",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/concessions/products/{{testProductId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"concessions",
+								"products",
+								"{{testProductId}}"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Product By ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/concessions/products/{{testProductId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"concessions",
+								"products",
+								"{{testProductId}}"
+							],
+							"query": []
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Product",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/concessions/products",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"concessions",
+								"products"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"  const resBody = pm.response.json();",
+									"  if (pm.response.code === 201 && resBody && resBody.data && resBody.data.id) {",
+									"    pm.environment.set('testProductId', resBody.data.id);",
+									"    }"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Add Combo Items",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/concessions/combos/{{testComboId}}/items",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"concessions",
+								"combos",
+								"{{testComboId}}",
+								"items"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"items\": [\n      { \"productId\": 1, \"quantity\": 1 }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Combos",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/concessions/combos",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"concessions",
+								"combos"
+							],
+							"query": []
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Combo By ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/concessions/combos/{{testComboId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"concessions",
+								"combos",
+								"{{testComboId}}"
+							],
+							"query": []
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Product",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/concessions/products/{{testProductId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"concessions",
+								"products",
+								"{{testProductId}}"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Remove Combo Item",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/concessions/combos/{{testComboId}}/items/{{testComboItemId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"concessions",
+								"combos",
+								"{{testComboId}}",
+								"items",
+								"{{testComboItemId}}"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Products",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/concessions/products",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"concessions",
+								"products"
+							],
+							"query": []
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Forgot Password",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/auth/forgot-password/{{userType}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"forgot-password",
+								"{{userType}}"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"email\": \"user@example.com\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Signup",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/auth/signup",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"signup"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"documentNumber\": \"12345678\",\n    \"firstName\": \"John\",\n    \"lastName\": \"Doe\",\n    \"phoneNumber\": \"+584120000000\",\n    \"email\": \"john.doe@example.com\",\n    \"birthDate\": \"1990-01-01\",\n    \"gender\": 1,\n    \"password\": \"Password123!\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-client-channel",
+								"value": "mobile"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/logout",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"logout"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"  if (pm.response.code === 200) {",
+									"    pm.environment.unset(\"accessToken\");",
+									"    pm.environment.unset(\"refreshToken\");",
+									"    }"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Verify Reset Code",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/auth/verify-reset-code/{{userType}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"verify-reset-code",
+								"{{userType}}"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"email\": \"aliriofreytez1@gmail.com\",\n    \"code\": \"7033\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"  if (pm.response.code === 200) {",
+									"    const data = pm.response.json();",
+									"    if (data.data && data.data.resetToken) {",
+									"      pm.environment.set(\"resetToken\", data.data.resetToken);",
+									"    }",
+									"    }"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Admin Login",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "x-client-channel",
+								"value": "mobile"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/login/admin",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"login",
+								"admin"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"email\": \"admin@cineflix.com\",\n    \"password\": \"Admin123456*\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"  const resBody = pm.response.json();",
+									"  if (pm.response.code === 200 && resBody && resBody.data && resBody.data.tokens) {",
+									"    pm.environment.set('accessToken', resBody.data.tokens.accessToken);",
+									"    pm.environment.set('refreshToken', resBody.data.tokens.refreshToken);",
+									"    console.log('Token de administrador guardado');",
+									"    }"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Refresh",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-client-channel",
+								"value": "mobile"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/refresh",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"refresh"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{refreshToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"  if (pm.response.code === 200) {",
+									"    const data = pm.response.json();",
+									"    if (data.data && data.data.tokens) {",
+									"      pm.environment.set(\"accessToken\", data.data.tokens.accessToken);",
+									"      pm.environment.set(\"refreshToken\", data.data.tokens.refreshToken);",
+									"    }",
+									"    }"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Reset Password",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/auth/reset-password/{{userType}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"reset-password",
+								"{{userType}}"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"email\": \"aliriofreytez1@gmail.com\",\n    \"resetToken\": \"{{resetToken}}\",\n    \"newPassword\": \"NewPassword123!\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"  if (pm.response.code === 200) {",
+									"    pm.environment.unset(\"resetToken\");",
+									"    }"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Verify Signup",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/auth/verify-signup",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"verify-signup"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"email\": \"john.doe@example.com\",\n    \"code\": \"123456\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-client-channel",
+								"value": "mobile"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"email\": \"maria.perez@example.com\",\n    \"password\": \"Password123.\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"  if (pm.response.code === 200) {",
+									"    const data = pm.response.json();",
+									"    if (data.data && data.data.tokens) {",
+									"      pm.environment.set(\"accessToken\", data.data.tokens.accessToken);",
+									"      pm.environment.set(\"refreshToken\", data.data.tokens.refreshToken);",
+									"    }",
+									"    }"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Inventory",
+			"item": [
+				{
+					"name": "Register Inventory Movements",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/inventory/{{testInventoryId}}/movements",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"inventory",
+								"{{testInventoryId}}",
+								"movements"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  [\n    { \"operationTypeCode\": \"REPLENISH\", \"quantity\": 100, \"remarks\": \"Weekly replenishment\" }\n  ]",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Inventory Detail",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/inventory/{{testInventoryId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"inventory",
+								"{{testInventoryId}}"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get My Inventory",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/inventory",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"inventory"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "ExchangeRates",
+			"item": [
+				{
+					"name": "Create Exchange Rate",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/exchange-rates",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"exchange-rates"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"currency\": {{testCurrencyId}},\n    \"rate\": 1.25\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"  const resBody = pm.response.json();",
+									"  if (pm.response.code === 201 && resBody && resBody.data && resBody.data.id) {",
+									"    pm.environment.set('testExchangeRateId', resBody.data.id);",
+									"    }"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Get Exchange Rate History",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/exchange-rates/currency/{{testCurrencyId}}/history?startDate=2025-01-01T00:00:00Z&endDate=2030-01-01T00:00:00Z",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"exchange-rates",
+								"currency",
+								"{{testCurrencyId}}",
+								"history"
+							],
+							"query": [
+								{
+									"key": "startDate",
+									"value": "2025-01-01T00:00:00Z"
+								},
+								{
+									"key": "endDate",
+									"value": "2030-01-01T00:00:00Z"
+								}
+							]
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Exchange Rates",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/exchange-rates",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"exchange-rates"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Exchange Rate By Id",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/exchange-rates/{{testExchangeRateId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"exchange-rates",
+								"{{testExchangeRateId}}"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Movies",
+			"item": [
+				{
+					"name": "Update Movie",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/movies/{{testMovieId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"movies",
+								"{{testMovieId}}"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Upcoming",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/movies/upcoming",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"movies",
+								"upcoming"
+							],
+							"query": []
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Movie By ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/movies/{{testMovieId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"movies",
+								"{{testMovieId}}"
+							],
+							"query": []
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Movie",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/movies/{{testMovieId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"movies",
+								"{{testMovieId}}"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Movie",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/movies",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"movies"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"  const resBody = pm.response.json();",
+									"  if (pm.response.code === 201 && resBody && resBody.data && resBody.data.movie_id) {",
+									"    pm.environment.set('testMovieId', resBody.data.movie_id);",
+									"    }"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Get Showtimes",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/movies/showtimes",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"movies",
+								"showtimes"
+							],
+							"query": []
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Movies",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/movies",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"movies"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Rentals",
+			"item": [
+				{
+					"name": "Approve Rental Request (Manager)",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/rentals/requests/{{rentalRequestId}}/status",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"rentals",
+								"requests",
+								"{{rentalRequestId}}",
+								"status"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"status\": 2,\n    \"currency\": 1,\n    \"price\": \"500.00\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Rental Requests (Manager)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/rentals/requests",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"rentals",
+								"requests"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Reject Rental Request (Manager)",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/rentals/requests/{{rentalRequestId}}/status",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"rentals",
+								"requests",
+								"{{rentalRequestId}}",
+								"status"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"status\": 4\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Submit Rental Request (Anonymous)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/rentals/requests",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"rentals",
+								"requests"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"room\": 3,\n    \"event_type\": 3,\n    \"document_number\": \"V-12345678\",\n    \"contact_name\": \"Instituto Andes\",\n    \"contact_email\": \"eventos@andes.edu\",\n    \"contact_phone\": \"+584120000000\",\n    \"event_name\": \"Acto de Grado 2026\",\n    \"event_description\": \"Uso de micrófonos requerido.\",\n    \"event_date\": \"2026-08-20\",\n    \"requested_start_time\": \"2026-08-20T08:00:00Z\",\n    \"requested_end_time\": \"2026-08-20T12:00:00Z\",\n    \"attendees\": 150\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"  const body = pm.response.json();",
+									"  if (pm.response.code === 201 && body?.data?.request_id) {",
+									"    pm.environment.set(\"rentalRequestId\", body.data.request_id);",
+									"    }"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "My Rental Requests (Customer)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/rentals/requests/me",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"rentals",
+								"requests",
+								"me"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Rental Request Detail (Manager)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/rentals/requests/{{rentalRequestId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"rentals",
+								"requests",
+								"{{rentalRequestId}}"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Submit Rental Request (Authenticated Customer)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/rentals/requests",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"rentals",
+								"requests"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"room\": 3,\n    \"event_type\": 3,\n    \"event_name\": \"Acto de Grado 2026\",\n    \"event_description\": \"Uso de micrófonos requerido.\",\n    \"event_date\": \"2026-08-20\",\n    \"requested_start_time\": \"2026-08-20T08:00:00Z\",\n    \"requested_end_time\": \"2026-08-20T12:00:00Z\",\n    \"attendees\": 150\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"  const body = pm.response.json();",
+									"  if (pm.response.code === 201 && body?.data?.request_id) {",
+									"    pm.environment.set(\"rentalRequestId\", body.data.request_id);",
+									"    }"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Roles",
+			"item": [
+				{
+					"name": "Get All Roles",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/roles",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"roles"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Role Permissions",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/roles/{{testRoleId}}/permissions",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"roles",
+								"{{testRoleId}}",
+								"permissions"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"permissions\": [1]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Role By Id",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/roles/{{testRoleId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"roles",
+								"{{testRoleId}}"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Role",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/roles/{{testRoleId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"roles",
+								"{{testRoleId}}"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Assign Role Permissions",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/roles/{{testRoleId}}/permissions",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"roles",
+								"{{testRoleId}}",
+								"permissions"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"permissions\": [1]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Role",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/roles",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"roles"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"code\": \"BRU_ROLE\",\n    \"name\": \"Bruno Role\",\n    \"description\": \"Rol de prueba para Bruno\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"  const resBody = pm.response.json();",
+									"  if (pm.response.code === 200 && resBody && resBody.data && resBody.data.id) {",
+									"    pm.environment.set('testRoleId', resBody.data.id);",
+									"    }"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Update Role",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/roles/{{testRoleId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"roles",
+								"{{testRoleId}}"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"name\": \"Bruno Role Updated\",\n    \"description\": \"Rol de prueba actualizado\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Seats",
+			"item": [
+				{
+					"name": "Get Seat Map (via Room)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/rooms/{{testRoomId}}/seats",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"rooms",
+								"{{testRoomId}}",
+								"seats"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Seat",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/seats/{{testSeatId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"seats",
+								"{{testSeatId}}"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"seatCondition\": 2,\n    \"seatCategory\": 1\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Seat",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/seats/{{testSeatId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"seats",
+								"{{testSeatId}}"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Seats",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/rooms/{{testRoomId}}/seats",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"rooms",
+								"{{testRoomId}}",
+								"seats"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  [\n    { \"rowIdentifier\": \"A\", \"columnNumber\": 1, \"seatCategory\": 1, \"seatCondition\": 1 },\n    { \"rowIdentifier\": \"A\", \"columnNumber\": 2, \"seatCategory\": 1, \"seatCondition\": 1 }\n  ]",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Seat By Id",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/seats/{{testSeatId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"seats",
+								"{{testSeatId}}"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "RoomEvents",
+			"item": [
+				{
+					"name": "Get All Room Events (Implicit)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/room-events",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"room-events"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Room Event (Implicit)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/room-events",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"room-events"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"room\": 2,\n    \"event_type\": 3,\n    \"name\": \"Final Nacional League of Legends\",\n    \"organizer\": \"Gaming Corp\",\n    \"description\": \"Transmisión en vivo con narradores invitados.\",\n    \"start_time\": \"2026-07-10T15:00:00Z\",\n    \"end_time\": \"2026-07-10T18:00:00Z\",\n    \"currency\": 2,\n    \"price\": \"10.00\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Room Event",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/room-events/{{testRoomEventId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"room-events",
+								"{{testRoomEventId}}"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"organizer\": \"Gaming Corp (Oficial)\",\n    \"price\": \"12.00\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Room Event",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/room-events/{{testRoomEventId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"room-events",
+								"{{testRoomEventId}}"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Room Event (Explicit)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/cinemas/{{testCinemaId}}/room-events",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cinemas",
+								"{{testCinemaId}}",
+								"room-events"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"room\": 2,\n    \"event_type\": 4,\n    \"name\": \"Conferencia Anual Cineflix\",\n    \"organizer\": \"Cineflix Corp\",\n    \"description\": \"Reunión anual de accionistas.\",\n    \"start_time\": \"2026-08-01T09:00:00Z\",\n    \"end_time\": \"2026-08-01T13:00:00Z\",\n    \"currency\": 2,\n    \"price\": \"0.00\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Room Event By Id",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/room-events/{{testRoomEventId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"room-events",
+								"{{testRoomEventId}}"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Room Events (Explicit)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/cinemas/{{testCinemaId}}/room-events",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cinemas",
+								"{{testCinemaId}}",
+								"room-events"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Customers",
+			"item": [
+				{
+					"name": "Get Customer By Id",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/customers/{{testCustomerId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"customers",
+								"{{testCustomerId}}"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Customers",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/customers",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"customers"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Customer",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/customers",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"customers"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"documentNumber\": \"212345678\",\n    \"firstName\": \"María\",\n    \"lastName\": \"Rodríguez\",\n    \"gender\": 2,\n    \"phoneNumber\": \"+584140000000\",\n    \"email\": \"maria.rodriguez@example.com\",\n    \"birthDate\": \"1990-06-15\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"  const resBody = pm.response.json();",
+									"  if (pm.response.code === 201 && resBody && resBody.data && resBody.data.id) {",
+									"    pm.environment.set('testCustomerId', resBody.data.id);",
+									"    }"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Adjust Loyalty Points",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/customers/{{testCustomerId}}/loyalty-points",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"customers",
+								"{{testCustomerId}}",
+								"loyalty-points"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"operationType\": 1,\n    \"points\": 200,\n    \"remarks\": \"Ajuste manual de prueba\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Customer",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/customers/{{testCustomerId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"customers",
+								"{{testCustomerId}}"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"firstName\": \"María Actualizada\",\n    \"lastName\": \"Rodríguez Modificado\",\n    \"phoneNumber\": \"+584141234567\",\n    \"email\": \"maria.nueva@example.com\",\n    \"birthDate\": \"1990-06-16\",\n    \"gender\": 2\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Employees",
+			"item": [
+				{
+					"name": "Create Employee",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/employees",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"employees"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"documentNumber\": \"V-123456\",\n    \"firstName\": \"Bruno\",\n    \"lastName\": \"Test\",\n    \"employeeCode\": \"BRU-EMP-001\",\n    \"jobPosition\": 1,\n    \"startDate\": \"2026-04-23\",\n    \"role\": 2,\n\t\"cinema\": 1,\n    \"salaryBase\": 1200.0,\n    \"email\": \"bruno.test@cineflix.com\",\n    \"password\": \"SecurePass123!\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"  const resBody = pm.response.json();",
+									"  if (pm.response.code === 201 && resBody?.data?.employee?.id) {",
+									"    pm.environment.set('testEmployeeId', resBody.data.employee.id);",
+									"    }"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Delete Employee",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/employees/{{testEmployeeId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"employees",
+								"{{testEmployeeId}}"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Employees",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/employees",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"employees"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Change Employee Position",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/employees/{{testEmployeeId}}/position",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"employees",
+								"{{testEmployeeId}}",
+								"position"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"jobPosition\": 2,\n    \"cinema\": 1,\n    \"startDate\": \"2026-05-01\",\n    \"salaryBase\": 1400.0\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Employee By ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/employees/{{testEmployeeId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"employees",
+								"{{testEmployeeId}}"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Employee",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/employees/{{testEmployeeId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"employees",
+								"{{testEmployeeId}}"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"employeeCode\": \"BRU-EMP-001-UPDATED\",\n    \"firstName\": \"Bruno Modificado\",\n    \"lastName\": \"Test Modificado\",\n    \"phoneNumber\": \"+584120000000\",\n    \"email\": \"bruno.mod@cineflix.com\",\n    \"birthDate\": \"1990-05-15\",\n    \"gender\": 1\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Permissions",
+			"item": [
+				{
+					"name": "Get Permission By Id",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/permissions/{{testPermissionId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"permissions",
+								"{{testPermissionId}}"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Permissions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/permissions",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"permissions"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Permission",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/permissions/{{testPermissionId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"permissions",
+								"{{testPermissionId}}"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"permission_type\": 3\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Permission",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/permissions",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"permissions"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"action\": 1,\n    \"resource\": 1,\n    \"permission_type\": 2\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"  const resBody = pm.response.json();",
+									"  if (pm.response.code === 200 && resBody && resBody.data && resBody.data.id) {",
+									"    pm.environment.set('testPermissionId', resBody.data.id);",
+									"    }"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Delete Permission",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/permissions/{{testPermissionId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"permissions",
+								"{{testPermissionId}}"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Rooms",
+			"item": [
+				{
+					"name": "Get Rooms",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/rooms",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"rooms"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Room",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/rooms/{{testRoomId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"rooms",
+								"{{testRoomId}}"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"name\": \"Test Room Bruno Updated\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Room Seat",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/rooms/{{testRoomId}}/seats",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"rooms",
+								"{{testRoomId}}",
+								"seats"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  [\n    { \"rowIdentifier\": \"A\", \"columnNumber\": 1, \"seatCategory\": 1, \"seatCondition\": 1 }\n  ]",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"  const resBody = pm.response.json();",
+									"  if (pm.response.code === 201) {",
+									"    console.log('Seat(s) created successfully');",
+									"    }"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Delete Room",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/rooms/{{testRoomId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"rooms",
+								"{{testRoomId}}"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"  // 200 → todos los asientos eliminados",
+									"  // 409 → al menos un asiento tiene tickets en funciones futuras",
+									"  //        pm.response.json().data.message incluye los IDs en conflicto",
+									"  const status = pm.response.code;",
+									"  if (status === 200) {",
+									"    console.log('Asientos eliminados correctamente para la sala', pm.environment.get('testRoomId'));",
+									"  } else if (status === 409) {",
+									"    console.warn('Conflicto:', pm.response.json()?.message);",
+									"    }"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Get Seat Map",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/rooms/{{testRoomId}}/seats",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"rooms",
+								"{{testRoomId}}",
+								"seats"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Room Projection Types (by room)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/rooms/{{testRoomId}}/projection-types",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"rooms",
+								"{{testRoomId}}",
+								"projection-types"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Seats by Room",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/seats/room/{{testRoomId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"seats",
+								"room",
+								"{{testRoomId}}"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"  // 200 → todos los asientos eliminados",
+									"  // 409 → al menos un asiento tiene tickets en funciones futuras",
+									"  //        pm.response.json().data.message incluye los IDs en conflicto",
+									"  const status = pm.response.code;",
+									"  if (status === 200) {",
+									"    console.log('Asientos eliminados correctamente para la sala', pm.environment.get('testRoomId'));",
+									"  } else if (status === 409) {",
+									"    console.warn('Conflicto:', pm.response.json()?.message);",
+									"    }"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Create Room",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/cinemas/{{testCinemaId}}/rooms",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cinemas",
+								"{{testCinemaId}}",
+								"rooms"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"name\": \"Test Room Bruno\",\n    \"projectionTypes\": [1],\n    \"gridRows\": 8,\n    \"gridColumns\": 12\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"  const resBody = pm.response.json();",
+									"  if (pm.response.code === 201 && resBody && resBody.data && resBody.data.room_id) {",
+									"    pm.environment.set('testRoomId', resBody.data.room_id);",
+									"    }"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Get All Projection Types (catalog)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/catalogs/projection-types",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"catalogs",
+								"projection-types"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Room By ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/rooms/{{testRoomId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"rooms",
+								"{{testRoomId}}"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Room Projection Type",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/rooms/{{testRoomId}}/projection-types",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"rooms",
+								"{{testRoomId}}",
+								"projection-types"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"projectionType\": 1\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"  const resBody = pm.response.json();",
+									"  if (pm.response.code === 201 && resBody && resBody.data && resBody.data.id) {",
+									"    pm.environment.set('testRoomProjectionTypeId', resBody.data.id);",
+									"    }"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Delete Room Projection Type",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/rooms/{{testRoomId}}/projection-types/{{testRoomProjectionTypeId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"rooms",
+								"{{testRoomId}}",
+								"projection-types",
+								"{{testRoomProjectionTypeId}}"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Bulk Update Seats",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "[\n    {\n        \"seatId\": 1,\n        \"seatCategoryId\": 2,\n        \"seatConditionId\": 1\n    }\n]",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/rooms/{{testRoomId}}/seats",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"rooms",
+								"{{testRoomId}}",
+								"seats"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Configure Seat Grid",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"gridRows\": 10,\n    \"gridColumns\": 15\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/rooms/{{testRoomId}}/seat-grid",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"rooms",
+								"{{testRoomId}}",
+								"seat-grid"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Cinemas",
+			"item": [
+				{
+					"name": "Get All Cinemas",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/cinemas",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cinemas"
+							],
+							"query": []
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Combo in Cinema",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/cinemas/{{testCinemaId}}/combos",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cinemas",
+								"{{testCinemaId}}",
+								"combos"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Employee in Cinema",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/cinemas/{{testCinemaId}}/employees",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cinemas",
+								"{{testCinemaId}}",
+								"employees"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"documentNumber\": \"V-11223344\",\n    \"firstName\": \"Pedro\",\n    \"lastName\": \"Gómez\",\n    \"employeeCode\": \"EMP-002\",\n    \"jobPosition\": 1,\n    \"startDate\": \"2026-06-01\",\n    \"salaryBase\": 1100.0,\n    \"email\": \"pedro.gomez@cineflix.com\",\n    \"password\": \"SecurePass456!\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Cinema",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/cinemas/{{testCinemaId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cinemas",
+								"{{testCinemaId}}"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Cinema (Explicit)",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/cinemas/{{testCinemaId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cinemas",
+								"{{testCinemaId}}"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"name\": \"Test Cinema Bruno Updated\",\n    \"address\": \"456 Updated Ave\",\n    \"openingTime\": \"10:00\",\n    \"closingTime\": \"22:00\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Remove Employee from Cinema",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/cinemas/{{testCinemaId}}/employees/{{testEmployeeId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cinemas",
+								"{{testCinemaId}}",
+								"employees",
+								"{{testEmployeeId}}"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Combos by Cinema",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/cinemas/{{testCinemaId}}/combos",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cinemas",
+								"{{testCinemaId}}",
+								"combos"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Cinema By ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/cinemas/{{testCinemaId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cinemas",
+								"{{testCinemaId}}"
+							],
+							"query": []
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Cinema",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/cinemas",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cinemas"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"name\": \"Test Cinema Bruno\",\n    \"address\": \"123 Test Ave\",\n    \"phone\": \"+1234567890\",\n    \"openingTime\": \"09:00\",\n    \"closingTime\": \"23:00\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"  const resBody = pm.response.json();",
+									"  if (pm.response.code === 201 && resBody && resBody.data && resBody.data.id) {",
+									"    pm.environment.set('testCinemaId', resBody.data.id);",
+									"    }"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "List Employees in Cinema",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/cinemas/{{testCinemaId}}/employees",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cinemas",
+								"{{testCinemaId}}",
+								"employees"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Own Cinema",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/cinemas",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cinemas"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"name\": \"My Cinema Updated\",\n    \"address\": \"789 Manager Ave\",\n    \"openingTime\": \"10:00\",\n    \"closingTime\": \"22:30\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Showtimes",
+			"item": [
+				{
+					"name": "Funciones disponibles en sucursal (filtro fecha)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/cinemas/{{cinemaId}}/showtimes?date=2026-07-16",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cinemas",
+								"{{cinemaId}}",
+								"showtimes"
+							],
+							"query": [
+								{
+									"key": "date",
+									"value": "2026-07-16"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Listar todas las funciones (admin)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/showtimes/admin?startDate=2026-07-01&endDate=2026-09-30&movieId={{movieId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"showtimes",
+								"admin"
+							],
+							"query": [
+								{
+									"key": "startDate",
+									"value": "2026-07-01"
+								},
+								{
+									"key": "endDate",
+									"value": "2026-09-30"
+								},
+								{
+									"key": "movieId",
+									"value": "{{movieId}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Billboard Global",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/showtimes/billboard",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"showtimes",
+								"billboard"
+							],
+							"query": []
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Crear función (implícito)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/showtimes",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"showtimes"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"room\": {{roomId}},\n    \"movie\": {{movieId}},\n    \"projection_type\": 1,\n    \"language\": 1,\n    \"start_time\": \"2026-08-15T18:00:00Z\",\n    \"end_time\": \"2026-08-15T20:30:00Z\",\n    \"currency\": 1,\n    \"price\": 12.50,\n    \"earned_loyalty_points\": 25,\n    \"cinema\": {{cinemaId}}\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"  const resBody = pm.response.json();",
+									"  if (pm.response.code === 201 && resBody?.data?.showtime_id) {",
+									"    pm.environment.set('showtimeId', resBody.data.showtime_id);",
+									"    }"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Cancelar función",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/showtimes/{{showtimeId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"showtimes",
+								"{{showtimeId}}"
+							],
+							"query": []
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Actualizar función (cambiar precio)",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/showtimes/{{showtimeId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"showtimes",
+								"{{showtimeId}}"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"price\": 14.00\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Funciones de película en sucursal",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/cinemas/{{cinemaId}}/showtimes/movies/{{movieId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cinemas",
+								"{{cinemaId}}",
+								"showtimes",
+								"movies",
+								"{{movieId}}"
+							],
+							"query": []
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"  const resBody = pm.response.json();",
+									"  if (pm.response.code === 200 && resBody?.data?.rows?.length > 0) {",
+									"    pm.environment.set('showtimeId', resBody.data.rows[0].id);",
+									"    }"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Mapa de asientos de función en sucursal",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/cinemas/{{cinemaId}}/showtimes/{{showtimeId}}/seat-map",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cinemas",
+								"{{cinemaId}}",
+								"showtimes",
+								"{{showtimeId}}",
+								"seat-map"
+							],
+							"query": []
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Listar funciones (sin filtros)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/showtimes",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"showtimes"
+							],
+							"query": []
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"  const resBody = pm.response.json();",
+									"  if (pm.response.code === 200 && resBody?.data?.rows?.length > 0) {",
+									"    pm.environment.set('showtimeId', resBody.data.rows[0].id);",
+									"    }"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Crear función en sucursal (explícito)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/cinemas/{{cinemaId}}/showtimes",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cinemas",
+								"{{cinemaId}}",
+								"showtimes"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"room\": {{roomId}},\n    \"movie\": {{movieId}},\n    \"projection_type\": 1,\n    \"language\": 1,\n    \"start_time\": \"2026-09-01T20:00:00Z\",\n    \"end_time\": \"2026-09-01T22:30:00Z\",\n    \"currency\": 1,\n    \"price\": 10.00\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Billboard Global con filtros",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/showtimes/billboard?cinemaId=1&projectionType=2D",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"showtimes",
+								"billboard"
+							],
+							"query": [
+								{
+									"key": "cinemaId",
+									"value": "1"
+								},
+								{
+									"key": "projectionType",
+									"value": "2D"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Cartelera por sucursal",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/cinemas/{{cinemaId}}/showtimes/billboard",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cinemas",
+								"{{cinemaId}}",
+								"showtimes",
+								"billboard"
+							],
+							"query": []
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Mapa de asientos de función",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/showtimes/{{showtimeId}}/seat-map",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"showtimes",
+								"{{showtimeId}}",
+								"seat-map"
+							],
+							"query": []
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Detalle de función en sucursal",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/cinemas/{{cinemaId}}/showtimes/{{showtimeId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cinemas",
+								"{{cinemaId}}",
+								"showtimes",
+								"{{showtimeId}}"
+							],
+							"query": []
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Listar funciones por fecha",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/showtimes?date=2026-07-16",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"showtimes"
+							],
+							"query": [
+								{
+									"key": "date",
+									"value": "2026-07-16"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Obtener detalle de función",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/showtimes/{{showtimeId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"showtimes",
+								"{{showtimeId}}"
+							],
+							"query": []
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Funciones de una película (admin)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/showtimes/admin/movies/{{movieId}}/showtimes?onlyFuture=true",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"showtimes",
+								"admin",
+								"movies",
+								"{{movieId}}",
+								"showtimes"
+							],
+							"query": [
+								{
+									"key": "onlyFuture",
+									"value": "true"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Listar funciones por rango de fechas",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/showtimes?startDate=2026-07-15&endDate=2026-07-31",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"showtimes"
+							],
+							"query": [
+								{
+									"key": "startDate",
+									"value": "2026-07-15"
+								},
+								{
+									"key": "endDate",
+									"value": "2026-07-31"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Funciones por sucursal (admin)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/showtimes/admin/cinemas/{{cinemaId}}/showtimes?startDate=2026-07-01&endDate=2026-07-31",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"showtimes",
+								"admin",
+								"cinemas",
+								"{{cinemaId}}",
+								"showtimes"
+							],
+							"query": [
+								{
+									"key": "startDate",
+									"value": "2026-07-01"
+								},
+								{
+									"key": "endDate",
+									"value": "2026-07-31"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Listar funciones por película",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/showtimes?movieId={{movieId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"showtimes"
+							],
+							"query": [
+								{
+									"key": "movieId",
+									"value": "{{movieId}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Listar películas por estado de ciclo de vida",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/showtimes/admin/movies?lifecycle=3",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"showtimes",
+								"admin",
+								"movies"
+							],
+							"query": [
+								{
+									"key": "lifecycle",
+									"value": "3"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "PriceModifiers",
+			"item": [
+				{
+					"name": "Get All PriceModifiers",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/price-modifiers",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"price-modifiers"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update PriceModifiers",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/price-modifiers/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"price-modifiers",
+								"1"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"description\": \"Promoción martes actualizada\",\n    \"value\": 15,\n    \"isPercentage\": true,\n    \"operationType\": 2\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete PriceModifiers",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/price-modifiers/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"price-modifiers",
+								"1"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create PriceModifiers",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/price-modifiers",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"price-modifiers"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"description\": \"Promoción martes\",\n    \"modifierScope\": 1,\n    \"operationType\": 2,\n    \"isPercentage\": true,\n    \"value\": 20,\n    \"weekDay\": 3,\n    \"cinema\": 1,\n    \"startDate\": \"2026-06-01\",\n    \"endDate\": \"2026-06-30\",\n    \"startTime\": \"09:00:00\",\n    \"endTime\": \"23:00:00\",\n    \"currency\": null,\n    \"targetCurrency\": null,\n    \"targetCurrencyCondition\": false\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get PriceModifiers By Id",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/price-modifiers/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"price-modifiers",
+								"1"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Users",
+			"item": [
+				{
+					"name": "Get User Role",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{testUserId}}/role",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{testUserId}}",
+								"role"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete User Role",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{testUserId}}/role",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{testUserId}}",
+								"role"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Change User Status (Manager)",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/1/status",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"1",
+								"status"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"status\": 0\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get User Permissions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{testUserId}}/permissions",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{testUserId}}",
+								"permissions"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete User Permissions",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{testUserId}}/permissions",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{testUserId}}",
+								"permissions"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"permissions\": [{{testPermissionId}}]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Users (Manager)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users?page=1&limit=10",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Assign User Permissions",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{testUserId}}/permissions",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{testUserId}}",
+								"permissions"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"permissions\": [{{testPermissionId}}]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update My Security",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/me/security",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"me",
+								"security"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"currentPassword\": \"current_password\",\n    \"email\": \"new.email@example.com\",\n    \"newPassword\": \"NewStrongPassword123!\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get My Profile",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/me",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"me"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update My Profile",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/me/profile",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"me",
+								"profile"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"personal_email\": \"aliriofreytez@gmail.com\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Assign User Role",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{testUserId}}/role",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{testUserId}}",
+								"role"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"roleId\": {{testRoleId}}\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get My Movie Genres",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/users/me/movie-genres",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"me",
+								"movie-genres"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add My Movie Genres",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"genres\": [1, 2]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/me/movie-genres",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"me",
+								"movie-genres"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Remove My Movie Genres",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/users/me/movie-genres",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"me",
+								"movie-genres"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Orders",
+			"item": [
+				{
+					"name": "Pay Order",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/orders/payments",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"orders",
+								"payments"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"order_id\": {{orderId}},\n    \"payment_method\": 3,\n    \"amount\": {{orderTotalBase}},\n    \"currency\": 1,\n    \"reference_number\": \"{{refNumber}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"  if (pm.response.code === 200 || pm.response.code === 201) {",
+									"    const data = pm.response.json();",
+									"    if (data.data && data.data.qr_code) {",
+									"      pm.environment.set(\"orderQrCode\", data.data.qr_code);",
+									"    }",
+									"    }"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Realtime Seating",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Origin",
+								"value": "{{clientWebAppUrl}}"
+							}
+						],
+						"url": {
+							"raw": "ws://{{baseUrl}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [],
+							"protocol": "ws"
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"description": "### Configuración de Socket.IO en Postman\n\nPostman soporta **Socket.IO** de forma nativa. Para probar la selección de asientos en tiempo real, te recomendamos crear una pestaña propia haciendo clic en **New → Socket.IO**. Alternativamente, la versión v10+ soporta la petición directamente si la creas desde la interfaz.\n\n#### 1. Conexión\n* **URL:** `{{baseUrl}}`\n* **Handshake / Auth:** Para autenticarte, ve a la pestaña **Headers** de la petición Socket.IO y añade:\n  * **Key:** `Authorization`\n  * **Value:** `Bearer {{accessToken}}`\n\n#### 2. Eventos de Escucha (Listen)\nEn la pestaña **Events**, añade los siguientes eventos para escuchar la respuesta del servidor:\n* `seats_unlocked`: Recibes `{ \"seatIds\": [1, 2] }` cuando se liberan asientos.\n* `seat_lock_error`: Recibes `{ \"message\": \"...\", \"seatId\": 1 }` si ocurre un error al bloquear.\n* `seat_lock_success`: Recibes `{ \"seatId\": 1 }` cuando logras bloquear un asiento.\n* `seat_locked_by_other`: Recibes `{ \"seatId\": 1 }` cuando otro usuario bloquea un asiento en tu función.\n\n#### 3. Eventos de Emisión (Emit)\nPara emitir un mensaje, usa la barra de mensajes (Message) de la solicitud Socket.IO.\nConfigura el **Message Format** en `JSON`.\n\n**Ingresar a la sala de la función (Obligatorio primero):**\n* **Event:** `join_showtime`\n* **Message:** `{ \"showtimeId\": 1 }`\n\n**Bloquear un asiento:**\n* **Event:** `lock_seat`\n* **Message:** `{ \"seatId\": 1 }`\n\n**Liberar un asiento:**\n* **Event:** `unlock_seat`\n* **Message:** `{ \"seatId\": 1 }`\n\n**Salir de la sala de la función:**\n* **Event:** `leave_showtime`\n* **Message:** `{ \"showtimeId\": 1 }`\n"
+					},
+					"response": []
+				},
+				{
+					"name": "Checkout Order",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/orders/checkout",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"orders",
+								"checkout"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"queue_id\": \"{{queueId}}\",\n    \"concessions\": [\n      { \"line_type\": 1, \"product\": 1, \"quantity\": 1 },\n      { \"line_type\": 1, \"product\": 2, \"quantity\": 3 }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"  if (pm.response.code === 200 || pm.response.code === 201) {",
+									"    const data = pm.response.json();",
+									"    if (data.data && data.data.order_id) {",
+									"      pm.environment.set(\"orderId\", data.data.order_id);",
+									"      pm.environment.set(\"orderTotalBase\", data.data.total_amount_base_currency);",
+									"    }",
+									"    }"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Get Order Detail",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/orders/{{orderId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"orders",
+								"{{orderId}}"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Concessions by QR",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/orders/qr/{{orderQrCode}}/concessions",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"orders",
+								"qr",
+								"{{orderQrCode}}",
+								"concessions"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Quote Order",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/orders/quote",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"orders",
+								"quote"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"cinema\": 1\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"  if (pm.response.code === 200) {",
+									"    const data = pm.response.json();",
+									"    if (data.data && data.data.queue_id) {",
+									"      pm.environment.set(\"queueId\", data.data.queue_id);",
+									"    }",
+									"    }"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Get Session State",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/orders/session",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"orders",
+								"session"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Cancel Session",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/orders/session",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"orders",
+								"session"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Tickets by QR",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/orders/qr/{{orderQrCode}}/tickets",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"orders",
+								"qr",
+								"{{orderQrCode}}",
+								"tickets"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Session Details",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/orders/session/details",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"orders",
+								"session",
+								"details"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Validate QR",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/orders/validate-qr/{{orderQrCode}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"orders",
+								"validate-qr",
+								"{{orderQrCode}}"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"validation_type\": 1\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Quote Order - Admin",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Session is handled via user token now"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"cinema\": 1,\n    \"customerId\": 1\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/orders/quote",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"orders",
+								"quote"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Process Billing",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"pm.variables.set(\"orderId\", 1);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"orderId\": {{orderId}},\n    \"use_customer_data\": false,\n    \"billing_name\": \"Juan Perez\",\n    \"billing_document\": \"V-12345678\",\n    \"billing_address\": \"Av Principal\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/orders/billing",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"orders",
+								"billing"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Catalogs",
+			"item": [
+				{
+					"name": "Get Catalog Items",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/catalogs/resources?limit=-1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"catalogs",
+								"resources"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "-1"
+								}
+							]
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Catalog Item",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/catalogs/{{catalog}}/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"catalogs",
+								"{{catalog}}",
+								"1"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"code\": \"12323123\",\n    \"description\": \"jeje\",\n    \"symbol\": \"%\",\n    \"is_base_currency\": false\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Catalog Item",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/catalogs/{{catalog}}/3",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"catalogs",
+								"{{catalog}}",
+								"3"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Available Catalogs List",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/catalogs",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"catalogs"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Catalog Item",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/catalogs/{{catalog}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"catalogs",
+								"{{catalog}}"
+							],
+							"query": []
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "  {\n    \"code\": \"1234\",\n    \"description\": \"jeje\",\n    \"symbol\": \"%\",\n    \"is_base_currency\": false\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Catalog Metadata",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/catalogs/{{catalog}}/metadata",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"catalogs",
+								"{{catalog}}",
+								"metadata"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Catalog Item By Id",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/catalogs/{{catalog}}/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"catalogs",
+								"{{catalog}}",
+								"1"
+							],
+							"query": []
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

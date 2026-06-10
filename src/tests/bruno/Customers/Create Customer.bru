@@ -1,0 +1,39 @@
+meta {
+  name: Create Customer
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/customers
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "documentNumber": "212345678",
+    "firstName": "María",
+    "lastName": "Rodríguez",
+    "gender": 2,
+    "phoneNumber": "+584140000000",
+    "email": "maria.rodriguez@example.com",
+    "birthDate": "1990-06-15"
+  }
+}
+
+script:post-response {
+  const resBody = res.getBody();
+  if (res.getStatus() === 201 && resBody && resBody.data && resBody.data.customer && resBody.data.customer.id) {
+    bru.setEnvVar('testCustomerId', resBody.data.customer.id);
+  }
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  bru.setVar('baseUrl', baseUrl);
+}

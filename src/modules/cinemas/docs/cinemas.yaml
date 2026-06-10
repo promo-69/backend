@@ -1,11 +1,9 @@
 /cinemas:
     get:
-        summary: List Cinemas
-        description: Retrieve all active cinema locations registered in the system.
+        summary: List All Cinemas
+        description: Public endpoint. Returns all cinemas.
         tags:
             - Cinemas
-        security:
-            - bearerAuth: []
         responses:
             '200':
                 description: A list of cinemas
@@ -25,28 +23,17 @@
                                                 type: string
                                             address:
                                                 type: string
-                                                nullable: true
                                             phone:
                                                 type: string
-                                                nullable: true
                                             opening_time:
                                                 type: string
-                                                example: '10:00'
                                             closing_time:
                                                 type: string
-                                                example: '22:00'
-                                            status:
-                                                type: integer
-                                            created_at:
-                                                type: string
-                                                format: date-time
-            '401':
-                description: Unauthorized
             '500':
                 description: Internal server error
     post:
         summary: Create Cinema
-        description: Register a new cinema location. Name must be unique across active locations.
+        description: Register a new cinema. Requires general management role.
         tags:
             - Cinemas
         security:
@@ -64,45 +51,254 @@
                         properties:
                             name:
                                 type: string
-                                example: Cineflix Barquisimeto
+                                example: Cinex Norte
                             address:
                                 type: string
-                                example: Av. Libertador, CC Sambil
-                                nullable: true
                             phone:
                                 type: string
-                                example: '0251-1234567'
-                                nullable: true
                             openingTime:
                                 type: string
                                 pattern: '^([01]\d|2[0-3]):[0-5]\d$'
-                                example: '10:00'
+                                example: '09:00'
                             closingTime:
                                 type: string
                                 pattern: '^([01]\d|2[0-3]):[0-5]\d$'
-                                example: '22:00'
+                                example: '23:00'
         responses:
             '201':
-                description: Cinema created successfully
-                content:
-                    application/json:
-                        schema:
-                            type: object
-                            properties:
-                                message:
-                                    type: string
-                                data:
-                                    type: object
-                                    properties:
-                                        id:
-                                            type: integer
-                                        name:
-                                            type: string
+                description: Cinema created
             '400':
-                description: Bad request (validation errors)
+                description: Validation error
             '401':
                 description: Unauthorized
             '409':
-                description: Conflict — duplicate cinema name
+                description: Duplicate name
+            '500':
+                description: Internal server error
+    patch:
+        summary: Update Own Cinema (Implicit Context)
+        description: Update the operating policies (phone, schedules) of the cinema assigned to the authenticated user. The cinema ID is taken from the JWT.
+        tags:
+            - Cinemas
+        security:
+            - bearerAuth: []
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            phone:
+                                type: string
+                            openingTime:
+                                type: string
+                                pattern: '^([01]\d|2[0-3]):[0-5]\d$'
+                            closingTime:
+                                type: string
+                                pattern: '^([01]\d|2[0-3]):[0-5]\d$'
+        responses:
+            '200':
+                description: Cinema updated
+            '400':
+                description: Validation error
+            '401':
+                description: Unauthorized
+            '500':
+                description: Internal server error
+
+/cinemas/{id}:
+    get:
+        summary: Get Cinema By Id
+        description: Public endpoint. Returns a specific cinema.
+        tags:
+            - Cinemas
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: A cinema object
+            '404':
+                description: Not found
+            '500':
+                description: Internal server error
+    patch:
+        summary: Update Cinema
+        description: Update any cinema. Requires general management role.
+        tags:
+            - Cinemas
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            name:
+                                type: string
+                            address:
+                                type: string
+                            phone:
+                                type: string
+                            openingTime:
+                                type: string
+                                pattern: '^([01]\d|2[0-3]):[0-5]\d$'
+                            closingTime:
+                                type: string
+                                pattern: '^([01]\d|2[0-3]):[0-5]\d$'
+        responses:
+            '200':
+                description: Cinema updated
+            '400':
+                description: Validation error
+            '401':
+                description: Unauthorized
+            '404':
+                description: Not found
+            '500':
+                description: Internal server error
+    delete:
+        summary: Delete Cinema
+        description: Delete a cinema (soft delete). Requires general management role.
+        tags:
+            - Cinemas
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Cinema deleted
+            '401':
+                description: Unauthorized
+            '404':
+                description: Not found
+            '500':
+                description: Internal server error
+
+/cinemas/{cinemaId}/employees:
+    get:
+        summary: Get Cinema Employees
+        description: List all employees in a specific cinema.
+        tags:
+            - Cinemas
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: cinemaId
+              in: path
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: A list of employees
+            '401':
+                description: Unauthorized
+            '500':
+                description: Internal server error
+    post:
+        summary: Create Employee in Cinema
+        description: Register a new employee and associate them with the cinema.
+        tags:
+            - Cinemas
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: cinemaId
+              in: path
+              required: true
+              schema:
+                  type: integer
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        required:
+                            - documentNumber
+                            - firstName
+                            - lastName
+                            - employeeCode
+                            - jobPosition
+                            - startDate
+                        properties:
+                            documentNumber:
+                                type: string
+                            firstName:
+                                type: string
+                            lastName:
+                                type: string
+                            employeeCode:
+                                type: string
+                            jobPosition:
+                                type: integer
+                            startDate:
+                                type: string
+                                format: date
+                            salaryBase:
+                                type: number
+                            email:
+                                type: string
+                                format: email
+                            phoneNumber:
+                                type: string
+                            password:
+                                type: string
+                            role:
+                                type: integer
+        responses:
+            '201':
+                description: Employee created
+            '400':
+                description: Validation error
+            '401':
+                description: Unauthorized
+            '500':
+                description: Internal server error
+
+/cinemas/{cinemaId}/employees/{employeeId}:
+    delete:
+        summary: Remove Employee from Cinema
+        description: Deactivate an employee.
+        tags:
+            - Cinemas
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: cinemaId
+              in: path
+              required: true
+              schema:
+                  type: integer
+            - name: employeeId
+              in: path
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Employee deactivated
+            '401':
+                description: Unauthorized
+            '404':
+                description: Not found
             '500':
                 description: Internal server error

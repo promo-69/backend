@@ -7,7 +7,7 @@ export default class LoyaltyLedgersModel extends SequelizeModelBase {
 			id: {
 				primaryKey: true,
 				autoIncrement: true,
-				allowNull: true,
+				allowNull: false,
 				type: DataTypes.INTEGER,
 			},
 			customer: {
@@ -26,10 +26,14 @@ export default class LoyaltyLedgersModel extends SequelizeModelBase {
 				allowNull: false,
 				type: DataTypes.INTEGER,
 			},
-			created_at: {
+			points_balance: {
 				allowNull: false,
-				type: DataTypes.DATE,
-				defaultValue: DataTypes.NOW,
+				type: DataTypes.INTEGER,
+				defaultValue: 0,
+			},
+			remarks: {
+				allowNull: true,
+				type: DataTypes.TEXT,
 			},
 			deleted_at: {
 				allowNull: true,
@@ -45,7 +49,7 @@ export default class LoyaltyLedgersModel extends SequelizeModelBase {
 			createdAt: 'created_at',
 			updatedAt: false,
 			deletedAt: 'deleted_at',
-			isBasicTable: true,
+			isBasicTable: false,
 			schema: 'public',
 			tableName: 'loyalty_ledgers',
 			appRawName: 'loyalty-ledgers',

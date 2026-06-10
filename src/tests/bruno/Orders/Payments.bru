@@ -1,0 +1,42 @@
+meta {
+  name: Pay Order
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/orders/payments
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "payment_method": 1,
+    "amount": {{orderTotalBase}},
+    "currency": 1,
+    "reference_number": "{{refNumber}}"
+  }
+}
+
+vars:pre-request {
+  refNumber: 1
+  orderTotalBase: 300
+}
+
+script:pre-request {
+  bru.setVar("refNumber", "TX-" + Math.floor(Math.random() * 1000000000));
+}
+
+script:post-response {
+  if (res.status === 200 || res.status === 201) {
+    const data = res.getBody();
+    if (data.data && data.data.qr_code) {
+      bru.setEnvVar("orderQrCode", data.data.qr_code);
+    }
+  }
+}

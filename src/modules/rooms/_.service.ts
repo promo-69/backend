@@ -2,237 +2,327 @@ import { BaseService } from '@bases/service.base.js';
 import { Database } from '@database/index.js';
 import { ConflictError, NotFoundError, ValidationError } from '@errors';
 import { type ProcessedQueryFilters } from '@rules/api-query.type.js';
-import { type Transaction } from 'sequelize';
-
-interface CreateRoomBody {
-	cinemaId: number;
-	name: string;
-	projectionTypes: number[];
-	gridRows: number;
-	gridColumns: number;
-	totalCapacity: number;
-}
-
-interface UpdateRoomBody {
-	name?: string;
-	totalCapacity?: number;
-	projectionTypes?: number[];
-}
+import { type Transaction, Op } from 'sequelize';
 
 export class RoomsService extends BaseService {
-	constructor() {
-		super();
-	}
+    constructor() {
+        super();
+    }
 
-	private get _cinemas() {
-		return Database.repository('main', 'cinemas') as any;
-	}
-	private get _rooms() {
-		return Database.repository('main', 'rooms') as any;
-	}
-	private get _seats() {
-		return Database.repository('main', 'seats') as any;
-	}
-	private get _roomProjectionTypes() {
-		return Database.repository('main', 'room-projection-types') as any;
-	}
+    private get _cinemas() {
+        return Database.repository('main', 'cinemas') as any;
+    }
+    private get _rooms() {
+        return Database.repository('main', 'rooms') as any;
+    }
+    private get _seats() {
+        return Database.repository('main', 'seats') as any;
+    }
+    private get _roomProjectionTypes() {
+        return Database.repository('main', 'room-projection-types') as any;
+    }
+    private get _showtimes() {
+        return Database.repository('main', 'showtimes') as any;
+    }
+    private get _roomBookings() {
+        return Database.repository('main', 'room-bookings') as any;
+    }
 
-	private async _getRoomTotalCapacity(roomId: number) {
-		return this._seats.count({ room: roomId, seat_condition: 1, deleted_at: null });
-	}
+    /** Capacidad total real = número de asientos activos */
+    private async _getRoomTotalCapacity(roomId: number, transaction?: Transaction): Promise<number> {
+        return this._seats.count({ room: roomId }, { transaction });
+    }
 
-	private async _attachTotalCapacity(room: any) {
-		return {
-			...room,
-			total_capacity: await this._getRoomTotalCapacity(room.id),
-		};
-	}
+    private async _attachTotalCapacity(room: any) {
+        const capacity = await this._getRoomTotalCapacity(room.id);
+        return { ...room, total_capacity: capacity };
+    }
 
-	// --- HU-OPERATIVA-07: Registrar sala (SIN generar asientos) ---
-	async createRoom(body: CreateRoomBody, actorUserId?: number) {
-		const { cinemaId, name, projectionTypes, gridRows, gridColumns, totalCapacity } = body;
+    // --- HU-OPERATIVA-07: Registrar sala (sin totalCapacity explícito) ---
+    async createRoom(cinemaId: number, body: any, _actorUserId?: number) {
+        const { name, projectionTypes, gridRows, gridColumns } = body;
 
-		this.validateRequired({ cinemaId, name, projectionTypes, gridRows, gridColumns, totalCapacity } as any, [
-			'cinemaId',
-			'name',
-			'projectionTypes',
-			'gridRows',
-			'gridColumns',
-			'totalCapacity',
-		]);
+        this.validateRequired({ name, projectionTypes, gridRows, gridColumns }, [
+            'name',
+            'projectionTypes',
+            'gridRows',
+            'gridColumns',
+        ]);
 
-		if (!Array.isArray(projectionTypes) || projectionTypes.length === 0)
-			throw new ValidationError('Debe especificar al menos un tipo de proyección', ['projectionTypes']);
+        if (!Array.isArray(projectionTypes) || projectionTypes.length === 0)
+            throw new ValidationError('Debe especificar al menos un tipo de proyección', ['projectionTypes']);
 
-		if (!Number.isInteger(gridRows) || gridRows < 1)
-			throw new ValidationError('El número de filas debe ser un entero mayor a 0', ['gridRows']);
+        if (!Number.isInteger(gridRows) || gridRows < 1)
+            throw new ValidationError('El número de filas debe ser un entero mayor a 0', ['gridRows']);
 
-		if (!Number.isInteger(gridColumns) || gridColumns < 1)
-			throw new ValidationError('El número de columnas debe ser un entero mayor a 0', ['gridColumns']);
+        if (!Number.isInteger(gridColumns) || gridColumns < 1)
+            throw new ValidationError('El número de columnas debe ser un entero mayor a 0', ['gridColumns']);
 
-		if (typeof totalCapacity !== 'number' || totalCapacity < 0)
-			throw new ValidationError('La capacidad total no puede ser negativa', ['totalCapacity']);
+        const cinema = await this._cinemas.getFull(cinemaId);
+        if (!cinema) throw new NotFoundError('Sucursal no encontrada');
 
-		const cinema = await this._cinemas.getFull(cinemaId);
-		if (!cinema) throw new NotFoundError('Sucursal no encontrada o inactiva');
+        const existing = await this._rooms.getByNameAndCinema(name, cinemaId);
+        if (existing)
+            throw new ConflictError('Ya existe una sala con ese nombre en la sucursal', 'ROOM_NAME_DUPLICATE');
 
-		const existing = await this._rooms.getByNameAndCinema(name, cinemaId);
-		if (existing)
-			throw new ConflictError('Ya existe una sala con ese nombre en la sucursal', 'ROOM_NAME_DUPLICATE');
+        const createdRoom = await this._rooms.transaction(async (transaction: Transaction) => {
+            const room = await this._rooms.create(
+                {
+                    cinema: cinemaId,
+                    name,
+                    grid_rows: gridRows,
+                    grid_columns: gridColumns,
+                },
+                { transaction },
+            );
 
-		const createdRoom = await this._rooms.transaction(async (transaction: Transaction) => {
-			const room = await this._rooms.create(
-				{
-					cinema: cinemaId,
-					name,
-					grid_rows: gridRows,
-					grid_columns: gridColumns,
-					total_capacity: totalCapacity,
-				},
-				{ transaction },
-			);
+            const projectionRecords = projectionTypes.map((ptId: number) => ({
+                room: room.id,
+                projection_type: ptId,
+            }));
+            await this._roomProjectionTypes.bulkCreate(projectionRecords, { transaction });
 
-			const projectionRecords = projectionTypes.map((ptId: number) => ({
-				room: room.id,
-				projection_type: ptId,
-			}));
-			await this._roomProjectionTypes.bulkCreate(projectionRecords, { transaction });
+            return room;
+        });
 
-			return room;
-		});
+        return { room_id: createdRoom.id, name: createdRoom.name };
+    }
 
-		return { room_id: createdRoom.id, name: createdRoom.name };
-	}
+    // --- HU-OPERATIVA-08: Modificar sala (PATCH) ---
+    async updateRoom(id: number, body: any) {
+        const { name, projectionTypes } = body;
 
-	// --- HU-OPERATIVA-08: Modificar sala ---
-	async updateRoom(id: number, body: UpdateRoomBody) {
-		const room = await this._rooms.getFull(id);
-		if (!room) throw new NotFoundError('Sala no encontrada');
+        if (name === undefined && projectionTypes === undefined) {
+            throw new ValidationError('No se proporcionaron datos para actualizar', []);
+        }
 
-		const { name, totalCapacity, projectionTypes } = body;
-		const updateData: Record<string, any> = {};
+        await this._rooms.transaction(async (transaction: Transaction) => {
+            const room = await this._rooms.getById(id, { transaction, lock: transaction.LOCK.UPDATE });
+            if (!room) throw new NotFoundError('Sala no encontrada');
 
-		if (name !== undefined) {
-			if (typeof name !== 'string' || name.trim().length === 0)
-				throw new ValidationError('El nombre no puede estar vacío', ['name']);
-			const existing = await this._rooms.getByNameAndCinema(name, room.cinema);
-			if (existing && existing.id !== id)
-				throw new ConflictError('Ya existe una sala con ese nombre en la sucursal', 'ROOM_NAME_DUPLICATE');
-			updateData.name = name.trim();
-		}
+            const updateData: Record<string, any> = {};
 
-		if (totalCapacity !== undefined) {
-			if (typeof totalCapacity !== 'number' || totalCapacity < 0)
-				throw new ValidationError('La capacidad total no puede ser negativa', ['totalCapacity']);
-			updateData.total_capacity = totalCapacity;
-		}
+            if (name !== undefined) {
+                if (typeof name !== 'string' || name.trim().length === 0)
+                    throw new ValidationError('El nombre no puede estar vacío', ['name']);
+                const existing = await this._rooms.getByNameAndCinema(name.trim(), room.cinema);
+                if (existing && existing.id !== id)
+                    throw new ConflictError('Ya existe una sala con ese nombre en la sucursal', 'ROOM_NAME_DUPLICATE');
+                updateData.name = name.trim();
+            }
 
-		if (Object.keys(updateData).length === 0 && projectionTypes === undefined)
-			throw new ValidationError('No se proporcionaron datos para actualizar', []);
+            if (Object.keys(updateData).length > 0) {
+                await this._rooms.update(id, updateData, { transaction });
+            }
 
-		await this._rooms.transaction(async (transaction: Transaction) => {
-			if (Object.keys(updateData).length > 0) await this._rooms.update(id, updateData, { transaction });
+            if (projectionTypes !== undefined) {
+                // Validar funciones futuras antes de eliminar tipos de proyección
+                const currentTypes = await this._roomProjectionTypes.getAll(
+                    { count: false },
+                    { room: id },
+                    { transaction },
+                );
+                const currentTypeIds = (Array.isArray(currentTypes) ? currentTypes : currentTypes.rows).map(
+                    (r: any) => r.projection_type,
+                );
 
-			if (projectionTypes !== undefined) {
-				await this._roomProjectionTypes.deleteByRoom(id, { transaction });
-				if (projectionTypes.length > 0) {
-					const records = projectionTypes.map((ptId: number) => ({
-						room: id,
-						projection_type: ptId,
-					}));
-					await this._roomProjectionTypes.bulkCreate(records, { transaction });
-				}
-			}
-		});
+                const typesToRemove = currentTypeIds.filter((ptId: number) => !projectionTypes.includes(ptId));
+                if (typesToRemove.length > 0) {
+                    const futureBookings = await this._roomBookings.getAll(
+                        { count: false, attributes: ['id'] },
+                        {
+                            room: id,
+                            start_time: { [Op.gt]: new Date() },
+                            deleted_at: null,
+                        },
+                        { transaction },
+                    );
+                    const bookingIds = (Array.isArray(futureBookings) ? futureBookings : futureBookings.rows || []).map((b: any) => b.id);
 
-		return null;
-	}
+                    let futureCount = 0;
+                    if (bookingIds.length > 0) {
+                        futureCount = await this._showtimes.count(
+                            {
+                                booking: bookingIds,
+                                projection_type: typesToRemove,
+                                deleted_at: null,
+                            },
+                            { transaction },
+                        );
+                    }
+                    if (futureCount > 0)
+                        throw new ValidationError(
+                            'No se pueden quitar tipos de proyección con funciones futuras programadas',
+                            ['projectionTypes'],
+                        );
+                }
 
-	// --- HU-OPERATIVA-08 (Adición): Eliminar sala (Soft Delete) ---
-	async deleteRoom(id: number) {
-		const room = await this._rooms.getFull(id);
-		if (!room) throw new NotFoundError('Sala no encontrada');
+                await this._roomProjectionTypes.deleteByRoom(id, { transaction });
+                if (projectionTypes.length > 0) {
+                    const records = projectionTypes.map((ptId: number) => ({
+                        room: id,
+                        projection_type: ptId,
+                    }));
+                    await this._roomProjectionTypes.bulkCreate(records, { transaction });
+                }
+            }
+        });
 
-		let activeShowtimes = 0;
-		try {
-			activeShowtimes = await Database.repository('main', 'showtimes').count({ room: id } as any);
-		} catch {
-			/* módulo showtimes aún no implementado, se ignora */
-		}
+        return null;
+    }
 
-		if (activeShowtimes > 0)
-			throw new ConflictError(
-				'No se puede clausurar la sala porque tiene funciones futuras activas.',
-				'ROOM_HAS_ACTIVE_SHOWTIMES',
-			);
+    // --- HU-OPERATIVA-08 (Adición): Eliminar sala ---
+    async deleteRoom(id: number) {
+        await this._rooms.transaction(async (transaction: Transaction) => {
+            const room = await this._rooms.getById(id, { transaction, lock: transaction.LOCK.UPDATE });
+            if (!room) throw new NotFoundError('Sala no encontrada');
 
-		await this._rooms.delete(id);
-		return null;
-	}
+            // 1. Obtener todas las reservas de sala asociadas (engloba funciones y eventos privados)
+            const bookings = await this._roomBookings.getAll(
+                { count: false, attributes: ['id', 'end_time'] },
+                { room: id, deleted_at: null },
+                { transaction },
+            );
+            const bookingsArr = Array.isArray(bookings) ? bookings : bookings.rows || [];
+            
+            // 2. Verificar si existe al menos una reserva o función que aún no ha culminado
+            const now = new Date();
+            const activeBookings = bookingsArr.filter((b: any) => new Date(b.end_time) > now);
 
-	// --- Soporte Visual Frontend: Mapa de asientos ---
-	async getSeatMap(roomId: number, filters?: ProcessedQueryFilters) {
-		const room = await this._rooms.getFull(roomId);
-		if (!room) throw new NotFoundError('Sala no encontrada');
-		return this._seats.getAllByRoom(roomId, filters);
-	}
+            if (activeBookings.length > 0) {
+                throw new ConflictError(
+                    'No se puede clausurar la sala porque tiene funciones o reservas activas o programadas en el futuro',
+                    'ROOM_HAS_ACTIVE_BOOKINGS',
+                );
+            }
 
-	// --- Consultas generales ---
-	async findAll(cinemaId?: number, filters?: ProcessedQueryFilters) {
-		let rooms: any;
+            // 3. Si no hay reservas activas, aplicar Soft-Delete en Cascada
+            const deletedAt = new Date();
 
-		if (cinemaId === undefined) {
-			rooms = await this._rooms.getAll(filters || {});
-		} else {
-			const cinema = await this._cinemas.getFull(cinemaId);
-			if (!cinema) throw new NotFoundError('Sucursal no encontrada');
-			rooms = await this._rooms.getAllByCinema(cinemaId, filters);
-		}
+            // Desactivar todos los asientos de la sala
+            await this._seats.update(
+                { room: id, deleted_at: null }, 
+                { deleted_at: deletedAt }, 
+                { transaction }
+            );
 
-		if (Array.isArray(rooms)) {
-			return Promise.all(rooms.map((room: any) => this._attachTotalCapacity(room)));
-		}
-		return {
-			...rooms,
-			rows: await Promise.all((rooms.rows || []).map((room: any) => this._attachTotalCapacity(room))),
-		};
-	}
+            // Desactivar todos los tipos de proyección asignados a la sala
+            await this._roomProjectionTypes.update(
+                { room: id, deleted_at: null }, 
+                { deleted_at: deletedAt }, 
+                { transaction }
+            );
 
-	async findRoomProjectionTypes(roomId: number, filters?: ProcessedQueryFilters) {
-		await this.findById(roomId);
-		return this._roomProjectionTypes.getByRoom(roomId);
-	}
+            // Finalmente, clausurar (soft delete) la sala
+            await this._rooms.delete(id, { transaction });
+        });
+        return null;
+    }
 
-	async findRoomProjectionTypeById(id: number, roomId: number) {
-		const projectionType = await this._roomProjectionTypes.getById(id);
-		return projectionType && projectionType.room === roomId ? projectionType : null;
-	}
+    // --- Consultas ---
+    async findAll(cinemaId?: number, filters?: ProcessedQueryFilters) {
+        let rooms: any;
+        if (cinemaId === undefined) {
+            rooms = await this._rooms.getAll(filters || {});
+        } else {
+            const cinema = await this._cinemas.getFull(cinemaId);
+            if (!cinema) throw new NotFoundError('Sucursal no encontrada');
+            rooms = await this._rooms.getAllByCinema(cinemaId, filters);
+        }
 
-	async createRoomProjectionType(roomId: number, projectionTypeData: any) {
-		await this.findById(roomId);
+        const attach = async (r: any) => this._attachTotalCapacity(r);
+        if (Array.isArray(rooms)) {
+            return Promise.all(rooms.map(attach));
+        }
+        return {
+            ...rooms,
+            rows: await Promise.all((rooms.rows || []).map(attach)),
+        };
+    }
 
-		const projectionType = projectionTypeData.projectionType;
-		if (!Number.isInteger(projectionType) || projectionType <= 0)
-			throw new ValidationError('projectionType must be a positive integer', ['projectionType']);
+    async findById(id: number) {
+        const room = await this._rooms.getFull(id);
+        if (!room) throw new NotFoundError('Sala no encontrada');
+        return this._attachTotalCapacity(room);
+    }
 
-		return this._roomProjectionTypes.create({
-			room: roomId,
-			projection_type: projectionType,
-		});
-	}
+    async getSeatMap(roomId: number, filters?: ProcessedQueryFilters) {
+        const room = await this._rooms.getFull(roomId);
+        if (!room) throw new NotFoundError('Sala no encontrada');
+        return this._seats.getAllByRoom(roomId, filters);
+    }
 
-	async deleteRoomProjectionType(id: number, roomId: number) {
-		await this.findById(roomId);
-		const projectionType = await this.findRoomProjectionTypeById(id, roomId);
-		if (!projectionType) throw new NotFoundError('RoomProjectionType', id);
-		return this._roomProjectionTypes.delete(id);
-	}
+    // --- Tipos de proyección ---
+    async findRoomProjectionTypes(roomId: number) {
+        await this.findById(roomId);
+        return this._roomProjectionTypes.getByRoom(roomId);
+    }
 
-	async findById(id: number) {
-		const room = await this._rooms.getFull(id);
-		if (!room) throw new NotFoundError('Sala no encontrada');
-		return this._attachTotalCapacity(room);
-	}
+    async createRoomProjectionType(roomId: number, projectionTypeId: number) {
+        await this.findById(roomId);
+        if (!Number.isInteger(projectionTypeId) || projectionTypeId <= 0)
+            throw new ValidationError('projectionType debe ser un entero positivo', ['projectionType']);
+        return this._roomProjectionTypes.create({ room: roomId, projection_type: projectionTypeId });
+    }
+
+    async deleteRoomProjectionType(roomId: number, projectionTypeId: number) {
+        await this.findById(roomId);
+        const record = await this._roomProjectionTypes.getOne({ room: roomId, id: projectionTypeId });
+        if (!record) throw new NotFoundError('Tipo de proyección no encontrado en esta sala');
+        return this._roomProjectionTypes.delete(record.id);
+    }
+
+    // --- Configurar grilla de asientos (regenerar todos) ---
+    async configureSeatGrid(roomId: number, body: { gridRows: number; gridColumns: number }) {
+        const { gridRows, gridColumns } = body;
+
+        if (!Number.isInteger(gridRows) || gridRows <= 0) {
+            throw new ValidationError('gridRows debe ser un entero positivo', ['gridRows']);
+        }
+        if (!Number.isInteger(gridColumns) || gridColumns <= 0) {
+            throw new ValidationError('gridColumns debe ser un entero positivo', ['gridColumns']);
+        }
+
+        const room = await this._rooms.getFull(roomId);
+        if (!room) throw new NotFoundError('Sala no encontrada');
+
+        // Prevenir si hay funciones activas (opcional)
+        const activeShowtimes = await this._showtimes.count({ room: roomId, deleted_at: null });
+        if (activeShowtimes > 0) {
+            throw new ConflictError(
+                'No se puede modificar la distribución de asientos porque la sala tiene funciones activas',
+                'ROOM_HAS_ACTIVE_SHOWTIMES',
+            );
+        }
+
+        await this._rooms.transaction(async (transaction: Transaction) => {
+            // Soft delete de todos los asientos actuales
+            await this._seats.update({ room: roomId, deleted_at: null }, { deleted_at: new Date() }, { transaction });
+
+            // Generar nuevos asientos
+            const seatsToCreate = [];
+            for (let row = 0; row < gridRows; row++) {
+                const rowLabel = String.fromCharCode(65 + row);
+                for (let col = 1; col <= gridColumns; col++) {
+                    seatsToCreate.push({
+                        room: roomId,
+                        row_identifier: rowLabel,
+                        column_number: col,
+                        seat_category: 1,
+                        seat_condition: 1,
+                    });
+                }
+            }
+            if (seatsToCreate.length > 0) {
+                await this._seats.bulkCreate(seatsToCreate, { transaction });
+            }
+
+            // Actualizar dimensiones de la sala
+            await this._rooms.update(roomId, { grid_rows: gridRows, grid_columns: gridColumns }, { transaction });
+        });
+
+        return null;
+    }
 }
 
 export default new RoomsService();

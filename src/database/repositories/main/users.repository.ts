@@ -16,7 +16,7 @@ export interface UsersAttributes {
 	deleted_at?: Date;
 }
 
-interface UsersWithPeople extends UsersAttributes {
+export interface UsersWithPeople extends UsersAttributes {
 	_People: {
 		first_name: string;
 		last_name: string;
@@ -24,6 +24,9 @@ interface UsersWithPeople extends UsersAttributes {
 		phone_number: string;
 	};
 }
+
+const USER_TYPE_EMPLOYEE = 1;
+const USER_TYPE_CUSTOMER = 2;
 
 class UsersRepository extends SequelizeRepositoryBase<UsersAttributes, number> {
 	constructor() {
@@ -34,8 +37,30 @@ class UsersRepository extends SequelizeRepositoryBase<UsersAttributes, number> {
 		return [
 			{
 				association: '_People',
-				attributes: ['first_name', 'last_name', 'personal_email', 'phone_number'],
+				attributes: ['first_name', 'last_name', 'personal_email', 'phone_number', 'birth_date', 'gender',],
 				required: true,
+				nested: [
+					{
+						association: '_Employees',
+						attributes: ['id'],
+						required: false,
+						where: { deleted_at: null },
+						nested: [
+							{
+								association: '_EmployeePositions',
+								attributes: ['cinema'],
+								separate: true,
+								order: [['id', 'DESC']],
+								limit: 1,
+							},
+						],
+					},
+					{
+						association: '_Genders',
+						attributes: ['id','description']
+
+					}
+				],
 			},
 			{
 				association: '_Roles',
@@ -76,34 +101,30 @@ class UsersRepository extends SequelizeRepositoryBase<UsersAttributes, number> {
 	}
 
 	async getByEmail(email: string) {
-		return this.getOne({ email }, { relations: this._relations }) as Promise<UsersWithPeople | null>;
-	}
-
-	async getByDocumentNumber(documentNumber: string) {
 		return this.getOne(
-			{},
+			{ email },
 			{
-				relations: this._relations.map((r) =>
-					r.association === '_People' ? { ...r, where: { document_number: documentNumber } } : r,
-				),
+				attributes: ['id', 'person', 'user_type', 'role', 'email', 'signup_verified_at', 'signup_code'],
+				relations: this._relations,
 			},
 		) as Promise<UsersWithPeople | null>;
 	}
 
-	async getByPerson(personId: number) {
+	async getByClientEmail(email: string) {
 		return this.getOne(
-			{ person: personId },
+			{ email, user_type: USER_TYPE_CUSTOMER },
 			{
-				attributes: [
-					'id',
-					'person',
-					'user_type',
-					'role',
-					'email',
-					'signup_verified_at',
-					'created_at',
-					'updated_at',
-				],
+				attributes: ['id', 'person', 'user_type', 'role', 'email', 'signup_verified_at', 'signup_code'],
+				relations: this._relations,
+			},
+		) as Promise<UsersWithPeople | null>;
+	}
+
+	async getByEmployeeEmail(email: string) {
+		return this.getOne(
+			{ email, user_type: USER_TYPE_EMPLOYEE },
+			{
+				attributes: ['id', 'person', 'user_type', 'role', 'email', 'signup_verified_at', 'signup_code'],
 				relations: this._relations,
 			},
 		) as Promise<UsersWithPeople | null>;

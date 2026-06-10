@@ -1,0 +1,21 @@
+meta {
+  name: Validate QR
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{baseUrl}}/orders/validate-qr/{{orderQrCode}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "validation_type": 1
+  }
+}

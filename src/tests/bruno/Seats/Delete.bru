@@ -1,15 +1,20 @@
 meta {
-  name: Delete Seats
+  name: Delete Seat
   type: http
-  seq: 5
+  seq: 4
 }
 
 delete {
-  url: {{baseUrl}}/seats/1
+  url: {{baseUrl}}/seats/{{testSeatId}}
   body: none
   auth: bearer
 }
 
 auth:bearer {
   token: {{accessToken}}
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  bru.setVar('baseUrl', baseUrl);
 }

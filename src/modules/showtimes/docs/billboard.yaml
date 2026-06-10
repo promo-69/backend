@@ -1,0 +1,224 @@
+/showtimes/billboard:
+    get:
+        summary: 'PÚBLICO — Cartelera global con filtros opcionales'
+        description: |
+            Devuelve todas las películas en cartelera (lifecycle COMING_SOON, PREMIERE, REGULAR, LAST_DAYS)
+            con sus funciones futuras agrupadas.
+            Sin autenticación requerida (optionalAuth).
+            Filtros acumulables:
+            - `cinemaId` – ID de sucursal
+            - `movieId` – ID de película
+            - `projectionType` – descripción parcial o ID (ej: "3D", "IMAX", "2")
+            - `language` – descripción parcial o ID (ej: "SUB", "doblada", "1")
+        tags:
+            - Cartelera
+        security: []
+        parameters:
+            - in: query
+              name: cinemaId
+              schema:
+                  type: integer
+              required: false
+            - in: query
+              name: movieId
+              schema:
+                  type: integer
+              required: false
+            - in: query
+              name: projectionType
+              schema:
+                  type: string
+              required: false
+              description: Tipo de proyección (ej. '2D', '3D', 'IMAX')
+            - in: query
+              name: language
+              schema:
+                  type: string
+              required: false
+              description: Idioma (ej. 'Español', 'Subtitulado')
+        responses:
+            '200':
+                description: Cartelera global (puede estar vacía)
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                message:
+                                    type: string
+                                data:
+                                    type: object
+                                    properties:
+                                        count:
+                                            type: integer
+                                        rows:
+                                            type: array
+                                            items:
+                                                type: object
+                                                properties:
+                                                    movie:
+                                                        type: object
+                                                        properties:
+                                                            id:
+                                                                type: integer
+                                                            title:
+                                                                type: string
+                                                            duration_minutes:
+                                                                type: integer
+                                                            poster_url:
+                                                                type: string
+                                                                nullable: true
+                                                            lifecycle:
+                                                                type: object
+                                                                properties:
+                                                                    id:
+                                                                        type: integer
+                                                                    description:
+                                                                        type: string
+                                                            age_classification:
+                                                                type: object
+                                                                properties:
+                                                                    id:
+                                                                        type: integer
+                                                                    description:
+                                                                        type: string
+                                                            genres:
+                                                                type: array
+                                                                items:
+                                                                    type: object
+                                                                    properties:
+                                                                        id:
+                                                                            type: integer
+                                                                        description:
+                                                                            type: string
+                                                    showtimes:
+                                                        type: array
+                                                        items:
+                                                            type: object
+                                                            properties:
+                                                                id:
+                                                                    type: integer
+                                                                booking:
+                                                                    type: object
+                                                                    properties:
+                                                                        id:
+                                                                            type: integer
+                                                                        start_time:
+                                                                            type: string
+                                                                            format: date-time
+                                                                        end_time:
+                                                                            type: string
+                                                                            format: date-time
+                                                                        room:
+                                                                            type: object
+                                                                            properties:
+                                                                                id:
+                                                                                    type: integer
+                                                                                name:
+                                                                                    type: string
+                                                                                cinema:
+                                                                                    type: object
+                                                                                    properties:
+                                                                                        id:
+                                                                                            type: integer
+                                                                                        name:
+                                                                                            type: string
+                                                                projection_type:
+                                                                    type: object
+                                                                    properties:
+                                                                        id:
+                                                                            type: integer
+                                                                        description:
+                                                                            type: string
+                                                                language:
+                                                                    type: object
+                                                                    properties:
+                                                                        id:
+                                                                            type: integer
+                                                                        description:
+                                                                            type: string
+                                                                currency:
+                                                                    type: object
+                                                                    properties:
+                                                                        id:
+                                                                            type: integer
+                                                                        code:
+                                                                            type: string
+                                                                        symbol:
+                                                                            type: string
+                                                                price:
+                                                                    type: number
+                                                                earned_loyalty_points:
+                                                                    type: integer
+                                                                    nullable: true
+            '404':
+                description: No se encontraron funciones para los filtros
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                message:
+                                    type: string
+                                data:
+                                    type: object
+
+/cinemas/{cinemaId}/showtimes/billboard:
+    get:
+        summary: 'PÚBLICO — Cartelera por sucursal'
+        description: |
+            Cartelera específica de una sucursal, con los mismos filtros opcionales.
+        tags:
+            - Cartelera por Sucursal
+        security: []
+        parameters:
+            - in: path
+              name: cinemaId
+              required: true
+              schema:
+                  type: integer
+            - in: query
+              name: movieId
+              schema:
+                  type: integer
+              required: false
+            - in: query
+              name: projectionType
+              schema:
+                  type: string
+              required: false
+            - in: query
+              name: language
+              schema:
+                  type: string
+              required: false
+        responses:
+            '200':
+                description: Cartelera de la sucursal
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                message:
+                                    type: string
+                                data:
+                                    type: object
+                                    properties:
+                                        count:
+                                            type: integer
+                                        rows:
+                                            type: array
+                                            items:
+                                                type: object
+                                                properties:
+                                                    movie:
+                                                        type: object
+                                                    showtimes:
+                                                        type: array

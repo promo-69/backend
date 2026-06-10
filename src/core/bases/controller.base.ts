@@ -1,4 +1,5 @@
 import { type CookieOptions, type Request, type Response, type NextFunction } from 'express';
+import { AsyncLocalStorage } from 'async_hooks';
 import { QueryBuilder } from '@utils/query-builder.util.js';
 import { type ApiResponse } from '@rules/api-response.type.js';
 import { type PaginationMetadata, type ProcessedQueryFilters } from '@rules/api-query.type.js';
@@ -10,6 +11,16 @@ export type ControllerHandlers = {
 	[key: string]: RequestHandler;
 };
 
+interface ExecutionContext {
+	currentRequest: Request;
+	currentResponse: Response;
+	currentNext: NextFunction;
+	queryFilters: ProcessedQueryFilters | undefined | null;
+	requestStartTime: number;
+}
+
+const executionContextStore = new AsyncLocalStorage<ExecutionContext>();
+
 /**
  * ControllerBase - Clase base para todos los controladores
  * Proporciona manejo automático de errores, query parsing y formato de respuesta
@@ -18,12 +29,16 @@ export abstract class ControllerBase {
 	protected controllerName: string;
 	private readonly baseMethods = new Set<string | symbol>();
 
-	// Contexto de la solicitud actual
-	private currentRequest: Request | null = null;
-	private currentResponse: Response | null = null;
-	private currentNext: NextFunction | null = null;
-	private queryFilters: ProcessedQueryFilters | undefined | null;
-	private requestStartTime: number = 0;
+	// Contexto de la solicitud actual gestionado con AsyncLocalStorage para evitar race conditions
+	private get currentRequest(): Request | null { return executionContextStore.getStore()?.currentRequest || null; }
+	private get currentResponse(): Response | null { return executionContextStore.getStore()?.currentResponse || null; }
+	private get currentNext(): NextFunction | null { return executionContextStore.getStore()?.currentNext || null; }
+	
+	private get queryFilters(): ProcessedQueryFilters | undefined | null { return executionContextStore.getStore()?.queryFilters; }
+	private set queryFilters(val: ProcessedQueryFilters | undefined | null) { const s = executionContextStore.getStore(); if (s) s.queryFilters = val; }
+	
+	private get requestStartTime(): number { return executionContextStore.getStore()?.requestStartTime || 0; }
+	private set requestStartTime(val: number) { const s = executionContextStore.getStore(); if (s) s.requestStartTime = val; }
 
 	constructor() {
 		this.controllerName = this.constructor.name;
@@ -117,44 +132,36 @@ export abstract class ControllerBase {
 	 * Ejecuta un método con el wrapper de manejo de contexto
 	 */
 	private async executeWithWrapper(method: Function, args: any[]): Promise<any> {
-		// Extraer req, res, next de los argumentos
 		const [req, res, next] = args as [Request, Response, NextFunction];
 
-		// Configurar contexto de ejecución
-		this.setupExecutionContext(req, res, next);
+		const context: ExecutionContext = {
+			currentRequest: req,
+			currentResponse: res,
+			currentNext: next,
+			queryFilters: null,
+			requestStartTime: Date.now()
+		};
 
-		try {
-			// 1. Procesar query parameters
-			this.processQueryFilters(req);
+		return executionContextStore.run(context, async () => {
+			// Asegurar que req tenga la propiedad filters
+			if (!req.filters) req.filters = undefined;
 
-			// 2. Ejecutar método del controlador
-			const result = await method(...args);
+			try {
+				// 1. Procesar query parameters
+				this.processQueryFilters(req);
 
-			// 3. Manejar respuesta si no se ha hecho
-			this.handleResponseIfNeeded(result);
+				// 2. Ejecutar método del controlador
+				const result = await method(...args);
 
-			return result;
-		} catch (error) {
-			// 4. Manejar errores
-			this.handleError(error);
-		} finally {
-			// 5. Limpiar contexto
-			this.cleanupExecutionContext();
-		}
-	}
+				// 3. Manejar respuesta si no se ha hecho
+				this.handleResponseIfNeeded(result);
 
-	/**
-	 * Configura el contexto de ejecución para esta solicitud
-	 */
-	private setupExecutionContext(req: Request, res: Response, next: NextFunction): void {
-		this.requestStartTime = Date.now();
-		this.currentRequest = req;
-		this.currentResponse = res;
-		this.currentNext = next;
-		this.queryFilters = null;
-
-		// Asegurar que req tenga la propiedad filters
-		if (!req.filters) req.filters = undefined;
+				return result;
+			} catch (error) {
+				// 4. Manejar errores
+				this.handleError(error);
+			}
+		});
 	}
 
 	/**
@@ -211,7 +218,7 @@ export abstract class ControllerBase {
 		};
 
 		// Agregar tiempo de ejecución en desarrollo
-		if (process.env.NODE_ENV === 'development') (response as any).executionTime = `${executionTime}ms`;
+		if (process.env.APP_ENV === 'development') (response as any).executionTime = `${executionTime}ms`;
 		this.currentResponse.status(200).json(response);
 	}
 
@@ -257,17 +264,6 @@ export abstract class ControllerBase {
 
 		if (this.currentNext) this.currentNext(normalizedError);
 		else throw normalizedError;
-	}
-
-	/**
-	 * Limpia el contexto de ejecución
-	 */
-	private cleanupExecutionContext(): void {
-		this.currentRequest = null;
-		this.currentResponse = null;
-		this.currentNext = null;
-		this.queryFilters = null;
-		this.requestStartTime = 0;
 	}
 
 	/**

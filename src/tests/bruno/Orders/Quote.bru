@@ -1,0 +1,25 @@
+meta {
+  name: Quote Order
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/orders/quote
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "cinema": 1
+  }
+}
+
+script:post-response {
+  // Session is handled via user token now
+}

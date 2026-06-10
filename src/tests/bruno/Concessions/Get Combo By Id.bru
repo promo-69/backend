@@ -7,7 +7,15 @@ meta {
 get {
   url: {{baseUrl}}/concessions/combos/{{testComboId}}
   body: none
-  auth: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+vars:pre-request {
+  testComboId: 1
 }
 
 script:pre-request {

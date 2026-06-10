@@ -1,0 +1,15 @@
+meta {
+  name: Get Concessions by QR
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/orders/qr/{{orderQrCode}}/concessions
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

@@ -1,6 +1,7 @@
 import { BaseService } from '@bases/service.base.js';
 import { Database } from '@database/index.js';
 import { NotFoundError, ValidationError } from '@errors';
+import { PricingCacheService } from '@services/pricing-cache.service.js';
 
 // Reglas del constraint chk_price_modifiers_logic
 // scope 1 (Boletería):  product_category, product, combo deben ser NULL
@@ -26,6 +27,19 @@ interface CreatePriceModifierBody {
 	productCategory?: number;
 	product?: number;
 	combo?: number;
+	// Model fields
+	cinema?: number;
+	startDate?: string | Date;
+	endDate?: string | Date;
+	startTime?: string; // HH:MM:SS
+	endTime?: string; // HH:MM:SS
+	lineType?: number;
+	bookingType?: number;
+	movie?: number;
+	roomType?: number;
+	currency?: number;
+	targetCurrency?: number;
+	targetCurrencyCondition?: boolean;
 }
 
 interface UpdatePriceModifierBody {
@@ -33,6 +47,7 @@ interface UpdatePriceModifierBody {
 	value?: number;
 	isPercentage?: boolean;
 	operationType?: number;
+	currency?: number;
 }
 
 export class PriceModifiersService extends BaseService {
@@ -58,7 +73,20 @@ export class PriceModifiersService extends BaseService {
 
 	// --- HU-OPERATIVA-14/15: Crear regla de precio ---
 	async createPriceModifier(body: CreatePriceModifierBody) {
-		const { description, modifierScope, operationType, isPercentage, value } = body;
+		const {
+			description,
+			modifierScope,
+			operationType,
+			isPercentage,
+			value,
+			weekDay,
+			startDate,
+			endDate,
+			startTime,
+			endTime,
+		} = body;
+
+		const currency = body.currency ?? (body as any).currencyId;
 
 		this.validateRequired({ description, modifierScope, operationType, isPercentage, value } as any, [
 			'description',
@@ -68,29 +96,81 @@ export class PriceModifiersService extends BaseService {
 			'value',
 		]);
 
+		if (!isPercentage && (currency === undefined || currency === null)) {
+			throw new ValidationError('currency es obligatorio para modificadores de monto fijo', ['currency']);
+		}
+
 		if (typeof value !== 'number' || value <= 0)
 			throw new ValidationError('El valor debe ser un número positivo', ['value']);
 
 		if (isPercentage && value > 100) throw new ValidationError('Un porcentaje no puede superar el 100%', ['value']);
 
+		// modifierScope must be 1,2 or 3
+		if (typeof modifierScope !== 'number' || ![1, 2, 3].includes(modifierScope))
+			throw new ValidationError('modifierScope inválido. Debe ser 1, 2 o 3', ['modifierScope']);
+
+		if (typeof operationType !== 'number')
+			throw new ValidationError('operationType debe ser un número', ['operationType']);
+
+		if (typeof isPercentage !== 'boolean')
+			throw new ValidationError('isPercentage debe ser booleano', ['isPercentage']);
+
+		if (weekDay !== undefined && weekDay !== null && (typeof weekDay !== 'number' || weekDay < 1 || weekDay > 7))
+			throw new ValidationError('weekDay debe ser un número entre 1 y 7', ['weekDay']);
+
+		// Validate dates if provided (validate each when present; if both present validate ordering)
+		if (startDate !== undefined && startDate !== null) {
+			const s = new Date(startDate as any);
+			if (isNaN(s.getTime())) throw new ValidationError('startDate inválido', ['startDate']);
+		}
+		if (endDate !== undefined && endDate !== null) {
+			const e = new Date(endDate as any);
+			if (isNaN(e.getTime())) throw new ValidationError('endDate inválido', ['endDate']);
+		}
+		if (startDate !== undefined && startDate !== null && endDate !== undefined && endDate !== null) {
+			const s = new Date(startDate as any);
+			const e = new Date(endDate as any);
+			if (e < s) throw new ValidationError('endDate no puede ser anterior a startDate', ['endDate']);
+		}
+
+		// Validate time format HH:MM or HH:MM:SS when provided
+		const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)(:[0-5]\d)?$/;
+		if (startTime !== undefined && startTime !== null && !timeRegex.test(String(startTime)))
+			throw new ValidationError('startTime inválido', ['startTime']);
+		if (endTime !== undefined && endTime !== null && !timeRegex.test(String(endTime)))
+			throw new ValidationError('endTime inválido', ['endTime']);
+
 		this._validateScopeLogic(modifierScope, body);
 
-		await this._priceModifiers.create({
+		const createdModifier = await this._priceModifiers.create({
 			description,
 			modifier_scope: modifierScope,
 			operation_type: operationType,
 			is_percentage: isPercentage,
 			value,
 			audience_category: body.audienceCategory ?? null,
-			week_day: body.weekDay ?? null,
+			week_day: weekDay ?? null,
 			seat_category: body.seatCategory ?? null,
 			projection_type: body.projectionType ?? null,
 			product_category: body.productCategory ?? null,
 			product: body.product ?? null,
 			combo: body.combo ?? null,
+			cinema: body.cinema ?? null,
+			start_date: startDate ? new Date(startDate as any) : null,
+			end_date: endDate ? new Date(endDate as any) : null,
+			start_time: body.startTime ?? null,
+			end_time: body.endTime ?? null,
+			line_type: body.lineType ?? null,
+			booking_type: body.bookingType ?? null,
+			movie: body.movie ?? null,
+			room_type: body.roomType ?? null,
+			currency: currency ?? null,
+			target_currency: body.targetCurrency ?? null,
+			target_currency_condition: body.targetCurrencyCondition ?? false,
 		});
 
-		return null;
+		await PricingCacheService.invalidateCache();
+		return createdModifier;
 	}
 
 	// --- HU-OPERATIVA-15 (Edición): Actualizar regla ---
@@ -118,12 +198,31 @@ export class PriceModifiersService extends BaseService {
 
 		if (isPercentage !== undefined) updateData.is_percentage = isPercentage;
 		if (operationType !== undefined) updateData.operation_type = operationType;
+		if (body.currency !== undefined) updateData.currency = body.currency;
+
+		const finalIsPercentage = isPercentage ?? modifier.is_percentage;
+		const finalCurrency = body.currency !== undefined ? body.currency : modifier.currency;
+
+		if (!finalIsPercentage && (finalCurrency === null || finalCurrency === undefined)) {
+			throw new ValidationError('currency es obligatorio para modificadores de monto fijo', ['currency']);
+		}
 
 		if (Object.keys(updateData).length === 0)
 			throw new ValidationError('No se proporcionaron datos para actualizar', []);
 
 		await this._priceModifiers.update(id, updateData);
+		await PricingCacheService.invalidateCache();
 		return null;
+	}
+
+	async listPriceModifiers() {
+		return this._priceModifiers.getAll({ count: false });
+	}
+
+	async getPriceModifierById(id: number) {
+		const modifier = await this._priceModifiers.getOne({ id });
+		if (!modifier) throw new NotFoundError('Regla de precio no encontrada');
+		return modifier;
 	}
 
 	// --- HU-OPERATIVA-14/15 (Desactivación): Soft delete ---
@@ -132,6 +231,7 @@ export class PriceModifiersService extends BaseService {
 		if (!modifier) throw new NotFoundError('Regla de precio no encontrada');
 
 		await this._priceModifiers.delete(id);
+		await PricingCacheService.invalidateCache();
 		return null;
 	}
 }

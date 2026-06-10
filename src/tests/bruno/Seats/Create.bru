@@ -5,7 +5,7 @@ meta {
 }
 
 post {
-  url: {{baseUrl}}/seats
+  url: {{baseUrl}}/rooms/{{testRoomId}}/seats
   body: json
   auth: bearer
 }
@@ -15,7 +15,13 @@ auth:bearer {
 }
 
 body:json {
-  {
-    "exampleField": "example_value"
-  }
+  [
+    { "rowIdentifier": "A", "columnNumber": 1, "seatCategory": 1, "seatCondition": 1 },
+    { "rowIdentifier": "A", "columnNumber": 2, "seatCategory": 1, "seatCondition": 1 }
+  ]
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  bru.setVar('baseUrl', baseUrl);
 }

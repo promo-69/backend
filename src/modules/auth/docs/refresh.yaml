@@ -1,7 +1,10 @@
 /auth/refresh:
     post:
         summary: Refresh Session
-        description: Endpoint to refresh the access token using the refresh token. Supports both cookie and bearer authentication.
+        description: |
+            Refresh the access token using a valid refresh token.
+            For mobile clients: send the refresh token via Authorization Bearer header.
+            For web clients: the refresh token is read automatically from the httpOnly cookie.
         tags:
             - Auth
         security:
@@ -23,8 +26,11 @@
                                     properties:
                                         user:
                                             type: object
+                                            description: Rebuilt session payload — fields depend on user type.
                                             properties:
                                                 userId:
+                                                    type: string
+                                                documentNumber:
                                                     type: string
                                                 email:
                                                     type: string
@@ -32,14 +38,40 @@
                                                     type: string
                                                 lastName:
                                                     type: string
+                                                roleCode:
+                                                    type: string
+                                                    nullable: true
+                                                    description: Present for employees only
+                                                permissions:
+                                                    type: array
+                                                    items:
+                                                        type: string
+                                                    description: Present for employees only
+                                                cinemaId:
+                                                    type: string
+                                                    nullable: true
+                                                    description: Present for employees only
+                                                loyaltyLevelId:
+                                                    type: integer
+                                                    nullable: true
+                                                    description: Present for customers only
+                                                loyaltyLevelName:
+                                                    type: string
+                                                    nullable: true
+                                                    description: Present for customers only
+                                                loyaltyPoints:
+                                                    type: integer
+                                                    nullable: true
+                                                    description: Present for customers only
                                         tokens:
                                             type: object
+                                            description: Only present for mobile clients (bearer transport).
                                             properties:
                                                 accessToken:
                                                     type: string
                                                 refreshToken:
                                                     type: string
             '401':
-                description: Unauthorized
+                description: Unauthorized (invalid or expired refresh token)
             '500':
                 description: Internal server error

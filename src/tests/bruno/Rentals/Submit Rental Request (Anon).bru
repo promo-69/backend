@@ -1,0 +1,43 @@
+meta {
+  name: Submit Rental Request (Anonymous)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/rentals/requests
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "room": 3,
+    "event_type": 3,
+    "document_number": "V-12345678",
+    "contact_name": "Instituto Andes",
+    "contact_email": "eventos@andes.edu",
+    "contact_phone": "+584120000000",
+    "event_name": "Acto de Grado 2026",
+    "event_description": "Uso de micrófonos requerido.",
+    "event_date": "2026-08-20",
+    "requested_start_time": "2026-08-20T08:00:00Z",
+    "requested_end_time": "2026-08-20T12:00:00Z",
+    "attendees": 150
+  }
+}
+
+script:post-response {
+  const body = res.getBody();
+  if (res.getStatus() === 201 && body?.data?.request_id) {
+    bru.setEnvVar("rentalRequestId", body.data.request_id);
+  }
+}
+
+docs {
+  Solicitud pública SIN sesión de cliente.
+  Se requiere document_number, contact_name y contact_email para crear
+  automáticamente el registro people + customers del solicitante.
+  No se necesita cinema en el body — se deriva de room → rooms.cinema.
+  Guarda rentalRequestId para los siguientes pasos del flujo.
+}

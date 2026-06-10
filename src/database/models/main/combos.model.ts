@@ -7,7 +7,11 @@ export default class CombosModel extends SequelizeModelBase {
 			id: {
 				primaryKey: true,
 				autoIncrement: true,
-				allowNull: true,
+				allowNull: false,
+				type: DataTypes.INTEGER,
+			},
+			cinema: {
+				allowNull: false,
 				type: DataTypes.INTEGER,
 			},
 			name: {
@@ -41,7 +45,7 @@ export default class CombosModel extends SequelizeModelBase {
 			deleted_at: {
 				allowNull: true,
 				type: DataTypes.DATE,
-			},
+			}
 		};
 	}
 
@@ -52,7 +56,7 @@ export default class CombosModel extends SequelizeModelBase {
 			createdAt: false,
 			updatedAt: false,
 			deletedAt: 'deleted_at',
-			isBasicTable: true,
+			isBasicTable: false,
 			schema: 'public',
 			tableName: 'combos',
 			appRawName: 'combos',
@@ -71,6 +75,17 @@ export default class CombosModel extends SequelizeModelBase {
 				type: 'hasMany',
 				target: 'Currencies',
 				options: { foreignKey: 'currency', targetKey: 'id', as: '_Combos' },
+			},
+			{
+				type: 'belongsTo',
+				target: 'Cinemas',
+				options: { foreignKey: 'cinema', targetKey: 'id', as: '_Cinemas' },
+			},
+			{
+				inversed: true,
+				type: 'hasMany',
+				target: 'Cinemas',
+				options: { foreignKey: 'cinema', targetKey: 'id', as: '_Combos' },
 			},
 		];
 	}

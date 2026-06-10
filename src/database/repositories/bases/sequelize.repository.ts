@@ -26,11 +26,13 @@ import { Op } from 'sequelize';
 
 export interface RelationConfig {
 	association: string;
-	attributes?: string[];
-	nested?: RelationConfig | RelationConfig[] | null;
+	attributes?: (string | [string, string])[];
+	nested?: RelationConfig[];
 	required?: boolean;
 	where?: WhereCondition;
 	separate?: boolean;
+	order?: any[];
+	limit?: number;
 }
 
 export interface OperationOptions {
@@ -271,7 +273,7 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
 				return result.toJSON() as T;
 			} catch (error: any) {
 				throw new DatabaseError(
-					`Sequelize 'create' operation failed`,
+					`Ha ocurrido un error con la consulta a la base de datos (1)`,
 					'create',
 					{
 						data,
@@ -343,6 +345,10 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
 					returning: true,
 				};
 
+				if (ignoreDuplicates) {
+					bulkOptions.ignoreDuplicates = true;
+				}
+
 				if (updateOnDuplicate) {
 					bulkOptions.updateOnDuplicate = updateOnDuplicate;
 				}
@@ -352,7 +358,7 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
 				return created.map((r) => r.toJSON()) as T[];
 			} catch (error: any) {
 				throw new DatabaseError(
-					`Sequelize 'bulkCreate' operation failed`,
+					`Ha ocurrido un error con la consulta a la base de datos (1.2)`,
 					'bulkCreate',
 					{
 						dataCount: data.length,
@@ -379,6 +385,8 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
 					..._options,
 				};
 
+				console.log(findOpts)
+
 				this.applyOperationOptions(findOpts, operation);
 
 				if (options?.attributes) findOpts.attributes = options.attributes;
@@ -397,7 +405,7 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
 				}
 			} catch (error: any) {
 				throw new DatabaseError(
-					`Sequelize 'find' operation failed`,
+					`Ha ocurrido un error con la consulta a la base de datos (2.1)`,
 					'findAll',
 					{
 						filter,
@@ -424,7 +432,7 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
 		return this.executeWithLogging('findById', async () => {
 			try {
 				this.validateId(id, true);
-				const options: FindOptions = { raw: true };
+				const options: FindOptions = { raw: false };
 
 				if (operationOptions?.attributes) options.attributes = operationOptions.attributes;
 				if (operationOptions?.relations) options.include = this.getFkRelation(operationOptions.relations);
@@ -435,7 +443,7 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
 				return JSON.parse(JSON.stringify(result)) as unknown as T | null;
 			} catch (error: any) {
 				throw new DatabaseError(
-					`Sequelize 'findById' operation failed`,
+					`Ha ocurrido un error con la consulta a la base de datos (2.3)`,
 					'findById',
 					{
 						id,
@@ -466,7 +474,7 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
 				return JSON.parse(JSON.stringify(result)) as unknown as T | null;
 			} catch (error: any) {
 				throw new DatabaseError(
-					`Sequelize 'findOne' operation failed`,
+					`Ha ocurrido un error con la consulta a la base de datos (2.2)`,
 					'findOne',
 					{
 						filter,
@@ -498,7 +506,7 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
 				return affectedRows;
 			} catch (error: any) {
 				throw new DatabaseError(
-					`Sequelize 'update' operation failed`,
+					`Ha ocurrido un error con la consulta a la base de datos (3)`,
 					'update',
 					{
 						criteria,
@@ -527,7 +535,7 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
 				return affectedRows;
 			} catch (error: any) {
 				throw new DatabaseError(
-					`Sequelize 'delete' operation failed`,
+					`Ha ocurrido un error con la consulta a la base de datos (4)`,
 					'delete',
 					{
 						criteria,
@@ -555,7 +563,7 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
 				return 1;
 			} catch (error: any) {
 				throw new DatabaseError(
-					`Sequelize 'restore' operation failed`,
+					`Ha ocurrido un error con la consulta a la base de datos (5)`,
 					'restore',
 					{
 						criteria,
@@ -581,7 +589,7 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
 				return count;
 			} catch (error: any) {
 				throw new DatabaseError(
-					`Sequelize 'count' operation failed`,
+					`Ha ocurrido un error con la consulta a la base de datos (6)`,
 					'count',
 					{
 						filter,
@@ -663,7 +671,7 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
 		if (Array.isArray(config)) return config.flatMap((conf) => this.getFkRelation(conf, targetModel));
 
 		// 3. Si no, es RelationConfig individual
-		const { association, attributes, nested, required, where, separate } = config as RelationConfig;
+		const { association, attributes, nested, required, where, separate, order, limit } = config as RelationConfig;
 		const assocs = (targetModel || this._model).associations;
 
 		if (!assocs?.[association]) return [];
@@ -676,9 +684,12 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
 		if (attributes?.length) include.attributes = attributes;
 		if (required !== undefined) include.required = required;
 		if (separate !== undefined) include.separate = separate;
+		if (order) include.order = order;
+		if (limit !== undefined) include.limit = limit;
 
 		if (where) {
 			include.where = this.translateWhereCondition(where as any);
+
 			if (required !== undefined) include.required = required;
 		}
 

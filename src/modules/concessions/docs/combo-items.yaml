@@ -1,0 +1,98 @@
+/concessions/combos/{id}/items:
+    post:
+        summary: Add Items to Combo
+        description: Add one or more products to an existing combo. Requires admin role.
+        tags:
+            - Concessions
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: path
+              name: id
+              required: true
+              schema:
+                  type: integer
+              description: Combo ID
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        required:
+                            - items
+                        properties:
+                            items:
+                                type: array
+                                items:
+                                    type: object
+                                    required:
+                                        - productId
+                                        - quantity
+                                    properties:
+                                        productId:
+                                            type: integer
+                                            example: 1
+                                        quantity:
+                                            type: integer
+                                            example: 2
+        responses:
+            '201':
+                description: Items added successfully
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                message:
+                                    type: string
+                                    example: Ítems agregados al combo exitosamente
+            '400':
+                description: Bad request (validation errors)
+            '401':
+                description: Unauthorized
+            '404':
+                description: Combo not found
+            '500':
+                description: Internal server error
+
+/concessions/combos/{id}/items/{itemId}:
+    delete:
+        summary: Remove Item from Combo
+        description: Remove a specific product from a combo. Requires admin role.
+        tags:
+            - Concessions
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: path
+              name: id
+              required: true
+              schema:
+                  type: integer
+              description: Combo ID
+            - in: path
+              name: itemId
+              required: true
+              schema:
+                  type: integer
+              description: ID of the combo item to remove
+        responses:
+            '200':
+                description: Item removed successfully
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                message:
+                                    type: string
+                                    example: Ítem eliminado del combo exitosamente
+            '400':
+                description: Bad request
+            '401':
+                description: Unauthorized
+            '404':
+                description: Combo or item not found
+            '500':
+                description: Internal server error

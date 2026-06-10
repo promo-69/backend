@@ -4,9 +4,9 @@ meta {
   seq: 8
 }
 
-put {
+patch {
   url: {{baseUrl}}/concessions/combos/{{testComboId}}
-  body: json
+  body: multipartForm
   auth: bearer
 }
 
@@ -14,15 +14,12 @@ auth:bearer {
   token: {{accessToken}}
 }
 
-body:json {
-  {
-    "name": "Test Combo Bruno Updated",
-    "price": 16.50,
-    "currencyId": 1,
-    "products": [
-      { "productId": {{testProductId}}, "quantity": 3 }
-    ]
-  }
+body:multipart-form {
+  ~name: Test Combo Bruno Updated
+  ~price: 16.50
+  ~currencyId: 1
+  ~products: [{"productId": {{testProductId}}, "quantity": 3}]
+  ~image: @file(/path/to/your/updated-combo-image.jpg)
 }
 
 script:pre-request {

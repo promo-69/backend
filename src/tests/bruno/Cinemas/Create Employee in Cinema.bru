@@ -1,0 +1,34 @@
+meta {
+  name: Create Employee in Cinema
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{baseUrl}}/cinemas/{{testCinemaId}}/employees
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "documentNumber": "V-11223344",
+    "firstName": "Pedro",
+    "lastName": "Gómez",
+    "employeeCode": "EMP-002",
+    "jobPosition": 1,
+    "startDate": "2026-06-01",
+    "salaryBase": 1100.0,
+    "email": "pedro.gomez@cineflix.com",
+    "password": "SecurePass456!"
+  }
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  bru.setVar('baseUrl', baseUrl);
+}

@@ -1,7 +1,49 @@
+/rooms:
+    get:
+        summary: List Rooms (implicit context)
+        description: |
+            Retrieves all rooms belonging to the cinema of the authenticated user (JWT).
+            Required permission: **CRUD:READ:ROOMS**
+        tags:
+            - Rooms
+        security:
+            - bearerAuth: []
+        responses:
+            '200':
+                description: A list of rooms
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                data:
+                                    type: array
+                                    items:
+                                        type: object
+                                        properties:
+                                            id:
+                                                type: integer
+                                            cinema:
+                                                type: integer
+                                            name:
+                                                type: string
+                                            grid_rows:
+                                                type: integer
+                                            grid_columns:
+                                                type: integer
+                                            total_capacity:
+                                                type: integer
+            '401':
+                description: Unauthorized
+            '500':
+                description: Internal server error
+
 /cinemas/{cinemaId}/rooms:
     get:
-        summary: List Rooms
-        description: Retrieve all active rooms belonging to a cinema location.
+        summary: List Rooms by Cinema (explicit context)
+        description: |
+            Retrieve all active rooms belonging to a specific cinema location.
+            Required permission: **CRUD:READ:CINEMAS-ROOMS**
         tags:
             - Rooms
         security:
@@ -37,8 +79,6 @@
                                                 type: integer
                                             total_capacity:
                                                 type: integer
-                                            status:
-                                                type: integer
             '401':
                 description: Unauthorized
             '404':
@@ -47,7 +87,9 @@
                 description: Internal server error
     post:
         summary: Create Room
-        description: Register a new room in a cinema location, assigning its grid layout and supported projection types.
+        description: |
+            Register a new room in a cinema location.
+            Required permission: **CRUD:CREATE:ROOMS**
         tags:
             - Rooms
         security:
@@ -69,7 +111,6 @@
                             - projectionTypes
                             - gridRows
                             - gridColumns
-                            - totalCapacity
                         properties:
                             name:
                                 type: string
@@ -85,9 +126,6 @@
                             gridColumns:
                                 type: integer
                                 example: 15
-                            totalCapacity:
-                                type: integer
-                                example: 150
         responses:
             '201':
                 description: Room created successfully
@@ -113,3 +151,237 @@
                 description: Conflict — duplicate room name in cinema
             '500':
                 description: Internal server error
+
+/rooms/{id}:
+    get:
+        summary: Get Room by ID
+        description: Retrieves the room details.
+        tags:
+            - Rooms
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: A room object
+            '404':
+                description: Not found
+    patch:
+        summary: Update Room
+        description: Update room details.
+        tags:
+            - Rooms
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            name:
+                                type: string
+        responses:
+            '200':
+                description: Room updated
+    delete:
+        summary: Delete Room
+        description: Soft delete a room.
+        tags:
+            - Rooms
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Room deleted
+
+/rooms/{id}/projection-types:
+    get:
+        summary: Get Room Projection Types
+        tags:
+            - Rooms
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: List of projection types
+    post:
+        summary: Add Projection Type to Room
+        tags:
+            - Rooms
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        required:
+                            - projectionType
+                        properties:
+                            projectionType:
+                                type: integer
+        responses:
+            '201':
+                description: Projection type added
+
+/rooms/{id}/projection-types/{projectionTypeId}:
+    delete:
+        summary: Remove Projection Type from Room
+        tags:
+            - Rooms
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+            - name: projectionTypeId
+              in: path
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '204':
+                description: Projection type removed
+
+/rooms/{id}/seats:
+    get:
+        summary: Get Room Seat Map
+        tags:
+            - Rooms
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Seat map
+    post:
+        summary: Add Seat
+        tags:
+            - Rooms
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        required:
+                            - rowName
+                            - colNumber
+                        properties:
+                            rowName:
+                                type: string
+                            colNumber:
+                                type: integer
+        responses:
+            '201':
+                description: Seat added
+    patch:
+        summary: Bulk Update Seats
+        tags:
+            - Rooms
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        required:
+                            - seatIds
+                            - status
+                        properties:
+                            seatIds:
+                                type: array
+                                items:
+                                    type: integer
+                            status:
+                                type: integer
+        responses:
+            '200':
+                description: Seats updated
+
+/rooms/{id}/seat-grid:
+    put:
+        summary: Configure Seat Grid
+        tags:
+            - Rooms
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        required:
+                            - gridRows
+                            - gridColumns
+                        properties:
+                            gridRows:
+                                type: integer
+                            gridColumns:
+                                type: integer
+        responses:
+            '200':
+                description: Seat grid configured

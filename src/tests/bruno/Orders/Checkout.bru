@@ -1,0 +1,34 @@
+meta {
+  name: Checkout Order
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/orders/checkout
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "concessions": [
+      { "line_type": 1, "product": 2, "quantity": 1 },
+      { "line_type": 1, "product": 1, "quantity": 1 }
+    ],
+    "tickets": []
+  }
+}
+
+script:post-response {
+  if (res.status === 200 || res.status === 201) {
+    const data = res.getBody();
+    if (data.data && data.data.total_amount_base_currency) {
+      bru.setEnvVar("orderTotalBase", data.data.total_amount_base_currency);
+    }
+  }
+}

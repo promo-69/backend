@@ -7,14 +7,14 @@ export default class TicketsModel extends SequelizeModelBase {
 			id: {
 				primaryKey: true,
 				autoIncrement: true,
-				allowNull: true,
+				allowNull: false,
 				type: DataTypes.INTEGER,
 			},
 			order: {
 				allowNull: false,
 				type: DataTypes.INTEGER,
 			},
-			showtime: {
+			booking: {
 				allowNull: false,
 				type: DataTypes.INTEGER,
 			},
@@ -22,13 +22,13 @@ export default class TicketsModel extends SequelizeModelBase {
 				allowNull: false,
 				type: DataTypes.INTEGER,
 			},
+			audience_category: {
+				allowNull: false,
+				type: DataTypes.INTEGER,
+			},
 			original_price: {
 				allowNull: false,
 				type: DataTypes.DECIMAL(10, 2),
-			},
-			price_modifier: {
-				allowNull: true,
-				type: DataTypes.INTEGER,
 			},
 			price: {
 				allowNull: false,
@@ -37,10 +37,6 @@ export default class TicketsModel extends SequelizeModelBase {
 			quoted_exchange_rate: {
 				allowNull: false,
 				type: DataTypes.INTEGER,
-			},
-			qr_code: {
-				allowNull: false,
-				type: DataTypes.STRING(500),
 			},
 			validation_time: {
 				allowNull: true,
@@ -60,7 +56,7 @@ export default class TicketsModel extends SequelizeModelBase {
 			createdAt: false,
 			updatedAt: false,
 			deletedAt: 'deleted_at',
-			isBasicTable: true,
+			isBasicTable: false,
 			schema: 'public',
 			tableName: 'tickets',
 			appRawName: 'tickets',
@@ -82,14 +78,14 @@ export default class TicketsModel extends SequelizeModelBase {
 			},
 			{
 				type: 'belongsTo',
-				target: 'Showtimes',
-				options: { foreignKey: 'showtime', targetKey: 'id', as: '_Showtimes' },
+				target: 'RoomBookings',
+				options: { foreignKey: 'booking', targetKey: 'id', as: '_RoomBookings' },
 			},
 			{
 				inversed: true,
 				type: 'hasMany',
-				target: 'Showtimes',
-				options: { foreignKey: 'showtime', targetKey: 'id', as: '_Tickets' },
+				target: 'RoomBookings',
+				options: { foreignKey: 'booking', targetKey: 'id', as: '_Tickets' },
 			},
 			{
 				type: 'belongsTo',
@@ -104,14 +100,14 @@ export default class TicketsModel extends SequelizeModelBase {
 			},
 			{
 				type: 'belongsTo',
-				target: 'PriceModifiers',
-				options: { foreignKey: 'price_modifier', targetKey: 'id', as: '_PriceModifiers' },
+				target: 'AudienceCategories',
+				options: { foreignKey: 'audience_category', targetKey: 'id', as: '_AudienceCategories' },
 			},
 			{
 				inversed: true,
 				type: 'hasMany',
-				target: 'PriceModifiers',
-				options: { foreignKey: 'price_modifier', targetKey: 'id', as: '_Tickets' },
+				target: 'AudienceCategories',
+				options: { foreignKey: 'audience_category', targetKey: 'id', as: '_Tickets' },
 			},
 			{
 				type: 'belongsTo',

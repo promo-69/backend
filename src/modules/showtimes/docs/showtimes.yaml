@@ -1,51 +1,181 @@
 /showtimes:
     get:
-        summary: List Showtimes
-        description: Retrieve all scheduled showtimes in the system.
+        summary: 'PÚBLICO — Listar funciones disponibles'
+        description: |
+            Devuelve funciones futuras (por defecto) o filtradas por fecha/rango.
+            Parámetros:
+            - `date` (YYYY-MM-DD) – funciones de un día exacto.
+            - `startDate` / `endDate` (YYYY-MM-DD) – rango de fechas.
+            - `movieId` – filtrar por película.
+            - `cinemaId` – filtrar por sucursal.
+            - `onlyFuture` (true/false) – incluir funciones pasadas.
+            - `page`, `limit` – paginación.
         tags:
             - Showtimes
+        security:
+            - bearerAuth: []
+            - {}
+        parameters:
+            - in: query
+              name: date
+              schema:
+                  type: string
+                  format: date
+            - in: query
+              name: startDate
+              schema:
+                  type: string
+                  format: date
+            - in: query
+              name: endDate
+              schema:
+                  type: string
+                  format: date
+            - in: query
+              name: movieId
+              schema:
+                  type: integer
+            - in: query
+              name: cinemaId
+              schema:
+                  type: integer
+            - in: query
+              name: onlyFuture
+              schema:
+                  type: boolean
+                  default: true
+            - in: query
+              name: page
+              schema:
+                  type: integer
+                  default: 1
+            - in: query
+              name: limit
+              schema:
+                  type: integer
+                  default: 10
         responses:
             '200':
-                description: A list of showtimes
+                description: Lista paginada de funciones
                 content:
                     application/json:
                         schema:
                             type: object
                             properties:
+                                success:
+                                    type: boolean
+                                message:
+                                    type: string
                                 data:
-                                    type: array
-                                    items:
-                                        type: object
-                                        properties:
-                                            id:
-                                                type: integer
-                                            movie_id:
-                                                type: integer
-                                            room_id:
-                                                type: integer
-                                            projection_type_id:
-                                                type: integer
-                                            start_time:
-                                                type: string
-                                                format: date-time
-                                            end_time:
-                                                type: string
-                                                format: date-time
-                                            price:
-                                                type: number
-                                            earned_loyalty_points:
-                                                type: integer
-                                                nullable: true
-            '500':
-                description: Internal server error
+                                    type: object
+                                    properties:
+                                        count:
+                                            type: integer
+                                        rows:
+                                            type: array
+                                            items:
+                                                type: object
+                                                properties:
+                                                    id:
+                                                        type: integer
+                                                    room_booking_id:
+                                                        type: integer
+                                                    start_time:
+                                                        type: string
+                                                        format: date-time
+                                                    end_time:
+                                                        type: string
+                                                        format: date-time
+                                                    room:
+                                                        type: object
+                                                        properties:
+                                                            id:
+                                                                type: integer
+                                                            name:
+                                                                type: string
+                                                    movie:
+                                                        type: object
+                                                        properties:
+                                                            id:
+                                                                type: integer
+                                                            title:
+                                                                type: string
+                                                            duration_minutes:
+                                                                type: integer
+                                                    projection_type:
+                                                        type: object
+                                                        properties:
+                                                            id:
+                                                                type: integer
+                                                            description:
+                                                                type: string
+                                                    language:
+                                                        type: object
+                                                        properties:
+                                                            id:
+                                                                type: integer
+                                                            description:
+                                                                type: string
+                                                    currency:
+                                                        type: object
+                                                        properties:
+                                                            id:
+                                                                type: integer
+                                                            code:
+                                                                type: string
+                                                            symbol:
+                                                                type: string
+                                                    price:
+                                                        type: number
+                                                    earned_loyalty_points:
+                                                        type: integer
+                                                        nullable: true
+                                                    pricing:
+                                                        type: object
+                                                        properties:
+                                                            base_price:
+                                                                type: number
+                                                            final_price:
+                                                                type: number
+                                                            applied_modifiers:
+                                                                type: array
+                                                                items:
+                                                                    type: object
+                                                                    properties:
+                                                                        name:
+                                                                            type: string
+                                                                        amount:
+                                                                            type: number
+                                                                        type:
+                                                                            type: string
+                                                                        description:
+                                                                            type: string
+                                metadata:
+                                    type: object
+                                    properties:
+                                        total:
+                                            type: integer
+                                        per_page:
+                                            type: integer
+                                        current_page:
+                                            type: integer
+                                        total_pages:
+                                            type: integer
+                                        next_page:
+                                            type: integer
+                                            nullable: true
+                                        prev_page:
+                                            type: integer
+                                            nullable: true
+            '400':
+                description: Parámetros inválidos
+            '404':
+                description: No se encontraron funciones
+
     post:
-        summary: Create Showtime
-        description: |
-            Schedule a new showtime for a movie in a room.
-            If the movie was in "Coming Soon" state, it automatically transitions
-            to "Now Showing" state.
+        summary: 'PRIVADO — Crear función'
         tags:
-            - Showtimes
+            - Showtimes Admin
         security:
             - bearerAuth: []
         requestBody:
@@ -55,50 +185,254 @@
                     schema:
                         type: object
                         required:
-                            - movieId
-                            - roomId
-                            - projectionTypeId
-                            - startTime
-                            - currencyId
+                            - room
+                            - movie
+                            - projection_type
+                            - language
+                            - start_time
+                            - end_time
+                            - currency
                             - price
                         properties:
-                            movieId:
+                            room:
                                 type: integer
-                                example: 1
-                            roomId:
+                            movie:
                                 type: integer
-                                example: 2
-                            projectionTypeId:
+                            projection_type:
                                 type: integer
-                                example: 1
-                            startTime:
+                            language:
+                                type: integer
+                            start_time:
                                 type: string
                                 format: date-time
-                                example: '2026-06-01T18:00:00Z'
-                            currencyId:
+                            end_time:
+                                type: string
+                                format: date-time
+                            currency:
                                 type: integer
-                                example: 1
                             price:
                                 type: number
-                                example: 12.50
-                            earnedLoyaltyPoints:
+                            earned_loyalty_points:
                                 type: integer
-                                example: 10
+                                nullable: true
         responses:
             '201':
-                description: Showtime scheduled successfully
+                description: Función creada
+            '400':
+                description: Validación fallida
+            '401':
+                description: No autenticado
+            '403':
+                description: Sin permiso
+            '409':
+                description: La sala ya está ocupada en ese horario
+
+/showtimes/{id}:
+    get:
+        summary: 'PÚBLICO — Detalle de una función'
+        tags:
+            - Showtimes
+        security:
+            - bearerAuth: []
+            - {}
+        parameters:
+            - in: path
+              name: id
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Detalle de la función
                 content:
                     application/json:
                         schema:
                             type: object
                             properties:
+                                success:
+                                    type: boolean
                                 message:
                                     type: string
-                                    example: Función programada exitosamente
                                 data:
                                     type: object
                                     properties:
                                         id:
+                                            type: integer
+                                        booking:
+                                            type: object
+                                            properties:
+                                                id:
+                                                    type: integer
+                                                room:
+                                                    type: integer
+                                                start_time:
+                                                    type: string
+                                                    format: date-time
+                                                end_time:
+                                                    type: string
+                                                    format: date-time
+                                        movie:
+                                            type: object
+                                            properties:
+                                                id:
+                                                    type: integer
+                                                title:
+                                                    type: string
+                                                duration_minutes:
+                                                    type: integer
+                                        projection_type:
+                                            type: object
+                                            properties:
+                                                id:
+                                                    type: integer
+                                                description:
+                                                    type: string
+                                        language:
+                                            type: object
+                                            properties:
+                                                id:
+                                                    type: integer
+                                                description:
+                                                    type: string
+                                        currency:
+                                            type: object
+                                            properties:
+                                                id:
+                                                    type: integer
+                                                code:
+                                                    type: string
+                                                symbol:
+                                                    type: string
+                                        price:
+                                            type: number
+                                        earned_loyalty_points:
+                                            type: integer
+                                            nullable: true
+                                        pricing:
+                                            type: object
+                                            properties:
+                                                base_price:
+                                                    type: number
+                                                final_price:
+                                                    type: number
+                                                applied_modifiers:
+                                                    type: array
+                                                    items:
+                                                        type: object
+            '404':
+                description: Función no encontrada
+
+    patch:
+        summary: 'PRIVADO — Actualizar función'
+        tags:
+            - Showtimes Admin
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: path
+              name: id
+              required: true
+              schema:
+                  type: integer
+        requestBody:
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            room:
+                                type: integer
+                            start_time:
+                                type: string
+                                format: date-time
+                            end_time:
+                                type: string
+                                format: date-time
+                            projection_type:
+                                type: integer
+                            language:
+                                type: integer
+                            currency:
+                                type: integer
+                            price:
+                                type: number
+                            earned_loyalty_points:
+                                type: integer
+        responses:
+            '200':
+                description: Función actualizada
+            '400':
+                description: Datos inválidos
+            '401':
+                description: No autenticado
+            '403':
+                description: Sin permiso
+            '404':
+                description: Función no encontrada
+            '409':
+                description: La sala ya está ocupada en el nuevo horario
+
+    delete:
+        summary: 'PRIVADO — Cancelar función'
+        tags:
+            - Showtimes Admin
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: path
+              name: id
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Función cancelada
+            '401':
+                description: No autenticado
+            '403':
+                description: Sin permiso
+            '404':
+                description: Función no encontrada
+            '409':
+                description: No se puede cancelar — existen boletos vendidos
+
+/showtimes/{id}/seat-map:
+    get:
+        summary: 'PÚBLICO — Mapa de asientos en tiempo real'
+        description: |
+            Devuelve todos los asientos de la sala asociada a la función,
+            con estado calculado (available, locked, sold, maintenance).
+        tags:
+            - Showtimes
+        security:
+            - bearerAuth: []
+            - {}
+        parameters:
+            - in: path
+              name: id
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Mapa de asientos
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                message:
+                                    type: string
+                                data:
+                                    type: object
+                                    properties:
+                                        showtime_id:
+                                            type: integer
+                                        booking_id:
+                                            type: integer
+                                        room_id:
                                             type: integer
                                         start_time:
                                             type: string
@@ -106,11 +440,58 @@
                                         end_time:
                                             type: string
                                             format: date-time
-            '400':
-                description: Bad request (validation errors)
-            '401':
-                description: Unauthorized
-            '409':
-                description: Conflict — room schedule overlap or incompatible projection type
-            '500':
-                description: Internal server error
+                                        summary:
+                                            type: object
+                                            properties:
+                                                total:
+                                                    type: integer
+                                                available:
+                                                    type: integer
+                                                locked:
+                                                    type: integer
+                                                sold:
+                                                    type: integer
+                                                maintenance:
+                                                    type: integer
+                                        seats:
+                                            type: array
+                                            items:
+                                                type: object
+                                                properties:
+                                                    id:
+                                                        type: integer
+                                                    row:
+                                                        type: string
+                                                    column:
+                                                        type: integer
+                                                    label:
+                                                        type: string
+                                                    category:
+                                                        type: object
+                                                        properties:
+                                                            id:
+                                                                type: integer
+                                                                nullable: true
+                                                            description:
+                                                                type: string
+                                                                nullable: true
+                                                    status:
+                                                        type: string
+                                                        enum:
+                                                            - available
+                                                            - locked
+                                                            - sold
+                                                            - maintenance
+                                                    pricing:
+                                                        type: object
+                                                        properties:
+                                                            base_price:
+                                                                type: number
+                                                            final_price:
+                                                                type: number
+                                                            applied_modifiers:
+                                                                type: array
+                                                                items:
+                                                                    type: object
+            '404':
+                description: Función no encontrada

@@ -1,0 +1,74 @@
+/auth/login/admin:
+    post:
+        summary: Admin Login
+        description: Endpoint for employee/administrator authentication. Only users with user_type = 1 (employee) are allowed. Returns tokens based on client channel (cookie for web, bearer for mobile).
+        tags:
+            - Auth
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            email:
+                                type: string
+                                format: email
+                            password:
+                                type: string
+                                format: password
+                        required:
+                            - email
+                            - password
+        responses:
+            '200':
+                description: Authentication successful
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                message:
+                                    type: string
+                                    example: Autenticación exitosa
+                                data:
+                                    type: object
+                                    properties:
+                                        user:
+                                            type: object
+                                            properties:
+                                                userId:
+                                                    type: string
+                                                email:
+                                                    type: string
+                                                documentNumber:
+                                                    type: string
+                                                firstName:
+                                                    type: string
+                                                lastName:
+                                                    type: string
+                                                roleCode:
+                                                    type: string
+                                                roleDesc:
+                                                    type: string
+                                                cinemaId:
+                                                    type: string
+                                                    nullable: true
+                                                permissions:
+                                                    type: array
+                                                    items:
+                                                        type: string
+                                        tokens:
+                                            type: object
+                                            description: Only present when x-client-channel is 'mobile'. Omitted for 'web' (tokens go into cookies).
+                                            properties:
+                                                accessToken:
+                                                    type: string
+                                                refreshToken:
+                                                    type: string
+            '400':
+                description: Bad request (validation errors)
+            '401':
+                description: Unauthorized (invalid credentials or wrong user type)
+            '500':
+                description: Internal server error

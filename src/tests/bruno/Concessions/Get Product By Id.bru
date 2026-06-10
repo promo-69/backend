@@ -7,7 +7,15 @@ meta {
 get {
   url: {{baseUrl}}/concessions/products/{{testProductId}}
   body: none
-  auth: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+vars:pre-request {
+  testProductId: 10
 }
 
 script:pre-request {

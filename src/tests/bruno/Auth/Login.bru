@@ -1,7 +1,7 @@
 meta {
   name: Login
   type: http
-  seq: 1
+  seq: 3
 }
 
 post {
@@ -10,25 +10,23 @@ post {
   auth: none
 }
 
+headers {
+  x-client-channel: mobile
+}
+
 body:json {
-    {
-        "email": "",
-        "password": ""
-    }
+  {
+    "email": "jangelortega169@gmail.com",
+    "password": "24673J*A"
+  }
 }
 
 script:post-response {
-    // Obtener los datos de la respuesta (Response)
-    const resBody = res.getBody();
-    const resStatus = res.getStatus();
-
-    // Solo guardamos variables si la petición fue exitosa (HTTP 2xx)
-    if (200 <= resStatus && resStatus <= 299 && resBody && resBody.data) {
-        // Guardar tokens de la respuesta
-        if (resBody.data?.tokens.accessToken)
-            bru.setEnvVar("accessToken", resBody.data.tokens.accessToken);
-
-        if (resBody.data?.tokens.refreshToken)
-            bru.setEnvVar("refreshToken", resBody.data.tokens.refreshToken);
+  if (res.status === 200) {
+    const data = res.getBody();
+    if (data.data && data.data.tokens) {
+      bru.setEnvVar("accessToken", data.data.tokens.accessToken);
+      bru.setEnvVar("refreshToken", data.data.tokens.refreshToken);
     }
+  }
 }

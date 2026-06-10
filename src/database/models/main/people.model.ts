@@ -7,7 +7,7 @@ export default class PeopleModel extends SequelizeModelBase {
 			id: {
 				primaryKey: true,
 				autoIncrement: true,
-				allowNull: true,
+				allowNull: false,
 				type: DataTypes.INTEGER,
 			},
 			document_number: {
@@ -38,15 +38,6 @@ export default class PeopleModel extends SequelizeModelBase {
 				allowNull: true,
 				type: DataTypes.DATEONLY,
 			},
-			created_at: {
-				allowNull: false,
-				type: DataTypes.DATE,
-				defaultValue: DataTypes.NOW,
-			},
-			updated_at: {
-				allowNull: true,
-				type: DataTypes.DATE,
-			},
 			deleted_at: {
 				allowNull: true,
 				type: DataTypes.DATE,
@@ -61,7 +52,7 @@ export default class PeopleModel extends SequelizeModelBase {
 			createdAt: 'created_at',
 			updatedAt: 'updated_at',
 			deletedAt: 'deleted_at',
-			isBasicTable: true,
+			isBasicTable: false,
 			schema: 'public',
 			tableName: 'people',
 			appRawName: 'people',

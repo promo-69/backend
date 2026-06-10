@@ -1,0 +1,51 @@
+/users/me/security:
+    patch:
+        tags:
+        - Users (Self-Service)
+        summary: Update my security credentials
+        description: Updates the login email or password for the currently authenticated
+            user. Requires the current password to confirm changes.
+        security:
+        -   cookieAuth: []
+        -   bearerAuth: []
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        required:
+                        - currentPassword
+                        properties:
+                            currentPassword:
+                                type: string
+                                example: oldPassword123
+                            email:
+                                type: string
+                                example: new.login@example.com
+                            newPassword:
+                                type: string
+                                example: NewStrongPassword456!
+        responses:
+            '200':
+                description: Security credentials updated successfully.
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                    example: true
+                                message:
+                                    type: string
+                                    example: Credenciales de seguridad actualizadas
+                                        correctamente.
+                                data:
+                                    type: 'null'
+            '400':
+                description: Bad request (validation errors)
+            '401':
+                description: Unauthorized
+            '500':
+                description: Internal server error

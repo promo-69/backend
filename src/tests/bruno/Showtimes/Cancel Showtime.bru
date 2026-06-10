@@ -1,0 +1,19 @@
+meta {
+  name: Cancelar Funcion
+  type: http
+  seq: 17
+}
+
+delete {
+  url: {{baseUrl}}/showtimes/{{showtimeId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+script:post-response {
+  bru.setEnvVar("showtimeId", "");
+}

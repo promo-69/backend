@@ -1,0 +1,15 @@
+meta {
+  name: List Past Showtimes By Cinema
+  type: http
+  seq: 25
+}
+
+get {
+  url: {{baseUrl}}/cinemas/{{cinemaId}}/showtimes?onlyFuture=false&startDate=2026-05-01&endDate=2026-05-31
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

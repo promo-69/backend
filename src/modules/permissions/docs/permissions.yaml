@@ -1,0 +1,116 @@
+/permissions:
+    get:
+        summary: Get all permissions
+        description: |
+            Retrieve all permission records.
+            Required permission: **CRUD:READ:PERMISSIONS**
+        tags:
+            - Permissions
+        security:
+            - bearerAuth: []
+        responses:
+            '200':
+                description: Permission list returned successfully
+    post:
+        summary: Create a permission record
+        description: |
+            Create a new permission entry.
+            Required permission: **CRUD:CREATE:PERMISSIONS**
+        tags:
+            - Permissions
+        security:
+            - bearerAuth: []
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        required:
+                            - action
+                            - resource
+                            - permission_type
+                        properties:
+                            action:
+                                type: integer
+                            resource:
+                                type: integer
+                            permission_type:
+                                type: integer
+        responses:
+            '200':
+                description: Permission created successfully
+/permissions/{id}:
+    get:
+        summary: Get permission by ID
+        description: |
+            Retrieve a permission by its ID.
+            Required permission: **CRUD:READ:PERMISSIONS**
+        tags:
+            - Permissions
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: path
+              name: id
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Permission details returned successfully
+            '404':
+                description: Permission not found
+    patch:
+        summary: Update a permission record
+        description: |
+            Update a permission entry.
+            Required permission: **CRUD:UPDATE:PERMISSIONS**
+        tags:
+            - Permissions
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: path
+              name: id
+              required: true
+              schema:
+                  type: integer
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            action:
+                                type: integer
+                            resource:
+                                type: integer
+                            permission_type:
+                                type: integer
+        responses:
+            '200':
+                description: Permission updated successfully
+            '404':
+                description: Permission not found
+    delete:
+        summary: Delete a permission record
+        description: |
+            Perform logical deletion of a permission.
+            Required permission: **CRUD:DELETE:PERMISSIONS**
+        tags:
+            - Permissions
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: path
+              name: id
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Permission deleted successfully
+            '404':
+                description: Permission not found

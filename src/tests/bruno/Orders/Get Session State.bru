@@ -1,0 +1,15 @@
+meta {
+  name: Get Session State
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/orders/session
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

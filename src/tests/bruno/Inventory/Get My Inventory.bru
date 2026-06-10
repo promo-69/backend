@@ -1,0 +1,24 @@
+meta {
+  name: Get My Inventory
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/inventory
+  body: none
+  auth: bearer
+}
+
+query {
+  ~cinemaId: 1
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  bru.setVar('baseUrl', baseUrl);
+}

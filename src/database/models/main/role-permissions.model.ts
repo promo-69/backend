@@ -7,7 +7,7 @@ export default class RolePermissionsModel extends SequelizeModelBase {
 			id: {
 				primaryKey: true,
 				autoIncrement: true,
-				allowNull: true,
+				allowNull: false,
 				type: DataTypes.INTEGER,
 			},
 			role: {
@@ -32,7 +32,7 @@ export default class RolePermissionsModel extends SequelizeModelBase {
 			createdAt: false,
 			updatedAt: false,
 			deletedAt: 'deleted_at',
-			isBasicTable: true,
+			isBasicTable: false,
 			schema: 'public',
 			tableName: 'role_permissions',
 			appRawName: 'role-permissions',

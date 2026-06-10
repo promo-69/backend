@@ -1,0 +1,31 @@
+meta {
+  name: Verify Reset Code
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/auth/verify-reset-code/{{userType}}
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "aliriofreytez1@gmail.com",
+    "code": "7033"
+  }
+}
+
+vars:pre-request {
+  userType: client
+}
+
+script:post-response {
+  if (res.status === 200) {
+    const data = res.getBody();
+    if (data.data && data.data.resetToken) {
+      bru.setEnvVar("resetToken", data.data.resetToken);
+    }
+  }
+}
