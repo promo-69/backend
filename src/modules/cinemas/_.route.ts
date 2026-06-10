@@ -8,6 +8,9 @@ import showtimesRouter from './showtimes/showtimes.route.js';
 
 const router = Router();
 
+// Rutas estáticas específicas antes de los parámetros dinámicos
+router.get('/rooms-available', verifySession, verifyPermission('CRUD:READ:CINEMAS'), cinemasController.findAllWithRooms);
+
 // Públicos
 router.get('/', cinemasController.findAll);
 router.get('/:id', cinemasController.findById);

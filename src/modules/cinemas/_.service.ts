@@ -177,7 +177,7 @@ export class CinemasService extends BaseService {
 
 			let bookingIds: number[] = [];
 			let activeBookingIds: number[] = [];
-			
+
 			if (roomIds.length > 0) {
 				const bookings = await this._roomBookings.getAll(
 					{ count: false, attributes: ['id', 'end_time'] },
@@ -186,7 +186,7 @@ export class CinemasService extends BaseService {
 				);
 				const bookingsArr = Array.isArray(bookings) ? bookings : bookings.rows || [];
 				bookingIds = bookingsArr.map((b: any) => b.id);
-				
+
 				const now = new Date();
 				activeBookingIds = bookingsArr
 					.filter((b: any) => new Date(b.end_time) > now)
@@ -201,10 +201,10 @@ export class CinemasService extends BaseService {
 					{ transaction }
 				);
 				const ticketsArr = Array.isArray(activeTickets) ? activeTickets : activeTickets.rows || [];
-				
+
 				if (ticketsArr.length > 0) {
 					const orderIds = [...new Set(ticketsArr.map((t: any) => t.order))];
-					
+
 					const validOrders = await this._orders.count(
 						{
 							id: orderIds,
@@ -279,6 +279,21 @@ export class CinemasService extends BaseService {
 
 	async findAll(filters?: ProcessedQueryFilters) {
 		return this._cinemas.getAllFull(filters);
+	}
+
+	async findAllWithRooms(filters?: ProcessedQueryFilters) {
+		console.log('wirh rooms')
+		const data = await this._cinemas.getAll({
+			...filters,
+			relations: [
+				{
+					association: '_Rooms',
+					required: true
+				}
+			]
+		});
+
+		return data;
 	}
 
 	async findById(id: number) {
