@@ -22,6 +22,8 @@ export class RoomManagementService {
         const cinema = await this._cinemas.getById(cinemaId, { attributes: ['id'] });
         if (!cinema) throw new NotFoundError('No se encontró la sucursal especificada');
 
+		console.log({ cinemaId, filters });
+
         return this._rooms.getAll(
             {
                 count: true,
@@ -29,10 +31,10 @@ export class RoomManagementService {
                     { association: '_Cinema', attributes: ['id', 'name'], required: false },
                     { association: '_RoomProjectionTypes', attributes: ['id', 'projection_type'], required: false },
                 ],
-                where: { cinema: cinemaId },
                 ...filters,
             },
-            {},
+            {cinema: cinemaId
+			},
         );
     }
 
