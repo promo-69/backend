@@ -358,6 +358,7 @@ export class UsersService extends BaseService {
 		if (!customer) return { loyalty_level: null, level_progress_points: 0, points_balance: 0 };
 
 		const loyalty_level = customer.loyalty_level ?? null;
+		const loyalty_level_name = customer._LoyaltyLevels ? (customer._LoyaltyLevels as any).name : null;
 		const level_progress_points = customer.level_progress_points ?? 0;
 
 		// Obtener último balance de loyalty_ledgers
@@ -368,7 +369,7 @@ export class UsersService extends BaseService {
 
 		const points_balance = Array.isArray(lastLedger) && lastLedger.length > 0 ? lastLedger[0].points_balance : 0;
 
-		return { loyalty_level, level_progress_points, points_balance };
+		return { loyalty_level, loyalty_level_name, level_progress_points, points_balance };
 	}
 
 	async getMyLoyaltyLedgers(userId: number, queryFilters: Record<string, any>) {
@@ -410,7 +411,7 @@ export class UsersService extends BaseService {
 
 		const result = await this._customerFavoriteGenres.getAll(
 			{ count: false, relations: [{ association: '_Genres' }] },
-			{ customer: customer.id }
+			{ customer: customer.id },
 		);
 
 		return Array.isArray(result) ? result : result.rows;
@@ -429,11 +430,14 @@ export class UsersService extends BaseService {
 
 		await this._customerFavoriteGenres.transaction(async (transaction: Transaction) => {
 			for (const genreId of genreIds) {
-				const exists = await this._customerFavoriteGenres.getOne({ customer: customer.id, genre: genreId }, { transaction });
+				const exists = await this._customerFavoriteGenres.getOne(
+					{ customer: customer.id, genre: genreId },
+					{ transaction },
+				);
 				if (!exists) {
 					await this._customerFavoriteGenres.create(
 						{ customer: customer.id, genre: genreId },
-						{ transaction }
+						{ transaction },
 					);
 				}
 			}
