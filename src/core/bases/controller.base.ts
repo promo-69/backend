@@ -33,10 +33,10 @@ export abstract class ControllerBase {
 	private get currentRequest(): Request | null { return executionContextStore.getStore()?.currentRequest || null; }
 	private get currentResponse(): Response | null { return executionContextStore.getStore()?.currentResponse || null; }
 	private get currentNext(): NextFunction | null { return executionContextStore.getStore()?.currentNext || null; }
-	
+
 	private get queryFilters(): ProcessedQueryFilters | undefined | null { return executionContextStore.getStore()?.queryFilters; }
 	private set queryFilters(val: ProcessedQueryFilters | undefined | null) { const s = executionContextStore.getStore(); if (s) s.queryFilters = val; }
-	
+
 	private get requestStartTime(): number { return executionContextStore.getStore()?.requestStartTime || 0; }
 	private set requestStartTime(val: number) { const s = executionContextStore.getStore(); if (s) s.requestStartTime = val; }
 
@@ -214,7 +214,7 @@ export abstract class ControllerBase {
 			success: true,
 			message: 'Operation completed successfully',
 			data: processed.data,
-			metadata: processed.metadata,
+			...(processed.metadata ? { metadata: processed.metadata } : {}),
 		};
 
 		// Agregar tiempo de ejecución en desarrollo
@@ -280,12 +280,17 @@ export abstract class ControllerBase {
 			return;
 		}
 
-		const response: ApiResponse<T> = {
+		const processed = QueryBuilder.processResponse(data, this.queryFilters);
+		const executionTime = Date.now() - this.requestStartTime;
+
+		const response: ApiResponse<any> = {
 			success: true,
 			message,
-			data,
-			metadata,
+			data: processed.data,
+			...(processed.metadata ? { metadata: processed.metadata } : {}),
 		};
+
+		if (process.env.APP_ENV === 'development') (response as any).executionTime = `${executionTime}ms`;
 
 		this.currentResponse.status(statusCode).json(response);
 	}
@@ -319,6 +324,7 @@ export abstract class ControllerBase {
 			httpOnly: true,
 			secure: true,
 			sameSite: 'none',
+			partitioned: true,
 			path: '/',
 		};
 

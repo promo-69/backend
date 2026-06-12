@@ -238,13 +238,12 @@ export class ConcessionsService extends BaseService {
 			return productClone;
 		});
 
-		//if (!Array.isArray(rawProducts)) return { ...rawProducts, rows: enrichedList };
-		return enrichedList;
+		return { ...rawProducts, rows: enrichedList };
 	}
 
 	async findAllAvailableProducts(filters?: ProcessedQueryFilters, context?: { cinemaId?: number; userId?: number }) {
 		if (!context?.cinemaId) throw new ValidationError('cinemaId es requerido');
-		
+
 		const rawInventories = await inventoryManagementService.getStockByCinema(context.cinemaId, filters);
 		let inventoryList = Array.isArray(rawInventories) ? rawInventories : rawInventories.rows || [];
 
@@ -537,7 +536,7 @@ export class ConcessionsService extends BaseService {
 				lock: transaction.LOCK.UPDATE,
 			});
 			if (!item || item.combo !== comboId) throw new NotFoundError('Ítem no encontrado en el combo');
-			
+
 			const combo = await this._combos.getById(comboId, { transaction });
 			if (enforceCinemaId !== undefined && combo && combo.cinema !== enforceCinemaId)
 				throw new ConflictError('No tienes permisos para modificar este combo', 'FORBIDDEN');
