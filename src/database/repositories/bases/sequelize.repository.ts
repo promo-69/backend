@@ -385,8 +385,6 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
 					..._options,
 				};
 
-				console.log(findOpts)
-
 				this.applyOperationOptions(findOpts, operation);
 
 				if (options?.attributes) findOpts.attributes = options.attributes;

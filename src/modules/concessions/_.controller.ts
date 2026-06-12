@@ -12,6 +12,7 @@ class ConcessionsController extends ControllerBase {
 	async findAllProducts() {
 		const session = this.getSession<any>();
 		const data = await ConcessionsService.findAllProducts(this.getQueryFilters(), session?.userId);
+
 		return data;
 	}
 
