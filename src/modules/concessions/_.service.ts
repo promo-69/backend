@@ -183,7 +183,9 @@ export class ConcessionsService extends BaseService {
 		const enrichedList = productList.map((p: any) => {
 			const productClone = { ...p };
 
-			if (!cacheData) return productClone;
+			if (!activeQuote || !cacheData) {
+				return productClone;
+			}
 
 			const sessionDate = activeQuote ? new Date(activeQuote.created_at) : new Date();
 			const currentDate = sessionDate.toISOString().split('T')[0];
