@@ -118,7 +118,7 @@ export class OrdersService extends BaseService {
 					const verifiedUser = users.find((u: any) => u.signup_verified_at !== null && !u.deleted_at);
 					if (verifiedUser && verifiedUser.email) return verifiedUser.email;
 				}
-				
+
 				if (customer._People.personal_email) {
 					return customer._People.personal_email;
 				}
@@ -148,8 +148,8 @@ export class OrdersService extends BaseService {
 		const finalCustomerId = customerId || session.customerId;
 		if (finalCustomerId) {
 			const customerExists = await this._customers.count({ id: finalCustomerId });
-			if (!customerExists)
-				throw new NotFoundError('El ID de cliente proporcionado no existe en la base de datos.');
+
+			if (!customerExists) throw new NotFoundError('El ID de cliente proporcionado no existe en la base de datos.');
 		}
 
 		// Verifica si el usuario ya tiene una sesion de compra activa
@@ -179,7 +179,7 @@ export class OrdersService extends BaseService {
 		const quoteData = {
 			status: SessionStatus.PENDING_ORDER,
 			cinema,
-			customerId: customerId || session.customerId,
+			customerId: finalCustomerId,
 			system_base_currency: systemBaseCurrencyId,
 			exchange_rates: exchangeRatesDict,
 			created_at: createdAt.toISOString(),
@@ -1068,7 +1068,7 @@ export class OrdersService extends BaseService {
 				item.line_type === 1
 					? productPriceMap.get(item.product) || { price: 0, currency: 1 }
 					: comboPriceMap.get(item.combo) || { price: 0, currency: 1 };
-			
+
 			const rateObj = exchangeRatesDict[priceData.currency] || { rate: 1, id: 1 };
 			item.exchangeRateId = rateObj.id;
 			const productData = item.product ? productsMap.get(item.product) : null;

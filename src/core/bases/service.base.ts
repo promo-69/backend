@@ -13,7 +13,7 @@ export abstract class BaseService {
 		);
 
 		if (missingFields.length > 0)
-			throw new ValidationError(`Missing required fields: ${missingFields.join(', ')}`, missingFields);
+			throw new ValidationError(`Faltan campos requeridos: ${missingFields.join(', ')}`, missingFields);
 	}
 
 	protected sanitizeData<T>(data: Partial<T>, allowedFields: (keyof T)[]): Partial<T> {

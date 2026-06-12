@@ -21,25 +21,46 @@ class TokenBlacklistService {
 	}
 
 	async blacklistTokenAtRefresh(token: string): Promise<boolean> {
-		const decoded = JWTUtil.decodeToken(token) as { exp?: number; jti?: string } | null;
+		if (!token) return false;
 
-		if (!decoded || !decoded.exp || !decoded.jti) return false;
+		let isJwt = token.split('.').length === 3;
+		let decoded: any = null;
 
-		const now = Math.floor(Date.now() / 1000);
-		const ttlInSeconds = decoded.exp - now;
+		if (isJwt) {
+			decoded = JWTUtil.decodeToken(token) as { exp?: number; jti?: string } | null;
+			
+			// Si es un JWT pero le falta jti o exp, o no decodifica (ej. un token opaco que casualmente tenía dos puntos),
+			// invalidamos la bandera isJwt para tratarlo como un token puro.
+			if (!decoded || !decoded.jti || !decoded.exp) {
+				isJwt = false;
+			}
+		}
+
+		let jti: string;
+		let ttlInSeconds: number;
+
+		if (isJwt) {
+			jti = decoded.jti;
+			const now = Math.floor(Date.now() / 1000);
+			ttlInSeconds = decoded.exp - now;
+		} else {
+			// Es un raw token opaco (refresh token)
+			jti = token;
+			ttlInSeconds = Math.floor(JWTUtil.getRefreshExpiresInMs() / 1000);
+		}
 
 		if (ttlInSeconds <= 0) return false;
 
-		const key = `${this.keyPrefix}${decoded.jti}`;
-
+		const key = `${this.keyPrefix}${jti}`;
 		const result = await this.client.set(key, 'blacklisted', 'EX', ttlInSeconds, 'NX');
 
 		return result === 'OK';
 	}
 
 	async isBlacklisted(token: string): Promise<boolean> {
+		// Este método solo se llama para Access Tokens (JWT) según auth.middleware.ts
 		const decoded = JWTUtil.decodeToken(token) as { jti?: string } | null;
-		if (!decoded || !decoded.jti) return true;
+		if (!decoded || !decoded.jti) return true; // Si es inválido, lo tratamos como revocado
 
 		const key = `${this.keyPrefix}${decoded.jti}`;
 		const isSelfBlacklisted = await this.client.get(key);

@@ -47,6 +47,7 @@ class AuthController extends ControllerBase {
 
 	async signup() {
 		await AuthService.registerUser(this.getBody());
+
 		return this.created(
 			{},
 			'Usuario registrado exitosamente. Por favor verifica tu correo electrónico con el código enviado.',
@@ -54,21 +55,17 @@ class AuthController extends ControllerBase {
 	}
 
 	async verifySignup() {
-		const { email, code } = this.getBody();
-		await AuthService.verifySignupCode(email, code);
+		await AuthService.verifySignupCode(this.getBody());
+
 		return this.success({}, 'Cuenta verificada y autenticada exitosamente');
 	}
 
-	// POST /auth/login — exclusivo para clientes (user_type = 2, role IS NULL)
 	async login() {
-		const loginResponse = await AuthService.authenticateCustomer(this.getBody());
-		return this._sendLoginResponse(loginResponse);
+		return this._sendLoginResponse(await AuthService.authenticateCustomer(this.getBody()));
 	}
 
-	// POST /auth/login/admin — exclusivo para empleados (user_type = 1, role IS NOT NULL)
 	async loginAdmin() {
-		const loginResponse = await AuthService.authenticateEmployee(this.getBody());
-		return this._sendLoginResponse(loginResponse);
+		return this._sendLoginResponse(await AuthService.authenticateEmployee(this.getBody()));
 	}
 
 	async refresh() {
@@ -138,8 +135,7 @@ class AuthController extends ControllerBase {
 		const { accountType } = this.getRequest().params || {};
 		if (!accountType) throw new Error('El tipo de cuenta es requerido');
 
-		const { email } = this.getBody();
-		const result = await AuthService.forgotPassword(this._parseAccountType(accountType as string), email);
+		const result = await AuthService.forgotPassword(this._parseAccountType(accountType as string), this.getBody());
 
 		return this.success(null, result.message);
 	}
@@ -148,8 +144,7 @@ class AuthController extends ControllerBase {
 		const { accountType } = this.getRequest().params || {};
 		if (!accountType) throw new Error('El tipo de cuenta es requerido');
 
-		const { email, code } = this.getBody();
-		const result = await AuthService.verifyResetCode(this._parseAccountType(accountType as string), email, code);
+		const result = await AuthService.verifyResetCode(this._parseAccountType(accountType as string), this.getBody());
 
 		return this.success(result, 'Código verificado correctamente');
 	}
@@ -158,13 +153,7 @@ class AuthController extends ControllerBase {
 		const { accountType } = this.getRequest().params || {};
 		if (!accountType) throw new Error('El tipo de cuenta es requerido');
 
-		const { email, resetToken, newPassword } = this.getBody();
-		const result = await AuthService.resetPassword(
-			this._parseAccountType(accountType as string),
-			email,
-			resetToken,
-			newPassword,
-		);
+		const result = await AuthService.resetPassword(this._parseAccountType(accountType as string), this.getBody());
 
 		return this.success(null, result.message);
 	}

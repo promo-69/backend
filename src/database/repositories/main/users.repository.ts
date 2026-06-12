@@ -33,7 +33,7 @@ class UsersRepository extends SequelizeRepositoryBase<UsersAttributes, number> {
 		super(UsersModel);
 	}
 
-	private get _relations() {
+	public get _relations() {
 		return [
 			{
 				association: '_People',

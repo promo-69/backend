@@ -1,7 +1,8 @@
 import jwt from 'jsonwebtoken';
 import { AppConfig } from '@config/app.config.js';
 import { UserSession } from '@rules/api.type.js';
-import { nanoid } from 'nanoid';
+import { nanoid, customAlphabet } from 'nanoid';
+import { getTimeIn } from './date-handler.util.js';
 
 export interface JWTPayload {
 	sub?: string;
@@ -11,29 +12,19 @@ export interface JWTPayload {
 	jti?: string;
 }
 
-export interface RefreshTokenPayload {
-	userId: number;
-	iat: number;
-	exp: number;
-}
-
 export class JWTUtil {
 	private static SECRET: string;
-	private static REFRESH_SECRET: string;
 	private static EXPIRES_IN: jwt.SignOptions['expiresIn'] = '7d';
 	private static REFRESH_EXPIRES_IN: jwt.SignOptions['expiresIn'] = '30d';
 
 	static {
 		const security = AppConfig.load().security;
 
-		if (!security.jwtSecret || security.jwtSecret === '')
-			throw new Error('JWT_SECRET environment variable is not defined for production');
+		if (!security.jwtSecret || security.jwtSecret === '') throw new Error('JWT_SECRET environment variable is not defined for production');
 
 		this.SECRET = security.jwtSecret;
-		this.REFRESH_SECRET = security.jwtRefreshSecret;
 		if (security.jwtAccessExpiresIn) this.EXPIRES_IN = security.jwtAccessExpiresIn as jwt.SignOptions['expiresIn'];
-		if (security.jwtRefreshExpiresIn)
-			this.REFRESH_EXPIRES_IN = security.jwtRefreshExpiresIn as jwt.SignOptions['expiresIn'];
+		if (security.jwtRefreshExpiresIn) this.REFRESH_EXPIRES_IN = security.jwtRefreshExpiresIn as jwt.SignOptions['expiresIn'];
 	}
 
 	static getAccessExpiresInMs(): number {
@@ -45,23 +36,7 @@ export class JWTUtil {
 	}
 
 	private static parseExpiryToMs(expiry: string): number {
-		if (!expiry) return 3600000;
-		const match = expiry.match(/^(\d+)([smhd])$/);
-		if (!match) return 3600000;
-		const value = parseInt(match[1], 10);
-		const unit = match[2];
-		switch (unit) {
-			case 's':
-				return value * 1000;
-			case 'm':
-				return value * 60 * 1000;
-			case 'h':
-				return value * 60 * 60 * 1000;
-			case 'd':
-				return value * 24 * 60 * 60 * 1000;
-			default:
-				return 3600000;
-		}
+		return Number(getTimeIn(expiry, 'ms', { onlyNumberOutput: true}));
 	}
 
 	static generateAccessToken(payload: UserSession): string {
@@ -95,34 +70,6 @@ export class JWTUtil {
 			return jwt.decode(token) as T;
 		} catch {
 			return null;
-		}
-	}
-
-	static generateRefreshToken(payload: { userId: string }): string {
-		return jwt.sign(
-			{
-				...payload,
-				type: 'refresh',
-				iat: Math.floor(Date.now() / 1000),
-				jti: nanoid(),
-			},
-			this.REFRESH_SECRET,
-			{ expiresIn: this.REFRESH_EXPIRES_IN },
-		);
-	}
-
-	static verifyRefreshToken<T = JWTPayload>(token: string): T {
-		try {
-			const decoded = jwt.verify(token, this.REFRESH_SECRET) as T;
-
-			if ((decoded as any).type !== 'refresh') throw new Error('Tipo de token inválido');
-
-			return decoded;
-		} catch (error) {
-			if (error instanceof jwt.TokenExpiredError) throw new Error('El token de refresco ha expirado');
-			else if (error instanceof jwt.JsonWebTokenError) throw new Error('Token de refresco inválido');
-
-			throw new Error('Falló la verificación del token de refresco');
 		}
 	}
 
@@ -196,6 +143,10 @@ export class JWTUtil {
 		delete decoded.jti;
 
 		return decoded;
+	}
+
+	static generateRandomToken(): string {
+		return customAlphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._', 64)();
 	}
 }
 

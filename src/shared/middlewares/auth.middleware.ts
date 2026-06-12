@@ -3,7 +3,7 @@ import { AppConfig } from '@config/app.config.js';
 import { JWTPayload, JWTUtil } from '@utils/jwt.util.js';
 import { AuthError, ForbiddenError, ConflictError, ValidationError } from '@errors';
 import { SessionNotFoundError } from '@errors/auth.error.js';
-import { UserSession } from '@rules/api.type.js';
+import { UserSession, AdminUserSession } from '@rules/api.type.js';
 import { tokenBlacklistService } from '@services/token-blacklist.service.js';
 
 interface AuthConfig {
@@ -20,7 +20,7 @@ export class AuthMiddleware {
 	private static config: AuthConfig = this.DEFAULT_CONFIG;
 
 	static buildSession(_session: any): UserSession {
-		const session: Partial<UserSession> = {
+		const session: Partial<UserSession & AdminUserSession> = {
 			userId: _session.userId || _session.sub,
 			documentNumber: _session.documentNumber,
 			firstName: _session.firstName,
@@ -172,11 +172,11 @@ export class AuthMiddleware {
 				if (!req.session) throw new SessionNotFoundError();
 
 				// Bypass para SUPER_ADMIN
-				if (req.session.roleCode === 'SUPER_ADMIN') {
+				if ((req.session as AdminUserSession).roleCode === 'SUPER_ADMIN') {
 					return next();
 				}
 
-				const userPermissions = (req.session.permissions || []).map((p: any) => p.toUpperCase());
+				const userPermissions = ((req.session as AdminUserSession).permissions || []).map((p: any) => p.toUpperCase());
 
 				let requiredPermissions: string[] = [];
 				if (typeof permission === 'string') requiredPermissions.push(permission.toUpperCase());
@@ -205,11 +205,11 @@ export class AuthMiddleware {
 			try {
 				if (!req.session) throw new SessionNotFoundError();
 
-				if (!req.session.roleCode)
+				if (!(req.session as AdminUserSession).roleCode)
 					throw new ForbiddenError('Usuario no tiene rol asignado', { code: 'NO_ROLE_ASSIGNED' });
 
 				const requiredRoles = Array.isArray(role) ? role : [role];
-				const userRole = req.session.roleCode.toUpperCase();
+				const userRole = (req.session as AdminUserSession).roleCode.toUpperCase();
 
 				const hasRequiredRole = requiredRoles.some((r) => r.toUpperCase() === userRole);
 

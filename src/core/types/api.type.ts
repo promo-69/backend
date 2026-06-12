@@ -28,23 +28,26 @@ export interface ResponseOptions {
 
 export interface UserSession {
     userId: string;
-    cinemaId?: string;
     documentNumber: string;
     firstName: string;
     lastName: string;
-    permissions?: string[];
-    roleCode?: string;
-    roleDesc?: string;
     email?: string;
-    personalEmail?: string;
     phoneNumber?: string;
-    // Customer-only fields
-    // FIX #4.4: customerId (customers.id) distinto de userId (users.id)
+}
+
+export interface CustomerUserSession extends UserSession {
     customerId?: number;
     loyaltyLevelId?: number;
     loyaltyLevelName?: string;
     loyaltyPoints?: number;
     hasFavoriteGenres?: boolean | null;
+}
+
+export interface AdminUserSession extends UserSession {
+    cinemaId?: string;
+    permissions?: string[];
+    roleCode: string;
+    roleDesc: string;
 }
 
 /**
