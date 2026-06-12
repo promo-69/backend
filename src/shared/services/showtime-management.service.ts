@@ -697,9 +697,9 @@ export class ShowtimeManagementService {
 					const basePricing = PricingService.calculateFinalPrice(
 						s.price,
 						baseContext,
+						s.currency,
 						cacheData.modifiers,
 						cacheData.opTypesMap,
-						activeQuote.exchange_rates,
 						timeContext,
 					);
 
@@ -714,9 +714,9 @@ export class ShowtimeManagementService {
 							const specificPricing = PricingService.calculateFinalPrice(
 								basePricing.finalPrice,
 								specificContext,
+								s.currency,
 								cacheData.modifiers,
 								cacheData.opTypesMap,
-								activeQuote.exchange_rates,
 								timeContext,
 							);
 							pricingMatrix.push({
@@ -1641,9 +1641,9 @@ export class ShowtimeManagementService {
 					const basePricing = PricingService.calculateFinalPrice(
 						showtime.price,
 						baseContext,
+						showtime.currency,
 						cacheData.modifiers,
 						cacheData.opTypesMap,
-						activeQuote.exchange_rates,
 						timeContext,
 					);
 					const pricingMatrix: any[] = [];
@@ -1657,9 +1657,9 @@ export class ShowtimeManagementService {
 							const specificPricing = PricingService.calculateFinalPrice(
 								basePricing.finalPrice,
 								specificContext,
+								showtime.currency,
 								cacheData.modifiers,
 								cacheData.opTypesMap,
-								activeQuote.exchange_rates,
 								timeContext,
 							);
 							pricingMatrix.push({
