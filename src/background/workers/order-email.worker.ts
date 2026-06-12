@@ -1,6 +1,6 @@
 import { WorkerHandler } from '../handlers/worker.handler.js';
 import { Logger } from '@utils/logger.util.js';
-import { emailService } from '@services/email.service.js';
+import { orderEmailTask } from '../tasks/order-email.task.js';
 import { Job } from 'bullmq';
 
 export default function orderEmailWorker() {
@@ -13,7 +13,7 @@ export default function orderEmailWorker() {
 				return;
 			}
 			
-			await emailService.sendOrderInvoiceEmail(email, orderId, qrCode);
+			await orderEmailTask(email, orderId, qrCode);
 		},
 		on: {
 			failed: (job, err) => {

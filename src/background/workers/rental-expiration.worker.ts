@@ -1,6 +1,6 @@
 import { WorkerHandler } from '../handlers/worker.handler.js';
 import { Logger } from '@utils/logger.util.js';
-import RentalManagementService from '@services/rental-management.service.js';
+import { rentalExpirationTask } from '../tasks/rental-expiration.task.js';
 import { Job } from 'bullmq';
 
 export default function rentalExpirationWorker() {
@@ -14,7 +14,7 @@ export default function rentalExpirationWorker() {
                 return;
             }
 
-            await RentalManagementService.expireProforma(rentalRequestId, bookingId ?? null);
+            await rentalExpirationTask(rentalRequestId, bookingId ?? null);
         },
         on: {
             completed: (job) => {

@@ -75,3 +75,92 @@
         responses:
             '201':
                 description: Showtime created
+
+/cinemas/{cinemaId}/showtimes/billboard:
+    get:
+        summary: Get Billboard by Cinema
+        description: Retrieves the billboard (movies with their showtimes) for a specific cinema.
+        tags:
+            - Showtimes
+        parameters:
+            - name: cinemaId
+              in: path
+              required: true
+              schema:
+                  type: integer
+            - name: movieId
+              in: query
+              schema:
+                  type: integer
+            - name: projectionType
+              in: query
+              schema:
+                  type: integer
+            - name: language
+              in: query
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Billboard data
+
+/cinemas/{cinemaId}/showtimes/movies/{movieId}:
+    get:
+        summary: Get Showtimes for Movie in Cinema
+        tags:
+            - Showtimes
+        parameters:
+            - name: cinemaId
+              in: path
+              required: true
+              schema:
+                  type: integer
+            - name: movieId
+              in: path
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: List of showtimes
+
+/cinemas/{cinemaId}/showtimes/{id}:
+    get:
+        summary: Get Showtime by ID
+        tags:
+            - Showtimes
+        parameters:
+            - name: cinemaId
+              in: path
+              required: true
+              schema:
+                  type: integer
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Showtime detail
+
+/cinemas/{cinemaId}/showtimes/{id}/seat-map:
+    get:
+        summary: Get Seat Map for Showtime
+        description: Retrieves the seat map with booking status for a specific showtime.
+        tags:
+            - Showtimes
+        parameters:
+            - name: cinemaId
+              in: path
+              required: true
+              schema:
+                  type: integer
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Seat map data

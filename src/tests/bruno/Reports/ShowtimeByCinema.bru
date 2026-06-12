@@ -1,0 +1,28 @@
+meta {
+  name: Showtimes By Cinema (Super Admin)
+  type: http
+  seq: 14
+}
+
+get {
+  url: {{baseUrl}}/reports/cinemas/{{cinemaId}}/showtimes
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  from: {{fromDate}}
+  to: {{toDate}}
+}
+
+vars:pre-request {
+  cinemaId: 1
+}
+
+docs {
+  Reporte de funciones de una sucursal específica. Permiso: CRUD:READ:REPORTS-ALL
+}

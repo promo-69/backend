@@ -6,6 +6,7 @@ import { imageStorageService } from '@services/image-storage.service.js';
 import { PricingService } from '@services/pricing.service.js';
 import { PricingCacheService } from '@services/pricing-cache.service.js';
 import shoppingSessionService from '@services/shopping-session.service.js';
+import inventoryManagementService from '@services/inventory-management.service.js';
 import { Logger } from '@utils/logger.util.js';
 import { type ProcessedQueryFilters } from '@rules/api-query.type.js';
 import { type Transaction } from 'sequelize';
@@ -52,8 +53,6 @@ export class ConcessionsService extends BaseService {
 	private get _comboProducts() {
 		return Database.repository('main', 'combo-products') as any;
 	}
-
-	// ==================== PRODUCTS ====================
 
 	async createProduct(body: CreateProductBody, rawFiles?: RawFiles) {
 		const { name, sku } = body;
@@ -176,10 +175,10 @@ export class ConcessionsService extends BaseService {
 		let activeQuote = null;
 		let cacheData: any = null;
 
-		if (userId) {
-			activeQuote = await shoppingSessionService.getActiveQuote(userId);
-			if (activeQuote) cacheData = await PricingCacheService.getActiveModifiers();
-		}
+		if (userId) activeQuote = await shoppingSessionService.getActiveQuote(userId);
+		cacheData = await PricingCacheService.getActiveModifiers();
+		const allCurrencies = await (Database.repository('main', 'currencies') as any).getAll({ count: false });
+		const currencyMap = new Map<number, string>(allCurrencies.map((c: any) => [c.id, c.description]));
 
 		const enrichedList = productList.map((p: any) => {
 			const productClone = { ...p };
@@ -188,110 +187,214 @@ export class ConcessionsService extends BaseService {
 				return productClone;
 			}
 
-			const sessionDate = new Date(activeQuote.created_at || Date.now());
+			const sessionDate = activeQuote ? new Date(activeQuote.created_at) : new Date();
 			const currentDate = sessionDate.toISOString().split('T')[0];
 			const currentTime = sessionDate.toTimeString().split(' ')[0];
 			const currentDay = sessionDate.getDay() === 0 ? 7 : sessionDate.getDay();
-
 			const timeContext = { currentDate, currentTime, currentDay };
-
 			const context = {
 				modifier_scope: 2, // Confitería
-				cinemaId: activeQuote.cinema,
-				line_type: p._ProductCategories?.line_type ?? null,
+				cinemaId: activeQuote ? activeQuote.cinema : null, // Si no hay sesión, los mod de sucursal específica podrían no aplicar si requiere null
+				line_type: null,
 				product_category: p.product_category,
 				product: p.id,
 				combo: null,
 			};
-
+			const itemCurr = p.currency || 1;
 			const basePricing = PricingService.calculateFinalPrice(
 				p.price,
 				context,
+				itemCurr,
 				cacheData.modifiers,
 				cacheData.opTypesMap,
-				activeQuote.exchange_rates,
 				timeContext,
 			);
-
-			productClone.pricing = {
+			const pricingObj: any = {
+				currency: itemCurr,
+				currency_description: currencyMap.get(itemCurr) || 'Desconocido',
 				base_price: p.price,
 				final_price: basePricing.finalPrice,
 				applied_modifiers: basePricing.appliedModifiers,
 			};
 
-			productClone.price = basePricing.finalPrice;
+			if (activeQuote && activeQuote.exchange_rates) {
+				const rateObj = activeQuote.exchange_rates[itemCurr] || { rate: 1 };
+				const exRate = Number(rateObj.rate);
+				pricingObj.base_currency_equivalent = {
+					currency: activeQuote.system_base_currency,
+					currency_description: currencyMap.get(activeQuote.system_base_currency) || 'Desconocido',
+					exchange_rate: exRate,
+					base_price: p.price * exRate,
+					final_price: basePricing.finalPrice * exRate,
+					applied_modifiers: basePricing.appliedModifiers.map((mod: any) => ({
+						...mod,
+						applied_amount: mod.applied_amount * exRate,
+					})),
+				};
+			}
+
+			productClone.pricing = pricingObj;
+			delete productClone.price;
+			delete productClone.currency;
 
 			return productClone;
 		});
 
-		if (!Array.isArray(rawProducts)) {
-			return {
-				...rawProducts,
-				rows: enrichedList,
+		//if (!Array.isArray(rawProducts)) return { ...rawProducts, rows: enrichedList };
+		return enrichedList;
+	}
+
+	async findAllAvailableProducts(filters?: ProcessedQueryFilters, context?: { cinemaId?: number; userId?: number }) {
+		if (!context?.cinemaId) throw new ValidationError('cinemaId es requerido');
+		
+		const rawInventories = await inventoryManagementService.getStockByCinema(context.cinemaId, filters);
+		let inventoryList = Array.isArray(rawInventories) ? rawInventories : rawInventories.rows || [];
+
+		let activeQuote = null;
+		let cacheData: any = null;
+
+		if (context.userId) activeQuote = await shoppingSessionService.getActiveQuote(context.userId);
+		cacheData = await PricingCacheService.getActiveModifiers();
+		const allCurrencies = await (Database.repository('main', 'currencies') as any).getAll({ count: false });
+		const currencyMap = new Map<number, string>(allCurrencies.map((c: any) => [c.id, c.description]));
+
+		const enrichedList = inventoryList.map((inv: any) => {
+			if (!inv._Products) return null;
+			const p = inv._Products;
+			const productClone = { ...p.toJSON ? p.toJSON() : p };
+
+			if (!cacheData) return productClone;
+
+			const sessionDate = activeQuote ? new Date(activeQuote.created_at) : new Date();
+			const currentDate = sessionDate.toISOString().split('T')[0];
+			const currentTime = sessionDate.toTimeString().split(' ')[0];
+			const currentDay = sessionDate.getDay() === 0 ? 7 : sessionDate.getDay();
+			const timeContext = { currentDate, currentTime, currentDay };
+			const pricingContext = {
+				modifier_scope: 2, // Confitería
+				cinemaId: activeQuote ? activeQuote.cinema : context.cinemaId,
+				line_type: null,
+				product_category: p.product_category,
+				product: p.id,
+				combo: null,
 			};
-		}
+			const itemCurr = p.currency || 1;
+			const basePricing = PricingService.calculateFinalPrice(
+				p.price,
+				pricingContext,
+				itemCurr,
+				cacheData.modifiers,
+				cacheData.opTypesMap,
+				timeContext,
+			);
+			const pricingObj: any = {
+				currency: itemCurr,
+				currency_description: currencyMap.get(itemCurr) || 'Desconocido',
+				base_price: inv._Products.price,
+				final_price: basePricing.finalPrice,
+				applied_modifiers: basePricing.appliedModifiers,
+			};
+
+			if (activeQuote && activeQuote.exchange_rates) {
+				const rateObj = activeQuote.exchange_rates[itemCurr] || { rate: 1 };
+				const exRate = Number(rateObj.rate);
+				pricingObj.base_currency_equivalent = {
+					currency: activeQuote.system_base_currency,
+					currency_description: currencyMap.get(activeQuote.system_base_currency) || 'Desconocido',
+					exchange_rate: exRate,
+					base_price: p.price * exRate,
+					final_price: basePricing.finalPrice * exRate,
+					applied_modifiers: basePricing.appliedModifiers.map((mod: any) => ({
+						...mod,
+						applied_amount: mod.applied_amount * exRate,
+					})),
+				};
+			}
+
+			productClone.pricing = pricingObj;
+			delete productClone.price;
+			delete productClone.currency;
+
+			return productClone;
+		}).filter(Boolean);
+
 		return enrichedList;
 	}
 
 	async findProductById(id: number, userId?: number) {
-		const p = await this._products.getFull(id);
-		if (!p) throw new NotFoundError('Producto no encontrado');
+		const _product = await this._products.getFull(id);
+		if (!_product) throw new NotFoundError('Producto no encontrado');
 
 		let activeQuote = null;
 		let cacheData: any = null;
-		if (userId) {
-			activeQuote = await shoppingSessionService.getActiveQuote(userId);
-			if (activeQuote) cacheData = await PricingCacheService.getActiveModifiers();
-		}
 
-		const productClone = { ...p };
+		if (userId) activeQuote = await shoppingSessionService.getActiveQuote(userId);
+		const allCurrencies = await (Database.repository('main', 'currencies') as any).getAll({ count: false });
+		const currencyMap = new Map<number, string>(allCurrencies.map((c: any) => [c.id, c.description]));
 
-		if (!activeQuote || !cacheData) {
-			return productClone;
-		}
+		cacheData = await PricingCacheService.getActiveModifiers();
+		const productClone = { ..._product };
+		if (!cacheData) return productClone;
 
-		const sessionDate = new Date(activeQuote.created_at || Date.now());
+		const sessionDate = activeQuote ? new Date(activeQuote.created_at) : new Date();
 		const currentDate = sessionDate.toISOString().split('T')[0];
 		const currentTime = sessionDate.toTimeString().split(' ')[0];
 		const currentDay = sessionDate.getDay() === 0 ? 7 : sessionDate.getDay();
-
 		const timeContext = { currentDate, currentTime, currentDay };
-
 		const context = {
 			modifier_scope: 2, // Confitería
-			cinemaId: activeQuote.cinema,
-			line_type: p._ProductCategories?.line_type ?? null,
-			product_category: p.product_category,
-			product: p.id,
+			cinemaId: activeQuote ? activeQuote.cinema : null,
+			line_type: null,
+			product_category: _product.product_category,
+			product: _product.id,
 			combo: null,
 		};
 
+		const itemCurr = _product.currency || 1;
 		const basePricing = PricingService.calculateFinalPrice(
-			p.price,
+			_product.price,
 			context,
+			itemCurr,
 			cacheData.modifiers,
 			cacheData.opTypesMap,
-			activeQuote.exchange_rates,
 			timeContext,
 		);
-
-		productClone.pricing = {
-			base_price: p.price,
+		const pricingObj: any = {
+			currency: itemCurr,
+			currency_description: currencyMap.get(itemCurr) || 'Desconocido',
+			base_price: _product.price,
 			final_price: basePricing.finalPrice,
 			applied_modifiers: basePricing.appliedModifiers,
 		};
 
-		productClone.price = basePricing.finalPrice;
+		if (activeQuote && activeQuote.exchange_rates) {
+			const rateObj = activeQuote.exchange_rates[itemCurr] || { rate: 1 };
+			const exRate = Number(rateObj.rate);
+			pricingObj.base_currency_equivalent = {
+				currency: activeQuote.system_base_currency,
+				currency_description: currencyMap.get(activeQuote.system_base_currency) || 'Desconocido',
+				exchange_rate: exRate,
+				base_price: _product.price * exRate,
+				final_price: basePricing.finalPrice * exRate,
+				applied_modifiers: basePricing.appliedModifiers.map((mod: any) => ({
+					...mod,
+					applied_amount: mod.applied_amount * exRate,
+				})),
+			};
+		}
+
+		productClone.pricing = pricingObj;
+		delete productClone.price;
+		delete productClone.currency;
 
 		return productClone;
 	}
-
-	// ==================== COMBOS ====================
 
 	async updateCombo(
 		id: number,
 		body: UpdateProductBody & { products?: Array<{ productId: number; quantity: number }> | string },
 		rawFiles?: RawFiles,
+		enforceCinemaId?: number,
 	) {
 		return this._combos.transaction(async (transaction: Transaction) => {
 			const combo = await this._combos.getById(id, {
@@ -299,6 +402,8 @@ export class ConcessionsService extends BaseService {
 				lock: transaction.LOCK.UPDATE,
 			});
 			if (!combo) throw new NotFoundError('Combo no encontrado');
+			if (enforceCinemaId !== undefined && combo.cinema !== enforceCinemaId)
+				throw new ConflictError('No tienes permisos para modificar este combo', 'FORBIDDEN');
 
 			const previousImageUrl: string | null = combo.image_url ?? null;
 
@@ -363,75 +468,21 @@ export class ConcessionsService extends BaseService {
 		});
 	}
 
-	async deleteCombo(id: number) {
+	async deleteCombo(id: number, enforceCinemaId?: number) {
 		return this._combos.transaction(async (transaction: Transaction) => {
 			const combo = await this._combos.getById(id, {
 				transaction,
 				lock: transaction.LOCK.UPDATE,
 			});
 			if (!combo) throw new NotFoundError('Combo no encontrado');
+			if (enforceCinemaId !== undefined && combo.cinema !== enforceCinemaId)
+				throw new ConflictError('No tienes permisos para modificar este combo', 'FORBIDDEN');
 
 			await this._combos.delete(id, { transaction });
 		});
 	}
 
-	async findComboById(id: number, userId?: number) {
-		const c = await this._combos.getFull(id);
-		if (!c) throw new NotFoundError('Combo no encontrado');
-
-		let activeQuote = null;
-		let cacheData: any = null;
-
-		if (userId) {
-			activeQuote = await shoppingSessionService.getActiveQuote(userId);
-			if (activeQuote) cacheData = await PricingCacheService.getActiveModifiers();
-		}
-
-		const comboClone = { ...c };
-
-		if (!activeQuote || !cacheData) {
-			return comboClone;
-		}
-
-		const sessionDate = new Date(activeQuote.created_at || Date.now());
-		const currentDate = sessionDate.toISOString().split('T')[0];
-		const currentTime = sessionDate.toTimeString().split(' ')[0];
-		const currentDay = sessionDate.getDay() === 0 ? 7 : sessionDate.getDay();
-
-		const timeContext = { currentDate, currentTime, currentDay };
-
-		const context = {
-			modifier_scope: 2, // Confitería
-			cinemaId: activeQuote.cinema,
-			line_type: null,
-			product_category: null,
-			product: null,
-			combo: c.id,
-		};
-
-		const basePricing = PricingService.calculateFinalPrice(
-			c.price,
-			context,
-			cacheData.modifiers,
-			cacheData.opTypesMap,
-			activeQuote.exchange_rates,
-			timeContext,
-		);
-
-		comboClone.pricing = {
-			base_price: c.price,
-			final_price: basePricing.finalPrice,
-			applied_modifiers: basePricing.appliedModifiers,
-		};
-
-		comboClone.price = basePricing.finalPrice;
-
-		return comboClone;
-	}
-
-	// ==================== COMBO ITEMS (BOM) ====================
-
-	async addItemsToCombo(comboId: number, items: Array<{ productId: number; quantity: number }>) {
+	async addItemsToCombo(comboId: number, items: Array<{ productId: number; quantity: number }>, enforceCinemaId?: number) {
 		if (!Array.isArray(items) || items.length === 0)
 			throw new ValidationError('Debe enviar al menos un ítem', ['items']);
 
@@ -441,6 +492,8 @@ export class ConcessionsService extends BaseService {
 				lock: transaction.LOCK.UPDATE,
 			});
 			if (!combo) throw new NotFoundError('Combo no encontrado');
+			if (enforceCinemaId !== undefined && combo.cinema !== enforceCinemaId)
+				throw new ConflictError('No tienes permisos para modificar este combo', 'FORBIDDEN');
 
 			for (const item of items) {
 				if (!item.productId || !item.quantity || item.quantity <= 0)
@@ -458,12 +511,11 @@ export class ConcessionsService extends BaseService {
 					{ transaction },
 				);
 
-				if (existing) {
+				if (existing)
 					throw new ConflictError(
 						`El producto con ID ${item.productId} ya está en el combo`,
 						'COMBO_ITEM_ALREADY_EXISTS',
 					);
-				}
 
 				await this._comboProducts.create(
 					{
@@ -477,11 +529,9 @@ export class ConcessionsService extends BaseService {
 		});
 	}
 
-	async removeItemFromCombo(comboId: number, itemId: number) {
-		// Validar que los parámetros sean números válidos
-		if (isNaN(comboId) || isNaN(itemId)) {
+	async removeItemFromCombo(comboId: number, itemId: number, enforceCinemaId?: number) {
+		if (isNaN(comboId) || isNaN(itemId))
 			throw new ValidationError('Los identificadores deben ser numéricos', ['id', 'itemId']);
-		}
 
 		return this._comboProducts.transaction(async (transaction: Transaction) => {
 			const item = await this._comboProducts.getById(itemId, {
@@ -489,9 +539,81 @@ export class ConcessionsService extends BaseService {
 				lock: transaction.LOCK.UPDATE,
 			});
 			if (!item || item.combo !== comboId) throw new NotFoundError('Ítem no encontrado en el combo');
+			
+			const combo = await this._combos.getById(comboId, { transaction });
+			if (enforceCinemaId !== undefined && combo && combo.cinema !== enforceCinemaId)
+				throw new ConflictError('No tienes permisos para modificar este combo', 'FORBIDDEN');
 
 			await this._comboProducts.delete(itemId, { transaction });
 		});
+	}
+
+	async findComboById(id: number, userId?: number) {
+		const _combo = await this._combos.getFull(id);
+		if (!_combo) throw new NotFoundError('Combo no encontrado');
+
+		let activeQuote = null;
+		let cacheData: any = null;
+
+		if (userId) activeQuote = await shoppingSessionService.getActiveQuote(userId);
+		const allCurrencies = await (Database.repository('main', 'currencies') as any).getAll({ count: false });
+		const currencyMap = new Map<number, string>(allCurrencies.map((c: any) => [c.id, c.description]));
+
+		cacheData = await PricingCacheService.getActiveModifiers();
+		const comboClone = { ..._combo };
+		if (!cacheData) return comboClone;
+
+		const sessionDate = activeQuote ? new Date(activeQuote.created_at) : new Date();
+		const currentDate = sessionDate.toISOString().split('T')[0];
+		const currentTime = sessionDate.toTimeString().split(' ')[0];
+		const currentDay = sessionDate.getDay() === 0 ? 7 : sessionDate.getDay();
+		const timeContext = { currentDate, currentTime, currentDay };
+		const context = {
+			modifier_scope: 2, // Confitería
+			cinemaId: activeQuote ? activeQuote.cinema : _combo.cinema || null,
+			line_type: null,
+			product_category: null,
+			product: null,
+			combo: _combo.id,
+		};
+		const itemCurr = _combo.currency || 1;
+		const basePricing = PricingService.calculateFinalPrice(
+			_combo.price,
+			context,
+			itemCurr,
+			cacheData.modifiers,
+			cacheData.opTypesMap,
+			timeContext,
+		);
+		const pricingObj: any = {
+			currency: itemCurr,
+			currency_description: currencyMap.get(itemCurr) || 'Desconocido',
+			base_price: _combo.price,
+			final_price: basePricing.finalPrice,
+			applied_modifiers: basePricing.appliedModifiers,
+		};
+
+		if (activeQuote && activeQuote.exchange_rates) {
+			const rateObj = activeQuote.exchange_rates[itemCurr] || { rate: 1 };
+			const exRate = Number(rateObj.rate);
+			pricingObj.base_currency_equivalent = {
+				currency: activeQuote.system_base_currency,
+				currency_description: currencyMap.get(activeQuote.system_base_currency) || 'Desconocido',
+				exchange_rate: exRate,
+				base_price: _combo.price * exRate,
+				final_price: basePricing.finalPrice * exRate,
+				applied_modifiers: basePricing.appliedModifiers.map((mod: any) => ({
+					...mod,
+					applied_amount: mod.applied_amount * exRate,
+				})),
+			};
+		}
+
+		comboClone.pricing = pricingObj;
+		delete comboClone.price;
+		delete comboClone.currency;
+
+		return comboClone;
 	}
 }
 

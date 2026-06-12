@@ -5,7 +5,9 @@ import { type RelationsReturn, SequelizeModelBase } from '@database/models/bases
  * Diseño de datos:
  *  - Los datos de contacto (nombre, email, teléfono) viven en people
  *    a través de la cadena: customer → customers.person → people.
- *  - La sucursal se deriva de room → rooms.cinema. No se duplica aquí.
+ *  - La sucursal se guarda directamente en cinema para facilitar filtros
+ *    y evitar joins innecesarios. Se calcula al crear la solicitud
+ *    a partir de room → rooms.cinema.
  *  - customer es siempre NOT NULL. Para solicitudes públicas (sin cuenta)
  *    el flujo crea people + customers antes de insertar la solicitud.
  */
@@ -15,7 +17,9 @@ export default class RentalRequestsModel extends SequelizeModelBase {
             id: { primaryKey: true, autoIncrement: true, allowNull: false, type: DataTypes.INTEGER },
             // Solicitante — siempre presente, incluso para solicitudes anónimas
             customer: { allowNull: false, type: DataTypes.INTEGER },
-            // Sala solicitada (la sucursal se deriva de rooms.cinema)
+            // Sucursal donde se realiza la solicitud (se calcula de la sala)
+            cinema: { allowNull: false, type: DataTypes.INTEGER },
+            // Sala solicitada
             room: { allowNull: false, type: DataTypes.INTEGER },
             // Tipo de evento (booking_types: id 3 = Alquiler Privado)
             event_type: { allowNull: false, type: DataTypes.INTEGER },
@@ -66,7 +70,19 @@ export default class RentalRequestsModel extends SequelizeModelBase {
                 target: 'Customers',
                 options: { foreignKey: 'customer', targetKey: 'id', as: '_RentalRequests' },
             },
-            // room → sala solicitada (y de ahí, el cinema)
+            // cinema → sucursal
+            {
+                type: 'belongsTo',
+                target: 'Cinemas',
+                options: { foreignKey: 'cinema', targetKey: 'id', as: '_Cinemas' },
+            },
+            {
+                inversed: true,
+                type: 'hasMany',
+                target: 'Cinemas',
+                options: { foreignKey: 'cinema', targetKey: 'id', as: '_RentalRequests' },
+            },
+            // room → sala solicitada
             { type: 'belongsTo', target: 'Rooms', options: { foreignKey: 'room', targetKey: 'id', as: '_Rooms' } },
             {
                 inversed: true,

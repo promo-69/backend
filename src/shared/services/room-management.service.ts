@@ -29,10 +29,9 @@ export class RoomManagementService {
                     { association: '_Cinema', attributes: ['id', 'name'], required: false },
                     { association: '_RoomProjectionTypes', attributes: ['id', 'projection_type'], required: false },
                 ],
-                where: { cinema: cinemaId },
                 ...filters,
             },
-            {},
+            { cinema: cinemaId },
         );
     }
 

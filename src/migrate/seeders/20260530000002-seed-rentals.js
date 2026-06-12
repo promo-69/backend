@@ -38,6 +38,7 @@ module.exports = {
 						event_date: '2026-06-01',
 						currency: null,
 						price: null,
+						cinema: 1,
 					},
 					// Caso 2: Solicitud aceptada y pagada (asociada a Orden 1 y Reserva 3)
 					{
@@ -55,6 +56,7 @@ module.exports = {
 						status: 2, // Aceptada / Completada
 						currency: 1, // USD
 						price: 150.0, // Precio asignado por el administrador por el espacio
+						cinema: 1,
 					},
 				],
 				{ transaction },

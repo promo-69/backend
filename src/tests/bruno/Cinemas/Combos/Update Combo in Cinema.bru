@@ -1,0 +1,29 @@
+meta {
+  name: Update Combo in Cinema
+  type: http
+  seq: 12
+}
+
+patch {
+  url: {{baseUrl}}/cinemas/:cinemaId/combos/:id
+  body: multipartForm
+  auth: bearer
+}
+
+params:path {
+  cinemaId: 1
+  id: 1
+}
+
+body:multipart-form {
+  name: Combo Especial Update
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  bru.setVar('baseUrl', baseUrl);
+}

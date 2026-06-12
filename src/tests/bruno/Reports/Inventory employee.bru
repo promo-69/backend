@@ -1,0 +1,25 @@
+meta {
+  name: Inventory Report
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/reports/inventory
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  from: {{fromDate}}
+  to: {{toDate}}
+}
+
+docs {
+  Reporte de inventario: stock actual, unidades vendidas, recibidas, valorización.
+  Permiso requerido: CRUD:READ:REPORTS-INVENTORY
+}

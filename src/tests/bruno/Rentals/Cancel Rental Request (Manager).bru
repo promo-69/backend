@@ -1,0 +1,31 @@
+meta {
+  name: Cancel Rental Request (Manager)
+  type: http
+  seq: 6
+}
+
+patch {
+  url: {{baseUrl}}/rentals/requests/{{rentalRequestId}}/status
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "status": 5
+  }
+}
+
+vars:pre-request {
+  rentalRequestId: 88
+}
+
+docs {
+  Cancela manualmente la solicitud (status → 5 = Cancelada).
+  Libera la reserva de sala si existía.
+  Permiso: CRUD:UPDATE:RENTALS
+}

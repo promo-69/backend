@@ -47,6 +47,7 @@ interface UpdatePriceModifierBody {
 	value?: number;
 	isPercentage?: boolean;
 	operationType?: number;
+	currency?: number;
 }
 
 export class PriceModifiersService extends BaseService {
@@ -85,6 +86,8 @@ export class PriceModifiersService extends BaseService {
 			endTime,
 		} = body;
 
+		const currency = body.currency ?? (body as any).currencyId;
+
 		this.validateRequired({ description, modifierScope, operationType, isPercentage, value } as any, [
 			'description',
 			'modifierScope',
@@ -92,6 +95,10 @@ export class PriceModifiersService extends BaseService {
 			'isPercentage',
 			'value',
 		]);
+
+		if (!isPercentage && (currency === undefined || currency === null)) {
+			throw new ValidationError('currency es obligatorio para modificadores de monto fijo', ['currency']);
+		}
 
 		if (typeof value !== 'number' || value <= 0)
 			throw new ValidationError('El valor debe ser un número positivo', ['value']);
@@ -157,7 +164,7 @@ export class PriceModifiersService extends BaseService {
 			booking_type: body.bookingType ?? null,
 			movie: body.movie ?? null,
 			room_type: body.roomType ?? null,
-			currency: body.currency ?? null,
+			currency: currency ?? null,
 			target_currency: body.targetCurrency ?? null,
 			target_currency_condition: body.targetCurrencyCondition ?? false,
 		});
@@ -191,6 +198,14 @@ export class PriceModifiersService extends BaseService {
 
 		if (isPercentage !== undefined) updateData.is_percentage = isPercentage;
 		if (operationType !== undefined) updateData.operation_type = operationType;
+		if (body.currency !== undefined) updateData.currency = body.currency;
+
+		const finalIsPercentage = isPercentage ?? modifier.is_percentage;
+		const finalCurrency = body.currency !== undefined ? body.currency : modifier.currency;
+
+		if (!finalIsPercentage && (finalCurrency === null || finalCurrency === undefined)) {
+			throw new ValidationError('currency es obligatorio para modificadores de monto fijo', ['currency']);
+		}
 
 		if (Object.keys(updateData).length === 0)
 			throw new ValidationError('No se proporcionaron datos para actualizar', []);

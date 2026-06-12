@@ -1,0 +1,24 @@
+meta {
+  name: Get Available Products
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{baseUrl}}/concessions/products/available?cinemaId=1
+  body: none
+  auth: bearer
+}
+
+params:query {
+  cinemaId: 1
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  bru.setVar('baseUrl', baseUrl);
+}

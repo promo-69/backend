@@ -28,6 +28,11 @@ body:json {
   }
 }
 
+vars:pre-request {
+  roomId: 1
+  movieId: 2
+}
+
 script:post-response {
   const resBody = res.getBody();
   if (res.getStatus() === 201 && resBody?.data?.showtime_id) {

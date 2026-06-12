@@ -38,6 +38,9 @@ export class UsersService extends BaseService {
 	private get _movieSubscriptions() {
 		return Database.repository('main', 'movie-user-subscriptions') as any;
 	}
+	private get _customerFavoriteGenres() {
+		return Database.repository('main', 'customer-favorite-genres') as any;
+	}
 	private get _roles() {
 		return Database.repository('main', 'roles') as any;
 	}
@@ -355,6 +358,7 @@ export class UsersService extends BaseService {
 		if (!customer) return { loyalty_level: null, level_progress_points: 0, points_balance: 0 };
 
 		const loyalty_level = customer.loyalty_level ?? null;
+		const loyalty_level_name = customer._LoyaltyLevels ? (customer._LoyaltyLevels as any).name : null;
 		const level_progress_points = customer.level_progress_points ?? 0;
 
 		// Obtener último balance de loyalty_ledgers
@@ -365,7 +369,7 @@ export class UsersService extends BaseService {
 
 		const points_balance = Array.isArray(lastLedger) && lastLedger.length > 0 ? lastLedger[0].points_balance : 0;
 
-		return { loyalty_level, level_progress_points, points_balance };
+		return { loyalty_level, loyalty_level_name, level_progress_points, points_balance };
 	}
 
 	async getMyLoyaltyLedgers(userId: number, queryFilters: Record<string, any>) {
@@ -395,6 +399,63 @@ export class UsersService extends BaseService {
 		);
 
 		return result;
+	}
+
+	// --- Géneros Favoritos
+	async getMyMovieGenres(userId: number) {
+		const user = await this._users.getById(userId, { attributes: ['id', 'person'] });
+		if (!user) throw new NotFoundError('Usuario', userId.toString());
+
+		const customer = await this._customers.getOne({ person: user.person });
+		if (!customer) return [];
+
+		const result = await this._customerFavoriteGenres.getAll(
+			{ count: false, relations: [{ association: '_Genres' }] },
+			{ customer: customer.id },
+		);
+
+		return Array.isArray(result) ? result : result.rows;
+	}
+
+	async addMyMovieGenres(userId: number, genreIds: number[]) {
+		if (!Array.isArray(genreIds) || genreIds.length === 0) {
+			throw new ValidationError('Se requiere enviar al menos un género.', []);
+		}
+
+		const user = await this._users.getById(userId, { attributes: ['id', 'person'] });
+		if (!user) throw new NotFoundError('Usuario', userId.toString());
+
+		const customer = await this._customers.getOne({ person: user.person });
+		if (!customer) throw new NotFoundError('Cliente', userId.toString());
+
+		await this._customerFavoriteGenres.transaction(async (transaction: Transaction) => {
+			for (const genreId of genreIds) {
+				const exists = await this._customerFavoriteGenres.getOne(
+					{ customer: customer.id, genre: genreId },
+					{ transaction },
+				);
+				if (!exists) {
+					await this._customerFavoriteGenres.create(
+						{ customer: customer.id, genre: genreId },
+						{ transaction },
+					);
+				}
+			}
+		});
+	}
+
+	async removeMyMovieGenres(userId: number, genreIds: number[]) {
+		if (!Array.isArray(genreIds) || genreIds.length === 0) {
+			throw new ValidationError('Se requiere enviar al menos un género a remover.', []);
+		}
+
+		const user = await this._users.getById(userId, { attributes: ['id', 'person'] });
+		if (!user) throw new NotFoundError('Usuario', userId.toString());
+
+		const customer = await this._customers.getOne({ person: user.person });
+		if (!customer) throw new NotFoundError('Cliente', userId.toString());
+
+		await this._customerFavoriteGenres.delete({ customer: customer.id, genre: genreIds });
 	}
 }
 

@@ -1,0 +1,29 @@
+meta {
+  name: Cashier By Employee (Super Admin)
+  type: http
+  seq: 16
+}
+
+get {
+  url: {{baseUrl}}/reports/cinemas/{{cinemaId}}/cashier/{{employeeId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  from: {{fromDate}}
+  to: {{toDate}}
+}
+
+vars:pre-request {
+  cinemaId: 1
+  employeeId: 1
+}
+
+docs {
+  Reporte de caja de un empleado específico en una sucursal. Permiso: CRUD:READ:REPORTS-ALL
+}

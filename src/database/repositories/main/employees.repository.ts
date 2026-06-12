@@ -33,7 +33,7 @@ class EmployeesRepository extends SequelizeRepositoryBase<EmployeesAttributes, n
                 association: '_EmployeePositions',
                 attributes: ['id', 'job_position', 'cinema', 'start_date', 'end_date', 'salary_base'],
                 required: false,
-                include: [
+                nested: [
                     {
                         association: '_JobPositions',
                         attributes: ['id', 'title'],

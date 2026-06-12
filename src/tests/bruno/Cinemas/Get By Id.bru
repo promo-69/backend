@@ -1,13 +1,17 @@
 meta {
   name: Get Cinema By ID
   type: http
-  seq: 2
+  seq: 3
 }
 
 get {
   url: {{baseUrl}}/cinemas/{{testCinemaId}}
   body: none
   auth: none
+}
+
+vars:pre-request {
+  testCinemaId: 1
 }
 
 script:pre-request {
