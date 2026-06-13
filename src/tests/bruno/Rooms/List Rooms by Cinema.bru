@@ -1,0 +1,31 @@
+meta {
+  name: List Rooms by Cinema
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/cinemas/{{cinemaId}}/rooms
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  page: 1
+  limit: 10
+}
+
+vars:pre-request {
+  cinemaId: 1
+}
+
+docs {
+  Lista todas las salas de una sucursal específica.
+  Requiere permiso: CRUD:READ:CINEMAS-ROOMS
+  El token debe pertenecer a un superadmin o gerente con ese permiso.
+  Parámetros opcionales: page, limit, sort, filters (según el sistema de query filters)
+}

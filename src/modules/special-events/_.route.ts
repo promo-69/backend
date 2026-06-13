@@ -22,10 +22,19 @@ const imageUpload = uploadFields(
 // GET /api/v1/special-events/billboard?cinemaId=
 router.get('/billboard', optionalAuth, specialEventsController.getBillboard);
 
-// GET /api/v1/special-events/upcoming
+// GET /api/v1/special-events/upcoming (lifecycle_state = 1)
 router.get('/upcoming', optionalAuth, specialEventsController.getUpcoming);
 
-// GET /api/v1/special-events
+// GET /api/v1/special-events/premiere (lifecycle_state = 2)
+router.get('/premiere', optionalAuth, specialEventsController.getOnPremiere);
+
+// GET /api/v1/special-events/now-playing (lifecycle_state = 3)
+router.get('/now-playing', optionalAuth, specialEventsController.getInBillboard);
+
+// GET /api/v1/special-events/last-days (lifecycle_state = 4)
+router.get('/last-days', optionalAuth, specialEventsController.getLastDays);
+
+// GET /api/v1/special-events (listado general)
 router.get('/', optionalAuth, specialEventsController.findAll);
 
 // POST /api/v1/special-events
@@ -48,12 +57,7 @@ router.get(
 );
 
 // GET /api/v1/special-events/admin
-router.get(
-    '/admin',
-    verifySession,
-    verifyPermission('CRUD:READ:SPECIAL_EVENTS'),
-    specialEventsController.findAllAdmin,
-);
+router.get('/admin', verifySession, verifyPermission('CRUD:READ:SPECIAL_EVENTS'), specialEventsController.findAllAdmin);
 
 // =============================================================================
 //  RUTAS DINÁMICAS — con :id, siempre al final
@@ -83,11 +87,6 @@ router.patch(
 );
 
 // DELETE /api/v1/special-events/:id
-router.delete(
-    '/:id',
-    verifySession,
-    verifyPermission('CRUD:DELETE:SPECIAL_EVENTS'),
-    specialEventsController.remove,
-);
+router.delete('/:id', verifySession, verifyPermission('CRUD:DELETE:SPECIAL_EVENTS'), specialEventsController.remove);
 
 export default router;
