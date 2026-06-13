@@ -35,6 +35,19 @@ export enum SessionStatus {
 	PENDING_BILLING = 'pending_billing',
 	COMPLETED = 'completed',
 }
+const PAYMENT_METHOD_IDS: Record<string, number> = {
+	mobile_payment: 4,
+	cash: 1,
+	transfer: 3,
+	points: 6,
+	cinepuntos: 6,
+};
+const PAYMENT_METHOD_DESCRIPTIONS: Record<number, string> = {
+	1: 'Efectivo',
+	3: 'Transferencia',
+	4: 'Pago Móvil',
+	6: 'Puntos de Fidelidad',
+};
 
 export class OrdersService extends BaseService {
 	constructor() {
@@ -138,8 +151,10 @@ export class OrdersService extends BaseService {
 	 * Bloquea al usuario para tener una sola sesion activa.
 	 */
 	async createQuote(body: { cinema: number; customerId?: number }, session: any) {
-		const { cinema, customerId } = body;
-		if (!cinema) throw new ValidationError('La sucursal es requerida', []);
+		const { cinema: _cinema, customerId } = body;
+
+		if (!_cinema && !session.cinemaId) throw new ValidationError('La sucursal es requerida', []);
+		const cinema = session.cinemaId || _cinema;
 
 		if (session.roleCode != null && !customerId)
 			throw new ValidationError(
@@ -180,15 +195,19 @@ export class OrdersService extends BaseService {
 		const TTL_SECONDS = 600;
 		const createdAt = new Date();
 		const expiresAt = new Date(createdAt.getTime() + TTL_SECONDS * 1000);
-
-		const quoteData = {
-			status: SessionStatus.PENDING_ORDER,
+		const sessionData = {
 			cinema,
 			customerId: finalCustomerId,
-			system_base_currency: systemBaseCurrencyId,
-			exchange_rates: exchangeRatesDict,
 			created_at: createdAt.toISOString(),
 			expires_at: expiresAt.toISOString(),
+		}
+		const quoteData = {
+			...sessionData,
+			status: SessionStatus.PENDING_ORDER,
+			cinema,
+			customerId: customerId || session.customerId,
+			system_base_currency: systemBaseCurrencyId,
+			exchange_rates: exchangeRatesDict,
 		};
 
 		// Guarda la cotizacion en Redis usando el ID del usuario
@@ -196,10 +215,8 @@ export class OrdersService extends BaseService {
 
 		// Devuelve los datos de la cotizacion creada
 		return {
-			cinema,
+			...sessionData,
 			expires_in: TTL_SECONDS,
-			created_at: quoteData.created_at,
-			expires_at: quoteData.expires_at,
 		};
 	}
 
@@ -555,54 +572,39 @@ export class OrdersService extends BaseService {
 	 * Genera los codigos QR y notifica al cliente cuando el pago esta completo.
 	 */
 	async registerPayment(body: any, session: any) {
-		this.validateRequired(body, ['payment_method', 'amount']);
-		const { payment_method, amount, currency, reference_number } = body;
+		let paymentsInput: any[] = [];
+
+		if (Array.isArray(body)) paymentsInput = body;
+		else if (body && Array.isArray(body)) paymentsInput = body;
+		else if (body && body.payment_method && body.amount !== undefined) paymentsInput = [body];
+		else throw new BadRequestError('Formato de pagos inválido');
+
+		if (paymentsInput.length === 0) throw new BadRequestError('Debe enviar al menos un pago');
+
+		for (const payment of paymentsInput) {
+			this.validateRequired(payment, ['payment_method', 'amount', 'currency']);
+
+			if (!['string', 'number'].includes(typeof payment.amount) || payment.amount <= 0)
+				throw new BadRequestError('El monto del pago debe ser un número mayor a cero');
+			if (!['string', 'number'].includes(typeof payment.currency))
+				throw new BadRequestError('Debe especificar una moneda correcta');
+
+			payment.amount = Number(payment.amount);
+			payment.currency = Number(payment.currency);
+		}
+
 		const userQueueKey = `queue:usr:${session.userId}`;
 
 		// Valida que la sesion de compra siga vigente
 		const quoteRaw = await this._redis.get(userQueueKey);
 		if (!quoteRaw) throw new BadRequestError('El tiempo para pagar ha expirado o no existe sesión de compra.');
-		const quoteData = JSON.parse(quoteRaw);
 
+		const quoteData = JSON.parse(quoteRaw);
 		if (quoteData.status !== SessionStatus.PENDING_PAYMENT)
 			throw new BadRequestError('La sesión no se encuentra en la etapa de pago o ya ha sido procesada.');
 
 		const order_id = quoteData.order_id;
 		if (!order_id) throw new ForbiddenError('No hay una orden asociada a esta sesión de compra.');
-
-		if (typeof amount !== 'number' || amount <= 0)
-			throw new BadRequestError('El monto del pago debe ser un número mayor a cero');
-
-		let paymentMethodId: number | null = null;
-		let paymentMethodDescription: string | null = null;
-		if (typeof payment_method === 'number') {
-			paymentMethodId = payment_method;
-		} else if (typeof payment_method === 'string') {
-			const trimmedMethod = payment_method.trim();
-			const normalizedMethod = trimmedMethod.toLowerCase();
-			if (/^\d+$/.test(trimmedMethod)) {
-				paymentMethodId = Number(trimmedMethod);
-			} else if (normalizedMethod === 'points' || normalizedMethod === 'cinepuntos') {
-				paymentMethodDescription = 'Puntos de Fidelidad';
-			} else if (normalizedMethod === 'cash') {
-				if (currency === 2) paymentMethodDescription = 'Efectivo Bolívares';
-				else paymentMethodDescription = 'Efectivo Divisas';
-			} else if (normalizedMethod === 'transfer') {
-				paymentMethodDescription = 'Transferencia Divisas';
-			} else if (normalizedMethod === 'mobile_payment') {
-				paymentMethodDescription = 'Pago Móvil';
-			} else if (
-				normalizedMethod === 'point_of_sale' ||
-				normalizedMethod === 'punto_de_venta' ||
-				normalizedMethod === 'pos'
-			) {
-				paymentMethodDescription = 'Punto de Venta (Débito)';
-			} else {
-				paymentMethodDescription = trimmedMethod;
-			}
-		} else {
-			throw new BadRequestError('El método de pago es inválido');
-		}
 
 		let orderData: any = null;
 		let remaining_balance: number | null = null;
@@ -614,8 +616,11 @@ export class OrdersService extends BaseService {
 				{ id: order_id },
 				{ transaction, lock: transaction.LOCK.UPDATE },
 			);
+
 			if (!lockedOrder) throw new NotFoundError('Orden no encontrada');
-			if (lockedOrder.order_status !== 1) throw new BadRequestError('La orden no admite pagos en este momento');
+
+			if (lockedOrder.order_status !== OrderStatus.PENDING) throw new BadRequestError('La orden no admite pagos en este momento');
+
 			const order = await this._orders.getOne(
 				{ id: order_id },
 				{
@@ -649,77 +654,66 @@ export class OrdersService extends BaseService {
 					],
 				},
 			);
-			let exchangeRateValue = 1;
-			let quotedExchangeRateId = 1;
-			if (currency) {
-				const rateDb = exchangeRatesDict[currency];
-				if (rateDb) {
-					exchangeRateValue = Number(rateDb.rate);
-					quotedExchangeRateId = rateDb.id;
+
+			for (const payment of paymentsInput) {
+				const { payment_method, amount, currency, reference_number } = payment;
+				const paymentMethodId = PAYMENT_METHOD_IDS[payment_method] ?? payment_method;
+
+				let exchangeRateValue = 1;
+				let quotedExchangeRateId = 1;
+				if (currency) {
+					const rateDb = exchangeRatesDict[currency];
+
+					if (rateDb) {
+						exchangeRateValue = Number(rateDb.rate);
+						quotedExchangeRateId = rateDb.id;
+					}
 				}
-			}
-			const amountBase = amount * exchangeRateValue;
+				const amountBase = amount / exchangeRateValue;
 
-			if (!paymentMethodDescription && typeof payment_method === 'string') {
-				paymentMethodDescription = payment_method.trim();
-			}
+				// Ramificación según método de pago
+				if (paymentMethodId === 6) {
+					const ledgers = await this._loyaltyLedgers.getAll(
+						{ count: false, order: [['id', 'DESC']], limit: 1, operation: { transaction } },
+						{ customer: session.customerId },
+					);
+					const currentBalance = ledgers.length > 0 ? Number(ledgers[0].points_balance) : 0;
+					if (amount > currentBalance) throw new BadRequestError('Saldo de puntos insuficiente');
 
-			const paymentMethodQuery: any = paymentMethodDescription
-				? { description: paymentMethodDescription }
-				: { id: paymentMethodId };
+					// Descontar puntos de una vez con un registro negativo
+					await this._loyaltyLedgers.create(
+						{
+							customer: session.customerId,
+							points: -amount,
+							points_balance: currentBalance - amount,
+							description: `Pago parcial de orden ${order_id}`,
+						},
+						{ transaction },
+					);
+				} else if ([3, 4, 5].includes(paymentMethodId || 0)) {
+					// TODO: Validar referencia con Simulador API
+				} else if ([1, 2].includes(paymentMethodId || 0)) {}
 
-			const paymentMethod = await this._paymentMethods.getOne(paymentMethodQuery, {
-				transaction,
-				lock: transaction.LOCK.UPDATE,
-			});
-			if (!paymentMethod) {
-				throw new BadRequestError('El método de pago especificado no existe');
-			}
-			paymentMethodId = paymentMethod.id;
-
-			// Ramificación según método de pago
-			if (paymentMethodDescription === 'Puntos de Fidelidad' || paymentMethodId === 6) {
-				const ledgers = await this._loyaltyLedgers.getAll(
-					{ count: false, order: [['id', 'DESC']], limit: 1, operation: { transaction } },
-					{ customer: session.customerId },
-				);
-				const currentBalance = ledgers.length > 0 ? Number(ledgers[0].points_balance) : 0;
-				if (amount > currentBalance) {
-					throw new BadRequestError('Saldo de puntos insuficiente');
-				}
-				// Descontar puntos de una vez con un registro negativo
-				await this._loyaltyLedgers.create(
+				await this._orderPayments.create(
 					{
-						customer: session.customerId,
-						points: -amount,
-						points_balance: currentBalance - amount,
-						description: `Pago parcial de orden ${order_id}`,
+						order: order_id,
+						payment_method: paymentMethodId,
+						amount: amountBase,
+						quoted_exchange_rate: quotedExchangeRateId,
+						reference_number,
+						is_approved: true,
 					},
 					{ transaction },
 				);
-			} else if ([4, 5].includes(paymentMethodId || 0)) {
-				// TODO: Validar referencia con Simulador API
-			} else if ([1, 2, 3].includes(paymentMethodId || 0)) {
-				// El operador de taquilla ya lo validó
 			}
 
-			await this._orderPayments.create(
-				{
-					order: order_id,
-					payment_method: paymentMethodId,
-					amount: amountBase,
-					quoted_exchange_rate: quotedExchangeRateId,
-					reference_number,
-					is_approved: true,
-				},
-				{ transaction },
-			);
 			// Calcula el total pagado y verifica si cubre el monto de la orden
 			const payments = await this._orderPayments.getAll(
 				{ count: false, operation: { transaction } },
 				{ order: order_id },
 			);
 			const totalPaid = payments.reduce((acc: number, p: any) => acc + Number(p.amount), 0);
+
 			if (totalPaid >= Number(order.total_amount_base_currency)) {
 				const tickets = (order as any)._Tickets || [];
 				const concessions = (order as any)._OrderLines || [];
@@ -786,9 +780,12 @@ export class OrdersService extends BaseService {
 							: t._RoomBookings._Showtimes;
 						showtimeId = st?.id;
 					}
+
 					if (showtimeId) {
 						uniqueShowtimes.add(showtimeId);
+
 						if (!ticketsByShowtime.has(showtimeId)) ticketsByShowtime.set(showtimeId, []);
+
 						ticketsByShowtime.get(showtimeId)!.push(t.seat);
 					}
 				}
@@ -797,9 +794,8 @@ export class OrdersService extends BaseService {
 					const seatIds = ticketsByShowtime.get(showtimeId)!;
 
 					const pipeline = this._redis.pipeline();
-					for (const seatId of seatIds) {
-						pipeline.zrem(`showtime:${showtimeId}:locked_seats`, String(seatId));
-					}
+					for (const seatId of seatIds) pipeline.zrem(`showtime:${showtimeId}:locked_seats`, String(seatId));
+
 					await pipeline.exec();
 
 					RealtimeProvider.getInstance().emitToRoom(`showtime_${showtimeId}`, 'seats_sold_final', {
@@ -821,37 +817,30 @@ export class OrdersService extends BaseService {
 						.catch((err) => console.error(err));
 				}
 			}
-		} else if (remaining_balance !== null && remaining_balance > 0) {
-			return { remaining_balance, message: 'Pago parcial registrado exitosamente' };
 		}
+		else if (remaining_balance !== null && remaining_balance > 0) return { remaining_balance, message: 'Pago parcial registrado exitosamente' };
+
 		return orderData;
 	}
 
 	async processBilling(body: any, session: any) {
-		const { orderId, use_customer_data, billing_name, billing_document, billing_address } = body;
+		const { use_customer_data, billing_name, billing_document, billing_address } = body;
 		const userQueueKey = `queue:usr:${session.userId}`;
 
 		// Verifica que el usuario sea empleado
-		if (!session.roleCode) {
+		if (!session.roleCode)
 			throw new ForbiddenError('Solo los empleados pueden facturar ordenes mediante este endpoint.');
-		}
 
 		// Valida que la orden exista y pertenezca a la sesion o al menos este en proceso
 		const quoteRaw = await this._redis.get(userQueueKey);
 		if (!quoteRaw) throw new NotFoundError('No existe una sesión de compra activa.');
 		const quoteData = JSON.parse(quoteRaw);
 
-		if (quoteData.status !== SessionStatus.PENDING_BILLING) {
-			throw new BadRequestError('La sesión no se encuentra en etapa de facturación.');
-		}
-
-		if (quoteData.order_id !== orderId) {
-			throw new BadRequestError('El ID de la orden no coincide con la sesión actual.');
-		}
+		if (quoteData.status !== SessionStatus.PENDING_BILLING) throw new BadRequestError('La sesión no se encuentra en etapa de facturación.');
 
 		await this._orders.transaction(async (transaction: Transaction) => {
 			const order = await this._orders.getOne(
-				{ id: orderId },
+				{ id: quoteData.order_id },
 				{
 					transaction,
 					lock: transaction.LOCK.UPDATE,
@@ -880,16 +869,16 @@ export class OrdersService extends BaseService {
 				throw new BadRequestError('Debe proporcionar nombre y documento para la factura.');
 			}
 
-			await this._generateInvoice(orderId, billingData, order.cinema, transaction);
-			await this._orders.update({ id: orderId }, { order_status: 4 }, { transaction });
+			await this._generateInvoice(quoteData.order_id, billingData, order.cinema, transaction);
+			await this._orders.update({ id: quoteData.order_id }, { order_status: 4 }, { transaction });
 		});
 
 		// Limpia la sesion y emite el success final
 		await this._redis.del(userQueueKey);
-		const finalOrder = await this._orders.getById(orderId);
+		const finalOrder = await this._orders.getById(quoteData.order_id);
 
 		RealtimeProvider.getInstance().emitToRoom(`usr_${session.userId}`, 'payment_success', {
-			orderId: orderId,
+			orderId: quoteData.order_id,
 			qrCode: finalOrder.qr_code,
 		});
 
@@ -898,7 +887,7 @@ export class OrdersService extends BaseService {
 		if (customerEmail) {
 			QueueProvider.getInstance()
 				.add('order-email-queue', 'send-order-email', {
-					orderId: orderId,
+					orderId: quoteData.order_id,
 					qrCode: finalOrder.qr_code,
 					email: customerEmail,
 				})
@@ -1082,16 +1071,6 @@ export class OrdersService extends BaseService {
 		}
 	}
 
-	private _isValidTime(m: any, currentDate: string, currentTime: string, currentDay: number) {
-		if (m.target_currency_condition) return false;
-		if (m.start_date && m.start_date > currentDate) return false;
-		if (m.end_date && m.end_date < currentDate) return false;
-		if (m.start_time && m.start_time > currentTime) return false;
-		if (m.end_time && m.end_time <= currentTime) return false;
-		if (m.week_day && m.week_day !== currentDay) return false;
-		return true;
-	}
-
 	/**
 	 * Calcula los precios para confiteria incluyendo modificadores, tipo de cambio e impuestos.
 	 * Registra el subtotal y acumula los impuestos en el colector global de la orden.
@@ -1144,11 +1123,11 @@ export class OrdersService extends BaseService {
 				{ currentDate, currentTime, currentDay },
 			);
 
-			const finalUnitPrice = finalPriceInItemCurrency * Number(rateObj.rate);
+			const finalUnitPrice = finalPriceInItemCurrency / Number(rateObj.rate);
 
 			item.appliedModifiers = appliedModifiers.map((mod: any) => ({
 				price_modifier: mod.price_modifier,
-				applied_amount_base_currency: mod.applied_amount * Number(rateObj.rate) * item.quantity,
+				applied_amount_base_currency: (mod.applied_amount / Number(rateObj.rate)) * item.quantity,
 			}));
 
 			subtotalBase += finalUnitPrice * item.quantity;
@@ -1169,7 +1148,7 @@ export class OrdersService extends BaseService {
 				if (!orderTaxesCollector[rule.tax]) orderTaxesCollector[rule.tax] = { rate: taxRate, amount: 0 };
 				orderTaxesCollector[rule.tax].amount += taxAmount;
 			}
-			item.originalPrice = priceData.price * Number(rateObj.rate);
+			item.originalPrice = priceData.price / Number(rateObj.rate);
 			item.finalPrice = finalUnitPrice;
 		}
 		return { subtotalBase, taxesBase };
@@ -1204,7 +1183,7 @@ export class OrdersService extends BaseService {
 			const rawBasePrice = showtimeData ? Number(showtimeData.price || 0) : 0;
 			const currency = showtimeData ? showtimeData.currency || 1 : 1;
 			const rateObj = exchangeRatesDict[currency] || { rate: 1, id: 1 };
-			const basePrice = rawBasePrice * Number(rateObj.rate);
+			const basePrice = rawBasePrice / Number(rateObj.rate);
 			ticket.exchangeRateId = rateObj.id;
 
 			const context = {
@@ -1227,11 +1206,11 @@ export class OrdersService extends BaseService {
 				{ currentDate, currentTime, currentDay },
 			);
 
-			const finalUnitPrice = finalPriceInItemCurrency * Number(rateObj.rate);
+			const finalUnitPrice = finalPriceInItemCurrency / Number(rateObj.rate);
 
 			ticket.appliedModifiers = appliedModifiers.map((mod: any) => ({
 				price_modifier: mod.price_modifier,
-				applied_amount_base_currency: mod.applied_amount * Number(rateObj.rate),
+				applied_amount_base_currency: mod.applied_amount / Number(rateObj.rate),
 			}));
 			subtotalBase += finalUnitPrice;
 			const ticketTaxes = activeTaxes.filter((t: any) => t.tax_scope === 1);
