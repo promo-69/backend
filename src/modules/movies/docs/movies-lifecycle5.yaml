@@ -1,0 +1,21 @@
+/movies:
+    get:
+        summary: Get movies (public only visible states; admin can filter any state)
+        description: |
+            Public users see only movies with lifecycle_state 1-4.
+            Authenticated users with permission `CRUD:READ:MOVIES` can use `lifecycle_state` query param to filter by any state (including 5).
+        parameters:
+            - name: lifecycle_state
+              in: query
+              schema:
+                  type: integer
+              description: Filter by lifecycle state. Only allowed for users with proper permissions.
+        security:
+            - bearerAuth: []
+        responses:
+            '200':
+                description: List of movies
+            '401':
+                description: Unauthorized
+            '403':
+                description: Insufficient permissions

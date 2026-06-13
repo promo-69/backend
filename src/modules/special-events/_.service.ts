@@ -49,42 +49,47 @@ export class SpecialEventsService extends BaseService {
         return Database.repository('main', 'showtimes') as any;
     }
 
-    // P+ublicos - Catálogo general
+    // CATÁLOGO GLOBAL (sin sucursal)
 
     async getPublicEvents(filters?: ProcessedQueryFilters) {
         return this._specialEvents.getAllFull(filters);
     }
 
-    async getUpcomingEvents(filters?: ProcessedQueryFilters) {
-        return this._specialEvents.getAllFull({
-            ...filters,
-            where: { lifecycle_state: 1, deleted_at: null },
-        });
-    }
-
-    // Públicos - Filtros por lifecycle
-
-    // Próximamente — lifecycle_state = 1
     async getUpcoming(filters?: ProcessedQueryFilters) {
         return this._specialEvents.getAll({ ...filters, count: true }, { lifecycle_state: 1, deleted_at: null });
     }
 
-    // En Cartelera (Estreno) — lifecycle_state = 2
     async getOnPremiere(filters?: ProcessedQueryFilters) {
         return this._specialEvents.getAll({ ...filters, count: true }, { lifecycle_state: 2, deleted_at: null });
     }
 
-    // En Cartelera (Regular) — lifecycle_state = 3
     async getInBillboard(filters?: ProcessedQueryFilters) {
         return this._specialEvents.getAll({ ...filters, count: true }, { lifecycle_state: 3, deleted_at: null });
     }
 
-    //Últimos Días — lifecycle_state = 4
     async getLastDays(filters?: ProcessedQueryFilters) {
         return this._specialEvents.getAll({ ...filters, count: true }, { lifecycle_state: 4, deleted_at: null });
     }
 
-    // Públicos - Cartelera y funciones
+    // POR SUCURSAL — cruza lifecycle con funciones reales en la sucursal
+
+    async getUpcomingByCinema(cinemaId: number) {
+        return ShowtimeManagementService.getEventsBillboardByLifecycle(1, cinemaId);
+    }
+
+    async getOnPremiereByCinema(cinemaId: number) {
+        return ShowtimeManagementService.getEventsBillboardByLifecycle(2, cinemaId);
+    }
+
+    async getInBillboardByCinema(cinemaId: number) {
+        return ShowtimeManagementService.getEventsBillboardByLifecycle(3, cinemaId);
+    }
+
+    async getLastDaysByCinema(cinemaId: number) {
+        return ShowtimeManagementService.getEventsBillboardByLifecycle(4, cinemaId);
+    }
+
+    // CARTELERA Y FUNCIONES PÚBLICAS
 
     async getPublicEventDetail(id: number) {
         const event = await this._specialEvents.getFull(id);
@@ -104,7 +109,7 @@ export class SpecialEventsService extends BaseService {
         return ShowtimeManagementService.getEventShowtimesByCinema(eventId, cinemaId);
     }
 
-    // Administrativos
+    // ADMINISTRATIVOS
 
     async getAdminEvents(filters?: ProcessedQueryFilters) {
         return this._specialEvents.getAllFull(filters);
@@ -124,19 +129,16 @@ export class SpecialEventsService extends BaseService {
         onlyFuture?: boolean;
         [key: string]: any;
     }) {
-        return ShowtimeManagementService.findAllShowtimes({
-            ...filters,
-            onlyEvents: true,
-        });
+        return ShowtimeManagementService.findAllShowtimes({ ...filters, onlyEvents: true });
     }
 
-    // Superadmin
+    // CRUD (solo super admin)
+
     async createEvent(
         body: CreateSpecialEventBody,
         rawFiles?: Express.Multer.File[] | { [fieldname: string]: Express.Multer.File[] },
     ) {
         const { title, description, releaseDate, trailerUrl } = body;
-
         const durationMinutes = Number(body.durationMinutes);
         const ageClassification = Number(body.ageClassification);
         const lifecycleState = body.lifecycleState ? Number(body.lifecycleState) : 1;
@@ -171,7 +173,6 @@ export class SpecialEventsService extends BaseService {
             posterFileId,
             bannerFileId,
         } = await movieImagesService.uploadMovieImages(imageFiles);
-
         const finalPosterUrl = uploadedPosterUrl ?? body.posterUrl ?? null;
 
         try {
@@ -187,7 +188,6 @@ export class SpecialEventsService extends BaseService {
                 release_date: releaseDate,
                 end_date: endDate,
             });
-
             return this.getAdminEventDetail(created.id);
         } catch (error) {
             await movieImagesService.rollbackUploadedImages([posterFileId, bannerFileId]);
@@ -201,42 +201,34 @@ export class SpecialEventsService extends BaseService {
         rawFiles?: Express.Multer.File[] | { [fieldname: string]: Express.Multer.File[] },
     ) {
         const event = await this.getAdminEventDetail(id);
-
         const previousPosterUrl: string | null = event.poster_url ?? null;
         const previousBannerUrl: string | null = event.banner_url ?? null;
-
         const updateData: Record<string, any> = {};
 
         if (body.title !== undefined) updateData.title = body.title;
         if (body.description !== undefined) updateData.description = body.description;
-
         if (body.durationMinutes !== undefined) {
             const dur = Number(body.durationMinutes);
             if (!Number.isInteger(dur) || dur <= 0)
                 throw new ValidationError('La duración debe ser un entero mayor a 0', ['durationMinutes']);
             updateData.duration_minutes = dur;
         }
-
         if (body.ageClassification !== undefined) {
             const age = Number(body.ageClassification);
-            const exists = await this._ageClassifications.getById(age);
-            if (!exists)
+            if (!(await this._ageClassifications.getById(age)))
                 throw new ValidationError('La clasificación de edad indicada no existe', ['ageClassification']);
             updateData.age_classification = age;
         }
-
         if (body.lifecycleState !== undefined) {
             const state = Number(body.lifecycleState);
-            const exists = await this._lifecycleStates.getById(state);
-            if (!exists) throw new ValidationError('El estado de ciclo de vida indicado no existe', ['lifecycleState']);
+            if (!(await this._lifecycleStates.getById(state)))
+                throw new ValidationError('El estado de ciclo de vida indicado no existe', ['lifecycleState']);
             updateData.lifecycle_state = state;
         }
-
         if (body.trailerUrl !== undefined) {
             movieImagesService.validateTrailerUrl(body.trailerUrl);
             updateData.trailer_url = body.trailerUrl;
         }
-
         if (body.releaseDate !== undefined) updateData.release_date = body.releaseDate;
         if (body.endDate !== undefined) updateData.end_date = body.endDate;
 
@@ -247,7 +239,6 @@ export class SpecialEventsService extends BaseService {
             posterFileId,
             bannerFileId,
         } = await movieImagesService.uploadMovieImages(imageFiles);
-
         const finalPosterUrl = uploadedPosterUrl ?? body.posterUrl ?? null;
         if (finalPosterUrl) updateData.poster_url = finalPosterUrl;
         if (bannerUrl) updateData.banner_url = bannerUrl;
@@ -257,17 +248,14 @@ export class SpecialEventsService extends BaseService {
 
         try {
             await this._specialEvents.update(id, updateData);
-
-            if (uploadedPosterUrl && previousPosterUrl) {
+            if (uploadedPosterUrl && previousPosterUrl)
                 imageStorageService
                     .deleteImageByUrl(previousPosterUrl)
                     .catch((err: any) => Logger.error('updateEvent: error al eliminar poster anterior', err));
-            }
-            if (bannerUrl && previousBannerUrl) {
+            if (bannerUrl && previousBannerUrl)
                 imageStorageService
                     .deleteImageByUrl(previousBannerUrl)
                     .catch((err: any) => Logger.error('updateEvent: error al eliminar banner anterior', err));
-            }
         } catch (error) {
             await movieImagesService.rollbackUploadedImages([posterFileId, bannerFileId]);
             throw error;
@@ -278,33 +266,26 @@ export class SpecialEventsService extends BaseService {
 
     async deleteEvent(id: number) {
         const event = await this.getAdminEventDetail(id);
-
         let activeShowtimes = 0;
         try {
             activeShowtimes = await this._showtimes.count({ special_event_id: id, deleted_at: null } as any);
         } catch {
-            /* Si el repositorio aún no reconoce el campo, no bloquear */
+            /* no bloquear */
         }
-
         if (activeShowtimes > 0)
             throw new ConflictError(
                 'No se puede eliminar el evento porque tiene funciones programadas activas.',
                 'EVENT_HAS_ACTIVE_SHOWTIMES',
             );
-
         await this._specialEvents.delete(id);
-
-        if (event.poster_url) {
+        if (event.poster_url)
             imageStorageService
                 .deleteImageByUrl(event.poster_url)
                 .catch((err: any) => Logger.error('deleteEvent: error al eliminar poster', err));
-        }
-        if (event.banner_url) {
+        if (event.banner_url)
             imageStorageService
                 .deleteImageByUrl(event.banner_url)
                 .catch((err: any) => Logger.error('deleteEvent: error al eliminar banner', err));
-        }
-
         return null;
     }
 }

@@ -1,0 +1,26 @@
+meta {
+  name: Get Out of Catalog Events (lifecycle=5) - Admin only
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/special-events?lifecycle_state=5
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  page: 1
+  limit: 10
+}
+
+docs {
+  Obtiene los eventos especiales con lifecycle_state = 5 (Fuera de Cartelera).
+  Requiere permisos de administrador (CRUD:READ:SPECIAL_EVENTS).
+  No accesible para clientes.
+}

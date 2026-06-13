@@ -1,0 +1,19 @@
+meta {
+  name: Upcoming Events by Cinema (lifecycle=1)
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/special-events/by-cinema/{{cinemaId}}/upcoming
+  body: none
+  auth: none
+}
+
+vars:pre-request {
+  cinemaId: 1
+}
+
+docs {
+  Retorna eventos especiales con lifecycle_state = 1 (Próximamente) que tienen al menos una función futura en la sucursal.
+}

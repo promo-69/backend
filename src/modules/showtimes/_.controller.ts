@@ -28,6 +28,15 @@ class ShowtimesController extends ControllerBase {
         return this.success(data, 'Cartelera unificada obtenida exitosamente');
     }
 
+    // GET /showtimes/billboard/full?cinemaId=
+    // Películas + eventos especiales en lifecycle 2, 3 y 4 con funciones futuras.
+    async getFullActiveBillboard() {
+        const query = this.getQuery();
+        const cinemaId = query.cinemaId ? Number(query.cinemaId) : undefined;
+        const data = await ShowtimesService.getFullActiveBillboard(cinemaId);
+        return this.success(data, 'Cartelera activa obtenida exitosamente');
+    }
+
     async findAll() {
         const query = this.getQuery();
         const movieId = query.movieId ? Number(query.movieId) : undefined;
@@ -62,7 +71,6 @@ class ShowtimesController extends ControllerBase {
         return this.success(data, 'Mapa de asientos obtenido exitosamente.');
     }
 
-    // GET /showtimes/:id/seats-status — Estado inicial (vendidos/bloqueados)
     async getSeatsStatus() {
         const { id } = this.getParams();
         const data = await ShowtimesService.getSeatsStatus(Number(id));
@@ -129,7 +137,6 @@ class ShowtimesController extends ControllerBase {
         return this.success(data, 'Funciones de la sucursal obtenidas exitosamente');
     }
 
-    // POST /showtimes/bulk
     async bulkCreate() {
         const body = this.getBody();
         const data = await ShowtimesService.bulkCreateShowtimes(body);
@@ -140,7 +147,6 @@ class ShowtimesController extends ControllerBase {
         return this.created(data, message);
     }
 
-    // PATCH /showtimes/:id
     async update() {
         const { id } = this.getParams();
         const body = this.getBody();
@@ -148,7 +154,6 @@ class ShowtimesController extends ControllerBase {
         return this.success(null, 'Función actualizada correctamente.');
     }
 
-    // DELETE /showtimes/:id
     async remove() {
         const { id } = this.getParams();
         await ShowtimesService.deleteShowtime(Number(id));

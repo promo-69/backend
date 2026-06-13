@@ -1,0 +1,19 @@
+meta {
+  name: Premiere Events by Cinema (lifecycle=2)
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/special-events/by-cinema/{{cinemaId}}/premiere
+  body: none
+  auth: none
+}
+
+vars:pre-request {
+  cinemaId: 1
+}
+
+docs {
+  Retorna eventos especiales con lifecycle_state = 2 (En Cartelera - Estreno) con funciones en la sucursal.
+}

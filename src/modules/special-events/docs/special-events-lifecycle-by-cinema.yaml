@@ -1,0 +1,59 @@
+/special-events/by-cinema/{cinemaId}/upcoming:
+    get:
+        summary: Get upcoming special events by cinema (lifecycle=1)
+        tags:
+            - Special Events
+        parameters:
+            - in: path
+              name: cinemaId
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: List of upcoming events in the cinema
+
+/special-events/by-cinema/{cinemaId}/premiere:
+    get:
+        summary: Get premiere special events by cinema (lifecycle=2)
+        tags:
+            - Special Events
+        parameters:
+            - in: path
+              name: cinemaId
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: List of premiere events in the cinema
+
+/special-events/by-cinema/{cinemaId}/now-playing:
+    get:
+        summary: Get now playing special events by cinema (lifecycle=3)
+        tags:
+            - Special Events
+        parameters:
+            - in: path
+              name: cinemaId
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: List of regular exhibition events in the cinema
+
+/special-events/by-cinema/{cinemaId}/last-days:
+    get:
+        summary: Get last days special events by cinema (lifecycle=4)
+        tags:
+            - Special Events
+        parameters:
+            - in: path
+              name: cinemaId
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: List of last days events in the cinema

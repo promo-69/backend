@@ -6,6 +6,7 @@ import { imageStorageService } from '@services/image-storage.service.js';
 import { Logger } from '@utils/logger.util.js';
 import { type ProcessedQueryFilters } from '@rules/api-query.type.js';
 import { type Transaction } from 'sequelize';
+import ShowtimeManagementService from '@services/showtime-management.service.js';
 
 interface CreateMovieBody {
     title: string;
@@ -63,6 +64,10 @@ export class MoviesService extends BaseService {
         return Database.repository('main', 'age-classifications') as any;
     }
 
+    // -------------------------------------------------------------------------
+    //  CATÁLOGO GLOBAL (sin sucursal)
+    // -------------------------------------------------------------------------
+
     async getMovies(filters?: ProcessedQueryFilters) {
         return this._movies.getAllFull(filters);
     }
@@ -71,23 +76,45 @@ export class MoviesService extends BaseService {
         return this._movies.getWithShowtimes(filters);
     }
 
+    // lifecycle_state = 1
     async getUpcoming(filters?: ProcessedQueryFilters) {
         return this._movies.getUpcoming(filters);
     }
 
+    // lifecycle_state = 2, 3, 4 — catálogo global (sin cruzar con funciones reales)
     async getByLifecycle(lifecycleState: number, filters?: ProcessedQueryFilters) {
-        const lifecycleRecord = await Database.repository('main', 'movie-lifecycle-states').getOne({
-            id: lifecycleState,
-        } as any);
-        if (!lifecycleRecord)
-            throw new ValidationError(`Estado de ciclo de vida ${lifecycleState} no existe`, ['lifecycleState']);
-
-        const all = await this._movies.getAllFull(filters);
-        const filtered = all.rows.filter(
-            (m: any) => m.lifecycle_state?.description === (lifecycleRecord as any).description,
-        );
-        return { ...all, rows: filtered, count: filtered.length };
+        return this._movies.getAll({ ...filters, count: true }, { lifecycle_state: lifecycleState, deleted_at: null });
     }
+
+    // -------------------------------------------------------------------------
+    //  FILTROS POR LIFECYCLE + SUCURSAL
+    //  Cruza lifecycle con funciones reales en la sucursal vía ShowtimeManagementService.
+    //  lifecycle = 1 no necesita cruzar con funciones (próximamente = sin funciones aún),
+    //  por eso se resuelve directo en el repositorio filtrando por cinemaId en showtimes.
+    // -------------------------------------------------------------------------
+
+    // lifecycle_state = 1 por sucursal — devuelve películas upcoming que tienen al menos
+    // un showtime futuro asignado a una sala de esa sucursal.
+    async getUpcomingByCinema(cinemaId: number, filters?: ProcessedQueryFilters) {
+        return ShowtimeManagementService.getBillboardByLifecycle(1, cinemaId);
+    }
+
+    // lifecycle_state = 2 por sucursal
+    async getOnPremiereByCinema(cinemaId: number) {
+        return ShowtimeManagementService.getBillboardByLifecycle(2, cinemaId);
+    }
+
+    // lifecycle_state = 3 por sucursal
+    async getInBillboardByCinema(cinemaId: number) {
+        return ShowtimeManagementService.getBillboardByLifecycle(3, cinemaId);
+    }
+
+    // lifecycle_state = 4 por sucursal
+    async getLastDaysByCinema(cinemaId: number) {
+        return ShowtimeManagementService.getBillboardByLifecycle(4, cinemaId);
+    }
+
+    // -------------------------------------------------------------------------
 
     async getMovieDetail(id: number) {
         const movie = await this._movies.getFull(id);
@@ -173,15 +200,8 @@ export class MoviesService extends BaseService {
                     { transaction },
                 );
 
-                const genreRecords = genres.map((gId: number) => ({
-                    movie: movie.id,
-                    genre: gId,
-                    status: 1,
-                }));
-                const languageRecords = languages.map((lId: number) => ({
-                    movie: movie.id,
-                    language: lId,
-                }));
+                const genreRecords = genres.map((gId: number) => ({ movie: movie.id, genre: gId, status: 1 }));
+                const languageRecords = languages.map((lId: number) => ({ movie: movie.id, language: lId }));
                 const projectionRecords = projectionTypes.map((pId: number) => ({
                     movie: movie.id,
                     projection_type: pId,
@@ -220,14 +240,12 @@ export class MoviesService extends BaseService {
                 : typeof body.genres === 'string'
                   ? JSON.parse(body.genres)
                   : (body.genres as number[]);
-
         const languages: number[] | undefined =
             body.languages === undefined
                 ? undefined
                 : typeof body.languages === 'string'
                   ? JSON.parse(body.languages)
                   : (body.languages as number[]);
-
         const projectionTypes: number[] | undefined =
             body.projectionTypes === undefined
                 ? undefined
@@ -257,14 +275,12 @@ export class MoviesService extends BaseService {
                 if (!genre) throw new ValidationError(`El género con ID ${genreId} no existe`, ['genres']);
             }
         }
-
         if (languages !== undefined) {
             for (const languageId of languages) {
                 const language = await this._languages.getById(languageId);
                 if (!language) throw new ValidationError(`El idioma con ID ${languageId} no existe`, ['languages']);
             }
         }
-
         if (projectionTypes !== undefined) {
             for (const projectionId of projectionTypes) {
                 const projectionType = await this._projectionTypes.getById(projectionId);
@@ -289,24 +305,28 @@ export class MoviesService extends BaseService {
                 if (genres !== undefined) {
                     await this._movieGenres.deleteByMovie(id, { transaction });
                     if (genres.length > 0) {
-                        const records = genres.map((gId: number) => ({ movie: id, genre: gId }));
-                        await this._movieGenres.bulkCreate(records, { transaction });
+                        await this._movieGenres.bulkCreate(
+                            genres.map((gId: number) => ({ movie: id, genre: gId })),
+                            { transaction },
+                        );
                     }
                 }
-
                 if (languages !== undefined) {
                     await this._movieLanguages.deleteByMovie(id, { transaction });
                     if (languages.length > 0) {
-                        const records = languages.map((lId: number) => ({ movie: id, language: lId }));
-                        await this._movieLanguages.bulkCreate(records, { transaction });
+                        await this._movieLanguages.bulkCreate(
+                            languages.map((lId: number) => ({ movie: id, language: lId })),
+                            { transaction },
+                        );
                     }
                 }
-
                 if (projectionTypes !== undefined) {
                     await this._movieProjectionTypes.deleteByMovie(id, { transaction });
                     if (projectionTypes.length > 0) {
-                        const records = projectionTypes.map((pId: number) => ({ movie: id, projection_type: pId }));
-                        await this._movieProjectionTypes.bulkCreate(records, { transaction });
+                        await this._movieProjectionTypes.bulkCreate(
+                            projectionTypes.map((pId: number) => ({ movie: id, projection_type: pId })),
+                            { transaction },
+                        );
                     }
                 }
             });
