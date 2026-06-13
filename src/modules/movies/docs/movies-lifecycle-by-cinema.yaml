@@ -1,0 +1,100 @@
+/movies/by-cinema/{cinemaId}/upcoming:
+    get:
+        summary: Get upcoming movies by cinema
+        description: |
+            Returns movies with lifecycle_state = 1 (Próximamente) that have at least one future showtime in the specified cinema.
+            Public endpoint (no authentication required).
+        tags:
+            - Movies
+        parameters:
+            - in: path
+              name: cinemaId
+              required: true
+              schema:
+                  type: integer
+              description: Cinema ID
+            - in: query
+              name: page
+              schema:
+                  type: integer
+              description: Page number
+            - in: query
+              name: limit
+              schema:
+                  type: integer
+              description: Items per page
+        responses:
+            '200':
+                description: List of upcoming movies in the cinema
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                message:
+                                    type: string
+                                data:
+                                    type: object
+                                    properties:
+                                        count:
+                                            type: integer
+                                        rows:
+                                            type: array
+                                            items:
+                                                type: object
+                                                properties:
+                                                    movie:
+                                                        type: object
+                                                    showtimes:
+                                                        type: array
+            '404':
+                description: Cinema not found or no movies
+            '500':
+                description: Internal server error
+
+/movies/by-cinema/{cinemaId}/premiere:
+    get:
+        summary: Get premiere movies by cinema (lifecycle=2)
+        tags:
+            - Movies
+        parameters:
+            - in: path
+              name: cinemaId
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: List of premiere movies in the cinema
+
+/movies/by-cinema/{cinemaId}/now-playing:
+    get:
+        summary: Get now playing movies by cinema (lifecycle=3)
+        tags:
+            - Movies
+        parameters:
+            - in: path
+              name: cinemaId
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: List of regular exhibition movies in the cinema
+
+/movies/by-cinema/{cinemaId}/last-days:
+    get:
+        summary: Get last days movies by cinema (lifecycle=4)
+        tags:
+            - Movies
+        parameters:
+            - in: path
+              name: cinemaId
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: List of last days movies in the cinema

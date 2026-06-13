@@ -3,10 +3,8 @@ import { ValidationError } from '@errors';
 import { Database } from '@database/index.js';
 
 export class ShowtimesService {
-    // Públicos
-
     async getBillboard(cinemaId?: number) {
-        return ShowtimeManagementService.getBillboard(cinemaId);
+        return ShowtimeManagementService.getBillboard(cinemaId ? { cinemaId } : undefined);
     }
 
     async getBillboardFiltered(filters: {
@@ -23,7 +21,11 @@ export class ShowtimesService {
         return ShowtimeManagementService.getMovieShowtimesByCinema(movieId, cinemaId, userId);
     }
 
-    // Administrativos
+    // Cartelera activa unificada: películas + eventos en lifecycle 2, 3 y 4 con funciones futuras.
+    // cinemaId opcional — si se omite devuelve la cartelera global, si se pasa filtra por sucursal.
+    async getFullActiveBillboard(cinemaId?: number) {
+        return ShowtimeManagementService.getFullActiveBillboard(cinemaId);
+    }
 
     async findAllShowtimes(filters?: any) {
         return ShowtimeManagementService.findAllShowtimes(filters);
@@ -35,15 +37,13 @@ export class ShowtimesService {
 
     async createShowtime(body: any, sessionCinemaId?: number) {
         const cinemaId = sessionCinemaId ?? body.cinema;
-        if (cinemaId === undefined) {
+        if (cinemaId === undefined)
             throw new ValidationError(
                 'No se puede determinar la sucursal. Especificá "cinema" en el cuerpo de la petición o iniciá sesión con una sucursal asignada.',
             );
-        }
         return ShowtimeManagementService.createShowtime(body);
     }
 
-    // Crea múltiples funciones en un período de tiempo para los días y slots horarios especificados
     async bulkCreateShowtimes(body: any) {
         return ShowtimeManagementService.bulkCreateShowtimes(body);
     }
@@ -65,11 +65,11 @@ export class ShowtimesService {
     }
 
     async getUnifiedBillboard(cinemaId?: number) {
-        const movies = await ShowtimeManagementService.getBillboard(cinemaId);
+        const movies = await ShowtimeManagementService.getBillboard(cinemaId ? { cinemaId } : undefined);
         const events = await ShowtimeManagementService.getEventsBillboard(cinemaId);
         const combined = [...movies.rows, ...events.rows].sort((a, b) => {
-            const aFirst = a.showtimes?.[0]?.start_time;
-            const bFirst = b.showtimes?.[0]?.start_time;
+            const aFirst = a.showtimes?.[0]?.booking?.start_time;
+            const bFirst = b.showtimes?.[0]?.booking?.start_time;
             return new Date(aFirst).getTime() - new Date(bFirst).getTime();
         });
         return { count: combined.length, rows: combined };
@@ -85,15 +85,12 @@ export class ShowtimesService {
     async getAllShowtimesAdmin(filters?: any) {
         return ShowtimeManagementService.findAllShowtimes(filters);
     }
-
     async getShowtimesByMovieAdmin(movieId: number, filters?: any) {
         return ShowtimeManagementService.findAllShowtimes({ ...filters, movieId });
     }
-
     async getShowtimesByEventAdmin(eventId: number, filters?: any) {
         return ShowtimeManagementService.findAllShowtimes({ ...filters, eventId });
     }
-
     async getShowtimesByCinemaAdmin(cinemaId: number, filters?: any) {
         return ShowtimeManagementService.findAllShowtimes({ ...filters, cinemaId });
     }

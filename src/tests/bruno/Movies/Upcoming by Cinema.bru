@@ -1,0 +1,21 @@
+meta {
+  name: Upcoming Movies by Cinema (lifecycle=1)
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/movies/by-cinema/{{cinemaId}}/upcoming
+  body: none
+  auth: none
+}
+
+params:query {
+  page: 1
+  limit: 10
+}
+
+docs {
+  Retorna películas con lifecycle_state = 1 (Próximamente) que tienen al menos una función futura en la sucursal especificada.
+  cinemaId es obligatorio.
+}

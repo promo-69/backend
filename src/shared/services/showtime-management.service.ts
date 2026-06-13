@@ -1751,6 +1751,67 @@ export class ShowtimeManagementService {
 		return { count: rows.length, rows };
 	}
 
+	// -------------------------------------------------------------------------
+	//  CARTELERA FILTRADA POR LIFECYCLE — PELÍCULAS
+	//  Reutiliza getBillboard (que ya maneja cinemaId y visibleStates) y
+	//  aplica un filtro adicional sobre lifecycle_state del ítem resultante.
+	// -------------------------------------------------------------------------
+	async getBillboardByLifecycle(lifecycleState: number, cinemaId?: number) {
+		const base = await this.getBillboard(cinemaId ? { cinemaId } : undefined);
+		if (base.count === 0) return base;
+		const rows = base.rows.filter(
+			(entry: any) => entry.movie?.lifecycle?.id === lifecycleState,
+		);
+		return { count: rows.length, rows };
+	}
+
+	// -------------------------------------------------------------------------
+	//  CARTELERA FILTRADA POR LIFECYCLE — EVENTOS ESPECIALES
+	// -------------------------------------------------------------------------
+	async getEventsBillboardByLifecycle(lifecycleState: number, cinemaId?: number) {
+		const base = await this.getEventsBillboard(cinemaId);
+		if (base.count === 0) return base;
+		const rows = base.rows.filter(
+			(entry: any) => entry.event?.lifecycle?.id === lifecycleState,
+		);
+		return { count: rows.length, rows };
+	}
+
+	// -------------------------------------------------------------------------
+	//  CARTELERA ACTIVA UNIFICADA (lifecycle 2, 3 y 4 — estreno, regular, últimos días)
+	//  Incluye películas Y eventos especiales con funciones futuras.
+	//  Acepta cinemaId opcional para filtrar por sucursal.
+	// -------------------------------------------------------------------------
+	async getFullActiveBillboard(cinemaId?: number) {
+		const ACTIVE_STATES = [2, 3, 4];
+
+		const [moviesBase, eventsBase] = await Promise.all([
+			this.getBillboard(cinemaId ? { cinemaId } : undefined).catch(() => ({ count: 0, rows: [] })),
+			this.getEventsBillboard(cinemaId).catch(() => ({ count: 0, rows: [] })),
+		]);
+
+		const movies = moviesBase.rows
+			.filter((entry: any) => ACTIVE_STATES.includes(entry.movie?.lifecycle?.id))
+			.map((entry: any) => ({ type: 'movie', ...entry }));
+
+		const events = eventsBase.rows
+			.filter((entry: any) => ACTIVE_STATES.includes(entry.event?.lifecycle?.id))
+			.map((entry: any) => ({ type: 'special_event', ...entry }));
+
+		// Ordenar por el primer showtime más próximo de cada ítem
+		const combined = [...movies, ...events].sort((a, b) => {
+			const aTime = a.showtimes?.[0]?.booking?.start_time
+				? new Date(a.showtimes[0].booking.start_time).getTime()
+				: Infinity;
+			const bTime = b.showtimes?.[0]?.booking?.start_time
+				? new Date(b.showtimes[0].booking.start_time).getTime()
+				: Infinity;
+			return aTime - bTime;
+		});
+
+		return { count: combined.length, rows: combined };
+	}
+
 	async bulkCreateShowtimes(data: any): Promise<{ created: number; skipped: number; errors: string[]; showtimes: any[] }> {
         const showtimeType: 'movie' | 'event' = data.showtime_type ?? 'movie';
 

@@ -10,8 +10,13 @@ const router = Router();
 
 // Cartelera pública de películas
 router.get('/billboard', optionalAuth, showtimesController.getBillboard);
-// Cartelera unificada (películas y eventos especiales)
+
+// Cartelera unificada películas + eventos (todos los visibles con funciones)
 router.get('/billboard/unified', optionalAuth, showtimesController.getUnifiedBillboard);
+
+// Cartelera activa: películas + eventos en lifecycle 2, 3 y 4 con funciones futuras.
+// ?cinemaId= opcional para filtrar por sucursal.
+router.get('/billboard/full', optionalAuth, showtimesController.getFullActiveBillboard);
 
 // Listado público de funciones
 router.get('/', optionalAuth, showtimesController.findAll);
@@ -51,27 +56,17 @@ router.get(
     showtimesController.getShowtimesByEventAdmin,
 );
 
-// Admin: creación masiva de funciones en un período de tiempo
-// POST /showtimes/bulk
+// Admin: creación masiva de funciones en un período
 router.post('/bulk', verifySession, verifyPermission('CRUD:CREATE:SHOWTIMES'), showtimesController.bulkCreate);
 
 // =============================================================================
 //  RUTAS DINÁMICAS — con :id, siempre al final
 // =============================================================================
 
-// Detalle de una función
 router.get('/:id', optionalAuth, showtimesController.findById);
-
-// Estado en vivo de los asientos (sold, locked)
 router.get('/:id/seats-status', optionalAuth, showtimesController.getSeatsStatus);
-
-// Mapa de asientos de una función (películas y eventos especiales)
 router.get('/:id/seat-map', optionalAuth, showtimesController.getSeatMap);
-
-// Editar función
 router.patch('/:id', verifySession, verifyPermission('CRUD:UPDATE:SHOWTIMES'), showtimesController.update);
-
-// Eliminar función
 router.delete('/:id', verifySession, verifyPermission('CRUD:DELETE:SHOWTIMES'), showtimesController.remove);
 
 export default router;
