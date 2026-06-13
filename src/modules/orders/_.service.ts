@@ -35,6 +35,19 @@ export enum SessionStatus {
 	PENDING_BILLING = 'pending_billing',
 	COMPLETED = 'completed',
 }
+const PAYMENT_METHOD_IDS: Record<string, number> = {
+	mobile_payment: 4,
+	cash: 1,
+	transfer: 3,
+	points: 6,
+	cinepuntos: 6,
+};
+const PAYMENT_METHOD_DESCRIPTIONS: Record<number, string> = {
+	1: 'Efectivo',
+	3: 'Transferencia',
+	4: 'Pago Móvil',
+	6: 'Puntos de Fidelidad',
+};
 
 export class OrdersService extends BaseService {
 	constructor() {
@@ -557,6 +570,7 @@ export class OrdersService extends BaseService {
 	async registerPayment(body: any, session: any) {
 		this.validateRequired(body, ['payment_method', 'amount']);
 		const { payment_method, amount, currency, reference_number } = body;
+		const paymentMethodId = PAYMENT_METHOD_IDS[payment_method] ?? payment_method;
 		const userQueueKey = `queue:usr:${session.userId}`;
 
 		// Valida que la sesion de compra siga vigente
@@ -573,36 +587,9 @@ export class OrdersService extends BaseService {
 		if (typeof amount !== 'number' || amount <= 0)
 			throw new BadRequestError('El monto del pago debe ser un número mayor a cero');
 
-		let paymentMethodId: number | null = null;
 		let paymentMethodDescription: string | null = null;
-		if (typeof payment_method === 'number') {
-			paymentMethodId = payment_method;
-		} else if (typeof payment_method === 'string') {
-			const trimmedMethod = payment_method.trim();
-			const normalizedMethod = trimmedMethod.toLowerCase();
-			if (/^\d+$/.test(trimmedMethod)) {
-				paymentMethodId = Number(trimmedMethod);
-			} else if (normalizedMethod === 'points' || normalizedMethod === 'cinepuntos') {
-				paymentMethodDescription = 'Puntos de Fidelidad';
-			} else if (normalizedMethod === 'cash') {
-				if (currency === 2) paymentMethodDescription = 'Efectivo Bolívares';
-				else paymentMethodDescription = 'Efectivo Divisas';
-			} else if (normalizedMethod === 'transfer') {
-				paymentMethodDescription = 'Transferencia Divisas';
-			} else if (normalizedMethod === 'mobile_payment') {
-				paymentMethodDescription = 'Pago Móvil';
-			} else if (
-				normalizedMethod === 'point_of_sale' ||
-				normalizedMethod === 'punto_de_venta' ||
-				normalizedMethod === 'pos'
-			) {
-				paymentMethodDescription = 'Punto de Venta (Débito)';
-			} else {
-				paymentMethodDescription = trimmedMethod;
-			}
-		} else {
-			throw new BadRequestError('El método de pago es inválido');
-		}
+		if (paymentMethodId in PAYMENT_METHOD_DESCRIPTIONS)
+			paymentMethodDescription = PAYMENT_METHOD_DESCRIPTIONS[paymentMethodId];
 
 		let orderData: any = null;
 		let remaining_balance: number | null = null;
@@ -660,25 +647,8 @@ export class OrdersService extends BaseService {
 			}
 			const amountBase = amount * exchangeRateValue;
 
-			if (!paymentMethodDescription && typeof payment_method === 'string') {
-				paymentMethodDescription = payment_method.trim();
-			}
-
-			const paymentMethodQuery: any = paymentMethodDescription
-				? { description: paymentMethodDescription }
-				: { id: paymentMethodId };
-
-			const paymentMethod = await this._paymentMethods.getOne(paymentMethodQuery, {
-				transaction,
-				lock: transaction.LOCK.UPDATE,
-			});
-			if (!paymentMethod) {
-				throw new BadRequestError('El método de pago especificado no existe');
-			}
-			paymentMethodId = paymentMethod.id;
-
 			// Ramificación según método de pago
-			if (paymentMethodDescription === 'Puntos de Fidelidad' || paymentMethodId === 6) {
+			if (paymentMethodId === 6) {
 				const ledgers = await this._loyaltyLedgers.getAll(
 					{ count: false, order: [['id', 'DESC']], limit: 1, operation: { transaction } },
 					{ customer: session.customerId },
