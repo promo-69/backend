@@ -35,3 +35,10 @@ script:pre-request {
   const baseUrl = bru.getEnvVar('baseUrl') || 'https://backend-jog6.onrender.com/api/v1/test';
   bru.setVar('baseUrl', baseUrl);
 }
+
+tests {
+  test("Permissions should not be in the login payload", function() {
+    const data = res.getBody();
+    expect(data.data.user.permissions).to.be.undefined;
+  });
+}

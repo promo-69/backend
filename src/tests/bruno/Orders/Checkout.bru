@@ -32,3 +32,10 @@ script:post-response {
     }
   }
 }
+
+tests {
+  test("Bugfix: total_amount_base_currency should not be abnormally small due to exchange rate division", function() {
+    const data = res.getBody();
+    expect(Number(data.data.total_amount_base_currency)).to.be.above(1);
+  });
+}

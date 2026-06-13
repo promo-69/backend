@@ -1,6 +1,6 @@
 import { SequelizeRepositoryBase } from '@repositories/bases/sequelize.repository.js';
 import UsersModel from '@database/models/main/users.model.js';
-import { Sequelize } from 'sequelize';
+import { USER_TYPE } from '@constants/magic-numbers.constant.js';
 
 export interface UsersAttributes {
 	id?: number;
@@ -23,10 +23,12 @@ export interface UsersWithPeople extends UsersAttributes {
 		personal_email: string;
 		phone_number: string;
 	};
+	_UserPermissions?: { permission: number; is_granted: boolean }[];
+	_Roles?: {
+		code: string;
+		_RoleInheritancesChild?: { parent_role: number }[];
+	};
 }
-
-const USER_TYPE_EMPLOYEE = 1;
-const USER_TYPE_CUSTOMER = 2;
 
 class UsersRepository extends SequelizeRepositoryBase<UsersAttributes, number> {
 	constructor() {
@@ -140,7 +142,7 @@ class UsersRepository extends SequelizeRepositoryBase<UsersAttributes, number> {
 
 	async getByClientEmail(email: string) {
 		return this.getOne(
-			{ email, user_type: USER_TYPE_CUSTOMER },
+			{ email, user_type: USER_TYPE.CUSTOMER },
 			{
 				attributes: ['id', 'person', 'user_type', 'role', 'email', 'signup_verified_at', 'signup_code'],
 				relations: this._relations,
@@ -150,7 +152,7 @@ class UsersRepository extends SequelizeRepositoryBase<UsersAttributes, number> {
 
 	async getByEmployeeEmail(email: string) {
 		return this.getOne(
-			{ email, user_type: USER_TYPE_EMPLOYEE },
+			{ email, user_type: USER_TYPE.EMPLOYEE },
 			{
 				attributes: ['id', 'person', 'user_type', 'role', 'email', 'signup_verified_at', 'signup_code'],
 				relations: this._relations,

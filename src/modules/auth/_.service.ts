@@ -1,7 +1,7 @@
 import { BaseService } from '@bases/service.base.js';
 import { Database } from '@database/index.js';
 import { Ops } from '@database/index.js';
-import { AuthError, ValidationError } from '@errors';
+import { AuthError, NotFoundError, ValidationError } from '@errors';
 import { Transaction } from 'sequelize';
 import { ExceptionPermissions } from '@rules/permission-exceptions.type.js';
 import { BcryptUtil } from '@utils/bcrypt.util.js';
@@ -81,45 +81,6 @@ export class AuthService extends BaseService {
 		return Database.repository('main', 'customer-favorite-genres') as any;
 	}
 
-	private parsePermissions(permissions: any[]): string[] {
-		return Array.from(
-			new Set(
-				permissions.map((per) => {
-					const resource = per._Resources?.code;
-					const action = per._Actions?.code;
-					const type = per._PermissionTypes?.code;
-					return `${type}:${action}:${resource}`;
-				}),
-			),
-		);
-	}
-
-	private async getRolePermissions(roleId: number): Promise<string[]> {
-		const roleInheritances = await this._roleInheritances.getAll({ count: false }, { child_role: roleId });
-		const rolePermissions = await this._rolePermissions.getAll(
-			{ count: false },
-			{ role: [roleId, ...(roleInheritances.map((ri: any) => ri.parent_role) ?? [])] },
-		);
-		const permissionIds = (Array.isArray(rolePermissions) ? rolePermissions : rolePermissions.rows).map(
-			(rp: any) => rp.permission,
-		);
-
-		if (permissionIds.length === 0) return [];
-
-		const permissions = await this._permisos.getAllFull({ count: false }, { id: permissionIds });
-
-		const permList = Array.isArray(permissions) ? permissions : permissions.rows;
-
-		return permList
-			.map((p: any) => {
-				const action = p._Actions?.code;
-				const resource = p._Resources?.code;
-				const type = p._PermissionTypes?.code;
-				return action && resource && type ? `${type}:${action}:${resource}` : null;
-			})
-			.filter((s: string | null) => s !== null) as string[];
-	}
-
 	private async _buildUserPayload(foundUser: any): Promise<AdminUserSession | CustomerUserSession> {
 		const basePayload: UserSession = {
 			userId: foundUser.id,
@@ -128,6 +89,7 @@ export class AuthService extends BaseService {
 			firstName: foundUser._People?.first_name ?? null,
 			lastName: foundUser._People?.last_name ?? null,
 			phoneNumber: foundUser._People?.phone_number ?? null,
+			userType: foundUser.user_type,
 		};
 
 		let payload: AdminUserSession | CustomerUserSession | undefined;
@@ -160,32 +122,15 @@ export class AuthService extends BaseService {
 				{ relations: this._employees._relations },
 			);
 
-			const permissionsExceptions: ExceptionPermissions = foundUser._UserPermissions.reduce(
-				(acu: ExceptionPermissions, cur: any) => {
-					acu[cur.is_granted ? 'granted' : 'revoked'].push(cur.permission);
-					return acu;
-				},
-				{ granted: [], revoked: [] },
-			);
-
-			const roles = [
-				foundUser.role,
-				...(foundUser._Roles._RoleInheritancesChild?.map((r: any) => r.parent_role) ?? []),
-			];
-			const { rows: permissions } = await this._permisos.getByRolesWithExceptions({
-				roles,
-				exceptions: permissionsExceptions,
-			});
 			const activePosition = employee._EmployeePositions[0];
 
 			payload = {
 				...basePayload,
 				cinemaId: activePosition?.cinema,
 				employeeId: employee.id,
-				roleDesc: foundUser._Roles?.description,
-				roleCode: foundUser._Roles?.code,
-				jobPositionDesc: activePosition._JobPositions.title,
-				permissions: this.parsePermissions(permissions),
+				roleCode: foundUser._Roles?.code ?? '',
+				roleDesc: foundUser._Roles?.description ?? '',
+				jobPositionDesc: activePosition?._JobPositions?.title ?? '',
 			};
 		}
 
@@ -194,14 +139,6 @@ export class AuthService extends BaseService {
 
 	private async _buildLoginResponse(sessionData: any): Promise<LoginResponse> {
 		let payload: AdminUserSession | CustomerUserSession = await this._buildUserPayload(sessionData);
-
-		if (sessionData.role) {
-			const role = await this._roles.getById(sessionData.role);
-			if (role) {
-				(payload as AdminUserSession).roleCode = role.code;
-				(payload as AdminUserSession).permissions = await this.getRolePermissions(role.id);
-			}
-		}
 
 		const accessToken = JWTUtil.generateAccessToken(payload);
 		const refreshToken = JWTUtil.generateRandomToken();

@@ -33,6 +33,8 @@ export interface UserSession {
 	lastName: string;
 	email?: string;
 	phoneNumber?: string;
+	userType: number;
+	permissions?: string[];
 }
 
 export interface CustomerUserSession extends UserSession {
@@ -46,7 +48,6 @@ export interface CustomerUserSession extends UserSession {
 export interface AdminUserSession extends UserSession {
 	cinemaId?: number;
 	employeeId: number;
-	permissions?: string[];
 	roleCode: string;
 	roleDesc: string;
 	jobPositionDesc?: string;

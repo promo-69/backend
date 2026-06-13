@@ -2,6 +2,8 @@ import { ControllerBase } from '@bases/controller.base.js';
 import { AppConfig } from '@config/app.config.js';
 import JWTUtil from '@utils/jwt.util.js';
 import AuthService from './_.service.js';
+import RbacCacheService from '@services/rbac-cache.service.js';
+import { UserSession, type AdminUserSession } from '@rules/api.type.js';
 
 class AuthController extends ControllerBase {
 	constructor() {
@@ -41,6 +43,12 @@ class AuthController extends ControllerBase {
 		}
 
 		return this.success({ user, tokens: { accessToken, refreshToken } }, 'Autenticación exitosa');
+	}
+
+	async getEmployeePermissions() {
+		const data = (this.getRequest().session as UserSession).permissions;
+
+		return this.success({ permissions: data }, 'Permisos obtenidos correctamente');
 	}
 
 	// --- Auth & Session ---

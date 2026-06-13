@@ -5,6 +5,8 @@ import { AuthError, ForbiddenError, ConflictError, ValidationError } from '@erro
 import { SessionNotFoundError } from '@errors/auth.error.js';
 import { UserSession, AdminUserSession } from '@rules/api.type.js';
 import { tokenBlacklistService } from '@services/token-blacklist.service.js';
+import { USER_TYPE } from '@constants/magic-numbers.constant.js';
+import RbacCacheService from '@services/rbac-cache.service.js';
 
 interface AuthConfig {
 	cookieNames?: string[];
@@ -149,6 +151,14 @@ export class AuthMiddleware {
 			req.session = result.session;
 			req.token = result.token;
 
+			if (req.session.userType === USER_TYPE.EMPLOYEE) {
+				const adminSession = req.session as AdminUserSession;
+				adminSession.permissions = await RbacCacheService.getSessionPermissions(
+					adminSession.userId,
+					adminSession.roleCode,
+				);
+			}
+
 			next();
 		} catch (error) {
 			next(error);
@@ -172,11 +182,11 @@ export class AuthMiddleware {
 				if (!req.session) throw new SessionNotFoundError();
 
 				// Bypass para SUPER_ADMIN
-				if ((req.session as AdminUserSession).roleCode === 'SUPER_ADMIN') {
-					return next();
-				}
+				if ((req.session as AdminUserSession).roleCode === 'SUPER_ADMIN') return next();
 
-				const userPermissions = ((req.session as AdminUserSession).permissions || []).map((p: any) => p.toUpperCase());
+				const userPermissions = ((req.session as AdminUserSession).permissions || []).map((p: any) =>
+					p.toUpperCase(),
+				);
 
 				let requiredPermissions: string[] = [];
 				if (typeof permission === 'string') requiredPermissions.push(permission.toUpperCase());
