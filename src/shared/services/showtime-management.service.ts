@@ -1561,7 +1561,7 @@ export class ShowtimeManagementService {
 			{ booking: showtime.booking, deleted_at: null },
 		);
 		const soldSeatIds = new Set<number>(
-			(Array.isArray(soldTickets) ? soldTickets : soldTickets).map((t: any) => t.seat),
+			(Array.isArray(soldTickets) ? soldTickets : (soldTickets as any).rows || []).map((t: any) => t.seat),
 		);
 
 		const lockedSeatIds = new Set<number>();
@@ -1779,6 +1779,7 @@ export class ShowtimeManagementService {
         if (!periodStart) throw new ValidationError('El campo period_start es obligatorio (YYYY-MM-DD)', ['period_start']);
         if (!periodEnd) throw new ValidationError('El campo period_end es obligatorio (YYYY-MM-DD)', ['period_end']);
         if (!dailySlots.length) throw new ValidationError('Debe especificar al menos un slot horario en daily_slots', ['daily_slots']);
+        if (!daysOfWeek.length) throw new ValidationError('Debe especificar al menos un día de la semana en days_of_week (0=Dom, 1=Lun … 6=Sáb)', ['days_of_week']);
 
         const start = new Date(`${periodStart}T00:00:00.000Z`);
         const end = new Date(`${periodEnd}T00:00:00.000Z`);
@@ -1846,6 +1847,25 @@ export class ShowtimeManagementService {
             throw new ValidationError('El período y los días seleccionados no generan ningún día aplicable', ['days_of_week', 'period_start', 'period_end']);
         }
 
+        // Resolver entidades y booking type una sola vez antes del loop
+        const entityId = showtimeType === 'movie'
+            ? (data.movie ?? data.movieId)
+            : (data.special_event_id ?? data.eventId);
+
+        const [language, currency, projType, bookingType] = await Promise.all([
+            (Database.repository('main', 'languages') as any).getById(languageId, { attributes: ['id', 'description'] }),
+            (Database.repository('main', 'currencies') as any).getById(currencyId, { attributes: ['id', 'code', 'symbol'] }),
+            (Database.repository('main', 'projection-types') as any).getById(projTypeId, { attributes: ['id', 'description'] }),
+            showtimeType === 'movie'
+                ? this._bookingTypes.getOne({ description: 'Película' }).then((bt: any) => bt ?? this._bookingTypes.getById(BOOKING_TYPE_ID_SHOWTIME))
+                : this._bookingTypes.getOne({ description: 'Evento Alternativo' }).then((bt: any) => bt ?? this._bookingTypes.getById(BOOKING_TYPE_ID_SPECIAL_EVENT)),
+        ]);
+
+        if (!language) throw new ValidationError(`No existe ningún idioma con id ${languageId}`, ['language']);
+        if (!currency) throw new ValidationError(`No existe ninguna moneda con id ${currencyId}`, ['currency']);
+        if (!projType) throw new ValidationError(`No existe ningún tipo de proyección con id ${projTypeId}`, ['projection_type']);
+        if (!bookingType) throw new ValidationError(`Falta el tipo de reserva en booking_types`);
+
         // Crear funciones de forma secuencial para respetar el orden y detectar solapamientos individualmente
         const created: any[] = [];
         const errors: string[] = [];
@@ -1878,14 +1898,25 @@ export class ShowtimeManagementService {
                 }
 
                 try {
-                    const result = await this.createShowtime({
-                        ...data,
-                        start_time: slotStart.toISOString(),
-                        end_time: slotEnd.toISOString(),
+                    const result = await this._insertShowtime({
+                        showtimeType,
+                        entityId,
+                        roomId,
+                        projTypeId,
+                        languageId,
+                        currencyId,
+                        price,
+                        earnedLoyaltyPoints,
+                        start: slotStart,
+                        end: slotEnd,
+                        room,
+                        language,
+                        currency,
+                        projType,
+                        bookingType,
                     });
                     created.push(result);
                 } catch (err: any) {
-                    // Solapamiento u otro conflicto: registrar y continuar
                     const label = `${slotStart.toISOString().slice(0, 16).replace('T', ' ')}`;
                     if (err?.code === 'ROOM_ALREADY_BOOKED') {
                         skipped++;
@@ -1899,6 +1930,89 @@ export class ShowtimeManagementService {
         }
 
         return { created: created.length, skipped, errors, showtimes: created };
+    }
+
+    private async _insertShowtime(params: {
+        showtimeType: 'movie' | 'event';
+        entityId: number;
+        roomId: number;
+        projTypeId: number;
+        languageId: number;
+        currencyId: number;
+        price: number;
+        earnedLoyaltyPoints: number | null;
+        start: Date;
+        end: Date;
+        room: any;
+        language: any;
+        currency: any;
+        projType: any;
+        bookingType: any;
+    }) {
+        const {
+            showtimeType, entityId, roomId, projTypeId, languageId, currencyId,
+            price, earnedLoyaltyPoints, start, end, room, language, currency, projType, bookingType,
+        } = params;
+
+        return this._roomBookings.transaction(async (transaction: Transaction) => {
+            await this._checkOverlap(roomId, start, end, undefined, transaction);
+
+            const booking = await this._roomBookings.create(
+                { room: roomId, start_time: start, end_time: end, booking_type: bookingType.id },
+                { transaction },
+            );
+
+            const showtimeData: any = {
+                booking: booking.id,
+                projection_type: projTypeId,
+                language: languageId,
+                currency: currencyId,
+                price,
+                earned_loyalty_points: earnedLoyaltyPoints,
+            };
+
+            if (showtimeType === 'movie') {
+                showtimeData.movie = entityId;
+                showtimeData.special_event_id = null;
+            } else {
+                showtimeData.movie = null;
+                showtimeData.special_event_id = entityId;
+            }
+
+            const showtime = await this._showtimesRepo.create(showtimeData, { transaction });
+
+            if (showtimeType === 'movie') {
+                await this._syncMovieLifecycle(entityId, transaction);
+                try {
+                    const subscriptions = await this._movieSubscriptions.getAll(
+                        { count: false },
+                        { movie: entityId, is_notified: false },
+                    );
+                    const subList = Array.isArray(subscriptions) ? subscriptions : subscriptions.rows || [];
+                    for (const sub of subList) {
+                        await this._movieSubscriptions.update(sub.id, { is_notified: true }, { transaction });
+                    }
+                } catch { /* No interrumpir */ }
+            } else {
+                await this._syncEventLifecycle(entityId, transaction);
+            }
+
+            return {
+                id: showtime.id,
+                room_booking_id: booking.id,
+                start_time: booking.start_time,
+                end_time: booking.end_time,
+                room: { id: room.id, name: room.name },
+                ...(showtimeType === 'movie'
+                    ? { movie: { id: entityId } }
+                    : { event: { id: entityId } }),
+                projection_type: { id: projType.id, description: projType.description },
+                language: { id: language.id, description: language.description },
+                currency: { id: currency.id, code: currency.code, symbol: currency.symbol ?? '$' },
+                price: showtime.price,
+                earned_loyalty_points: showtime.earned_loyalty_points,
+            };
+        });
     }
 }
 
