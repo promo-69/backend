@@ -1,0 +1,20 @@
+meta {
+  name: Get Last Days Movies
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/movies/last-days
+  body: none
+  auth: none
+}
+
+params:query {
+  page: 1
+  limit: 10
+}
+
+docs {
+  Retorna películas con lifecycle_state = 4 (Últimos Días).
+}

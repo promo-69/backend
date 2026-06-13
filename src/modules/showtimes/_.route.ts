@@ -51,6 +51,10 @@ router.get(
     showtimesController.getShowtimesByEventAdmin,
 );
 
+// Admin: creación masiva de funciones en un período de tiempo
+// POST /showtimes/bulk
+router.post('/bulk', verifySession, verifyPermission('CRUD:CREATE:SHOWTIMES'), showtimesController.bulkCreate);
+
 // =============================================================================
 //  RUTAS DINÁMICAS — con :id, siempre al final
 // =============================================================================

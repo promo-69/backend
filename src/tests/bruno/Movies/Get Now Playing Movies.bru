@@ -1,0 +1,20 @@
+meta {
+  name: Get Now Playing Movies
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/movies/now-playing
+  body: none
+  auth: none
+}
+
+params:query {
+  page: 1
+  limit: 10
+}
+
+docs {
+  Retorna películas con lifecycle_state = 3 (En Cartelera - Regular).
+}

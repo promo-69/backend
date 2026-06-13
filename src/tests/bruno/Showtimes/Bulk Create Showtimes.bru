@@ -1,0 +1,49 @@
+meta {
+  name: Bulk Create Showtimes
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/showtimes/bulk
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "showtime_type": "movie",
+    "room": {{roomId}},
+    "movie": {{movieId}},
+    "projection_type": 1,
+    "language": 1,
+    "currency": 1,
+    "price": 150,
+    "earned_loyalty_points": 25,
+    "period_start": "2026-07-20",
+    "period_end": "2026-07-30",
+    "days_of_week": [1,2,3,4,5],
+    "daily_slots": [
+      { "start_time": "18:00", "end_time": "20:30" },
+      { "start_time": "21:00", "end_time": "23:30" }
+    ]
+  }
+}
+
+vars:pre-request {
+  roomId: 1
+  movieId: 1
+}
+
+docs {
+  Crea múltiples funciones en un período de tiempo.
+  - showtime_type: "movie" o "event"
+  - days_of_week: array de números (0=domingo a 6=sábado)
+  - daily_slots: horarios en formato HH:MM
+  - period_start / period_end: YYYY-MM-DD
+  Los conflictos de solapamiento se omiten y se reportan en la respuesta.
+}

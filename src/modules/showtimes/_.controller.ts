@@ -2,7 +2,6 @@ import { ControllerBase } from '@bases/controller.base.js';
 import ShowtimesService from './_.service.js';
 
 class ShowtimesController extends ControllerBase {
-
     // =========================================================================
     //  PÚBLICOS
     // =========================================================================
@@ -128,6 +127,17 @@ class ShowtimesController extends ControllerBase {
             onlyFuture: query.onlyFuture !== 'false',
         });
         return this.success(data, 'Funciones de la sucursal obtenidas exitosamente');
+    }
+
+    // POST /showtimes/bulk
+    async bulkCreate() {
+        const body = this.getBody();
+        const data = await ShowtimesService.bulkCreateShowtimes(body);
+        const message =
+            data.skipped > 0
+                ? `Se crearon ${data.created} función(es). ${data.skipped} slot(s) omitidos por solapamiento u otro conflicto.`
+                : `Se crearon ${data.created} función(es) exitosamente.`;
+        return this.created(data, message);
     }
 
     // PATCH /showtimes/:id

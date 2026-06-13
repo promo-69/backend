@@ -1,7 +1,7 @@
 meta {
   name: Get Upcoming Events
   type: http
-  seq: 2
+  seq: 1
 }
 
 get {
@@ -10,7 +10,11 @@ get {
   auth: none
 }
 
-script:pre-request {
-  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
-  bru.setVar('baseUrl', baseUrl);
+params:query {
+  page: 1
+  limit: 10
+}
+
+docs {
+  Retorna eventos especiales con lifecycle_state = 1 (Próximamente).
 }

@@ -1,0 +1,136 @@
+/showtimes/bulk:
+    post:
+        summary: Bulk create showtimes
+        description: |
+            Creates multiple showtimes for a movie or special event over a date range.
+            - `showtime_type`: "movie" or "event"
+            - For movies: provide `movie` field
+            - For events: provide `special_event_id` field
+            - `days_of_week`: array of numbers (0=Sunday, 1=Monday, ..., 6=Saturday)
+            - `daily_slots`: list of time slots with `start_time` and `end_time` in HH:MM format
+            - The system validates each showtime against overlapping bookings and release date
+            - Conflicts are skipped and reported in response.
+            Required permission: **CRUD:CREATE:SHOWTIMES**
+        tags:
+            - Showtimes Admin
+        security:
+            - bearerAuth: []
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        required:
+                            - showtime_type
+                            - room
+                            - projection_type
+                            - language
+                            - currency
+                            - price
+                            - period_start
+                            - period_end
+                            - daily_slots
+                        properties:
+                            showtime_type:
+                                type: string
+                                enum: [movie, event]
+                            room:
+                                type: integer
+                            movie:
+                                type: integer
+                            special_event_id:
+                                type: integer
+                            projection_type:
+                                type: integer
+                            language:
+                                type: integer
+                            currency:
+                                type: integer
+                            price:
+                                type: number
+                            earned_loyalty_points:
+                                type: integer
+                            period_start:
+                                type: string
+                                format: date
+                                description: Start date (YYYY-MM-DD)
+                            period_end:
+                                type: string
+                                format: date
+                                description: End date (YYYY-MM-DD)
+                            days_of_week:
+                                type: array
+                                items:
+                                    type: integer
+                                description: Days to include (0=Sunday to 6=Saturday). If empty, all days are considered.
+                            daily_slots:
+                                type: array
+                                items:
+                                    type: object
+                                    properties:
+                                        start_time:
+                                            type: string
+                                            pattern: ^\d{2}:\d{2}$
+                                            example: '18:00'
+                                        end_time:
+                                            type: string
+                                            pattern: ^\d{2}:\d{2}$
+                                            example: '20:30'
+        responses:
+            '201':
+                description: Bulk creation result
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                    example: true
+                                message:
+                                    type: string
+                                    example: Se crearon 10 función(es). 2 slot(s) omitidos por solapamiento.
+                                data:
+                                    type: object
+                                    properties:
+                                        created:
+                                            type: integer
+                                            description: Number of successfully created showtimes
+                                        skipped:
+                                            type: integer
+                                            description: Number of slots skipped due to conflicts
+                                        errors:
+                                            type: array
+                                            items:
+                                                type: string
+                                            description: List of error messages for skipped slots
+                                        showtimes:
+                                            type: array
+                                            items:
+                                                type: object
+                                                properties:
+                                                    id:
+                                                        type: integer
+                                                    room_booking_id:
+                                                        type: integer
+                                                    start_time:
+                                                        type: string
+                                                        format: date-time
+                                                    end_time:
+                                                        type: string
+                                                        format: date-time
+                                                    room:
+                                                        type: object
+                                                    movie:
+                                                        type: object
+                                                    event:
+                                                        type: object
+            '400':
+                description: Validation error (missing fields, invalid dates, etc.)
+            '401':
+                description: Unauthorized
+            '403':
+                description: Insufficient permissions
+            '409':
+                description: Conflict with existing booking (but bulk handles gracefully)

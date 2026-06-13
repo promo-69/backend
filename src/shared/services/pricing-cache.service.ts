@@ -27,7 +27,20 @@ export class PricingCacheService {
 		try {
 			const cached = await redis.get(this.CACHE_KEY);
 			if (cached) {
-				return JSON.parse(cached);
+				const parsed = JSON.parse(cached);
+				// Reconstruir opTypesMap como Map para consumo en memoria
+				const opTypesMap = parsed.opTypesMap
+					? new Map<number, any>(Object.keys(parsed.opTypesMap).map((k) => [Number(k), parsed.opTypesMap[k]]))
+					: parsed.opTypes
+					? new Map<number, any>(parsed.opTypes.map((op: any) => [op.id, op]))
+					: new Map<number, any>();
+
+				return {
+					modifiers: parsed.modifiers || [],
+					opTypesMap,
+					audienceCategories: parsed.audienceCategories || [],
+					seatCategories: parsed.seatCategories || [],
+				};
 			}
 		} catch (error) {
 			Logger.warn(`[PricingCache] Fallo al leer de Redis, cayendo a DB: ${(error as Error).message}`);
@@ -53,25 +66,28 @@ export class PricingCacheService {
 		const audienceCategories = Array.isArray(audienceList) ? audienceList : audienceList.rows || [];
 		const seatCategories = Array.isArray(seatList) ? seatList : seatList.rows || [];
 		
-		// Pre-computamos el mapa de opTypes para acceso O(1)
-		const opTypesMap: Record<number, any> = {};
-		for (const op of opTypes) {
-			opTypesMap[op.id] = op;
-		}
+		// Construimos un Map para uso en memoria
+		const opTypesMap = new Map<number, any>(opTypes.map((op: any) => [op.id, op]));
 
-		const data = {
+		// Datos serializables para almacenar en Redis
+		const cachePayload = {
 			modifiers: activeModifiers,
-			opTypesMap,
+			opTypes: opTypes,
 			audienceCategories,
-			seatCategories
+			seatCategories,
 		};
 
 		try {
-			await redis.set(this.CACHE_KEY, JSON.stringify(data));
+			await redis.set(this.CACHE_KEY, JSON.stringify(cachePayload));
 		} catch (error) {
 			Logger.error('[PricingCache] Error al guardar en Redis', error as Error);
 		}
 
-		return data;
+		return {
+			modifiers: activeModifiers,
+			opTypesMap,
+			audienceCategories,
+			seatCategories,
+		};
 	}
 }
