@@ -556,6 +556,14 @@ export class OrdersService extends BaseService {
 	async registerPayment(body: any, session: any) {
 		this.validateRequired(body, ['payment_method', 'amount']);
 		const { payment_method, amount, currency, reference_number } = body;
+		const PAYMENT_METHOD_IDS: Record<string, number> = {
+			mobile_payment: 4,
+			cash: 1,
+			transfer: 3,
+			points: 6,
+			cinepuntos: 6,
+		};
+		const paymentMethodId = PAYMENT_METHOD_IDS[payment_method] ?? payment_method;
 		const userQueueKey = `queue:usr:${session.userId}`;
 
 		// Valida que la sesion de compra siga vigente
@@ -657,7 +665,7 @@ export class OrdersService extends BaseService {
 			await this._orderPayments.create(
 				{
 					order: order_id,
-					payment_method,
+					payment_method: paymentMethodId,
 					amount: amountBase,
 					quoted_exchange_rate: quotedExchangeRateId,
 					reference_number,

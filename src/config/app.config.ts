@@ -119,7 +119,7 @@ export class AppConfig {
 			},
 			security: {
 				jwtSecret: process.env.JWT_SECRET || 'your-secret-key-change-in-production',
-				jwtCommonSecret: process.env.JWT_COMMON_SECRET || '',
+				jwtCommonSecret: process.env.JWT_COMMON_SECRET || 'your-common-secret-change-in-production',
 				jwtRefreshSecret: process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key-change-in-production',
 				jwtAccessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '1h',
 				jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
