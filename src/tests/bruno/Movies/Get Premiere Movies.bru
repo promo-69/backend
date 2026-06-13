@@ -1,0 +1,20 @@
+meta {
+  name: Get Premiere Movies
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/movies/premiere
+  body: none
+  auth: none
+}
+
+params:query {
+  page: 1
+  limit: 10
+}
+
+docs {
+  Retorna películas con lifecycle_state = 2 (En Cartelera - Estreno).
+}

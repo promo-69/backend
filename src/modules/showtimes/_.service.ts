@@ -43,6 +43,11 @@ export class ShowtimesService {
         return ShowtimeManagementService.createShowtime(body);
     }
 
+    // Crea múltiples funciones en un período de tiempo para los días y slots horarios especificados
+    async bulkCreateShowtimes(body: any) {
+        return ShowtimeManagementService.bulkCreateShowtimes(body);
+    }
+
     async updateShowtime(id: number, body: any) {
         return ShowtimeManagementService.updateShowtime(id, body);
     }

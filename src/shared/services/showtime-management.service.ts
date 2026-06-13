@@ -1750,6 +1750,156 @@ export class ShowtimeManagementService {
 
 		return { count: rows.length, rows };
 	}
+
+	async bulkCreateShowtimes(data: any): Promise<{ created: number; skipped: number; errors: string[]; showtimes: any[] }> {
+        const showtimeType: 'movie' | 'event' = data.showtime_type ?? 'movie';
+
+        if (showtimeType !== 'movie' && showtimeType !== 'event') {
+            throw new ValidationError('El campo showtime_type debe ser "movie" o "event"', ['showtime_type']);
+        }
+
+        const roomId = Number(data.room ?? data.roomId);
+        const projTypeId = Number(data.projection_type ?? data.projectionTypeId);
+        const languageId = Number(data.language ?? data.languageId);
+        const currencyId = Number(data.currency ?? data.currencyId);
+        const price = Number(data.price);
+        const earnedLoyaltyPoints = data.earned_loyalty_points ?? null;
+        const periodStart = data.period_start;
+        const periodEnd = data.period_end;
+        const daysOfWeek: number[] = Array.isArray(data.days_of_week) ? data.days_of_week : [];
+        const dailySlots: { start_time: string; end_time: string }[] = Array.isArray(data.daily_slots)
+            ? data.daily_slots
+            : [];
+
+        if (!roomId || isNaN(roomId)) throw new ValidationError('El campo room es obligatorio', ['room']);
+        if (!projTypeId || isNaN(projTypeId)) throw new ValidationError('El campo projection_type es obligatorio', ['projection_type']);
+        if (!languageId || isNaN(languageId)) throw new ValidationError('El campo language es obligatorio', ['language']);
+        if (!currencyId || isNaN(currencyId)) throw new ValidationError('El campo currency es obligatorio', ['currency']);
+        if (isNaN(price) || price <= 0) throw new ValidationError('El precio debe ser un número positivo', ['price']);
+        if (!periodStart) throw new ValidationError('El campo period_start es obligatorio (YYYY-MM-DD)', ['period_start']);
+        if (!periodEnd) throw new ValidationError('El campo period_end es obligatorio (YYYY-MM-DD)', ['period_end']);
+        if (!dailySlots.length) throw new ValidationError('Debe especificar al menos un slot horario en daily_slots', ['daily_slots']);
+
+        const start = new Date(`${periodStart}T00:00:00.000Z`);
+        const end = new Date(`${periodEnd}T00:00:00.000Z`);
+        if (isNaN(start.getTime())) throw new ValidationError('period_start no es una fecha válida (YYYY-MM-DD)', ['period_start']);
+        if (isNaN(end.getTime())) throw new ValidationError('period_end no es una fecha válida (YYYY-MM-DD)', ['period_end']);
+        if (end < start) throw new ValidationError('period_end debe ser igual o posterior a period_start', ['period_end']);
+
+        // Validar slots horarios
+        for (const slot of dailySlots) {
+            if (!slot.start_time || !/^\d{2}:\d{2}$/.test(slot.start_time)) {
+                throw new ValidationError('Cada slot debe tener start_time en formato HH:MM', ['daily_slots']);
+            }
+            if (!slot.end_time || !/^\d{2}:\d{2}$/.test(slot.end_time)) {
+                throw new ValidationError('Cada slot debe tener end_time en formato HH:MM', ['daily_slots']);
+            }
+            if (slot.end_time <= slot.start_time) {
+                throw new ValidationError(`El slot ${slot.start_time}-${slot.end_time}: end_time debe ser posterior a start_time`, ['daily_slots']);
+            }
+        }
+
+        // Validar existencia de entidad principal (película o evento)
+        let releaseDate: Date | null = null;
+        if (showtimeType === 'movie') {
+            const movieId = data.movie ?? data.movieId;
+            if (!movieId) throw new ValidationError('El campo movie es obligatorio para showtime_type "movie"', ['movie']);
+            const movie = await this._movies.getById(movieId, { attributes: ['id', 'release_date', 'lifecycle_state'] });
+            if (!movie) throw new ValidationError(`No existe ninguna película con id ${movieId}`, ['movie']);
+            releaseDate = new Date(movie.release_date);
+        } else {
+            const eventId = data.special_event_id ?? data.eventId;
+            if (!eventId) throw new ValidationError('El campo special_event_id es obligatorio para showtime_type "event"', ['special_event_id']);
+            const event = await this._specialEvents.getById(eventId, { attributes: ['id', 'release_date', 'lifecycle_state'] });
+            if (!event) throw new ValidationError(`No existe ningún evento especial con id ${eventId}`, ['special_event_id']);
+            releaseDate = new Date(event.release_date);
+        }
+
+        // Validar sala y tipo de proyección
+        const room = await this._rooms.getById(roomId, { attributes: ['id', 'name'] });
+        if (!room) throw new ValidationError(`No existe ninguna sala con id ${roomId}`, ['room']);
+
+        if (showtimeType === 'movie') {
+            const roomProjectionType = await (Database.repository('main', 'room-projection-types') as any).getOne({
+                room: roomId,
+                projection_type: projTypeId,
+            });
+            if (!roomProjectionType) {
+                const projType = await (Database.repository('main', 'projection-types') as any).getById(projTypeId, { attributes: ['description'] });
+                const projDesc = projType?.description ?? `id ${projTypeId}`;
+                throw new ValidationError(`La sala "${room.name}" no admite el tipo de proyección "${projDesc}"`, ['projection_type']);
+            }
+        }
+
+        // Generar todas las fechas del período que correspondan a los días seleccionados
+        const dates: Date[] = [];
+        const cursor = new Date(start);
+        while (cursor <= end) {
+            const dayOfWeek = cursor.getUTCDay(); // 0=Dom, 1=Lun … 6=Sáb
+            if (daysOfWeek.length === 0 || daysOfWeek.includes(dayOfWeek)) {
+                dates.push(new Date(cursor));
+            }
+            cursor.setUTCDate(cursor.getUTCDate() + 1);
+        }
+
+        if (dates.length === 0) {
+            throw new ValidationError('El período y los días seleccionados no generan ningún día aplicable', ['days_of_week', 'period_start', 'period_end']);
+        }
+
+        // Crear funciones de forma secuencial para respetar el orden y detectar solapamientos individualmente
+        const created: any[] = [];
+        const errors: string[] = [];
+        let skipped = 0;
+
+        for (const date of dates) {
+            for (const slot of dailySlots) {
+                const [startHH, startMM] = slot.start_time.split(':').map(Number);
+                const [endHH, endMM] = slot.end_time.split(':').map(Number);
+
+                const slotStart = new Date(Date.UTC(
+                    date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(),
+                    startHH, startMM, 0, 0,
+                ));
+                const slotEnd = new Date(Date.UTC(
+                    date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(),
+                    endHH, endMM, 0, 0,
+                ));
+
+                // Validar que la función no sea anterior a la fecha de estreno
+                if (releaseDate) {
+                    const releaseDateStart = new Date(Date.UTC(
+                        releaseDate.getUTCFullYear(), releaseDate.getUTCMonth(), releaseDate.getUTCDate(), 0, 0, 0,
+                    ));
+                    if (slotStart < releaseDateStart) {
+                        skipped++;
+                        errors.push(`${slotStart.toISOString()}: función anterior a la fecha de estreno, omitida`);
+                        continue;
+                    }
+                }
+
+                try {
+                    const result = await this.createShowtime({
+                        ...data,
+                        start_time: slotStart.toISOString(),
+                        end_time: slotEnd.toISOString(),
+                    });
+                    created.push(result);
+                } catch (err: any) {
+                    // Solapamiento u otro conflicto: registrar y continuar
+                    const label = `${slotStart.toISOString().slice(0, 16).replace('T', ' ')}`;
+                    if (err?.code === 'ROOM_ALREADY_BOOKED') {
+                        skipped++;
+                        errors.push(`${label}: sala ocupada en ese horario, omitida`);
+                    } else {
+                        skipped++;
+                        errors.push(`${label}: ${err?.message ?? 'error desconocido'}`);
+                    }
+                }
+            }
+        }
+
+        return { created: created.length, skipped, errors, showtimes: created };
+    }
 }
 
 export default new ShowtimeManagementService();

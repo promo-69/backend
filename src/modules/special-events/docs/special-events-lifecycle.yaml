@@ -1,0 +1,95 @@
+/special-events/upcoming:
+    get:
+        summary: Get upcoming special events
+        description: |
+            Retrieve special events with lifecycle_state = 1 (Próximamente).
+            Supports pagination.
+        tags:
+            - Special Events
+        security: []
+        parameters:
+            - in: query
+              name: page
+              schema:
+                  type: integer
+            - in: query
+              name: limit
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: List of upcoming events
+            '500':
+                description: Internal server error
+
+/special-events/premiere:
+    get:
+        summary: Get premiere special events
+        description: |
+            Retrieve special events with lifecycle_state = 2 (En Cartelera - Estreno).
+            Supports pagination.
+        tags:
+            - Special Events
+        security: []
+        parameters:
+            - in: query
+              name: page
+              schema:
+                  type: integer
+            - in: query
+              name: limit
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: List of premiere events
+            '500':
+                description: Internal server error
+
+/special-events/now-playing:
+    get:
+        summary: Get now playing special events
+        description: |
+            Retrieve special events with lifecycle_state = 3 (En Cartelera - Regular).
+            Supports pagination.
+        tags:
+            - Special Events
+        security: []
+        parameters:
+            - in: query
+              name: page
+              schema:
+                  type: integer
+            - in: query
+              name: limit
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: List of events in regular exhibition
+            '500':
+                description: Internal server error
+
+/special-events/last-days:
+    get:
+        summary: Get last days special events
+        description: |
+            Retrieve special events with lifecycle_state = 4 (Últimos Días).
+            Supports pagination.
+        tags:
+            - Special Events
+        security: []
+        parameters:
+            - in: query
+              name: page
+              schema:
+                  type: integer
+            - in: query
+              name: limit
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: List of events in last days
+            '500':
+                description: Internal server error

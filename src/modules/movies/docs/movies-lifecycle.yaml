@@ -1,0 +1,117 @@
+/movies/upcoming:
+    get:
+        summary: Get upcoming movies
+        description: |
+            Retrieve movies with lifecycle_state = 1 (Próximamente).
+            Supports pagination via page and limit query parameters.
+        tags:
+            - Movies
+        security: []
+        parameters:
+            - in: query
+              name: page
+              schema:
+                  type: integer
+              description: Page number
+            - in: query
+              name: limit
+              schema:
+                  type: integer
+              description: Items per page
+        responses:
+            '200':
+                description: List of upcoming movies
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                    example: true
+                                message:
+                                    type: string
+                                    example: Películas obtenidas exitosamente
+                                data:
+                                    type: object
+                                    properties:
+                                        count:
+                                            type: integer
+                                        rows:
+                                            type: array
+                                            items:
+                                                type: object
+            '500':
+                description: Internal server error
+
+/movies/premiere:
+    get:
+        summary: Get premiere movies
+        description: |
+            Retrieve movies with lifecycle_state = 2 (En Cartelera - Estreno).
+            Supports pagination.
+        tags:
+            - Movies
+        security: []
+        parameters:
+            - in: query
+              name: page
+              schema:
+                  type: integer
+            - in: query
+              name: limit
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: List of premiere movies
+            '500':
+                description: Internal server error
+
+/movies/now-playing:
+    get:
+        summary: Get now playing movies
+        description: |
+            Retrieve movies with lifecycle_state = 3 (En Cartelera - Regular).
+            Supports pagination.
+        tags:
+            - Movies
+        security: []
+        parameters:
+            - in: query
+              name: page
+              schema:
+                  type: integer
+            - in: query
+              name: limit
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: List of movies in regular exhibition
+            '500':
+                description: Internal server error
+
+/movies/last-days:
+    get:
+        summary: Get last days movies
+        description: |
+            Retrieve movies with lifecycle_state = 4 (Últimos Días).
+            Supports pagination.
+        tags:
+            - Movies
+        security: []
+        parameters:
+            - in: query
+              name: page
+              schema:
+                  type: integer
+            - in: query
+              name: limit
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: List of movies in last days
+            '500':
+                description: Internal server error
