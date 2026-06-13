@@ -3,14 +3,7 @@ import { Database, Ops } from '@database/index.js';
 import { CacheDatabaseProvider } from '@providers/cache-database.provider.js';
 import { QueueProvider } from '@providers/queue.provider.js';
 import { RealtimeProvider } from '@providers/realtime.provider.js';
-import {
-	NotFoundError,
-	ValidationError,
-	ActiveSessionError,
-	BadRequestError,
-	ForbiddenError,
-	ConflictError,
-} from '@errors/index.js';
+import { NotFoundError, ValidationError, BadRequestError, ForbiddenError, ConflictError } from '@errors/index.js';
 import { Transaction } from 'sequelize';
 import { randomUUID } from 'crypto';
 import { JWTUtil } from '@utils/jwt.util.js';
@@ -201,7 +194,7 @@ export class OrdersService extends BaseService {
 			customerId: finalCustomerId,
 			created_at: createdAt.toISOString(),
 			expires_at: expiresAt.toISOString(),
-		}
+		};
 		const quoteData = {
 			...sessionData,
 			status: SessionStatus.PENDING_ORDER,
@@ -618,7 +611,8 @@ export class OrdersService extends BaseService {
 
 			if (!lockedOrder) throw new NotFoundError('Orden no encontrada');
 
-			if (lockedOrder.order_status !== OrderStatus.PENDING) throw new BadRequestError('La orden no admite pagos en este momento');
+			if (lockedOrder.order_status !== OrderStatus.PENDING)
+				throw new BadRequestError('La orden no admite pagos en este momento');
 
 			const order = await this._orders.getOne(
 				{ id: order_id },
@@ -668,7 +662,7 @@ export class OrdersService extends BaseService {
 						quotedExchangeRateId = rateDb.id;
 					}
 				}
-				const amountBase = amount / exchangeRateValue;
+				const amountBase = amount * exchangeRateValue;
 
 				// Ramificación según método de pago
 				if (paymentMethodId === 6) {
@@ -691,7 +685,8 @@ export class OrdersService extends BaseService {
 					);
 				} else if ([3, 4, 5].includes(paymentMethodId || 0)) {
 					// TODO: Validar referencia con Simulador API
-				} else if ([1, 2].includes(paymentMethodId || 0)) {}
+				} else if ([1, 2].includes(paymentMethodId || 0)) {
+				}
 
 				await this._orderPayments.create(
 					{
@@ -816,8 +811,8 @@ export class OrdersService extends BaseService {
 						.catch((err) => console.error(err));
 				}
 			}
-		}
-		else if (remaining_balance !== null && remaining_balance > 0) return { remaining_balance, message: 'Pago parcial registrado exitosamente' };
+		} else if (remaining_balance !== null && remaining_balance > 0)
+			return { remaining_balance, message: 'Pago parcial registrado exitosamente' };
 
 		return orderData;
 	}
@@ -835,7 +830,8 @@ export class OrdersService extends BaseService {
 		if (!quoteRaw) throw new NotFoundError('No existe una sesión de compra activa.');
 		const quoteData = JSON.parse(quoteRaw);
 
-		if (quoteData.status !== SessionStatus.PENDING_BILLING) throw new BadRequestError('La sesión no se encuentra en etapa de facturación.');
+		if (quoteData.status !== SessionStatus.PENDING_BILLING)
+			throw new BadRequestError('La sesión no se encuentra en etapa de facturación.');
 
 		await this._orders.transaction(async (transaction: Transaction) => {
 			const order = await this._orders.getOne(
@@ -1122,11 +1118,11 @@ export class OrdersService extends BaseService {
 				{ currentDate, currentTime, currentDay },
 			);
 
-			const finalUnitPrice = finalPriceInItemCurrency / Number(rateObj.rate);
+			const finalUnitPrice = finalPriceInItemCurrency * Number(rateObj.rate);
 
 			item.appliedModifiers = appliedModifiers.map((mod: any) => ({
 				price_modifier: mod.price_modifier,
-				applied_amount_base_currency: (mod.applied_amount / Number(rateObj.rate)) * item.quantity,
+				applied_amount_base_currency: mod.applied_amount * Number(rateObj.rate) * item.quantity,
 			}));
 
 			subtotalBase += finalUnitPrice * item.quantity;
@@ -1147,7 +1143,7 @@ export class OrdersService extends BaseService {
 				if (!orderTaxesCollector[rule.tax]) orderTaxesCollector[rule.tax] = { rate: taxRate, amount: 0 };
 				orderTaxesCollector[rule.tax].amount += taxAmount;
 			}
-			item.originalPrice = priceData.price / Number(rateObj.rate);
+			item.originalPrice = priceData.price * Number(rateObj.rate);
 			item.finalPrice = finalUnitPrice;
 		}
 		return { subtotalBase, taxesBase };
@@ -1182,7 +1178,7 @@ export class OrdersService extends BaseService {
 			const rawBasePrice = showtimeData ? Number(showtimeData.price || 0) : 0;
 			const currency = showtimeData ? showtimeData.currency || 1 : 1;
 			const rateObj = exchangeRatesDict[currency] || { rate: 1, id: 1 };
-			const basePrice = rawBasePrice / Number(rateObj.rate);
+			const basePrice = rawBasePrice * Number(rateObj.rate);
 			ticket.exchangeRateId = rateObj.id;
 
 			const context = {
@@ -1205,11 +1201,11 @@ export class OrdersService extends BaseService {
 				{ currentDate, currentTime, currentDay },
 			);
 
-			const finalUnitPrice = finalPriceInItemCurrency / Number(rateObj.rate);
+			const finalUnitPrice = finalPriceInItemCurrency * Number(rateObj.rate);
 
 			ticket.appliedModifiers = appliedModifiers.map((mod: any) => ({
 				price_modifier: mod.price_modifier,
-				applied_amount_base_currency: mod.applied_amount / Number(rateObj.rate),
+				applied_amount_base_currency: mod.applied_amount * Number(rateObj.rate),
 			}));
 			subtotalBase += finalUnitPrice;
 			const ticketTaxes = activeTaxes.filter((t: any) => t.tax_scope === 1);
