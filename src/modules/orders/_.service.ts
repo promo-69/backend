@@ -668,7 +668,7 @@ export class OrdersService extends BaseService {
 						quotedExchangeRateId = rateDb.id;
 					}
 				}
-				const amountBase = amount * exchangeRateValue;
+				const amountBase = amount / exchangeRateValue;
 
 				// Ramificación según método de pago
 				if (paymentMethodId === 6) {
@@ -779,9 +779,12 @@ export class OrdersService extends BaseService {
 							: t._RoomBookings._Showtimes;
 						showtimeId = st?.id;
 					}
+
 					if (showtimeId) {
 						uniqueShowtimes.add(showtimeId);
+
 						if (!ticketsByShowtime.has(showtimeId)) ticketsByShowtime.set(showtimeId, []);
+
 						ticketsByShowtime.get(showtimeId)!.push(t.seat);
 					}
 				}
@@ -820,30 +823,23 @@ export class OrdersService extends BaseService {
 	}
 
 	async processBilling(body: any, session: any) {
-		const { orderId, use_customer_data, billing_name, billing_document, billing_address } = body;
+		const { use_customer_data, billing_name, billing_document, billing_address } = body;
 		const userQueueKey = `queue:usr:${session.userId}`;
 
 		// Verifica que el usuario sea empleado
-		if (!session.roleCode) {
+		if (!session.roleCode)
 			throw new ForbiddenError('Solo los empleados pueden facturar ordenes mediante este endpoint.');
-		}
 
 		// Valida que la orden exista y pertenezca a la sesion o al menos este en proceso
 		const quoteRaw = await this._redis.get(userQueueKey);
 		if (!quoteRaw) throw new NotFoundError('No existe una sesión de compra activa.');
 		const quoteData = JSON.parse(quoteRaw);
 
-		if (quoteData.status !== SessionStatus.PENDING_BILLING) {
-			throw new BadRequestError('La sesión no se encuentra en etapa de facturación.');
-		}
-
-		if (quoteData.order_id !== orderId) {
-			throw new BadRequestError('El ID de la orden no coincide con la sesión actual.');
-		}
+		if (quoteData.status !== SessionStatus.PENDING_BILLING) throw new BadRequestError('La sesión no se encuentra en etapa de facturación.');
 
 		await this._orders.transaction(async (transaction: Transaction) => {
 			const order = await this._orders.getOne(
-				{ id: orderId },
+				{ id: quoteData.order_id },
 				{
 					transaction,
 					lock: transaction.LOCK.UPDATE,
@@ -872,16 +868,16 @@ export class OrdersService extends BaseService {
 				throw new BadRequestError('Debe proporcionar nombre y documento para la factura.');
 			}
 
-			await this._generateInvoice(orderId, billingData, order.cinema, transaction);
-			await this._orders.update({ id: orderId }, { order_status: 4 }, { transaction });
+			await this._generateInvoice(quoteData.order_id, billingData, order.cinema, transaction);
+			await this._orders.update({ id: quoteData.order_id }, { order_status: 4 }, { transaction });
 		});
 
 		// Limpia la sesion y emite el success final
 		await this._redis.del(userQueueKey);
-		const finalOrder = await this._orders.getById(orderId);
+		const finalOrder = await this._orders.getById(quoteData.order_id);
 
 		RealtimeProvider.getInstance().emitToRoom(`usr_${session.userId}`, 'payment_success', {
-			orderId: orderId,
+			orderId: quoteData.order_id,
 			qrCode: finalOrder.qr_code,
 		});
 
@@ -890,7 +886,7 @@ export class OrdersService extends BaseService {
 		if (customerEmail) {
 			QueueProvider.getInstance()
 				.add('order-email-queue', 'send-order-email', {
-					orderId: orderId,
+					orderId: quoteData.order_id,
 					qrCode: finalOrder.qr_code,
 					email: customerEmail,
 				})
@@ -1074,16 +1070,6 @@ export class OrdersService extends BaseService {
 		}
 	}
 
-	private _isValidTime(m: any, currentDate: string, currentTime: string, currentDay: number) {
-		if (m.target_currency_condition) return false;
-		if (m.start_date && m.start_date > currentDate) return false;
-		if (m.end_date && m.end_date < currentDate) return false;
-		if (m.start_time && m.start_time > currentTime) return false;
-		if (m.end_time && m.end_time <= currentTime) return false;
-		if (m.week_day && m.week_day !== currentDay) return false;
-		return true;
-	}
-
 	/**
 	 * Calcula los precios para confiteria incluyendo modificadores, tipo de cambio e impuestos.
 	 * Registra el subtotal y acumula los impuestos en el colector global de la orden.
@@ -1136,11 +1122,11 @@ export class OrdersService extends BaseService {
 				{ currentDate, currentTime, currentDay },
 			);
 
-			const finalUnitPrice = finalPriceInItemCurrency * Number(rateObj.rate);
+			const finalUnitPrice = finalPriceInItemCurrency / Number(rateObj.rate);
 
 			item.appliedModifiers = appliedModifiers.map((mod: any) => ({
 				price_modifier: mod.price_modifier,
-				applied_amount_base_currency: mod.applied_amount * Number(rateObj.rate) * item.quantity,
+				applied_amount_base_currency: (mod.applied_amount / Number(rateObj.rate)) * item.quantity,
 			}));
 
 			subtotalBase += finalUnitPrice * item.quantity;
@@ -1161,7 +1147,7 @@ export class OrdersService extends BaseService {
 				if (!orderTaxesCollector[rule.tax]) orderTaxesCollector[rule.tax] = { rate: taxRate, amount: 0 };
 				orderTaxesCollector[rule.tax].amount += taxAmount;
 			}
-			item.originalPrice = priceData.price * Number(rateObj.rate);
+			item.originalPrice = priceData.price / Number(rateObj.rate);
 			item.finalPrice = finalUnitPrice;
 		}
 		return { subtotalBase, taxesBase };
@@ -1196,7 +1182,7 @@ export class OrdersService extends BaseService {
 			const rawBasePrice = showtimeData ? Number(showtimeData.price || 0) : 0;
 			const currency = showtimeData ? showtimeData.currency || 1 : 1;
 			const rateObj = exchangeRatesDict[currency] || { rate: 1, id: 1 };
-			const basePrice = rawBasePrice * Number(rateObj.rate);
+			const basePrice = rawBasePrice / Number(rateObj.rate);
 			ticket.exchangeRateId = rateObj.id;
 
 			const context = {
@@ -1219,11 +1205,11 @@ export class OrdersService extends BaseService {
 				{ currentDate, currentTime, currentDay },
 			);
 
-			const finalUnitPrice = finalPriceInItemCurrency * Number(rateObj.rate);
+			const finalUnitPrice = finalPriceInItemCurrency / Number(rateObj.rate);
 
 			ticket.appliedModifiers = appliedModifiers.map((mod: any) => ({
 				price_modifier: mod.price_modifier,
-				applied_amount_base_currency: mod.applied_amount * Number(rateObj.rate),
+				applied_amount_base_currency: mod.applied_amount / Number(rateObj.rate),
 			}));
 			subtotalBase += finalUnitPrice;
 			const ticketTaxes = activeTaxes.filter((t: any) => t.tax_scope === 1);
