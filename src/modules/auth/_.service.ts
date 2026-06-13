@@ -15,7 +15,7 @@ import { QueueProvider } from '@providers/queue.provider.js';
 import JWTUtil from '@utils/jwt.util.js';
 import { customAlphabet } from 'nanoid';
 import { Logger } from '@utils/logger.util.js';
-import { TTL_SECONDS, USER_TYPE } from '@constants/magic-numbers.constat.js';
+import { TTL_SECONDS, USER_TYPE } from '@constants/magic-numbers.constant.js';
 
 const generateCode = customAlphabet('1234567890', 4);
 
@@ -49,6 +49,9 @@ export class AuthService extends BaseService {
 	}
 	private get _people() {
 		return Database.repository('main', 'people') as any;
+	}
+	private get _employees() {
+		return Database.repository('main', 'employees') as any;
 	}
 	private get _permisos() {
 		return Database.repository('main', 'permissions') as any;
@@ -124,11 +127,12 @@ export class AuthService extends BaseService {
 		const basePayload: UserSession = {
 			userId: foundUser.id,
 			email: foundUser.email,
-			documentNumber: foundUser.document_number,
+			documentNumber: foundUser._People?.document_number,
 			firstName: foundUser._People?.first_name ?? null,
 			lastName: foundUser._People?.last_name ?? null,
 			phoneNumber: foundUser._People?.phone_number ?? null,
 		};
+
 		let payload: AdminUserSession | CustomerUserSession | undefined;
 
 		if (foundUser.user_type === USER_TYPE.CUSTOMER) {
@@ -148,13 +152,13 @@ export class AuthService extends BaseService {
 				payload = {
 					...basePayload,
 					customerId: customer.id,
-					loyaltyLevelId: customer.loyalty_level ?? 1,
 					loyaltyLevelName: level?.name ?? null,
 					loyaltyPoints: customer.level_progress_points ?? 0,
 					hasFavoriteGenres: favoriteGenresCount > 0,
 				};
 			}
 		} else if (foundUser.user_type === USER_TYPE.EMPLOYEE && foundUser._Roles && foundUser._UserPermissions) {
+			const employee = await this._employees.getOne({person: foundUser.person}, { attributes: ['id']});
 			const permissionsExceptions: ExceptionPermissions = foundUser._UserPermissions.reduce(
 				(acu: ExceptionPermissions, cur: any) => {
 					acu[cur.is_granted ? 'granted' : 'revoked'].push(cur.permission);
@@ -174,6 +178,7 @@ export class AuthService extends BaseService {
 
 			payload = {
 				...basePayload,
+				employeeId: employee.id,
 				roleDesc: foundUser._Roles?.description,
 				roleCode: foundUser._Roles?.code,
 				permissions: this.parsePermissions(permissions),
@@ -238,6 +243,7 @@ export class AuthService extends BaseService {
 				'Cuenta no verificada. Por favor revisa tu correo electrónico y completa la verificación.',
 				{ code: 'UNVERIFIED_ACCOUNT' },
 			);
+
 		const loginResponse = await this._buildLoginResponse(foundUser);
 
 		await this._usersLogins.create({
@@ -290,9 +296,6 @@ export class AuthService extends BaseService {
 
 		// Validación de persona existente por documento
 		if (existingPerson) {
-			// Si el documento ya pertenece a otra persona (nombres diferentes), rechazar
-			if (existingPerson.first_name !== firstName || existingPerson.last_name !== lastName)
-				throw new ValidationError('El número de documento ya está registrado.', ['documentNumber']);
 			// Opcional: actualizar teléfono y fecha de nacimiento si han cambiado
 			const updates: any = {};
 			if (phoneNumber && existingPerson.phone_number !== phoneNumber) updates.phone_number = phoneNumber;
@@ -300,9 +303,9 @@ export class AuthService extends BaseService {
 			if (Object.keys(updates).length > 0) await this._people.update(existingPerson.id, updates);
 		} else {
 			// Validar datos obligatorios para crear una nueva persona
-			if (!firstName || !lastName || !phoneNumber || !gender || !birthDate) {
+			if (!firstName || !lastName || !phoneNumber || !gender || !birthDate)
 				throw new ValidationError('Los datos personales están incompletos para un nuevo registro', []);
-			}
+
 			this.validateRegexpFields([
 				{ value: firstName, regex: REGEX.PERSON_NAME, message: 'El nombre no es válido' },
 				{ value: lastName, regex: REGEX.PERSON_NAME, message: 'El apellido no es válido' },
@@ -328,6 +331,9 @@ export class AuthService extends BaseService {
 						),
 						{ transaction },
 					);
+				} else {
+					const existingCustomer = await this._customers.getById(existingPerson.id);
+					if (existingCustomer) throw new AuthError('El usuario ya existe', { code: 'USER_ALREADY_EXISTS' });
 				}
 
 				const createdUser = await this._users.create(
@@ -341,7 +347,12 @@ export class AuthService extends BaseService {
 					{ transaction },
 				);
 
-				return { createdUser, signupCode };
+				const createdCustomer = await this._customers.create(
+					{ person: createdPerson?.id ?? existingPerson.id },
+					{ transaction },
+				);
+
+				return { createdUser, createdCustomer, signupCode };
 			});
 		} catch (error: any) {
 			throw new AuthError('No se pudo completar el registro del usuario', error?.());

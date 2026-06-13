@@ -27,7 +27,7 @@ export interface ResponseOptions {
  */
 
 export interface UserSession {
-    userId: string;
+    userId: number;
     documentNumber: string;
     firstName: string;
     lastName: string;
@@ -44,7 +44,8 @@ export interface CustomerUserSession extends UserSession {
 }
 
 export interface AdminUserSession extends UserSession {
-    cinemaId?: string;
+    cinemaId?: number;
+	employeeId: number;
     permissions?: string[];
     roleCode: string;
     roleDesc: string;

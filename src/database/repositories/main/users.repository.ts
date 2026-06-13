@@ -37,7 +37,7 @@ class UsersRepository extends SequelizeRepositoryBase<UsersAttributes, number> {
 		return [
 			{
 				association: '_People',
-				attributes: ['first_name', 'last_name', 'personal_email', 'phone_number', 'birth_date', 'gender',],
+				attributes: ['document_number', 'first_name', 'last_name', 'personal_email', 'phone_number', 'birth_date', 'gender',],
 				required: true,
 				nested: [
 					{

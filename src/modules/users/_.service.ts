@@ -20,6 +20,9 @@ export class UsersService extends BaseService {
 	private get _people() {
 		return Database.repository('main', 'people') as any;
 	}
+	private get _employees() {
+		return Database.repository('main', 'employees') as any;
+	}
 	private get _usersLogins() {
 		return Database.repository('main', 'users-logins') as any;
 	}
@@ -50,14 +53,46 @@ export class UsersService extends BaseService {
 	private get _userPermissions() {
 		return Database.repository('main', 'user-permissions') as any;
 	}
-	private get _cacheClient() {
-		return CacheDatabaseProvider.getInstance().client;
-	}
 
-	async getUserProfile(userId: number): Promise<UsersWithPeople> {
+	async getUserProfile(userId: number): Promise<any> {
 		const user = await this._users.getFull(userId);
+
 		if (!user) throw new NotFoundError('Usuario', userId.toString());
-		return user;
+
+		const userObj = JSON.parse(JSON.stringify(user));
+
+		if (userObj._People && userObj._People._Employees !== undefined) {
+			delete userObj._People._Employees;
+		}
+
+		if (userObj.user_type === 2) {
+			const customer = await this._customers.getOne(
+				{ person: userObj.person },
+				{ relations: ['_LoyaltyLevels', '_People'] }
+			);
+			if (customer) userObj._Customer = customer;
+
+			delete userObj._Roles;
+			delete userObj._UserPermissions;
+		} else if (userObj.user_type === 1) {
+			const employee = await this._employees.getOne(
+				{ person: userObj.person },
+				{ relations: [{ association: '_EmployeePositions', nested: ['_JobPositions'], where: { end_date: null } }] }
+			);
+			if (employee) {
+				const employeeObj = employee;
+
+				delete employeeObj._EmployeePositions
+				userObj._Employees = employeeObj
+				;
+			}
+
+			if (userObj._Roles && userObj._Roles.code) {
+				userObj._Roles = userObj._Roles.code;
+			}
+		}
+
+		return userObj;
 	}
 
 	async updateProfile(userId: number, body: Record<string, any>) {
