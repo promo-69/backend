@@ -56,6 +56,9 @@ export class OrdersService extends BaseService {
 	private get _orderPayments() {
 		return Database.repository('main', 'order-payments') as any;
 	}
+	private get _paymentMethods() {
+		return Database.repository('main', 'payment-methods') as any;
+	}
 	private get _exchangeRates() {
 		return Database.repository('main', 'exchange-rates') as any;
 	}
@@ -114,11 +117,13 @@ export class OrdersService extends BaseService {
 
 			if (customer && customer._People) {
 				if (customer._People._Users) {
-					const users = Array.isArray(customer._People._Users) ? customer._People._Users : [customer._People._Users];
+					const users = Array.isArray(customer._People._Users)
+						? customer._People._Users
+						: [customer._People._Users];
 					const verifiedUser = users.find((u: any) => u.signup_verified_at !== null && !u.deleted_at);
 					if (verifiedUser && verifiedUser.email) return verifiedUser.email;
 				}
-				
+
 				if (customer._People.personal_email) {
 					return customer._People.personal_email;
 				}
@@ -568,6 +573,37 @@ export class OrdersService extends BaseService {
 		if (typeof amount !== 'number' || amount <= 0)
 			throw new BadRequestError('El monto del pago debe ser un número mayor a cero');
 
+		let paymentMethodId: number | null = null;
+		let paymentMethodDescription: string | null = null;
+		if (typeof payment_method === 'number') {
+			paymentMethodId = payment_method;
+		} else if (typeof payment_method === 'string') {
+			const trimmedMethod = payment_method.trim();
+			const normalizedMethod = trimmedMethod.toLowerCase();
+			if (/^\d+$/.test(trimmedMethod)) {
+				paymentMethodId = Number(trimmedMethod);
+			} else if (normalizedMethod === 'points' || normalizedMethod === 'cinepuntos') {
+				paymentMethodDescription = 'Puntos de Fidelidad';
+			} else if (normalizedMethod === 'cash') {
+				if (currency === 2) paymentMethodDescription = 'Efectivo Bolívares';
+				else paymentMethodDescription = 'Efectivo Divisas';
+			} else if (normalizedMethod === 'transfer') {
+				paymentMethodDescription = 'Transferencia Divisas';
+			} else if (normalizedMethod === 'mobile_payment') {
+				paymentMethodDescription = 'Pago Móvil';
+			} else if (
+				normalizedMethod === 'point_of_sale' ||
+				normalizedMethod === 'punto_de_venta' ||
+				normalizedMethod === 'pos'
+			) {
+				paymentMethodDescription = 'Punto de Venta (Débito)';
+			} else {
+				paymentMethodDescription = trimmedMethod;
+			}
+		} else {
+			throw new BadRequestError('El método de pago es inválido');
+		}
+
 		let orderData: any = null;
 		let remaining_balance: number | null = null;
 		const exchangeRatesDict = quoteData.exchange_rates || {};
@@ -624,8 +660,25 @@ export class OrdersService extends BaseService {
 			}
 			const amountBase = amount * exchangeRateValue;
 
+			if (!paymentMethodDescription && typeof payment_method === 'string') {
+				paymentMethodDescription = payment_method.trim();
+			}
+
+			const paymentMethodQuery: any = paymentMethodDescription
+				? { description: paymentMethodDescription }
+				: { id: paymentMethodId };
+
+			const paymentMethod = await this._paymentMethods.getOne(paymentMethodQuery, {
+				transaction,
+				lock: transaction.LOCK.UPDATE,
+			});
+			if (!paymentMethod) {
+				throw new BadRequestError('El método de pago especificado no existe');
+			}
+			paymentMethodId = paymentMethod.id;
+
 			// Ramificación según método de pago
-			if (payment_method === 'points' || payment_method === 'cinepuntos') {
+			if (paymentMethodDescription === 'Puntos de Fidelidad' || paymentMethodId === 6) {
 				const ledgers = await this._loyaltyLedgers.getAll(
 					{ count: false, order: [['id', 'DESC']], limit: 1, operation: { transaction } },
 					{ customer: session.customerId },
@@ -644,16 +697,16 @@ export class OrdersService extends BaseService {
 					},
 					{ transaction },
 				);
-			} else if (payment_method === 'transfer' || payment_method === 'mobile_payment') {
+			} else if ([4, 5].includes(paymentMethodId || 0)) {
 				// TODO: Validar referencia con Simulador API
-			} else if (payment_method === 'cash') {
+			} else if ([1, 2, 3].includes(paymentMethodId || 0)) {
 				// El operador de taquilla ya lo validó
 			}
 
 			await this._orderPayments.create(
 				{
 					order: order_id,
-					payment_method,
+					payment_method: paymentMethodId,
 					amount: amountBase,
 					quoted_exchange_rate: quotedExchangeRateId,
 					reference_number,
@@ -1068,7 +1121,7 @@ export class OrdersService extends BaseService {
 				item.line_type === 1
 					? productPriceMap.get(item.product) || { price: 0, currency: 1 }
 					: comboPriceMap.get(item.combo) || { price: 0, currency: 1 };
-			
+
 			const rateObj = exchangeRatesDict[priceData.currency] || { rate: 1, id: 1 };
 			item.exchangeRateId = rateObj.id;
 			const productData = item.product ? productsMap.get(item.product) : null;
@@ -1088,14 +1141,14 @@ export class OrdersService extends BaseService {
 				priceData.currency,
 				activeModifiers,
 				opTypesMap,
-				{ currentDate, currentTime, currentDay }
+				{ currentDate, currentTime, currentDay },
 			);
 
 			const finalUnitPrice = finalPriceInItemCurrency * Number(rateObj.rate);
 
 			item.appliedModifiers = appliedModifiers.map((mod: any) => ({
 				price_modifier: mod.price_modifier,
-				applied_amount_base_currency: (mod.applied_amount * Number(rateObj.rate)) * item.quantity,
+				applied_amount_base_currency: mod.applied_amount * Number(rateObj.rate) * item.quantity,
 			}));
 
 			subtotalBase += finalUnitPrice * item.quantity;
