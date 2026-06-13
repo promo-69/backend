@@ -37,7 +37,15 @@ class UsersRepository extends SequelizeRepositoryBase<UsersAttributes, number> {
 		return [
 			{
 				association: '_People',
-				attributes: ['document_number', 'first_name', 'last_name', 'personal_email', 'phone_number', 'birth_date', 'gender',],
+				attributes: [
+					'document_number',
+					'first_name',
+					'last_name',
+					'personal_email',
+					'phone_number',
+					'birth_date',
+					'gender',
+				],
 				required: true,
 				nested: [
 					{
@@ -57,9 +65,8 @@ class UsersRepository extends SequelizeRepositoryBase<UsersAttributes, number> {
 					},
 					{
 						association: '_Genders',
-						attributes: ['id','description']
-
-					}
+						attributes: ['id', 'description'],
+					},
 				],
 			},
 			{
@@ -100,6 +107,27 @@ class UsersRepository extends SequelizeRepositoryBase<UsersAttributes, number> {
 		) as Promise<UsersWithPeople | null>;
 	}
 
+	async getAllFull(filters?: any): Promise<{ rows: UsersWithPeople[]; count: number }> {
+		return this.getAll({
+			...filters,
+			count: true,
+			attributes: [
+				'id',
+				'person',
+				'user_type',
+				'role',
+				'email',
+				'signup_verified_at',
+				'created_at',
+				'updated_at',
+			],
+			relations: this._relations,
+		}) as Promise<{
+			rows: UsersWithPeople[];
+			count: number;
+		}>;
+	}
+
 	async getByEmail(email: string) {
 		return this.getOne(
 			{ email },
@@ -128,27 +156,6 @@ class UsersRepository extends SequelizeRepositoryBase<UsersAttributes, number> {
 				relations: this._relations,
 			},
 		) as Promise<UsersWithPeople | null>;
-	}
-
-	async getAllFull(filters?: any): Promise<{ rows: UsersWithPeople[]; count: number }> {
-		return this.getAll({
-			...filters,
-			count: true,
-			attributes: [
-				'id',
-				'person',
-				'user_type',
-				'role',
-				'email',
-				'signup_verified_at',
-				'created_at',
-				'updated_at',
-			],
-			relations: this._relations,
-		}) as Promise<{
-			rows: UsersWithPeople[];
-			count: number;
-		}>;
 	}
 }
 

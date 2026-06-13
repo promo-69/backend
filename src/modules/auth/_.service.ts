@@ -106,10 +106,7 @@ export class AuthService extends BaseService {
 
 		if (permissionIds.length === 0) return [];
 
-		const permissions = await this._permisos.getAllFull(
-			{ count: false },
-			{ id: permissionIds }
-		);
+		const permissions = await this._permisos.getAllFull({ count: false }, { id: permissionIds });
 
 		const permList = Array.isArray(permissions) ? permissions : permissions.rows;
 
@@ -158,7 +155,11 @@ export class AuthService extends BaseService {
 				};
 			}
 		} else if (foundUser.user_type === USER_TYPE.EMPLOYEE && foundUser._Roles && foundUser._UserPermissions) {
-			const employee = await this._employees.getOne({person: foundUser.person}, { attributes: ['id']});
+			const employee = await this._employees.getOne(
+				{ person: foundUser.person },
+				{ relations: this._employees._relations },
+			);
+
 			const permissionsExceptions: ExceptionPermissions = foundUser._UserPermissions.reduce(
 				(acu: ExceptionPermissions, cur: any) => {
 					acu[cur.is_granted ? 'granted' : 'revoked'].push(cur.permission);
@@ -175,12 +176,15 @@ export class AuthService extends BaseService {
 				roles,
 				exceptions: permissionsExceptions,
 			});
+			const activePosition = employee._EmployeePositions[0];
 
 			payload = {
 				...basePayload,
+				cinemaId: activePosition?.cinema,
 				employeeId: employee.id,
 				roleDesc: foundUser._Roles?.description,
 				roleCode: foundUser._Roles?.code,
+				jobPositionDesc: activePosition._JobPositions.title,
 				permissions: this.parsePermissions(permissions),
 			};
 		}
@@ -189,10 +193,6 @@ export class AuthService extends BaseService {
 	}
 
 	private async _buildLoginResponse(sessionData: any): Promise<LoginResponse> {
-		const activePosition = sessionData._People?._Employees?.[0]?._EmployeePositions?.find(
-			(p: any) => p.end_date === null,
-		);
-		const cinema = activePosition?.cinema;
 		let payload: AdminUserSession | CustomerUserSession = await this._buildUserPayload(sessionData);
 
 		if (sessionData.role) {
@@ -202,8 +202,6 @@ export class AuthService extends BaseService {
 				(payload as AdminUserSession).permissions = await this.getRolePermissions(role.id);
 			}
 		}
-
-		if (cinema) (payload as AdminUserSession).cinemaId = cinema;
 
 		const accessToken = JWTUtil.generateAccessToken(payload);
 		const refreshToken = JWTUtil.generateRandomToken();
@@ -408,7 +406,8 @@ export class AuthService extends BaseService {
 
 		const loginRecord = await this._usersLogins.getOne({ jti: currentToken });
 		if (!loginRecord) throw new AuthError('Sesión no encontrada o token inválido.', { code: 'INVALID_TOKEN' });
-		if (loginRecord.expires_at < new Date()) throw new AuthError('Sesión invalidada o expirada.', { code: 'REVOKED_SESSION' });
+		if (loginRecord.expires_at < new Date())
+			throw new AuthError('Sesión invalidada o expirada.', { code: 'REVOKED_SESSION' });
 
 		const foundUser = await this._users.getFull(loginRecord.user);
 		if (!foundUser) throw new AuthError('El usuario no existe o está inactivo.', { code: 'USER_INACTIVE' });
@@ -444,7 +443,8 @@ export class AuthService extends BaseService {
 	async forgotPassword(userType: number, body: { email: string }): Promise<{ message: string }> {
 		const { email } = body;
 
-		if (userType !== USER_TYPE.EMPLOYEE && userType !== USER_TYPE.CUSTOMER) throw new ValidationError('El tipo de cuenta es inválido', []);
+		if (userType !== USER_TYPE.EMPLOYEE && userType !== USER_TYPE.CUSTOMER)
+			throw new ValidationError('El tipo de cuenta es inválido', []);
 		if (!email) throw new ValidationError('El correo electrónico es requerido', []);
 
 		const foundUser =
@@ -470,7 +470,8 @@ export class AuthService extends BaseService {
 	async verifyResetCode(userType: number, body: { email: string; code: string }): Promise<{ resetToken: string }> {
 		const { email, code } = body;
 
-		if (userType !== USER_TYPE.EMPLOYEE && userType !== USER_TYPE.CUSTOMER) throw new ValidationError('El tipo de cuenta es inválido', []);
+		if (userType !== USER_TYPE.EMPLOYEE && userType !== USER_TYPE.CUSTOMER)
+			throw new ValidationError('El tipo de cuenta es inválido', []);
 		if (!email || !code) throw new ValidationError('El correo y el código son requeridos', []);
 
 		const foundUser =
@@ -496,10 +497,14 @@ export class AuthService extends BaseService {
 		return { resetToken };
 	}
 
-	async resetPassword(userType: number, body: { email: string; resetToken: string; newPassword: string }): Promise<{ message: string }> {
+	async resetPassword(
+		userType: number,
+		body: { email: string; resetToken: string; newPassword: string },
+	): Promise<{ message: string }> {
 		const { email, resetToken, newPassword } = body;
 
-		if (userType !== USER_TYPE.EMPLOYEE && userType !== USER_TYPE.CUSTOMER) throw new ValidationError('El tipo de cuenta es inválido', []);
+		if (userType !== USER_TYPE.EMPLOYEE && userType !== USER_TYPE.CUSTOMER)
+			throw new ValidationError('El tipo de cuenta es inválido', []);
 		if (!email || !resetToken || !newPassword) throw new ValidationError('Todos los campos son requeridos', []);
 
 		if (!REGEX.PASSWORD.test(newPassword))
