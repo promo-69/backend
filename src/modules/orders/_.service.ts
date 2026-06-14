@@ -524,8 +524,6 @@ export class OrdersService extends BaseService {
 				if (hasConcessions) await this._persistConcessions(createdOrder.id, concessions, transaction);
 				if (hasTickets) await this._persistTickets(createdOrder.id, tickets, transaction);
 
-				console.log({ createdOrder, taxesToInsert, concessions, tickets });
-				throw new Error('Test');
 				return createdOrder;
 			});
 
@@ -746,8 +744,6 @@ export class OrdersService extends BaseService {
 			} else {
 				remaining_balance = Number(order.total_amount_base_currency) - totalPaid;
 			}
-			//console.log();
-			throw new ConflictError('Test', '', { data: { some: 2 } });
 		});
 
 		// Acciones posteriores si la orden fue pagada completamente (o requiere billing)
