@@ -1,0 +1,50 @@
+/showtimes/billboard/full:
+    get:
+        summary: Get full active billboard (movies + special events)
+        description: |
+            Returns all movies and special events with lifecycle_state = 2, 3 or 4 (Estreno, Regular, Últimos Días)
+            that have future showtimes. Optionally filter by cinema.
+            Public endpoint.
+        tags:
+            - Showtimes
+        parameters:
+            - in: query
+              name: cinemaId
+              schema:
+                  type: integer
+              description: Cinema ID (optional). If omitted, returns global active billboard.
+        responses:
+            '200':
+                description: Unified active billboard
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                message:
+                                    type: string
+                                data:
+                                    type: object
+                                    properties:
+                                        count:
+                                            type: integer
+                                        rows:
+                                            type: array
+                                            items:
+                                                type: object
+                                                properties:
+                                                    type:
+                                                        type: string
+                                                        enum: [movie, special_event]
+                                                    movie:
+                                                        type: object
+                                                    event:
+                                                        type: object
+                                                    showtimes:
+                                                        type: array
+            '404':
+                description: No active content found
+            '500':
+                description: Internal server error

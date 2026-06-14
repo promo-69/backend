@@ -3,14 +3,7 @@ import { Database, Ops } from '@database/index.js';
 import { CacheDatabaseProvider } from '@providers/cache-database.provider.js';
 import { QueueProvider } from '@providers/queue.provider.js';
 import { RealtimeProvider } from '@providers/realtime.provider.js';
-import {
-	NotFoundError,
-	ValidationError,
-	ActiveSessionError,
-	BadRequestError,
-	ForbiddenError,
-	ConflictError,
-} from '@errors/index.js';
+import { NotFoundError, ValidationError, BadRequestError, ForbiddenError, ConflictError } from '@errors/index.js';
 import { Transaction } from 'sequelize';
 import { randomUUID } from 'crypto';
 import { JWTUtil } from '@utils/jwt.util.js';
@@ -117,6 +110,9 @@ export class OrdersService extends BaseService {
 	private get _cinemas() {
 		return Database.repository('main', 'cinemas') as any;
 	}
+	private get _seats() {
+		return Database.repository('main', 'seats') as any;
+	}
 
 	private async _getCustomerEmail(customerId: number | null, session: any): Promise<string | null> {
 		if (!session.roleCode && session.email) {
@@ -201,7 +197,7 @@ export class OrdersService extends BaseService {
 			customerId: finalCustomerId,
 			created_at: createdAt.toISOString(),
 			expires_at: expiresAt.toISOString(),
-		}
+		};
 		const quoteData = {
 			...sessionData,
 			status: SessionStatus.PENDING_ORDER,
@@ -477,10 +473,7 @@ export class OrdersService extends BaseService {
 
 					const uniqueSeatIds = [...new Set(tickets.map((t: any) => t.seatId))];
 					const loadedSeats = uniqueSeatIds.length
-						? await (Database.repository('main', 'seats') as any).getAll(
-								{ count: false, operation: { transaction } },
-								{ id: uniqueSeatIds },
-							)
+						? await this._seats.getAll({ count: false, operation: { transaction } }, { id: uniqueSeatIds })
 						: [];
 					const seatsMap = new Map<number, any>(loadedSeats.map((s: any) => [s.id, s]));
 
@@ -618,7 +611,8 @@ export class OrdersService extends BaseService {
 
 			if (!lockedOrder) throw new NotFoundError('Orden no encontrada');
 
-			if (lockedOrder.order_status !== OrderStatus.PENDING) throw new BadRequestError('La orden no admite pagos en este momento');
+			if (lockedOrder.order_status !== OrderStatus.PENDING)
+				throw new BadRequestError('La orden no admite pagos en este momento');
 
 			const order = await this._orders.getOne(
 				{ id: order_id },
@@ -691,7 +685,8 @@ export class OrdersService extends BaseService {
 					);
 				} else if ([3, 4, 5].includes(paymentMethodId || 0)) {
 					// TODO: Validar referencia con Simulador API
-				} else if ([1, 2].includes(paymentMethodId || 0)) {}
+				} else if ([1, 2].includes(paymentMethodId || 0)) {
+				}
 
 				await this._orderPayments.create(
 					{
@@ -728,9 +723,13 @@ export class OrdersService extends BaseService {
 					orderData = { ...order, qr_code: qrCode, order_status: 2, is_employee: true };
 				} else {
 					// Si es un cliente directo, genera factura automatica usando sus datos de sesion
+					const customer = await this._customers.getById(session.customerId, {
+						relations: this._customers.relations,
+						transaction,
+					});
 					const billingData = {
-						name: `${session.firstName} ${session.lastName}`.trim(),
-						document: session.documentNumber,
+						name: `${customer._People.first_name}${customer._People?.last_name ? ` ${customer._People.last_name}` : ''}`.trim(),
+						document: customer._People.document_number,
 						address: '',
 					};
 					await this._generateInvoice(order_id, billingData, order.cinema, transaction);
@@ -779,9 +778,12 @@ export class OrdersService extends BaseService {
 							: t._RoomBookings._Showtimes;
 						showtimeId = st?.id;
 					}
+
 					if (showtimeId) {
 						uniqueShowtimes.add(showtimeId);
+
 						if (!ticketsByShowtime.has(showtimeId)) ticketsByShowtime.set(showtimeId, []);
+
 						ticketsByShowtime.get(showtimeId)!.push(t.seat);
 					}
 				}
@@ -813,37 +815,31 @@ export class OrdersService extends BaseService {
 						.catch((err) => console.error(err));
 				}
 			}
-		}
-		else if (remaining_balance !== null && remaining_balance > 0) return { remaining_balance, message: 'Pago parcial registrado exitosamente' };
+		} else if (remaining_balance !== null && remaining_balance > 0)
+			return { remaining_balance, message: 'Pago parcial registrado exitosamente' };
 
 		return orderData;
 	}
 
 	async processBilling(body: any, session: any) {
-		const { orderId, use_customer_data, billing_name, billing_document, billing_address } = body;
+		const { use_customer_data, billing_name, billing_document, billing_address } = body;
 		const userQueueKey = `queue:usr:${session.userId}`;
 
 		// Verifica que el usuario sea empleado
-		if (!session.roleCode) {
+		if (!session.roleCode)
 			throw new ForbiddenError('Solo los empleados pueden facturar ordenes mediante este endpoint.');
-		}
 
 		// Valida que la orden exista y pertenezca a la sesion o al menos este en proceso
 		const quoteRaw = await this._redis.get(userQueueKey);
 		if (!quoteRaw) throw new NotFoundError('No existe una sesión de compra activa.');
 		const quoteData = JSON.parse(quoteRaw);
 
-		if (quoteData.status !== SessionStatus.PENDING_BILLING) {
+		if (quoteData.status !== SessionStatus.PENDING_BILLING)
 			throw new BadRequestError('La sesión no se encuentra en etapa de facturación.');
-		}
-
-		if (quoteData.order_id !== orderId) {
-			throw new BadRequestError('El ID de la orden no coincide con la sesión actual.');
-		}
 
 		await this._orders.transaction(async (transaction: Transaction) => {
 			const order = await this._orders.getOne(
-				{ id: orderId },
+				{ id: quoteData.order_id },
 				{
 					transaction,
 					lock: transaction.LOCK.UPDATE,
@@ -872,16 +868,16 @@ export class OrdersService extends BaseService {
 				throw new BadRequestError('Debe proporcionar nombre y documento para la factura.');
 			}
 
-			await this._generateInvoice(orderId, billingData, order.cinema, transaction);
-			await this._orders.update({ id: orderId }, { order_status: 4 }, { transaction });
+			await this._generateInvoice(quoteData.order_id, billingData, order.cinema, transaction);
+			await this._orders.update({ id: quoteData.order_id }, { order_status: 4 }, { transaction });
 		});
 
 		// Limpia la sesion y emite el success final
 		await this._redis.del(userQueueKey);
-		const finalOrder = await this._orders.getById(orderId);
+		const finalOrder = await this._orders.getById(quoteData.order_id);
 
 		RealtimeProvider.getInstance().emitToRoom(`usr_${session.userId}`, 'payment_success', {
-			orderId: orderId,
+			orderId: quoteData.order_id,
 			qrCode: finalOrder.qr_code,
 		});
 
@@ -890,7 +886,7 @@ export class OrdersService extends BaseService {
 		if (customerEmail) {
 			QueueProvider.getInstance()
 				.add('order-email-queue', 'send-order-email', {
-					orderId: orderId,
+					orderId: quoteData.order_id,
 					qrCode: finalOrder.qr_code,
 					email: customerEmail,
 				})
@@ -1072,16 +1068,6 @@ export class OrdersService extends BaseService {
 					);
 			}
 		}
-	}
-
-	private _isValidTime(m: any, currentDate: string, currentTime: string, currentDay: number) {
-		if (m.target_currency_condition) return false;
-		if (m.start_date && m.start_date > currentDate) return false;
-		if (m.end_date && m.end_date < currentDate) return false;
-		if (m.start_time && m.start_time > currentTime) return false;
-		if (m.end_time && m.end_time <= currentTime) return false;
-		if (m.week_day && m.week_day !== currentDay) return false;
-		return true;
 	}
 
 	/**

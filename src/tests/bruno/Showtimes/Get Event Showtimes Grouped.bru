@@ -1,0 +1,26 @@
+meta {
+  name: Get Event Showtimes Grouped by Cinema
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/showtimes/by-content/event/{{eventId}}
+  body: none
+  auth: none
+}
+
+params:query {
+  date: {{date}}
+}
+
+vars:pre-request {
+  eventId: 1
+  date:
+}
+
+docs {
+  Obtiene todas las funciones futuras de un evento especial, agrupadas por sucursal.
+  - `eventId`: ID del evento (obligatorio).
+  - `date` (opcional): Fecha en formato YYYY-MM-DD.
+}
