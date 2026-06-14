@@ -1,0 +1,19 @@
+meta {
+  name: Now Playing Movies by Cinema (lifecycle=3)
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/movies/by-cinema/{{cinemaId}}/now-playing
+  body: none
+  auth: none
+}
+
+vars:pre-request {
+  cinemaId: 1
+}
+
+docs {
+  Retorna películas con lifecycle_state = 3 (En Cartelera - Regular) con funciones en la sucursal.
+}

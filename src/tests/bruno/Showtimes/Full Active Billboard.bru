@@ -1,0 +1,16 @@
+meta {
+  name: Full Active Billboard (global)
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/showtimes/billboard/full
+  body: none
+  auth: none
+}
+
+docs {
+  Devuelve todas las películas y eventos especiales con lifecycle_state = 2, 3 o 4 que tienen funciones futuras.
+  Incluye tanto contenido global como por sucursal (sin filtro de cinemaId).
+}
