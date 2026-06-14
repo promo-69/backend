@@ -211,7 +211,7 @@ export class ShowtimeManagementService {
 			relations: [
 				{
 					association: '_Rooms',
-					attributes: ['id', 'name', 'cinema'],
+					attributes: ['id', 'name', 'cinema', 'grid_rows', 'grid_columns'],
 					required: targetCinemaId ? true : false,
 					relations: [
 						{
@@ -382,6 +382,8 @@ export class ShowtimeManagementService {
 					room: {
 						id: room.id,
 						name: room.name,
+						grid_rows: room.grid_rows,
+						grid_columns: room.grid_columns,
 						cinema: cinema ? { id: cinema.id, name: cinema.name } : null,
 					},
 				},
@@ -1198,7 +1200,8 @@ export class ShowtimeManagementService {
 			const bookingQueryOptions: any = {
 				count: false,
 				attributes: ['id', 'room', 'start_time', 'end_time'],
-				relations: [{ association: '_Rooms', attributes: ['id', 'name', 'cinema'], required: true }],
+				relations: [{ 					association: '_Rooms',
+					attributes: ['id', 'name', 'cinema', 'grid_rows', 'grid_columns'], required: true }],
 			};
 			const allBookings = await this._roomBookings.getAll(bookingQueryOptions, bookingWhere);
 			let bookingList = Array.isArray(allBookings) ? allBookings : allBookings.rows || [];
