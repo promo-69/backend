@@ -10,6 +10,7 @@ interface CreateCinemaBody {
 	phone?: string;
 	openingTime: string;
 	closingTime: string;
+	branchCode?: string;
 }
 
 interface UpdateCinemaBody {
@@ -57,14 +58,29 @@ export class CinemasService extends BaseService {
 	private get _combos() {
 		return Database.repository('main', 'combos') as any;
 	}
+	private get _invoiceSequences() {
+		return Database.repository('main', 'invoice-sequences') as any;
+	}
 
 	private _validateTimeFormat(time: string, fieldName: string): void {
 		if (!TIME_REGEX.test(time))
 			throw new ValidationError(`El campo '${fieldName}' debe tener formato HH:MM (ej: 09:00)`, [fieldName]);
 	}
 
+	private _generateLetters(length: number): string {
+		const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+		let result = '';
+
+		for (let i = 0; i < length; i++) {
+			const randomIndex = Math.floor(Math.random() * characters.length);
+			result += characters.charAt(randomIndex);
+		}
+
+		return result;
+	}
+
 	async createCinema(body: CreateCinemaBody, actorUserId?: number) {
-		const { name, address, phone, openingTime, closingTime } = body;
+		const { name, branchCode, address, phone, openingTime, closingTime } = body;
 
 		this.validateRequired({ name, openingTime, closingTime } as any, ['name', 'openingTime', 'closingTime']);
 		this._validateTimeFormat(openingTime, 'openingTime');
@@ -76,15 +92,44 @@ export class CinemasService extends BaseService {
 		const existing = await this._cinemas.getByName(name);
 		if (existing) throw new ConflictError('Ya existe una sucursal con ese nombre', 'CINEMA_NAME_DUPLICATE');
 
-		const created = await this._cinemas.create({
-			name,
-			address: address ?? null,
-			phone: phone ?? null,
-			opening_time: openingTime,
-			closing_time: closingTime,
+		const createdCinema = await this._cinemas.transaction(async (transaction: Transaction) => {
+			const created = await this._cinemas.create(
+				{
+					name,
+					address: address ?? null,
+					phone: phone ?? null,
+					opening_time: openingTime,
+					closing_time: closingTime,
+				},
+				{ transaction },
+			);
+			let invoiceSequencePrefix: string = this._generateLetters(3).toUpperCase();
+
+			for (let i = 0; i < 10; i++) {
+				const existInvoiceSequence = await this._invoiceSequences.getOne(
+					{
+						prefix: invoiceSequencePrefix,
+					},
+					{ transaction },
+				);
+
+				if (!existInvoiceSequence) break;
+				invoiceSequencePrefix = this._generateLetters(3);
+			}
+
+			await this._invoiceSequences.create(
+				{
+					cinema: created.id,
+					prefix: invoiceSequencePrefix,
+					current_value: 1,
+				},
+				{ transaction },
+			);
+
+			return created;
 		});
 
-		return this._cinemas.getFull(created.id);
+		return this._cinemas.getFull(createdCinema.id);
 	}
 
 	async updateCinema(id: number, body: UpdateCinemaBody, actorUserId?: number, restricted = false) {
@@ -171,7 +216,7 @@ export class CinemasService extends BaseService {
 			const rooms = await this._rooms.getAll(
 				{ count: false, attributes: ['id'] },
 				{ cinema: id, deleted_at: null },
-				{ transaction }
+				{ transaction },
 			);
 			const roomIds = (Array.isArray(rooms) ? rooms : rooms.rows || []).map((r: any) => r.id);
 
@@ -182,15 +227,13 @@ export class CinemasService extends BaseService {
 				const bookings = await this._roomBookings.getAll(
 					{ count: false, attributes: ['id', 'end_time'] },
 					{ room: roomIds, deleted_at: null },
-					{ transaction }
+					{ transaction },
 				);
 				const bookingsArr = Array.isArray(bookings) ? bookings : bookings.rows || [];
 				bookingIds = bookingsArr.map((b: any) => b.id);
 
 				const now = new Date();
-				activeBookingIds = bookingsArr
-					.filter((b: any) => new Date(b.end_time) > now)
-					.map((b: any) => b.id);
+				activeBookingIds = bookingsArr.filter((b: any) => new Date(b.end_time) > now).map((b: any) => b.id);
 			}
 
 			// Regla 2: Boletos válidos en funciones activas
@@ -198,7 +241,7 @@ export class CinemasService extends BaseService {
 				const activeTickets = await this._tickets.getAll(
 					{ count: false, attributes: ['id', 'order'] },
 					{ booking: activeBookingIds, deleted_at: null },
-					{ transaction }
+					{ transaction },
 				);
 				const ticketsArr = Array.isArray(activeTickets) ? activeTickets : activeTickets.rows || [];
 
@@ -211,13 +254,13 @@ export class CinemasService extends BaseService {
 							order_status: { [Ops.ne]: 3 }, // 3 = Cancelada
 							deleted_at: null,
 						},
-						{ transaction }
+						{ transaction },
 					);
 
 					if (validOrders > 0) {
 						throw new ConflictError(
 							'No se puede eliminar la sucursal porque existen boletos vendidos para funciones activas.',
-							'CINEMA_HAS_ACTIVE_TICKETS'
+							'CINEMA_HAS_ACTIVE_TICKETS',
 						);
 					}
 				}
@@ -232,9 +275,11 @@ export class CinemasService extends BaseService {
 					concessions_validated_at: null,
 					deleted_at: null,
 				},
-				{ transaction }
+				{ transaction },
 			);
-			const pendingOrderIds = (Array.isArray(pendingOrders) ? pendingOrders : pendingOrders.rows || []).map((o: any) => o.id);
+			const pendingOrderIds = (Array.isArray(pendingOrders) ? pendingOrders : pendingOrders.rows || []).map(
+				(o: any) => o.id,
+			);
 
 			if (pendingOrderIds.length > 0) {
 				const pendingConcessions = await this._orderLines.count(
@@ -243,13 +288,13 @@ export class CinemasService extends BaseService {
 						line_type: [1, 2], // Producto o Combo
 						deleted_at: null,
 					},
-					{ transaction }
+					{ transaction },
 				);
 
 				if (pendingConcessions > 0) {
 					throw new ConflictError(
 						'No se puede eliminar la sucursal porque hay órdenes de confitería pendientes por entregar.',
-						'CINEMA_HAS_PENDING_CONCESSIONS'
+						'CINEMA_HAS_PENDING_CONCESSIONS',
 					);
 				}
 			}
@@ -258,13 +303,25 @@ export class CinemasService extends BaseService {
 			const deletedAt = new Date();
 
 			// Inventarios y Combos
-			await this._inventories.update({ cinema: id, deleted_at: null }, { deleted_at: deletedAt }, { transaction });
+			await this._inventories.update(
+				{ cinema: id, deleted_at: null },
+				{ deleted_at: deletedAt },
+				{ transaction },
+			);
 			await this._combos.update({ cinema: id, deleted_at: null }, { deleted_at: deletedAt }, { transaction });
 
 			// Showtimes y Room Bookings
 			if (bookingIds.length > 0) {
-				await this._showtimes.update({ booking: bookingIds, deleted_at: null }, { deleted_at: deletedAt }, { transaction });
-				await this._roomBookings.update({ id: bookingIds, deleted_at: null }, { deleted_at: deletedAt }, { transaction });
+				await this._showtimes.update(
+					{ booking: bookingIds, deleted_at: null },
+					{ deleted_at: deletedAt },
+					{ transaction },
+				);
+				await this._roomBookings.update(
+					{ id: bookingIds, deleted_at: null },
+					{ deleted_at: deletedAt },
+					{ transaction },
+				);
 			}
 
 			// Rooms
@@ -282,15 +339,15 @@ export class CinemasService extends BaseService {
 	}
 
 	async findAllWithRooms(filters?: ProcessedQueryFilters) {
-		console.log('wirh rooms')
+		console.log('wirh rooms');
 		const data = await this._cinemas.getAll({
 			...filters,
 			relations: [
 				{
 					association: '_Rooms',
-					required: true
-				}
-			]
+					required: true,
+				},
+			],
 		});
 
 		return data;
