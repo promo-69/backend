@@ -18,6 +18,11 @@ router.get('/billboard/unified', optionalAuth, showtimesController.getUnifiedBil
 // ?cinemaId= opcional para filtrar por sucursal.
 router.get('/billboard/full', optionalAuth, showtimesController.getFullActiveBillboard);
 
+// Detalle público: funciones de una película o evento especial en todas las
+// sucursales, agrupadas por sucursal, para un día específico (?date=YYYY-MM-DD).
+// :type es "movie" o "event".
+router.get('/by-content/:type/:id', optionalAuth, showtimesController.getByContentGroupedByCinema);
+
 // Listado público de funciones
 router.get('/', optionalAuth, showtimesController.findAll);
 

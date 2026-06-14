@@ -884,6 +884,441 @@ export class ShowtimeManagementService {
 	}
 
 	// -------------------------------------------------------------------------
+	//  FUNCIONES DE UNA PELÍCULA EN TODAS LAS SUCURSALES, AGRUPADAS POR SUCURSAL
+	//  Uso público: detalle de película/evento — el usuario ve un carrusel de
+	//  días disponibles y, debajo, las funciones agrupadas por sucursal para
+	//  el día seleccionado (o el más próximo si no se especifica).
+	// -------------------------------------------------------------------------
+	async getMovieShowtimesGroupedByCinema(movieId: number, date?: string, userId?: number) {
+		const now = new Date();
+		const visibleStates = await this._getVisibleLifecycleStates();
+
+		const movie = await this._movies.getById(movieId, {
+			attributes: ['id', 'title', 'duration_minutes', 'poster_url', 'lifecycle_state'],
+		});
+		if (!movie || !visibleStates.includes(movie.lifecycle_state)) {
+			throw new NotFoundError('Película no encontrada o no está en cartelera');
+		}
+
+		// 1. Todas las funciones futuras de la película (sin filtrar por sucursal)
+		const showtimes = await this._showtimesRepo.getAll(
+			{
+				count: false,
+				attributes: [
+					'id',
+					'booking',
+					'movie',
+					'projection_type',
+					'language',
+					'currency',
+					'price',
+					'earned_loyalty_points',
+				],
+			},
+			{ movie: movieId, deleted_at: null },
+		);
+		let showtimeList: any[] = Array.isArray(showtimes) ? showtimes : showtimes.rows || [];
+		if (!showtimeList.length) {
+			throw new NotFoundError('No hay funciones disponibles para esta película');
+		}
+
+		// 2. Bookings asociados (con sala y sucursal)
+		const bookingIds = [...new Set(showtimeList.map((s: any) => s.booking))];
+		const bookings = await this._roomBookings.getAll(
+			{
+				count: false,
+				attributes: ['id', 'room', 'start_time', 'end_time'],
+				relations: [
+					{
+						association: '_Rooms',
+						attributes: ['id', 'name', 'cinema', 'grid_rows', 'grid_columns', 'room_type'],
+						required: true,
+						relations: [{ association: '_Cinemas', attributes: ['id', 'name'], required: true }],
+					},
+				],
+				order: [['start_time', 'ASC']],
+			},
+			{ id: bookingIds, end_time: { [Ops.gt]: now }, deleted_at: null },
+		);
+		let bookingList: any[] = Array.isArray(bookings) ? bookings : bookings.rows || [];
+		if (!bookingList.length) {
+			throw new NotFoundError('No hay funciones disponibles para esta película');
+		}
+
+		const bookingMap = new Map<number, any>(bookingList.map((b: any) => [b.id, b]));
+		showtimeList = showtimeList.filter((s: any) => bookingMap.has(s.booking));
+		if (!showtimeList.length) {
+			throw new NotFoundError('No hay funciones disponibles para esta película');
+		}
+
+		// 3. Días disponibles (para el carrusel del front) — fechas únicas YYYY-MM-DD
+		const availableDates = [
+			...new Set(
+				bookingList.map((b: any) => (typeof b.start_time === 'string' ? b.start_time : b.start_time.toISOString()).slice(0, 10)),
+			),
+		].sort();
+
+		// 4. Filtrar por fecha solicitada (o usar el día más próximo disponible)
+		if (date && !availableDates.includes(date)) {
+			throw new NotFoundError('No hay funciones disponibles para esta película en la fecha seleccionada');
+		}
+		const targetDate = date ?? availableDates[0];
+		bookingList = bookingList.filter(
+			(b: any) => (typeof b.start_time === 'string' ? b.start_time : b.start_time.toISOString()).slice(0, 10) === targetDate,
+		);
+		const filteredBookingIds = new Set(bookingList.map((b: any) => b.id));
+		showtimeList = showtimeList.filter((s: any) => filteredBookingIds.has(s.booking));
+
+		if (!showtimeList.length) {
+			throw new NotFoundError('No hay funciones disponibles para esta película en la fecha seleccionada');
+		}
+
+		// 5. Catálogos auxiliares
+		const projTypeIds = [...new Set(showtimeList.map((s: any) => s.projection_type))];
+		const languageIds = [...new Set(showtimeList.map((s: any) => s.language))];
+		const currencyIds = [...new Set(showtimeList.map((s: any) => s.currency))];
+
+		const [projTypes, languages, currencies] = await Promise.all([
+			(Database.repository('main', 'projection-types') as any).getAll(
+				{ count: false, attributes: ['id', 'description'] },
+				{ id: projTypeIds },
+			),
+			(Database.repository('main', 'languages') as any).getAll(
+				{ count: false, attributes: ['id', 'description'] },
+				{ id: languageIds },
+			),
+			(Database.repository('main', 'currencies') as any).getAll(
+				{ count: false, attributes: ['id', 'code', 'symbol'] },
+				{ id: currencyIds },
+			),
+		]);
+
+		const projMap = new Map<number, any>(
+			(Array.isArray(projTypes) ? projTypes : projTypes.rows).map((p: any) => [p.id, p]),
+		);
+		const langMap = new Map<number, any>(
+			(Array.isArray(languages) ? languages : languages.rows).map((l: any) => [l.id, l]),
+		);
+		const currMap = new Map<number, any>(
+			(Array.isArray(currencies) ? currencies : currencies.rows).map((c: any) => [c.id, c]),
+		);
+
+		// 6. Pricing opcional (cotización activa del usuario)
+		let activeQuote = null;
+		let cacheData: any = null;
+		if (userId) {
+			activeQuote = await shoppingSessionService.getActiveQuote(userId);
+			if (activeQuote) {
+				cacheData = await PricingCacheService.getActiveModifiers();
+			}
+		}
+
+		// 7. Construir filas enriquecidas y agrupar por sucursal
+		// Pre-cargar conteos de asientos para evitar N+1 queries
+		const uniqueRoomIds = [...new Set(showtimeList.map((s: any) => bookingMap.get(s.booking)?._Rooms?.id).filter(Boolean))] as number[];
+		const uniqueBookingIds = showtimeList.map((s: any) => s.booking) as number[];
+		const [totalSeatsPerRoom, soldSeatsPerBooking] = await Promise.all([
+			Promise.all(uniqueRoomIds.map((roomId: number) =>
+				this._seats.count({ room: roomId, deleted_at: null }).then((c: number) => [roomId, c] as [number, number])
+			)),
+			Promise.all(uniqueBookingIds.map((bookingId: number) =>
+				this._tickets.count({ booking: bookingId, deleted_at: null }).then((c: number) => [bookingId, c] as [number, number])
+			)),
+		]);
+		const totalSeatsMap = new Map<number, number>(totalSeatsPerRoom);
+		const soldSeatsMap = new Map<number, number>(soldSeatsPerBooking);
+
+		const cinemaGroups = new Map<number, { cinema: { id: number; name: string }; showtimes: any[] }>();
+
+		for (const s of showtimeList) {
+			const booking = bookingMap.get(s.booking);
+			const room = booking?._Rooms ?? {};
+			const cinema = room._Cinemas ?? null;
+			if (!cinema) continue;
+
+			const totalSeats = totalSeatsMap.get(room.id) ?? 0;
+			const soldSeats = soldSeatsMap.get(s.booking) ?? 0;
+			const proj = projMap.get(s.projection_type) ?? {};
+			const lang = langMap.get(s.language) ?? {};
+			const curr = currMap.get(s.currency) ?? {};
+
+			const entry: any = {
+				id: s.id,
+				booking: {
+					id: booking?.id,
+					start_time: booking?.start_time,
+					end_time: booking?.end_time,
+					room: {
+						id: room.id,
+						name: room.name,
+						total_seats: totalSeats,
+						available_seats: Math.max(0, totalSeats - soldSeats),
+					},
+				},
+				projection_type: { id: proj.id, description: proj.description },
+				language: { id: lang.id, description: lang.description },
+				currency: { id: curr.id, code: curr.code, symbol: curr.symbol },
+				price: s.price,
+				earned_loyalty_points: s.earned_loyalty_points,
+			};
+
+			if (activeQuote && cacheData) {
+				const sessionDate = new Date(activeQuote.created_at || Date.now());
+				const currentDate = sessionDate.toISOString().split('T')[0];
+				const currentTime = sessionDate.toTimeString().split(' ')[0];
+				const currentDay = sessionDate.getDay() === 0 ? 7 : sessionDate.getDay();
+				const timeContext = { currentDate, currentTime, currentDay };
+
+				const baseContext = {
+					modifier_scope: 1,
+					cinemaId: cinema.id,
+					booking_type: booking?.booking_type || 1,
+					movie: movieId,
+					projection_type: s.projection_type,
+					room_type: room.room_type || 1,
+				};
+
+				const basePricing = PricingService.calculateFinalPrice(
+					s.price,
+					baseContext,
+					s.currency,
+					cacheData.modifiers,
+					cacheData.opTypesMap,
+					timeContext,
+				);
+
+				entry.pricing = {
+					base_price: basePricing.finalPrice,
+					showtime_applied_modifiers: basePricing.appliedModifiers,
+				};
+			}
+
+			if (!cinemaGroups.has(cinema.id)) {
+				cinemaGroups.set(cinema.id, { cinema: { id: cinema.id, name: cinema.name }, showtimes: [] });
+			}
+			cinemaGroups.get(cinema.id)!.showtimes.push(entry);
+		}
+
+		const cinemas = [...cinemaGroups.values()].sort((a, b) => a.cinema.name.localeCompare(b.cinema.name));
+		for (const group of cinemas) {
+			group.showtimes.sort(
+				(a: any, b: any) =>
+					new Date(a.booking.start_time).getTime() - new Date(b.booking.start_time).getTime(),
+			);
+		}
+
+		if (!cinemas.length) {
+			throw new NotFoundError('No hay funciones disponibles para esta película en la fecha seleccionada');
+		}
+
+		return {
+			movie: {
+				id: movie.id,
+				title: movie.title,
+				duration_minutes: movie.duration_minutes,
+				poster_url: movie.poster_url,
+			},
+			selected_date: targetDate,
+			available_dates: availableDates,
+			cinemas_count: cinemas.length,
+			cinemas,
+		};
+	}
+
+	// -------------------------------------------------------------------------
+	//  FUNCIONES DE UN EVENTO ESPECIAL EN TODAS LAS SUCURSALES, AGRUPADAS POR SUCURSAL
+	//  Misma lógica que getMovieShowtimesGroupedByCinema pero para eventos especiales.
+	// -------------------------------------------------------------------------
+	async getEventShowtimesGroupedByCinema(eventId: number, date?: string) {
+		const now = new Date();
+		const visibleStates = await this._getVisibleLifecycleStates();
+
+		const event = await this._specialEvents.getById(eventId, {
+			attributes: ['id', 'title', 'duration_minutes', 'poster_url', 'lifecycle_state'],
+		});
+		if (!event || !visibleStates.includes(event.lifecycle_state)) {
+			throw new NotFoundError('Evento especial no encontrado o no está en cartelera');
+		}
+
+		const showtimes = await this._showtimesRepo.getAll(
+			{
+				count: false,
+				attributes: [
+					'id',
+					'booking',
+					'special_event_id',
+					'projection_type',
+					'language',
+					'currency',
+					'price',
+					'earned_loyalty_points',
+				],
+			},
+			{ special_event_id: eventId, deleted_at: null },
+		);
+		let showtimeList: any[] = Array.isArray(showtimes) ? showtimes : showtimes.rows || [];
+		if (!showtimeList.length) {
+			throw new NotFoundError('No hay funciones disponibles para este evento');
+		}
+
+		const bookingIds = [...new Set(showtimeList.map((s: any) => s.booking))];
+		const bookings = await this._roomBookings.getAll(
+			{
+				count: false,
+				attributes: ['id', 'room', 'start_time', 'end_time'],
+				relations: [
+					{
+						association: '_Rooms',
+						attributes: ['id', 'name', 'cinema', 'grid_rows', 'grid_columns'],
+						required: true,
+						relations: [{ association: '_Cinemas', attributes: ['id', 'name'], required: true }],
+					},
+				],
+				order: [['start_time', 'ASC']],
+			},
+			{ id: bookingIds, end_time: { [Ops.gt]: now }, deleted_at: null },
+		);
+		let bookingList: any[] = Array.isArray(bookings) ? bookings : bookings.rows || [];
+		if (!bookingList.length) {
+			throw new NotFoundError('No hay funciones disponibles para este evento');
+		}
+
+		const bookingMap = new Map<number, any>(bookingList.map((b: any) => [b.id, b]));
+		showtimeList = showtimeList.filter((s: any) => bookingMap.has(s.booking));
+		if (!showtimeList.length) {
+			throw new NotFoundError('No hay funciones disponibles para este evento');
+		}
+
+		const availableDates = [
+			...new Set(
+				bookingList.map((b: any) => (typeof b.start_time === 'string' ? b.start_time : b.start_time.toISOString()).slice(0, 10)),
+			),
+		].sort();
+
+		if (date && !availableDates.includes(date)) {
+			throw new NotFoundError('No hay funciones disponibles para este evento en la fecha seleccionada');
+		}
+		const targetDate = date ?? availableDates[0];
+		bookingList = bookingList.filter(
+			(b: any) => (typeof b.start_time === 'string' ? b.start_time : b.start_time.toISOString()).slice(0, 10) === targetDate,
+		);
+		const filteredBookingIds = new Set(bookingList.map((b: any) => b.id));
+		showtimeList = showtimeList.filter((s: any) => filteredBookingIds.has(s.booking));
+
+		if (!showtimeList.length) {
+			throw new NotFoundError('No hay funciones disponibles para este evento en la fecha seleccionada');
+		}
+
+		const projTypeIds = [...new Set(showtimeList.map((s: any) => s.projection_type))];
+		const languageIds = [...new Set(showtimeList.map((s: any) => s.language))];
+		const currencyIds = [...new Set(showtimeList.map((s: any) => s.currency))];
+
+		const [projTypes, languages, currencies] = await Promise.all([
+			(Database.repository('main', 'projection-types') as any).getAll(
+				{ count: false, attributes: ['id', 'description'] },
+				{ id: projTypeIds },
+			),
+			(Database.repository('main', 'languages') as any).getAll(
+				{ count: false, attributes: ['id', 'description'] },
+				{ id: languageIds },
+			),
+			(Database.repository('main', 'currencies') as any).getAll(
+				{ count: false, attributes: ['id', 'code', 'symbol'] },
+				{ id: currencyIds },
+			),
+		]);
+
+		const projMap = new Map<number, any>(
+			(Array.isArray(projTypes) ? projTypes : projTypes.rows).map((p: any) => [p.id, p]),
+		);
+		const langMap = new Map<number, any>(
+			(Array.isArray(languages) ? languages : languages.rows).map((l: any) => [l.id, l]),
+		);
+		const currMap = new Map<number, any>(
+			(Array.isArray(currencies) ? currencies : currencies.rows).map((c: any) => [c.id, c]),
+		);
+
+		// Pre-cargar conteos de asientos para evitar N+1 queries
+		const uniqueRoomIdsEv = [...new Set(showtimeList.map((s: any) => bookingMap.get(s.booking)?._Rooms?.id).filter(Boolean))] as number[];
+		const uniqueBookingIdsEv = showtimeList.map((s: any) => s.booking) as number[];
+		const [totalSeatsPerRoomEv, soldSeatsPerBookingEv] = await Promise.all([
+			Promise.all(uniqueRoomIdsEv.map((roomId: number) =>
+				this._seats.count({ room: roomId, deleted_at: null }).then((c: number) => [roomId, c] as [number, number])
+			)),
+			Promise.all(uniqueBookingIdsEv.map((bookingId: number) =>
+				this._tickets.count({ booking: bookingId, deleted_at: null }).then((c: number) => [bookingId, c] as [number, number])
+			)),
+		]);
+		const totalSeatsMapEv = new Map<number, number>(totalSeatsPerRoomEv);
+		const soldSeatsMapEv = new Map<number, number>(soldSeatsPerBookingEv);
+
+		const cinemaGroups = new Map<number, { cinema: { id: number; name: string }; showtimes: any[] }>();
+
+		for (const s of showtimeList) {
+			const booking = bookingMap.get(s.booking);
+			const room = booking?._Rooms ?? {};
+			const cinema = room._Cinemas ?? null;
+			if (!cinema) continue;
+
+			const totalSeats = totalSeatsMapEv.get(room.id) ?? 0;
+			const soldSeats = soldSeatsMapEv.get(s.booking) ?? 0;
+			const proj = projMap.get(s.projection_type) ?? {};
+			const lang = langMap.get(s.language) ?? {};
+			const curr = currMap.get(s.currency) ?? {};
+
+			const entry = {
+				id: s.id,
+				booking: {
+					id: booking?.id,
+					start_time: booking?.start_time,
+					end_time: booking?.end_time,
+					room: {
+						id: room.id,
+						name: room.name,
+						total_seats: totalSeats,
+						available_seats: Math.max(0, totalSeats - soldSeats),
+					},
+				},
+				projection_type: { id: proj.id, description: proj.description },
+				language: { id: lang.id, description: lang.description },
+				currency: { id: curr.id, code: curr.code, symbol: curr.symbol },
+				price: s.price,
+				earned_loyalty_points: s.earned_loyalty_points,
+			};
+
+			if (!cinemaGroups.has(cinema.id)) {
+				cinemaGroups.set(cinema.id, { cinema: { id: cinema.id, name: cinema.name }, showtimes: [] });
+			}
+			cinemaGroups.get(cinema.id)!.showtimes.push(entry);
+		}
+
+		const cinemas = [...cinemaGroups.values()].sort((a, b) => a.cinema.name.localeCompare(b.cinema.name));
+		for (const group of cinemas) {
+			group.showtimes.sort(
+				(a: any, b: any) =>
+					new Date(a.booking.start_time).getTime() - new Date(b.booking.start_time).getTime(),
+			);
+		}
+
+		if (!cinemas.length) {
+			throw new NotFoundError('No hay funciones disponibles para este evento en la fecha seleccionada');
+		}
+
+		return {
+			event: {
+				id: event.id,
+				title: event.title,
+				duration_minutes: event.duration_minutes,
+				poster_url: event.poster_url,
+			},
+			selected_date: targetDate,
+			available_dates: availableDates,
+			cinemas_count: cinemas.length,
+			cinemas,
+		};
+	}
+
+	// -------------------------------------------------------------------------
 	//  CREAR FUNCIÓN (unificado para películas y eventos)
 	// -------------------------------------------------------------------------
 	async createShowtime(data: any) {

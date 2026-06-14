@@ -1,0 +1,31 @@
+meta {
+  name: Get Movie Showtimes Grouped by Cinema
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/showtimes/by-content/movie/{{movieId}}
+  body: none
+  auth: none
+}
+
+params:query {
+  date: {{date}}
+}
+
+vars:pre-request {
+  movieId: 1
+  date:
+}
+
+docs {
+  Obtiene todas las funciones futuras de una película, agrupadas por sucursal.
+  - `movieId`: ID de la película (obligatorio).
+  - `date` (opcional): Fecha en formato YYYY-MM-DD. Si no se envía, se usa el día más próximo con funciones.
+  Retorna:
+    - `movie`: datos de la película.
+    - `selected_date`: fecha seleccionada (la solicitada o la más próxima).
+    - `available_dates`: array de fechas con funciones (para carrusel).
+    - `cinemas`: lista de sucursales con sus funciones.
+}

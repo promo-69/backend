@@ -37,6 +37,26 @@ class ShowtimesController extends ControllerBase {
         return this.success(data, 'Cartelera activa obtenida exitosamente');
     }
 
+    // GET /showtimes/by-content/:type/:id?date=YYYY-MM-DD
+    // Detalle público: funciones de una película o evento especial en TODAS
+    // las sucursales, agrupadas por sucursal, para el día seleccionado
+    // (o el más próximo si no se especifica). Incluye available_dates para
+    // el carrusel de días del front.
+    async getByContentGroupedByCinema() {
+        const { type, id } = this.getParams();
+        const query = this.getQuery();
+        const session = this.getSession<any>();
+
+        const data = await ShowtimesService.getShowtimesGroupedByCinema(
+            type,
+            Number(id),
+            query.date as string | undefined,
+            session?.userId,
+        );
+
+        return this.success(data, 'Funciones obtenidas exitosamente');
+    }
+
     async findAll() {
         const query = this.getQuery();
         const movieId = query.movieId ? Number(query.movieId) : undefined;

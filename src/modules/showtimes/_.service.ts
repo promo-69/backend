@@ -21,6 +21,15 @@ export class ShowtimesService {
         return ShowtimeManagementService.getMovieShowtimesByCinema(movieId, cinemaId, userId);
     }
 
+    // Funciones de una película o evento en TODAS las sucursales, agrupadas por sucursal.
+    // date opcional (YYYY-MM-DD); si se omite se usa el día más próximo con funciones.
+    async getShowtimesGroupedByCinema(type: string, id: number, date?: string, userId?: number) {
+        if (!id) throw new ValidationError('Se requiere id', ['id']);
+        if (type === 'movie') return ShowtimeManagementService.getMovieShowtimesGroupedByCinema(id, date, userId);
+        if (type === 'event') return ShowtimeManagementService.getEventShowtimesGroupedByCinema(id, date);
+        throw new ValidationError('El parámetro type debe ser "movie" o "event"', ['type']);
+    }
+
     // Cartelera activa unificada: películas + eventos en lifecycle 2, 3 y 4 con funciones futuras.
     // cinemaId opcional — si se omite devuelve la cartelera global, si se pasa filtra por sucursal.
     async getFullActiveBillboard(cinemaId?: number) {
