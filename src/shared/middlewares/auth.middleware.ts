@@ -199,7 +199,7 @@ export class AuthMiddleware {
 				const hasAllPermissions = requiredPermissions.every((perm) => userPermissions.includes(perm));
 
 				if (!hasAllPermissions)
-					throw new ForbiddenError('Usuario no tiene los permisos necesarios para realizar esta acción', {
+					throw new ForbiddenError('No tiene los permisos necesarios para realizar esta acción', {
 						code: 'INSUFFICIENT_PERMISSIONS',
 					});
 
@@ -216,7 +216,7 @@ export class AuthMiddleware {
 				if (!req.session) throw new SessionNotFoundError();
 
 				if (!(req.session as AdminUserSession).roleCode)
-					throw new ForbiddenError('Usuario no tiene rol asignado', { code: 'NO_ROLE_ASSIGNED' });
+					throw new ForbiddenError('No tiene rol asignado', { code: 'NO_ROLE_ASSIGNED' });
 
 				const requiredRoles = Array.isArray(role) ? role : [role];
 				const userRole = (req.session as AdminUserSession).roleCode.toUpperCase();
@@ -224,7 +224,7 @@ export class AuthMiddleware {
 				const hasRequiredRole = requiredRoles.some((r) => r.toUpperCase() === userRole);
 
 				if (!hasRequiredRole)
-					throw new ForbiddenError(`Usuario no tiene el rol necesario para realizar esta acción`, {
+					throw new ForbiddenError(`No tiene el rol necesario para realizar esta acción`, {
 						code: 'INSUFFICIENT_ROLE',
 					});
 

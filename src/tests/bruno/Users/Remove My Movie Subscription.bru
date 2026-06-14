@@ -1,0 +1,15 @@
+meta {
+  name: Remove My Movie Subscription
+  type: http
+  seq: 1
+}
+
+delete {
+  url: {{baseUrl}}/users/me/movie-subscriptions/1
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

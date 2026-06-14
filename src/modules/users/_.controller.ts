@@ -1,5 +1,6 @@
 import { ControllerBase } from '@bases/controller.base.js';
 import UsersService from './_.service.js';
+import { CustomerUserSession } from '@rules/api.type.js';
 
 class UsersController extends ControllerBase {
 	constructor() {
@@ -24,67 +25,85 @@ class UsersController extends ControllerBase {
 		return this.success(null, 'Credenciales de seguridad actualizadas correctamente.');
 	}
 
+	// -- Órdenes del Consumidor
+
 	async getMyOrders() {
-		const data = await UsersService.getMyOrders(this.getSession().userId, this.getQuery());
+		const data = await UsersService.getMyOrders(this.getSession() as CustomerUserSession, this.getQuery());
 
 		return this.success(data, 'Ordenes recuperadas correctamente.');
 	}
 
 	async getMyOrderTicket() {
-		const { orderId } = this.getParams();
-
-		const data = await UsersService.getMyOrderTicket(this.getSession().userId, Number(orderId));
+		const data = await UsersService.getMyOrderTicket(this.getSession() as CustomerUserSession, this.getParams());
 
 		return this.success(data, 'Tickets de la orden recuperados correctamente.');
 	}
 
+	// -- Lealtad del Consumidor
+
 	async getMyLoyaltyInfo() {
-		const data = await UsersService.getMyLoyaltyInfo(this.getSession().userId);
+		const data = await UsersService.getMyLoyaltyInfo(this.getSession() as CustomerUserSession);
 
 		return this.success(data, 'Recibida información de lealtad');
 	}
 
 	async getMyLoyaltyLedgers() {
-		const data = await UsersService.getMyLoyaltyLedgers(this.getSession().userId, this.getQueryFilters());
+		const data = await UsersService.getMyLoyaltyLedgers(
+			this.getSession() as CustomerUserSession,
+			this.getQueryFilters(),
+		);
 
 		return this.success(data, 'Balance de lealtad recuperados correctamente');
 	}
 
+	// --- Subscripciones a Películas por el Consumidor
+
 	async getMyMovieSubscriptions() {
-		const data = await UsersService.getMyMovieSubscriptions(this.getSession().userId);
+		const data = await UsersService.getMyMovieSubscriptions(
+			this.getSession() as CustomerUserSession,
+			this.getQueryFilters(),
+		);
 
 		return this.success(data, 'Suscripciones de películas recuperadas exitosamente.');
 	}
 
 	async addMyMovieSubscriptions() {
-		//await UsersService.addMyMovieSubscriptions(this.getSession().userId, this.getBody());
+		await UsersService.addMyMovieSubscriptions(this.getSession() as CustomerUserSession, this.getBody());
 
 		return this.success(null, 'Suscripciones agregadas correctamente.');
 	}
 
 	async removeMyMovieSubscription() {
-		const { movieId } = this.getParams();
-
-		//await UsersService.removeMyMovieSubscription(this.getSession().userId, Number(movieId));
+		await UsersService.removeMyMovieSubscription(
+			this.getSession() as CustomerUserSession,
+			this.getParams().movieId ?? this.getBody(),
+		);
 
 		return this.success(null, 'Suscripción removida correctamente.');
 	}
 
-	// --- Géneros Favoritos
+	// --- Géneros Favoritos del Consumidor
+
 	async getMyMovieGenres() {
-		const data = await UsersService.getMyMovieGenres(this.getSession().userId);
+		const data = await UsersService.getMyMovieGenres(
+			this.getSession() as CustomerUserSession,
+			this.getQueryFilters(),
+		);
 
 		return this.success(data, 'Géneros favoritos recuperados exitosamente.');
 	}
 
 	async addMyMovieGenres() {
-		await UsersService.addMyMovieGenres(this.getSession().userId, this.getBody());
+		await UsersService.addMyMovieGenres(this.getSession() as CustomerUserSession, this.getBody());
 
 		return this.success(null, 'Géneros favoritos actualizados correctamente.');
 	}
 
 	async removeMyMovieGenres() {
-		await UsersService.removeMyMovieGenres(this.getSession().userId, this.getBody());
+		await UsersService.removeMyMovieGenres(
+			this.getSession() as CustomerUserSession,
+			this.getParams().genreId ?? this.getBody(),
+		);
 
 		return this.success(null, 'Géneros favoritos removidos correctamente.');
 	}

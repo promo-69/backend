@@ -1,6 +1,6 @@
 export const REGEX = {
 	// Al menos una letra, un número y mínimo 8 caracteres
-	PASSWORD: /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[\W_])[a-zA-Z\d\W_]{8,20}$/,
+	PASSWORD: /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[\W_])[a-zA-Z\d\W_]{8,30}$/,
 	// Sin símbolos seguidos, empieza y termina en letra/número, 4-20 chars
 	USERNAME: /^(?!.*[-_.]{2})[a-zA-Z0-9][a-zA-Z0-9-_.]{2,18}[a-zA-Z0-9]$/,
 	// Email estándar
@@ -14,4 +14,5 @@ export const REGEX = {
 	// ID de DB: Entero positivo (1 a 2,147,483,647 para un INT estándar)
 	DATABASE_ID: /^[1-9][0-9]{0,10}$/,
 	// Fecha: Formato ISO 8601 (YYYY-MM-DD)
-	DATE: /^\d{4}-\d{2}-\d{2}$/,};
+	DATE: /^\d{4}-\d{2}-\d{2}$/,
+};

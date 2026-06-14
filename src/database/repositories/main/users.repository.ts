@@ -73,12 +73,12 @@ class UsersRepository extends SequelizeRepositoryBase<UsersAttributes, number> {
 			},
 			{
 				association: '_Roles',
-				attributes: ['code'],
+				attributes: ['code', 'name'],
 				required: false,
 				nested: [{ association: '_RoleInheritancesChild' }],
 			},
 			{
-				association: '_UserType',
+				association: '_UserTypes',
 				attributes: ['description'],
 				required: true,
 			},
@@ -94,16 +94,7 @@ class UsersRepository extends SequelizeRepositoryBase<UsersAttributes, number> {
 		return this.getOne(
 			{ id },
 			{
-				attributes: [
-					'id',
-					'person',
-					'user_type',
-					'role',
-					'email',
-					'signup_verified_at',
-					'created_at',
-					'updated_at',
-				],
+				attributes: ['id', 'person', 'user_type', 'role', 'email', 'signup_verified_at', 'created_at'],
 				relations: this._relations,
 			},
 		) as Promise<UsersWithPeople | null>;
@@ -113,16 +104,7 @@ class UsersRepository extends SequelizeRepositoryBase<UsersAttributes, number> {
 		return this.getAll({
 			...filters,
 			count: true,
-			attributes: [
-				'id',
-				'person',
-				'user_type',
-				'role',
-				'email',
-				'signup_verified_at',
-				'created_at',
-				'updated_at',
-			],
+			attributes: ['id', 'person', 'user_type', 'role', 'email', 'signup_verified_at', 'created_at'],
 			relations: this._relations,
 		}) as Promise<{
 			rows: UsersWithPeople[];

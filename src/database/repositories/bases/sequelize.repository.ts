@@ -307,9 +307,10 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
 						const filter: Record<string, unknown> = {};
 						ignoreFields.forEach((field) => {
 							const fieldValue = (item as Record<string, unknown>)[field as string];
-							if (fieldValue == null) {
-								throw new Error(`Field '${String(field)}' is required for duplicate check`);
-							}
+							if (fieldValue == null)
+								throw new Error(
+									`Campo '${String(field)}' es requerido para la verificación de duplicado`,
+								);
 							filter[field as string] = fieldValue;
 						});
 						return filter;
@@ -319,6 +320,7 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
 						where: { [Op.or]: filters },
 						attributes: ignoreFields as string[],
 						transaction: options.transaction,
+						raw: true,
 					});
 
 					const fingerprints = new Set(
@@ -329,12 +331,12 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
 						const itemFingerprint = ignoreFields
 							.map((f) => (item as Record<string, unknown>)[f as string])
 							.join('|');
-						return !fingerprints.has(itemFingerprint);
+						if (fingerprints.has(itemFingerprint)) return false;
+						fingerprints.add(itemFingerprint);
+						return true;
 					});
 
-					if (!toInsert.length) {
-						return [];
-					}
+					if (!toInsert.length) return [];
 
 					data = toInsert;
 				}
@@ -345,13 +347,8 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
 					returning: true,
 				};
 
-				if (ignoreDuplicates) {
-					bulkOptions.ignoreDuplicates = true;
-				}
-
-				if (updateOnDuplicate) {
-					bulkOptions.updateOnDuplicate = updateOnDuplicate;
-				}
+				if (ignoreDuplicates && ignoreFields.length === 0) bulkOptions.ignoreDuplicates = true;
+				if (updateOnDuplicate) bulkOptions.updateOnDuplicate = updateOnDuplicate;
 
 				const created = await this._model.bulkCreate(data as any[], bulkOptions);
 
