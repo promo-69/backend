@@ -1,0 +1,26 @@
+meta {
+  name: List Inventory (My Cinema)
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/inventory
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  page: 1
+  limit: 10
+}
+
+docs {
+  Lista el inventario de la sucursal del empleado autenticado.
+  El cinemaId se extrae del token JWT.
+  Permiso requerido: CRUD:READ:INVENTORY
+}
