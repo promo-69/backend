@@ -110,6 +110,9 @@ export class OrdersService extends BaseService {
 	private get _cinemas() {
 		return Database.repository('main', 'cinemas') as any;
 	}
+	private get _seats() {
+		return Database.repository('main', 'seats') as any;
+	}
 
 	private async _getCustomerEmail(customerId: number | null, session: any): Promise<string | null> {
 		if (!session.roleCode && session.email) {
@@ -471,10 +474,7 @@ export class OrdersService extends BaseService {
 
 					const uniqueSeatIds = [...new Set(tickets.map((t: any) => t.seatId))];
 					const loadedSeats = uniqueSeatIds.length
-						? await (Database.repository('main', 'seats') as any).getAll(
-								{ count: false, operation: { transaction } },
-								{ id: uniqueSeatIds },
-							)
+						? await this._seats.getAll({ count: false, operation: { transaction } }, { id: uniqueSeatIds })
 						: [];
 					const seatsMap = new Map<number, any>(loadedSeats.map((s: any) => [s.id, s]));
 
@@ -724,9 +724,13 @@ export class OrdersService extends BaseService {
 					orderData = { ...order, qr_code: qrCode, order_status: 2, is_employee: true };
 				} else {
 					// Si es un cliente directo, genera factura automatica usando sus datos de sesion
+					const customer = await this._customers.getById(session.customerId, {
+						relation: this._customers.relations,
+						transaction,
+					});
 					const billingData = {
-						name: `${session.firstName} ${session.lastName}`.trim(),
-						document: session.documentNumber,
+						name: `${customer._People.first_name}${customer._People?.last_name ? ` ${customer._People.last_name}` : ''}`.trim(),
+						document: customer._People.document_number,
 						address: '',
 					};
 					await this._generateInvoice(order_id, billingData, order.cinema, transaction);
