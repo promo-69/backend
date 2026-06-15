@@ -240,15 +240,14 @@ export class UsersService extends BaseService {
 		return result;
 	}
 
-	async getMyOrderTicket(session: CustomerUserSession, data: Record<string, any>) {
+	async getMyOrderTicket(session: CustomerUserSession, orderId: number) {
 		if (!session.customerId) throw new AuthError('No tiene un perfil de cliente.');
 
-		this.validateRequired(data, ['orderId']);
 		this.validateRegexpFields([
-			{ value: data.orderId, regex: REGEX.DATABASE_ID, message: 'El dato de la orden no es válido' },
+			{ value: orderId, regex: REGEX.DATABASE_ID, message: 'El dato de la orden no es válido' },
 		]);
 
-		const order = await this._orders.getById(data.orderId);
+		const order = await this._orders.getById(orderId);
 		if (!order || order.customer !== session.customerId)
 			throw new NotFoundError('No se encontro la orden solicitada');
 
@@ -417,7 +416,11 @@ export class UsersService extends BaseService {
 	// --- Exclusivo Gerente ---
 
 	async getAllUsers(filters?: any): Promise<{ rows: UsersWithPeople[]; count: number }> {
-		return this._users.getAllFull(filters);
+		return this._users.getAllFull({
+			...filters,
+			attributes: ['id', 'person', 'user_type', 'role', 'email', 'signup_verified_at', 'created_at'],
+			relations: this._users._relations,
+		});
 	}
 
 	async changeUserStatus(userId: number, status: number) {
@@ -426,7 +429,7 @@ export class UsersService extends BaseService {
 
 		// Obtenemos el usuario incluyendo borrados para poder restaurar si está baneado
 		const user = await this._users.getByIdIncludingDeleted(userId);
-		if (!user) throw new NotFoundError('Usuario', userId.toString());
+		if (!user) throw new NotFoundError('No se encontró ningún usuario con esa referencia.');
 
 		if (status === 0) {
 			// Banear -> Borrado Lógico

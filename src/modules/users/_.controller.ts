@@ -34,7 +34,10 @@ class UsersController extends ControllerBase {
 	}
 
 	async getMyOrderTicket() {
-		const data = await UsersService.getMyOrderTicket(this.getSession() as CustomerUserSession, this.getParams());
+		const data = await UsersService.getMyOrderTicket(
+			this.getSession() as CustomerUserSession,
+			this.getParams().orderId,
+		);
 
 		return this.success(data, 'Tickets de la orden recuperados correctamente.');
 	}
@@ -117,56 +120,43 @@ class UsersController extends ControllerBase {
 	}
 
 	async changeUserStatus() {
-		const { id } = this.getParams();
-		const result = await UsersService.changeUserStatus(Number(id), this.getBody());
+		const result = await UsersService.changeUserStatus(Number(this.getParams().id), this.getBody());
 
 		return this.success(null, result.message);
 	}
 
 	async getUserRole() {
-		const { id } = this.getParams();
-
-		const data = await UsersService.getUserRole(Number(id));
+		const data = await UsersService.getUserRole(Number(this.getParams().id));
 
 		return this.success(data, 'Rol de usuario recuperado correctamente.');
 	}
 
 	async assignUserRole() {
-		const { id } = this.getParams();
-
-		await UsersService.assignUserRole(Number(id), this.getBody());
+		await UsersService.assignUserRole(Number(this.getParams().id), this.getBody());
 
 		return this.success(null, 'Rol asignado al usuario correctamente.');
 	}
 
 	async removeUserRole() {
-		const { id } = this.getParams();
-
-		await UsersService.removeUserRole(Number(id));
+		await UsersService.removeUserRole(Number(this.getParams().id));
 
 		return this.success(null, 'Rol removido del usuario correctamente.');
 	}
 
 	async getUserPermissions() {
-		const { id } = this.getParams();
-
-		const data = await UsersService.getUserPermissions(Number(id));
+		const data = await UsersService.getUserPermissions(Number(this.getParams().id));
 
 		return this.success(data, 'Permisos de usuario recuperados correctamente.');
 	}
 
 	async assignUserPermissions() {
-		const { id } = this.getParams();
-
-		await UsersService.assignUserPermissions(Number(id), this.getBody());
+		await UsersService.assignUserPermissions(Number(this.getParams().id), this.getBody());
 
 		return this.success(null, 'Permisos asignados al usuario correctamente.');
 	}
 
 	async removeUserPermissions() {
-		const { id } = this.getParams();
-
-		await UsersService.removeUserPermissions(Number(id), this.getBody());
+		await UsersService.removeUserPermissions(Number(this.getParams().id), this.getBody());
 
 		return this.success(null, 'Permisos removidos del usuario correctamente.');
 	}
