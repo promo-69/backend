@@ -1,0 +1,36 @@
+meta {
+  name: Register Adjustment (Increase)
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/inventory/{{inventoryId}}/movements
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  [
+    {
+      "operationType": {{opTypeOut}},
+      "quantity": 5,
+      "adjustmentDirection": "increase",
+      "remarks": "Ajuste por conteo físico - sobra stock"
+    }
+  ]
+}
+
+vars:pre-request {
+  inventoryId: 1
+  opTypeOut: 4
+}
+
+docs {
+  Ajuste manual que INCREMENTA el stock sin cambiar el costo unitario.
+  `adjustmentDirection: "increase"` fuerza la suma aunque `operationType` sea de salida.
+}

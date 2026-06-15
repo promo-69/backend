@@ -725,7 +725,7 @@ export class OrdersService extends BaseService {
 				} else {
 					// Si es un cliente directo, genera factura automatica usando sus datos de sesion
 					const customer = await this._customers.getById(session.customerId, {
-						relation: this._customers.relations,
+						relations: this._customers.relations,
 						transaction,
 					});
 					const billingData = {

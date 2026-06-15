@@ -1,53 +1,74 @@
 import { BaseService } from '@bases/service.base.js';
 import InventoryManagementService from '@services/inventory-management.service.js';
-import { Database } from '@database/index.js';
-import { NotFoundError } from '@errors';
+import { ValidationError } from '@errors';
+
+interface RegisterMovementInput {
+    operationType: number;
+    quantity: number;
+    remarks?: string;
+    unit_cost?: number;
+    adjustmentDirection?: 'increase' | 'decrease';
+}
 
 export class InventoryService extends BaseService {
-    private get _inventories() {
-        return Database.repository('main', 'inventories') as any;
-    }
-    private get _inventoryMovements() {
-        return Database.repository('main', 'inventory-movements') as any;
-    }
+    // -------------------------------------------------------------------------
+    //  LECTURA
+    // -------------------------------------------------------------------------
 
     async getStockByCinema(cinemaId: number, filters?: any) {
         return InventoryManagementService.getStockByCinema(cinemaId, filters);
     }
 
+    /**
+     * Stock de un producto individual en una sucursal — vista "ficha de
+     * producto" (nombre, sku, categoría, moneda, precio, puntos de
+     * lealtad, imagen, stock actual).
+     */
+    async getProductStock(cinemaId: number, productId: number) {
+        if (!cinemaId) throw new ValidationError('Se requiere cinemaId', ['cinemaId']);
+        if (!productId) throw new ValidationError('Se requiere productId', ['productId']);
+        return InventoryManagementService.getProductStockByCinema(cinemaId, productId);
+    }
+
     async getInventoryDetail(inventoryId: number) {
-        const inv = await this._inventories.getById(inventoryId, {
-            relations: [
-                {
-                    association: '_Products',
-                    attributes: ['id', 'name', 'sku', 'price', 'image_url', 'currency', 'product_category'],
-                    nested: [{ association: '_ProductCategories', attributes: ['id', 'description'] }],
-                },
-            ],
-        });
-        if (!inv) throw new NotFoundError('Registro de inventario no encontrado');
+        return InventoryManagementService.getInventoryWithMovements(inventoryId);
+    }
 
-        const movements = await this._inventoryMovements.getAll(
-            { count: false, order: [['created_at', 'DESC']] },
-            { inventory: inventoryId },
-        );
+    // -------------------------------------------------------------------------
+    //  ESCRITURA
+    // -------------------------------------------------------------------------
 
-        return {
-            ...inv,
-            movements: Array.isArray(movements) ? movements : movements.rows,
-        };
+    /**
+     * Habilita un producto del catálogo central en el inventario de una
+     * sucursal (stock inicial en 0). El ingreso de stock real se hace
+     * después con registerMovements.
+     */
+    async provisionProduct(cinemaId: number, productId: number, minimumStock?: number) {
+        if (!cinemaId) throw new ValidationError('Se requiere cinemaId', ['cinemaId']);
+        if (!productId) throw new ValidationError('Se requiere productId', ['productId']);
+
+        return InventoryManagementService.provisionProductInCinema(cinemaId, productId, minimumStock ?? 0);
     }
 
     /**
-     * Registra un lote de movimientos (entrada/salida/merma)
+     * Registra un lote de movimientos (entrada/salida/ajuste) sobre un
+     * registro de inventario.
      */
-    async registerMovements(
-        inventoryId: number,
-        movements: Array<{ operationType: number; quantity: number; remarks?: string; unit_cost?: number }>,
-        userId: number,
-    ) {
-        await InventoryManagementService.registerMovements(inventoryId, movements, userId);
-        return null;
+    async registerMovements(inventoryId: number, movements: RegisterMovementInput[], userId: number) {
+        return InventoryManagementService.registerMovements(inventoryId, movements, userId);
+    }
+
+    // -------------------------------------------------------------------------
+    //  ADMINISTRATIVO — BACKOFFICE GLOBAL
+    // -------------------------------------------------------------------------
+
+    /**
+     * Listado de inventario de TODAS las sucursales (super admin / usuario
+     * con permisos de backoffice). Permite filtrar por cinemaId opcional
+     * vía query filters.
+     */
+    async getAllInventoryAdmin(filters?: any) {
+        return InventoryManagementService.getAllInventoryAdmin(filters);
     }
 }
 

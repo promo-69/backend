@@ -1,11 +1,11 @@
 meta {
   name: Get Inventory Detail
   type: http
-  seq: 2
+  seq: 5
 }
 
 get {
-  url: {{baseUrl}}/inventory/{{testInventoryId}}
+  url: {{baseUrl}}/inventory/{{inventoryId}}
   body: none
   auth: bearer
 }
@@ -14,7 +14,11 @@ auth:bearer {
   token: {{accessToken}}
 }
 
-script:pre-request {
-  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
-  bru.setVar('baseUrl', baseUrl);
+vars:pre-request {
+  inventoryId: 1
+}
+
+docs {
+  Obtiene el detalle completo de un registro de inventario,
+  incluyendo el producto, stock actual, costo unitario y el historial de movimientos.
 }

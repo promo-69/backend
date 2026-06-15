@@ -1,0 +1,29 @@
+meta {
+  name: List Inventory by Product
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/inventory
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  product_id: {{productId}}
+  page: 1
+  limit: 10
+}
+
+vars:pre-request {
+  productId: 1
+}
+
+docs {
+  Filtra el inventario por ID de producto.
+}
