@@ -1,0 +1,28 @@
+meta {
+  name: List Cinema Inventory
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/cinemas/{{cinemaId}}/inventory
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  page: 1
+  limit: 20
+}
+
+vars:pre-request {
+  cinemaId: 1
+}
+
+docs {
+  Lista el inventario de una sucursal específica (administración remota).
+}

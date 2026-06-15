@@ -1,0 +1,68 @@
+/inventory/admin/all:
+    get:
+        summary: Get global inventory (all cinemas)
+        description: |
+            Returns inventory records for all cinemas.
+            Super admin only.
+            Required permission: **CRUD:READ:CINEMAS-INVENTORY**
+        tags:
+            - Inventory Admin
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: cinema_id
+              in: query
+              schema:
+                  type: integer
+              description: Filter by cinema ID
+            - name: page
+              in: query
+              schema:
+                  type: integer
+            - name: limit
+              in: query
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Global inventory list
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                message:
+                                    type: string
+                                data:
+                                    type: object
+                                    properties:
+                                        count:
+                                            type: integer
+                                        rows:
+                                            type: array
+                                            items:
+                                                type: object
+                                                properties:
+                                                    id:
+                                                        type: integer
+                                                    cinema:
+                                                        type: object
+                                                        properties:
+                                                            id:
+                                                                type: integer
+                                                            name:
+                                                                type: string
+                                                    product:
+                                                        type: object
+                                                    stock:
+                                                        type: integer
+                                                    minimum_stock:
+                                                        type: integer
+                                                    current_unit_cost_base_currency:
+                                                        type: number
+            '401':
+                description: Unauthorized
+            '403':
+                description: Insufficient permissions
