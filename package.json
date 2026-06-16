@@ -36,6 +36,7 @@
 		"db:backup:ddl": "pg_dump -h 127.0.0.1 -p 5432 -d cineflix --schema-only > ./src/migrate/estructura_cineflix.sql",
 		"db:prod:reset:full": "yarn load-vars .env.prod \"yarn db:reset:full\"",
 		"db:prod:seed": "yarn load-vars .env.prod \"yarn db:seed\"",
+		"db:prod:migrate": "yarn load-vars .env.prod \"yarn db:migrate\"",
 		"db:prod:cache:reset": "yarn load-vars .env.prod \"node src/migrate/reset-cache.js\"",
 		"docker:exec": "docker compose -f docker-compose.yml exec",
 		"docker:api-exec": "yarn docker:exec api",
