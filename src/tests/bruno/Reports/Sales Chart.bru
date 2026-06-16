@@ -1,0 +1,28 @@
+meta {
+  name: Sales Chart
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/reports/sales/chart
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  from: {{fromDate}}
+  to: {{toDate}}
+  groupBy: day
+  channel: all
+}
+
+docs {
+  Datos normalizados para gráfico de ventas.
+  groupBy: day | week | month
+  Permiso: CRUD:READ:REPORTS-CHARTS
+}

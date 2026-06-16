@@ -1,0 +1,289 @@
+/reports/dashboard:
+    get:
+        summary: Get consolidated dashboard (employee)
+        description: |
+            Retrieve KPIs, top movies, top events, low stock alerts, payment breakdown, and daily sales series.
+            Required permission: **CRUD:READ:REPORTS-DASHBOARD**
+        tags:
+            - Reports Dashboard
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: query
+              name: from
+              schema:
+                  type: string
+                  format: date
+            - in: query
+              name: to
+              schema:
+                  type: string
+                  format: date
+        responses:
+            '200':
+                description: Dashboard data
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                message:
+                                    type: string
+                                data:
+                                    type: object
+                                    properties:
+                                        period:
+                                            type: object
+                                            properties:
+                                                from:
+                                                    type: string
+                                                    format: date
+                                                to:
+                                                    type: string
+                                                    format: date
+                                        kpis:
+                                            type: object
+                                            properties:
+                                                total_revenue:
+                                                    type: number
+                                                total_orders:
+                                                    type: integer
+                                                total_tickets:
+                                                    type: integer
+                                                net_revenue:
+                                                    type: number
+                                                total_concessions_revenue:
+                                                    type: number
+                                                total_loyalty_points:
+                                                    type: integer
+                                                avg_occupancy_pct:
+                                                    type: number
+                                                active_rentals:
+                                                    type: integer
+                                                low_stock_alerts:
+                                                    type: integer
+                                        daily_series:
+                                            type: array
+                                            items:
+                                                type: object
+                                                properties:
+                                                    date:
+                                                        type: string
+                                                        format: date
+                                                    orders:
+                                                        type: integer
+                                                    tickets:
+                                                        type: integer
+                                                    revenue:
+                                                        type: number
+                                                    loyalty_points:
+                                                        type: integer
+                                        payment_breakdown:
+                                            type: array
+                                            items:
+                                                type: object
+                                                properties:
+                                                    payment_method:
+                                                        type: object
+                                                        properties:
+                                                            id:
+                                                                type: integer
+                                                            description:
+                                                                type: string
+                                                    total_amount:
+                                                        type: number
+                                                    transaction_count:
+                                                        type: integer
+                                        top_movies:
+                                            type: array
+                                            items:
+                                                type: object
+                                                properties:
+                                                    id:
+                                                        type: integer
+                                                    title:
+                                                        type: string
+                                                    total_tickets_sold:
+                                                        type: integer
+                                                    total_revenue:
+                                                        type: number
+                                                    avg_occupancy_pct:
+                                                        type: number
+                                        top_events:
+                                            type: array
+                                            items:
+                                                type: object
+                                                properties:
+                                                    id:
+                                                        type: integer
+                                                    title:
+                                                        type: string
+                                                    total_tickets_sold:
+                                                        type: integer
+                                                    total_revenue:
+                                                        type: number
+                                        low_stock_products:
+                                            type: array
+                                            items:
+                                                type: object
+                                                properties:
+                                                    id:
+                                                        type: integer
+                                                    name:
+                                                        type: string
+                                                    current_stock:
+                                                        type: integer
+                                                    minimum_stock:
+                                                        type: integer
+            '401':
+                description: Unauthorized
+            '403':
+                description: Insufficient permissions
+
+/reports/cinemas/{cinemaId}/dashboard:
+    get:
+        summary: Get consolidated dashboard for a specific cinema (superadmin)
+        tags:
+            - Reports Dashboard Admin
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: path
+              name: cinemaId
+              required: true
+              schema:
+                  type: integer
+            - in: query
+              name: from
+              schema:
+                  type: string
+                  format: date
+            - in: query
+              name: to
+              schema:
+                  type: string
+                  format: date
+        responses:
+            '200':
+                description: Dashboard data for the specified cinema
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                message:
+                                    type: string
+                                data:
+                                    type: object
+                                    properties:
+                                        period:
+                                            type: object
+                                            properties:
+                                                from:
+                                                    type: string
+                                                    format: date
+                                                to:
+                                                    type: string
+                                                    format: date
+                                        kpis:
+                                            type: object
+                                            properties:
+                                                total_revenue:
+                                                    type: number
+                                                total_orders:
+                                                    type: integer
+                                                total_tickets:
+                                                    type: integer
+                                                net_revenue:
+                                                    type: number
+                                                total_concessions_revenue:
+                                                    type: number
+                                                total_loyalty_points:
+                                                    type: integer
+                                                avg_occupancy_pct:
+                                                    type: number
+                                                active_rentals:
+                                                    type: integer
+                                                low_stock_alerts:
+                                                    type: integer
+                                        daily_series:
+                                            type: array
+                                            items:
+                                                type: object
+                                                properties:
+                                                    date:
+                                                        type: string
+                                                        format: date
+                                                    orders:
+                                                        type: integer
+                                                    tickets:
+                                                        type: integer
+                                                    revenue:
+                                                        type: number
+                                                    loyalty_points:
+                                                        type: integer
+                                        payment_breakdown:
+                                            type: array
+                                            items:
+                                                type: object
+                                                properties:
+                                                    payment_method:
+                                                        type: object
+                                                        properties:
+                                                            id:
+                                                                type: integer
+                                                            description:
+                                                                type: string
+                                                    total_amount:
+                                                        type: number
+                                                    transaction_count:
+                                                        type: integer
+                                        top_movies:
+                                            type: array
+                                            items:
+                                                type: object
+                                                properties:
+                                                    id:
+                                                        type: integer
+                                                    title:
+                                                        type: string
+                                                    total_tickets_sold:
+                                                        type: integer
+                                                    total_revenue:
+                                                        type: number
+                                                    avg_occupancy_pct:
+                                                        type: number
+                                        top_events:
+                                            type: array
+                                            items:
+                                                type: object
+                                                properties:
+                                                    id:
+                                                        type: integer
+                                                    title:
+                                                        type: string
+                                                    total_tickets_sold:
+                                                        type: integer
+                                                    total_revenue:
+                                                        type: number
+                                        low_stock_products:
+                                            type: array
+                                            items:
+                                                type: object
+                                                properties:
+                                                    id:
+                                                        type: integer
+                                                    name:
+                                                        type: string
+                                                    current_stock:
+                                                        type: integer
+                                                    minimum_stock:
+                                                        type: integer
+            '401':
+                description: Unauthorized
+            '403':
+                description: Insufficient permissions

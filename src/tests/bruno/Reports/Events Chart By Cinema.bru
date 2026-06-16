@@ -1,0 +1,29 @@
+meta {
+  name: Events Chart By Cinema
+  type: http
+  seq: 23
+}
+
+get {
+  url: {{baseUrl}}/reports/cinemas/{{cinemaId}}/events/chart
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  from: {{fromDate}}
+  to: {{toDate}}
+}
+
+vars:pre-request {
+  cinemaId: 1
+}
+
+docs {
+  Datos normalizados para gráfico de eventos de una sucursal específica.
+  Permiso: CRUD:READ:REPORTS-ALL
+}

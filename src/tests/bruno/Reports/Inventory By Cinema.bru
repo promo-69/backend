@@ -1,11 +1,11 @@
 meta {
-  name: Events By Cinema (Super Admin)
+  name: Inventory By Cinema
   type: http
-  seq: 12
+  seq: 30
 }
 
 get {
-  url: {{baseUrl}}/reports/cinemas/{{cinemaId}}/events
+  url: {{baseUrl}}/reports/cinemas/{{cinemaId}}/inventory
   body: none
   auth: bearer
 }
@@ -24,5 +24,6 @@ vars:pre-request {
 }
 
 docs {
-  Reporte de eventos especiales de una sucursal específica. Permiso: CRUD:READ:REPORTS-ALL
+  Reporte de inventario de una sucursal específica.
+  Permiso: CRUD:READ:REPORTS-ALL
 }

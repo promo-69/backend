@@ -1,4 +1,5 @@
 import { ControllerBase } from '@bases/controller.base.js';
+import { ValidationError } from '@errors/index.js';
 import ReportsService from './_.service.js';
 import { CSVExporter } from './export/csv.exporter.js';
 import { XLSXExporter } from './export/xlsx.exporter.js';
@@ -8,13 +9,43 @@ class ReportsController extends ControllerBase {
     private _session() { return this.getSession<any>(); }
     private _query() { return this.getQuery(); }
     private _params() { return this.getParams(); }
-    private _cinemaId(): number {
-        const session = this._session();
-        return Number(session?.cinemaId);
-    }
+    private _cinemaId(): number { return Number(this._session()?.cinemaId); }
     private _dateFilters() {
         const q = this._query();
         return { from: q.from as string | undefined, to: q.to as string | undefined };
+    }
+
+    // ---------- Dashboard consolidado ----------
+    async getDashboard() {
+        const data = await ReportsService.getDashboardReport(this._cinemaId(), this._dateFilters());
+        return this.success(data, 'Dashboard generado exitosamente');
+    }
+    async getDashboardByCinema() {
+        const { cinemaId } = this._params();
+        const data = await ReportsService.getDashboardReport(Number(cinemaId), this._dateFilters());
+        return this.success(data, 'Dashboard generado exitosamente');
+    }
+
+    // ---------- Charts ----------
+    async getChart() {
+        const { reportType } = this._params();
+        const q = this._query();
+        const data = await ReportsService.getChartData(this._cinemaId(), reportType, {
+            ...this._dateFilters(),
+            groupBy: q.groupBy as string | undefined,
+            channel: q.channel as string | undefined,
+        });
+        return this.success(data, 'Datos de gráfico generados exitosamente');
+    }
+    async getChartByCinema() {
+        const { cinemaId, reportType } = this._params();
+        const q = this._query();
+        const data = await ReportsService.getChartData(Number(cinemaId), reportType, {
+            ...this._dateFilters(),
+            groupBy: q.groupBy as string | undefined,
+            channel: q.channel as string | undefined,
+        });
+        return this.success(data, 'Datos de gráfico generados exitosamente');
     }
 
     // ---------- Rutas de empleado (cinemaId implícito) ----------
@@ -94,7 +125,7 @@ class ReportsController extends ControllerBase {
         return this.success(data, 'Reporte de caja generado exitosamente');
     }
 
-    // ---------- Exportación (CSV, XLSX, PDF) ----------
+    // ---------- Exportación empleado (cinemaId del JWT) ----------
     async export() {
         const { reportType } = this._params();
         const q = this._query();
@@ -102,51 +133,38 @@ class ReportsController extends ControllerBase {
         const session = this._session();
         const cinemaId = this._cinemaId();
 
-        const validTypes = ['sales', 'movies', 'events', 'inventory', 'cashier', 'showtimes', 'rentals'];
-        if (!validTypes.includes(reportType)) {
-            const { ValidationError } = await import('@errors/index.js');
-            throw new ValidationError(`Tipo de reporte inválido. Valores permitidos: ${validTypes.join(', ')}`);
-        }
+        // La validación de reportType y format vive en el service
+        const reportData = await ReportsService.getReportForExport(
+            reportType,
+            format,
+            cinemaId,
+            { ...this._dateFilters(), channel: q.channel as string | undefined },
+            Number(session?.employeeId ?? session?.userId),
+        );
 
-        const validFormats = ['json', 'csv', 'xlsx', 'pdf'];
-        if (!validFormats.includes(format)) {
-            const { ValidationError } = await import('@errors/index.js');
-            throw new ValidationError(`Formato inválido. Valores permitidos: ${validFormats.join(', ')}`);
-        }
+        return this._sendExport(reportType, format, reportData);
+    }
 
-        const filters = { ...this._dateFilters(), channel: q.channel as string | undefined };
-        let reportData: any;
+    // ---------- Exportación superadmin (cinemaId en URL) ----------
+    async exportByCinema() {
+        const { cinemaId, reportType } = this._params();
+        const q = this._query();
+        const format = (q.format as string | undefined) ?? 'json';
+        const employeeId = q.employeeId ? Number(q.employeeId) : undefined;
 
-        switch (reportType) {
-            case 'sales':
-                reportData = await ReportsService.getSalesReport(cinemaId, filters);
-                break;
-            case 'movies':
-                reportData = await ReportsService.getMoviesReport(cinemaId, filters);
-                break;
-            case 'events':
-                reportData = await ReportsService.getEventsReport(cinemaId, filters);
-                break;
-            case 'inventory':
-                reportData = await ReportsService.getInventoryReport(cinemaId, filters);
-                break;
-            case 'cashier':
-                reportData = await ReportsService.getCashierReport(
-                    Number(session?.employeeId ?? session?.userId),
-                    cinemaId,
-                    filters,
-                );
-                break;
-            case 'showtimes':
-                reportData = await ReportsService.getShowtimesReport(cinemaId, filters);
-                break;
-            case 'rentals':
-                reportData = await ReportsService.getRentalsReport(cinemaId, filters);
-                break;
-            default:
-                reportData = {};
-        }
+        const reportData = await ReportsService.getReportForExport(
+            reportType,
+            format,
+            Number(cinemaId),
+            { ...this._dateFilters(), channel: q.channel as string | undefined },
+            employeeId,
+        );
 
+        return this._sendExport(reportType, format, reportData);
+    }
+
+    // ---------- Helper interno de respuesta de export ----------
+    private async _sendExport(reportType: string, format: string, reportData: any) {
         if (format === 'json') {
             return this.success(reportData, `Reporte ${reportType} exportado`);
         }
@@ -174,6 +192,9 @@ class ReportsController extends ControllerBase {
             this.getResponse().send(pdfBuffer);
             return;
         }
+
+        // Nunca llega aquí: el service ya validó el formato
+        throw new ValidationError(`Formato inválido: ${format}`);
     }
 }
 
