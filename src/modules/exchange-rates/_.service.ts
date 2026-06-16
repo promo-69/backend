@@ -21,30 +21,28 @@ export class ExchangeRatesService extends BaseService {
 		return Database.repository('main', 'users') as any;
 	}
 
+	private get _exchangeRelations() {
+		return [
+			{ association: '_Currencies', attributes: ['id', 'code', 'symbol'] },
+		];
+	}
+
 	private async getCurrencyOrFail(currencyId: number) {
 		const currency = await this._currencies.getById(currencyId);
-		if (!currency) throw new NotFoundError('Currency not found');
+
+		if (!currency) throw new NotFoundError('Moneda no encontrada');
+
 		return currency;
 	}
 
 	async listExchangeRates(filters: ProcessedQueryFilters) {
-		const relations = [
-			{ association: '_Currencies', attributes: ['id', 'code', 'symbol'] },
-			{ association: '_Users', attributes: ['id', 'email'] },
-		];
-
-		return this._exchangeRates.getAll({ ...filters, relations, order: [['created_at', 'DESC']] });
+		return this._exchangeRates.getAll({ ...filters, relations: this._exchangeRelations, order: [['created_at', 'DESC']] });
 	}
 
 	async getExchangeRateById(id: number) {
-		const exchangeRate = await this._exchangeRates.getById(id, {
-			relations: [
-				{ association: '_Currencies', attributes: ['id', 'code', 'symbol'] },
-				{ association: '_Users', attributes: ['id', 'email'] },
-			],
-		});
+		const exchangeRate = await this._exchangeRates.getById(id, { relations: this._exchangeRelations, });
 
-		if (!exchangeRate) throw new NotFoundError('Exchange rate not found');
+		if (!exchangeRate) throw new NotFoundError('Tasa de cambio no encontrada');
 		return exchangeRate;
 	}
 
@@ -83,9 +81,9 @@ export class ExchangeRatesService extends BaseService {
 		this.validateRequired({ currency: currencyId, rate }, ['currency', 'rate']);
 
 		if (Number.isNaN(currencyId) || currencyId <= 0)
-			throw new ValidationError('currency must be a valid numeric identifier', ['currency']);
+			throw new ValidationError('La moneda no es válida', ['currency']);
 
-		if (Number.isNaN(rate) || rate <= 0) throw new ValidationError('rate must be a positive number', ['rate']);
+		if (Number.isNaN(rate) || rate <= 0) throw new ValidationError('La tasa debe ser un número positivo');
 
 		await this.getCurrencyOrFail(currencyId);
 
@@ -105,15 +103,10 @@ export class ExchangeRatesService extends BaseService {
 	) {
 		await this.getCurrencyOrFail(currencyId);
 
-		const relations = [
-			{ association: '_Currencies', attributes: ['id', 'code', 'symbol'] },
-			{ association: '_Users', attributes: ['id', 'email'] },
-		];
-
 		return this._exchangeRates.getAll(
 			{
 				...filters,
-				relations,
+				relations: this._exchangeRelations,
 				order: [['created_at', 'DESC']],
 			},
 			{
