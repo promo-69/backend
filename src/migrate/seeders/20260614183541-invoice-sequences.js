@@ -16,36 +16,6 @@ module.exports = {
 					prefix: 'CPL',
 					current_value: 1,
 				},
-				{
-					cinema: 3,
-					prefix: 'SCO',
-					current_value: 1,
-				},
-				{
-					cinema: 4,
-					prefix: 'SCA',
-					current_value: 1,
-				},
-				{
-					cinema: 5,
-					prefix: 'SSE',
-					current_value: 1,
-				},
-				{
-					cinema: 6,
-					prefix: 'CPV',
-					current_value: 1,
-				},
-				{
-					cinema: 7,
-					prefix: 'PSU',
-					current_value: 1,
-				},
-				{
-					cinema: 8,
-					prefix: 'SP2',
-					current_value: 1,
-				},
 			],
 			{},
 		);
