@@ -17,12 +17,12 @@ auth:bearer {
 body:json {
   {
     "currency": {{testCurrencyId}},
-    "rate": 1.25
+    "rate": 60
   }
 }
 
 vars:pre-request {
-  testCurrencyId: 2
+  testCurrencyId: 1
 }
 
 script:pre-request {

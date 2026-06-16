@@ -22,7 +22,7 @@ class CurrenciesController extends ControllerBase {
 	}
 	// PATCH /api/v1/currencies/:id
 	async update() {
-		await CurrenciesService.updateCurrency(Number(this.getParams().id), this.getBody());
+		await CurrenciesService.updateCurrency(Number(this.getParams().id), this.getBody(), this.getSession().userId);
 		return this.success(null, 'Moneda actualizada exitosamente.');
 	}
 	// DELETE /api/v1/currencies/:id

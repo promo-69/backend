@@ -17,10 +17,6 @@ export class ExchangeRatesService extends BaseService {
 		return Database.repository('main', 'exchange-rates') as any;
 	}
 
-	private get _users() {
-		return Database.repository('main', 'users') as any;
-	}
-
 	private get _exchangeRelations() {
 		return [
 			{ association: '_Currencies', attributes: ['id', 'code', 'symbol'] },
@@ -36,7 +32,7 @@ export class ExchangeRatesService extends BaseService {
 	}
 
 	async listExchangeRates(filters: ProcessedQueryFilters) {
-		return this._exchangeRates.getAll({ ...filters, relations: this._exchangeRelations, order: [['created_at', 'DESC']] });
+		return this._exchangeRates.getAll({ ...filters, relations: this._exchangeRelations, order: [['id', 'DESC']] });
 	}
 
 	async getExchangeRateById(id: number) {
