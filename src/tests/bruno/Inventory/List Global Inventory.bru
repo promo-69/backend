@@ -1,0 +1,25 @@
+meta {
+  name: List Global Inventory (Super Admin)
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/inventory/admin/all
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  page: 1
+  limit: 20
+}
+
+docs {
+  Listado global de inventario de todas las sucursales.
+  Permiso requerido: CRUD:READ:CINEMAS-INVENTORY
+}

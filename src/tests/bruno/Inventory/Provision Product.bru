@@ -1,0 +1,39 @@
+meta {
+  name: Provision Product
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/inventory/products/{{productId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "minimumStock": 5
+  }
+}
+
+vars:pre-request {
+  productId: 1
+}
+
+script:post-response {
+  const body = res.getBody();
+  if (res.getStatus() === 201 && body?.data?.id) {
+    bru.setEnvVar('inventoryId', body.data.id);
+  }
+}
+
+docs {
+  Habilita un producto en el inventario de la sucursal actual (stock inicial 0).
+  `minimumStock` es opcional (por defecto 0).
+  Devuelve el registro de inventario creado.
+  El ID del inventario se guarda automáticamente en la variable `inventoryId`.
+}

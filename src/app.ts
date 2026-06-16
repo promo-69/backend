@@ -205,9 +205,10 @@ export class App {
                 health: `See ${this.appConfig.protocol}://${interfaceIp}/health for check the health of the API`,
                 ...(this.appConfig.appEnv == 'development'
                     ? {
-                          development: {
-                              routes: `See ${this.appConfig.protocol}://${interfaceIp}/api/v[version-number]/[module]: API endpoints`,
-                          },
+						development: {
+							server_time: new Date().toLocaleString('en-US', { timeZoneName: 'short' }) + ' | ' + new Date().toLocaleString('es-VE', { timeZoneName: 'short', timeZone: 'America/Caracas' }),
+							routes: `See ${this.appConfig.protocol}://${interfaceIp}/api/v[version-number]/[module]: API endpoints`,
+						},
                       }
                     : {}),
             };

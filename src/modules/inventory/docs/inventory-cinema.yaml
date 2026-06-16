@@ -1,0 +1,255 @@
+/cinemas/{cinemaId}/inventory:
+    get:
+        summary: Get inventory of a specific cinema
+        tags:
+            - Inventory Admin
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: cinemaId
+              in: path
+              required: true
+              schema:
+                  type: integer
+            - name: page
+              in: query
+              schema:
+                  type: integer
+            - name: limit
+              in: query
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Inventory list for the specified cinema
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                message:
+                                    type: string
+                                data:
+                                    type: array
+                                    items:
+                                        type: object
+            '401':
+                description: Unauthorized
+            '403':
+                description: Insufficient permissions
+            '404':
+                description: Cinema not found
+
+/cinemas/{cinemaId}/inventory/products/{productId}:
+    get:
+        summary: Get product stock in a specific cinema
+        tags:
+            - Inventory Admin
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: cinemaId
+              in: path
+              required: true
+              schema:
+                  type: integer
+            - name: productId
+              in: path
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Product stock details
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                message:
+                                    type: string
+                                data:
+                                    type: object
+                                    properties:
+                                        id:
+                                            type: integer
+                                        product:
+                                            type: object
+                                        stock:
+                                            type: integer
+                                        minimum_stock:
+                                            type: integer
+                                        current_unit_cost_base_currency:
+                                            type: number
+            '404':
+                description: Product not provisioned in this cinema
+    post:
+        summary: Provision product in a specific cinema
+        tags:
+            - Inventory Admin
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: cinemaId
+              in: path
+              required: true
+              schema:
+                  type: integer
+            - name: productId
+              in: path
+              required: true
+              schema:
+                  type: integer
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            minimumStock:
+                                type: integer
+                                default: 0
+        responses:
+            '201':
+                description: Product provisioned
+            '401':
+                description: Unauthorized
+            '403':
+                description: Insufficient permissions
+            '409':
+                description: Already provisioned
+
+/cinemas/{cinemaId}/inventory/{id}:
+    get:
+        summary: Get inventory record details in a specific cinema
+        tags:
+            - Inventory Admin
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: cinemaId
+              in: path
+              required: true
+              schema:
+                  type: integer
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Inventory detail with movements
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                message:
+                                    type: string
+                                data:
+                                    type: object
+                                    properties:
+                                        id:
+                                            type: integer
+                                        product:
+                                            type: object
+                                        stock:
+                                            type: integer
+                                        minimum_stock:
+                                            type: integer
+                                        current_unit_cost_base_currency:
+                                            type: number
+                                        movements:
+                                            type: array
+                                            items:
+                                                type: object
+                                                properties:
+                                                    id:
+                                                        type: integer
+                                                    operation_type:
+                                                        type: integer
+                                                    quantity:
+                                                        type: integer
+                                                    unit_cost:
+                                                        type: number
+                                                    remarks:
+                                                        type: string
+                                                    created_at:
+                                                        type: string
+                                                        format: date-time
+            '404':
+                description: Inventory record not found
+
+/cinemas/{cinemaId}/inventory/{id}/movements:
+    post:
+        summary: Register movements in a specific cinema
+        tags:
+            - Inventory Admin
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: cinemaId
+              in: path
+              required: true
+              schema:
+                  type: integer
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: array
+                        items:
+                            type: object
+                            required:
+                                - operationType
+                                - quantity
+                            properties:
+                                operationType:
+                                    type: integer
+                                quantity:
+                                    type: integer
+                                unit_cost:
+                                    type: number
+                                remarks:
+                                    type: string
+                                adjustmentDirection:
+                                    type: string
+                                    enum: [increase, decrease]
+        responses:
+            '201':
+                description: Movements registered
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                message:
+                                    type: string
+                                data:
+                                    type: array
+                                    items:
+                                        type: object
+            '400':
+                description: Validation error
+            '401':
+                description: Unauthorized
+            '403':
+                description: Insufficient permissions
+            '404':
+                description: Inventory record not found

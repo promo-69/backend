@@ -1,0 +1,29 @@
+meta {
+  name: List Global Inventory by Cinema
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/inventory/admin/all
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  cinema_id: {{cinemaId}}
+  page: 1
+  limit: 20
+}
+
+vars:pre-request {
+  cinemaId: 1
+}
+
+docs {
+  Filtra el inventario global por sucursal específica.
+}

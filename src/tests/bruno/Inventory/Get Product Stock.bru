@@ -1,0 +1,24 @@
+meta {
+  name: Get Product Stock
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/inventory/products/{{productId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+vars:pre-request {
+  productId: 1
+}
+
+docs {
+  Obtiene el stock y detalles de un producto específico en la sucursal actual.
+  Devuelve también el costo unitario promedio actual.
+}

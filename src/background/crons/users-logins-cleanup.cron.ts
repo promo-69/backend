@@ -14,6 +14,7 @@ export default async function usersLoginsCleanupCron() {
 			{
 				repeat: {
 					pattern: '0 1 * * *',
+					tz: 'America/Caracas',
 				},
 				// Evita que trabajos repetitivos antiguos se acumulen
 				removeOnComplete: true,
