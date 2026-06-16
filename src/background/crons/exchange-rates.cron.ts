@@ -14,6 +14,7 @@ export default async function exchangeRatesCron() {
 			{
 				repeat: {
 					pattern: '0 18 * * *',
+					tz: 'America/Caracas',
 				},
 				// Evita que trabajos repetitivos antiguos se acumulen
 				removeOnComplete: true,
