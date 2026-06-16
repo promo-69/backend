@@ -211,7 +211,7 @@ export class ShowtimeManagementService {
             relations: [
                 {
                     association: '_Rooms',
-                    attributes: ['id', 'name', 'cinema'],
+                    attributes: ['id', 'name', 'cinema', 'grid_rows', 'grid_columns'],
                     required: targetCinemaId ? true : false,
                     relations: [
                         {
@@ -382,6 +382,8 @@ export class ShowtimeManagementService {
                     room: {
                         id: room.id,
                         name: room.name,
+                        grid_rows: room.grid_rows,
+                        grid_columns: room.grid_columns,
                         cinema: cinema ? { id: cinema.id, name: cinema.name } : null,
                     },
                 },
@@ -412,7 +414,7 @@ export class ShowtimeManagementService {
             relations: [
                 {
                     association: '_Rooms',
-                    attributes: ['id', 'name', 'cinema'],
+                    attributes: ['id', 'name', 'cinema', 'grid_rows', 'grid_columns'],
                     required: cinemaId ? true : false,
                     relations: [
                         {
@@ -535,6 +537,8 @@ export class ShowtimeManagementService {
                     room: {
                         id: room.id,
                         name: room.name,
+                        grid_rows: room.grid_rows,
+                        grid_columns: room.grid_columns,
                         cinema: cinema ? { id: cinema.id, name: cinema.name } : null,
                     },
                 },
