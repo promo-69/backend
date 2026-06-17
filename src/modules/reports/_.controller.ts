@@ -1,4 +1,5 @@
 import { ControllerBase } from '@bases/controller.base.js';
+import { Database } from '@database/index.js';
 import { ValidationError } from '@errors/index.js';
 import ReportsService from './_.service.js';
 import { CSVExporter } from './export/csv.exporter.js';
@@ -114,19 +115,27 @@ class ReportsController extends ControllerBase {
     }
 
     // ── Helper de respuesta binaria ───────────────────────────────────────────
-    private async _sendExport(reportType: string, format: string, reportData: any) {
+    private async _sendExport(reportType: string, format: string, reportData: any, cinemaId?: number) {
+        // ── Obtener nombre de la sucursal (si existe) ──────────────────────────
+        let cinemaName: string | undefined;
+        if (cinemaId) {
+            const cinemasRepo = Database.repository('main', 'cinemas') as any;
+            const cinema = await cinemasRepo.getById(cinemaId, { attributes: ['name'] });
+            cinemaName = cinema?.name;
+        }
+
         if (format === 'json') {
             return this.success(reportData, `Reporte ${reportType} exportado`);
         }
         if (format === 'csv') {
-            const csv = CSVExporter.toCSV(reportType, reportData);
+            const csv = CSVExporter.toCSV(reportType, reportData, cinemaName);
             this.getResponse().setHeader('Content-Type', 'text/csv');
             this.getResponse().setHeader('Content-Disposition', `attachment; filename="${reportType}-report.csv"`);
             this.getResponse().send(csv);
             return;
         }
         if (format === 'xlsx') {
-            const buffer = await XLSXExporter.toXLSX(reportType, reportData);
+            const buffer = await XLSXExporter.toXLSX(reportType, reportData, cinemaName);
             this.getResponse().setHeader(
                 'Content-Type',
                 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -136,7 +145,7 @@ class ReportsController extends ControllerBase {
             return;
         }
         if (format === 'pdf') {
-            const pdfBuffer = await PDFExporter.toPDF(reportType, reportData);
+            const pdfBuffer = await PDFExporter.toPDF(reportType, reportData, cinemaName);
             this.getResponse().setHeader('Content-Type', 'application/pdf');
             this.getResponse().setHeader('Content-Disposition', `attachment; filename="${reportType}-report.pdf"`);
             this.getResponse().send(pdfBuffer);

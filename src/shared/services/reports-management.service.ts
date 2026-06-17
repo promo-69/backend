@@ -88,14 +88,14 @@ export class ReportsManagementService {
     // ─────────────────────────────────────────────────────────────────────────
     // 1. VENTAS (consolidado)
     // ─────────────────────────────────────────────────────────────────────────
-    async getSalesReport(cinemaId: number, filters: { from?: string; to?: string; channel?: string } = {}) {
+    async getSalesReport(cinemaId?: number, filters: { from?: string; to?: string; channel?: string } = {}) {
         const { from, to } = this._buildDateRange(filters.from, filters.to);
 
         const orderWhere: any = {
-            cinema: cinemaId,
             order_status: PAID_STATUSES,
             created_at: { [Ops.between]: [from, to] },
         };
+        if (cinemaId) orderWhere.cinema = cinemaId;
         if (filters.channel === 'taquilla') orderWhere.employee = { [Ops.ne]: null };
         else if (filters.channel === 'web' || filters.channel === 'app') orderWhere.employee = null;
 
@@ -187,7 +187,8 @@ export class ReportsManagementService {
             const isProduct = l.product !== null;
             const id = isProduct ? l.product : l.combo;
             const name = isProduct ? `Producto ${id}` : `Combo ${id}`;
-            if (!productMap.has(id)) productMap.set(id, { name, quantity: 0, revenue: 0, type: isProduct ? 'product' : 'combo' });
+            if (!productMap.has(id))
+                productMap.set(id, { name, quantity: 0, revenue: 0, type: isProduct ? 'product' : 'combo' });
             productMap.get(id)!.quantity += l.quantity;
             productMap.get(id)!.revenue += Number(l.unit_price) * l.quantity;
         }
@@ -244,10 +245,12 @@ export class ReportsManagementService {
     // ─────────────────────────────────────────────────────────────────────────
     // 2. PELÍCULAS (estadísticas)
     // ─────────────────────────────────────────────────────────────────────────
-    async getMoviesReport(cinemaId: number, filters: { from?: string; to?: string } = {}) {
+    async getMoviesReport(cinemaId?: number, filters: { from?: string; to?: string } = {}) {
         const { from, to } = this._buildDateRange(filters.from, filters.to);
 
-        const roomsRaw = await this._rooms.getAll({ count: false, attributes: ['id'] }, { cinema: cinemaId });
+        // Obtener salas: si hay cinemaId, filtrar por él, sino todas
+        const roomWhere = cinemaId ? { cinema: cinemaId } : {};
+        const roomsRaw = await this._rooms.getAll({ count: false, attributes: ['id'] }, roomWhere);
         const roomList: any[] = this._toList(roomsRaw);
         if (roomList.length === 0)
             return { period: { from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) }, movies: [] };
@@ -271,7 +274,7 @@ export class ReportsManagementService {
                 attributes: ['id', 'booking', 'movie'],
                 relations: [{ association: '_Movies', attributes: ['id', 'title', 'poster_url'] }],
             },
-            { booking: bookingIds, movie: { [Ops.ne]: null } }, // solo películas
+            { booking: bookingIds, movie: { [Ops.ne]: null } },
         );
         const showtimesList: any[] = this._toList(showtimesRaw);
         if (showtimesList.length === 0)
@@ -347,10 +350,11 @@ export class ReportsManagementService {
     // ─────────────────────────────────────────────────────────────────────────
     // 3. EVENTOS ESPECIALES (estadísticas)
     // ─────────────────────────────────────────────────────────────────────────
-    async getEventsReport(cinemaId: number, filters: { from?: string; to?: string } = {}) {
+    async getEventsReport(cinemaId?: number, filters: { from?: string; to?: string } = {}) {
         const { from, to } = this._buildDateRange(filters.from, filters.to);
 
-        const roomsRaw = await this._rooms.getAll({ count: false, attributes: ['id'] }, { cinema: cinemaId });
+        const roomWhere = cinemaId ? { cinema: cinemaId } : {};
+        const roomsRaw = await this._rooms.getAll({ count: false, attributes: ['id'] }, roomWhere);
         const roomList: any[] = this._toList(roomsRaw);
         if (roomList.length === 0)
             return { period: { from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) }, events: [] };
@@ -455,11 +459,11 @@ export class ReportsManagementService {
     // El stock actual se obtiene del campo resulting_stock del último movimiento
     // por inventario (arquitectura ledger). InventoriesModel no tiene columna stock.
     // ─────────────────────────────────────────────────────────────────────────
-    async getInventoryReport(cinemaId: number, filters: { from?: string; to?: string } = {}) {
+    async getInventoryReport(cinemaId?: number, filters: { from?: string; to?: string } = {}) {
         const { from, to } = this._buildDateRange(filters.from, filters.to);
 
-        // 1. Cabeceras de inventario con producto y categoría
-        //    Usa `nested` (no `include`) según RelationConfig del repositorio base
+        // Cabeceras de inventario: si hay cinemaId, filtrar por él
+        const invWhere = cinemaId ? { cinema: cinemaId } : {};
         const inventoriesRaw = await this._inventories.getAll(
             {
                 count: false,
@@ -472,7 +476,7 @@ export class ReportsManagementService {
                     },
                 ],
             },
-            { cinema: cinemaId },
+            invWhere,
         );
         const inventories: any[] = this._toList(inventoriesRaw);
         if (inventories.length === 0) {
@@ -568,7 +572,7 @@ export class ReportsManagementService {
     // ─────────────────────────────────────────────────────────────────────────
     // 5. CAJA (CIERRE DE TURNO)
     // ─────────────────────────────────────────────────────────────────────────
-    async getCashierReport(employeeId: number, cinemaId: number, filters: { from?: string; to?: string } = {}) {
+    async getCashierReport(employeeId: number, cinemaId?: number, filters: { from?: string; to?: string } = {}) {
         let dateFrom: Date;
         let dateTo: Date;
 
@@ -582,6 +586,12 @@ export class ReportsManagementService {
             dateTo = new Date();
             dateTo.setUTCHours(23, 59, 59, 999);
         }
+
+        const orderWhere: any = {
+            employee: employeeId,
+            created_at: { [Ops.between]: [dateFrom, dateTo] },
+        };
+        if (cinemaId) orderWhere.cinema = cinemaId;
 
         const ordersRaw = await this._orders.getAll(
             {
@@ -597,7 +607,7 @@ export class ReportsManagementService {
                 relations: [{ association: '_OrderStatuses', attributes: ['id', 'description'] }],
                 order: [['created_at', 'ASC']],
             },
-            { employee: employeeId, cinema: cinemaId, created_at: { [Ops.between]: [dateFrom, dateTo] } },
+            orderWhere,
         );
         const orders: any[] = this._toList(ordersRaw);
         const totalOrders: number = Array.isArray(ordersRaw) ? orders.length : ordersRaw.count;
@@ -626,7 +636,7 @@ export class ReportsManagementService {
         const paidOrders = orders.filter((o: any) => PAID_STATUSES.includes(o.order_status));
         const totalRevenue = paidOrders.reduce((s: number, o: any) => s + Number(o.total_amount_base_currency), 0);
         const totalTax = paidOrders.reduce((s: number, o: any) => s + Number(o.tax_amount_base_currency), 0);
-        const cancelledOrders = orders.filter((o: any) => o.order_status === 3).length; // asumiendo status 3 = Cancelada
+        const cancelledOrders = orders.filter((o: any) => o.order_status === 3).length;
 
         const pmMap = new Map<number, { description: string; amount: number; count: number }>();
         for (const p of payments) {
@@ -673,10 +683,11 @@ export class ReportsManagementService {
     // ─────────────────────────────────────────────────────────────────────────
     // 6. FUNCIONES (OCUPACIÓN) – películas y eventos
     // ─────────────────────────────────────────────────────────────────────────
-    async getShowtimesReport(cinemaId: number, filters: { from?: string; to?: string } = {}) {
+    async getShowtimesReport(cinemaId?: number, filters: { from?: string; to?: string } = {}) {
         const { from, to } = this._buildDateRange(filters.from, filters.to);
 
-        const roomsRaw = await this._rooms.getAll({ count: false, attributes: ['id', 'name'] }, { cinema: cinemaId });
+        const roomWhere = cinemaId ? { cinema: cinemaId } : {};
+        const roomsRaw = await this._rooms.getAll({ count: false, attributes: ['id', 'name'] }, roomWhere);
         const roomList: any[] = this._toList(roomsRaw);
         if (roomList.length === 0)
             return {
@@ -713,7 +724,10 @@ export class ReportsManagementService {
             { booking: bookingIds },
         );
         const showtimesList: any[] = this._toList(showtimesRaw);
-        const ticketsRaw = await this._tickets.getAll({ count: false, attributes: ['id', 'booking', 'price'] }, { booking: bookingIds });
+        const ticketsRaw = await this._tickets.getAll(
+            { count: false, attributes: ['id', 'booking', 'price'] },
+            { booking: bookingIds },
+        );
         const ticketsList: any[] = this._toList(ticketsRaw);
 
         const seatCountMap = new Map<number, number>();
@@ -739,8 +753,8 @@ export class ReportsManagementService {
                 const revenue = tickets.reduce((sum: number, t: any) => sum + Number(t.price), 0);
                 const isEvent = s.special_event_id !== null;
                 const title = isEvent
-                    ? s._SpecialEvents?.title ?? `Evento ${s.special_event_id}`
-                    : s._Movies?.title ?? `Película ${s.movie}`;
+                    ? (s._SpecialEvents?.title ?? `Evento ${s.special_event_id}`)
+                    : (s._Movies?.title ?? `Película ${s.movie}`);
                 return {
                     showtime_id: s.id,
                     booking_id: s.booking,
@@ -766,10 +780,11 @@ export class ReportsManagementService {
     // ─────────────────────────────────────────────────────────────────────────
     // 7. ALQUILERES
     // ─────────────────────────────────────────────────────────────────────────
-    async getRentalsReport(cinemaId: number, filters: { from?: string; to?: string } = {}) {
+    async getRentalsReport(cinemaId?: number, filters: { from?: string; to?: string } = {}) {
         const { from, to } = this._buildDateRange(filters.from, filters.to);
 
-        const roomsRaw = await this._rooms.getAll({ count: false, attributes: ['id'] }, { cinema: cinemaId });
+        const roomWhere = cinemaId ? { cinema: cinemaId } : {};
+        const roomsRaw = await this._rooms.getAll({ count: false, attributes: ['id'] }, roomWhere);
         const roomIds: number[] = this._toList(roomsRaw).map((r: any) => r.id);
 
         const empty = {
