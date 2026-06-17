@@ -1,0 +1,25 @@
+meta {
+  name: Showtimes Report
+  type: http
+  seq: 14
+}
+
+get {
+  url: {{baseUrl}}/reports/showtimes
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  from: {{fromDate}}
+  to: {{toDate}}
+}
+
+docs {
+  Reporte de funciones: ocupación e ingresos por función.
+  Permiso: CRUD:READ:REPORTS-SHOWTIMES
+}

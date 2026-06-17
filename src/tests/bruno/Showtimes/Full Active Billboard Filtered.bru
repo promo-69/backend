@@ -1,0 +1,24 @@
+meta {
+  name: Full Active Billboard Filtered
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/showtimes/billboard/full/filtered?cinemaId={{cinemaId}}&date=2026-06-20
+  body: none
+  auth: none
+}
+
+vars:pre-request {
+  cinemaId: 1
+}
+
+docs {
+  Devuelve películas y eventos especiales con lifecycle 2,3,4 que tienen funciones en la fecha (o rango) especificada.
+  Parámetros opcionales:
+  - cinemaId: número
+  - date: YYYY-MM-DD (filtra exactamente ese día)
+  - from: YYYY-MM-DD (inicio rango)
+  - to: YYYY-MM-DD (fin rango)
+}

@@ -452,19 +452,23 @@ export class ReportsManagementService {
 
     // ─────────────────────────────────────────────────────────────────────────
     // 4. INVENTARIO (con precio de venta y valorización)
+    // El stock actual se obtiene del campo resulting_stock del último movimiento
+    // por inventario (arquitectura ledger). InventoriesModel no tiene columna stock.
     // ─────────────────────────────────────────────────────────────────────────
     async getInventoryReport(cinemaId: number, filters: { from?: string; to?: string } = {}) {
         const { from, to } = this._buildDateRange(filters.from, filters.to);
 
+        // 1. Cabeceras de inventario con producto y categoría
+        //    Usa `nested` (no `include`) según RelationConfig del repositorio base
         const inventoriesRaw = await this._inventories.getAll(
             {
                 count: false,
-                attributes: ['id', 'product', 'stock', 'minimum_stock'],
+                attributes: ['id', 'product', 'minimum_stock'],
                 relations: [
                     {
                         association: '_Products',
                         attributes: ['id', 'name', 'sku', 'price', 'currency'],
-                        include: [{ association: '_ProductCategories', attributes: ['id', 'description'] }],
+                        nested: [{ association: '_ProductCategories', attributes: ['id', 'description'] }],
                     },
                 ],
             },
@@ -480,26 +484,55 @@ export class ReportsManagementService {
         }
 
         const inventoryIds = inventories.map((i: any) => i.id);
-        const movementsRaw = await this._inventoryMovements.getAll(
-            { count: false, attributes: ['id', 'inventory', 'operation_type', 'quantity', 'unit_cost'] },
-            { inventory: inventoryIds, created_at: { [Ops.between]: [from, to] } },
-        );
-        const movements: any[] = this._toList(movementsRaw);
 
+        // 2. Todos los movimientos del período para calcular vendidos/entradas
+        //    + el último movimiento por inventario para obtener el stock actual
+        const [movementsRaw, lastMovementsRaw] = await Promise.all([
+            this._inventoryMovements.getAll(
+                {
+                    count: false,
+                    attributes: ['id', 'inventory', 'operation_type', 'quantity'],
+                },
+                { inventory: inventoryIds, created_at: { [Ops.between]: [from, to] } },
+            ),
+            // Stock actual = resulting_stock del movimiento más reciente por inventario
+            this._inventoryMovements.getAll(
+                {
+                    count: false,
+                    attributes: ['inventory', 'resulting_stock'],
+                    order: [['created_at', 'DESC']],
+                },
+                { inventory: inventoryIds },
+            ),
+        ]);
+
+        const movements: any[] = this._toList(movementsRaw);
+        const lastMovements: any[] = this._toList(lastMovementsRaw);
+
+        // Stock actual: primer movimiento encontrado por inventario (ya ordenado DESC)
+        const currentStockMap = new Map<number, number>();
+        for (const m of lastMovements) {
+            if (!currentStockMap.has(m.inventory)) {
+                currentStockMap.set(m.inventory, Number(m.resulting_stock));
+            }
+        }
+
+        // Vendidos y entradas en el período
         const soldByInv = new Map<number, number>();
         const entriesByInv = new Map<number, number>();
         for (const m of movements) {
             const qty = Number(m.quantity);
-            if (m.operation_type === INVENTORY_OP_SALE) soldByInv.set(m.inventory, (soldByInv.get(m.inventory) ?? 0) + qty);
-            if (m.operation_type === INVENTORY_OP_ENTRY) entriesByInv.set(m.inventory, (entriesByInv.get(m.inventory) ?? 0) + qty);
+            if (m.operation_type === INVENTORY_OP_SALE)
+                soldByInv.set(m.inventory, (soldByInv.get(m.inventory) ?? 0) + qty);
+            if (m.operation_type === INVENTORY_OP_ENTRY)
+                entriesByInv.set(m.inventory, (entriesByInv.get(m.inventory) ?? 0) + qty);
         }
 
-        const currencyMap = new Map<number, string>();
         const products = inventories
             .map((inv: any) => {
                 const product = inv._Products;
                 const productPrice = product ? Number(product.price) : 0;
-                const currentStock = inv.stock;
+                const currentStock = currentStockMap.get(inv.id) ?? 0;
                 const stockValue = currentStock * productPrice;
                 return {
                     inventory_id: inv.id,

@@ -1,0 +1,25 @@
+meta {
+  name: Rentals Chart
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/reports/rentals/chart
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  from: {{fromDate}}
+  to: {{toDate}}
+}
+
+docs {
+  Datos normalizados para gráfico de alquileres.
+  Permiso: CRUD:READ:REPORTS-CHARTS
+}

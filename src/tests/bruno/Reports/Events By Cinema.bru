@@ -1,11 +1,11 @@
 meta {
-  name: Showtimes By Cinema (Super Admin)
+  name: Events By Cinema
   type: http
-  seq: 14
+  seq: 29
 }
 
 get {
-  url: {{baseUrl}}/reports/cinemas/{{cinemaId}}/showtimes
+  url: {{baseUrl}}/reports/cinemas/{{cinemaId}}/events
   body: none
   auth: bearer
 }
@@ -24,5 +24,6 @@ vars:pre-request {
 }
 
 docs {
-  Reporte de funciones de una sucursal específica. Permiso: CRUD:READ:REPORTS-ALL
+  Reporte de eventos de una sucursal específica.
+  Permiso: CRUD:READ:REPORTS-ALL
 }

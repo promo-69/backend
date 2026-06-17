@@ -1,7 +1,7 @@
 meta {
-  name: Cashier By Employee (Super Admin)
+  name: Cashier By Employee
   type: http
-  seq: 16
+  seq: 33
 }
 
 get {
@@ -21,9 +21,10 @@ params:query {
 
 vars:pre-request {
   cinemaId: 1
-  employeeId: 1
+  employeeId: 5
 }
 
 docs {
-  Reporte de caja de un empleado específico en una sucursal. Permiso: CRUD:READ:REPORTS-ALL
+  Reporte de caja de un empleado específico en una sucursal.
+  Permiso: CRUD:READ:REPORTS-ALL
 }

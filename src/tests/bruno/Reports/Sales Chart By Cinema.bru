@@ -1,11 +1,11 @@
 meta {
-  name: Sales By Cinema (Super Admin)
+  name: Sales Chart By Cinema
   type: http
-  seq: 10
+  seq: 21
 }
 
 get {
-  url: {{baseUrl}}/reports/cinemas/{{cinemaId}}/sales
+  url: {{baseUrl}}/reports/cinemas/{{cinemaId}}/sales/chart
   body: none
   auth: bearer
 }
@@ -17,6 +17,7 @@ auth:bearer {
 params:query {
   from: {{fromDate}}
   to: {{toDate}}
+  groupBy: week
   channel: all
 }
 
@@ -25,6 +26,6 @@ vars:pre-request {
 }
 
 docs {
-  Reporte de ventas de una sucursal específica. Requiere SUPER_ADMIN.
+  Datos normalizados para gráfico de ventas de una sucursal específica.
   Permiso: CRUD:READ:REPORTS-ALL
 }

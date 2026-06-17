@@ -1,11 +1,11 @@
 meta {
-  name: Inventory By Cinema (Super Admin)
+  name: Movies By Cinema
   type: http
-  seq: 13
+  seq: 28
 }
 
 get {
-  url: {{baseUrl}}/reports/cinemas/{{cinemaId}}/inventory
+  url: {{baseUrl}}/reports/cinemas/{{cinemaId}}/movies
   body: none
   auth: bearer
 }
@@ -24,5 +24,6 @@ vars:pre-request {
 }
 
 docs {
-  Reporte de inventario de una sucursal específica. Permiso: CRUD:READ:REPORTS-ALL
+  Reporte de películas de una sucursal específica.
+  Permiso: CRUD:READ:REPORTS-ALL
 }

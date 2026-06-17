@@ -36,6 +36,10 @@ export class ShowtimesService {
         return ShowtimeManagementService.getFullActiveBillboard(cinemaId);
     }
 
+    async getFullActiveBillboardFiltered(filters?: { cinemaId?: number; date?: string; from?: string; to?: string }) {
+        return ShowtimeManagementService.getFullActiveBillboardFiltered(filters);
+    }
+
     async findAllShowtimes(filters?: any) {
         return ShowtimeManagementService.findAllShowtimes(filters);
     }

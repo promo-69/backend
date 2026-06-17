@@ -1,0 +1,31 @@
+meta {
+  name: Export Events By Cinema
+  type: http
+  seq: 36
+}
+
+get {
+  url: {{baseUrl}}/reports/cinemas/{{cinemaId}}/events/export
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  format: pdf
+  from: {{fromDate}}
+  to: {{toDate}}
+}
+
+vars:pre-request {
+  cinemaId: 1
+}
+
+docs {
+  Exporta el reporte de eventos de una sucursal específica.
+  format: json | csv | xlsx | pdf
+  Permiso: CRUD:READ:REPORTS-ALL
+}

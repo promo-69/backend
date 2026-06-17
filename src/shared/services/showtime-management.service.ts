@@ -2275,6 +2275,57 @@ export class ShowtimeManagementService {
 		return { count: combined.length, rows: combined };
 	}
 
+	// NUEVO MÉTODO: versión con filtros de fecha
+async getFullActiveBillboardFiltered(filters?: {
+    cinemaId?: number;
+    date?: string;
+    from?: string;
+    to?: string;
+}) {
+    const ACTIVE_STATES = [2, 3, 4];
+    const { cinemaId, date, from, to } = filters || {};
+
+    // Usar el método original para obtener la cartelera base (sin filtros de fecha)
+    const base = await this.getFullActiveBillboard(cinemaId);
+    if (base.count === 0) return base;
+
+    // Función para filtrar showtimes por fecha
+    const filterShowtimesByDate = (showtimes: any[]) => {
+        if (!date && !from && !to) return showtimes;
+        return showtimes.filter((s: any) => {
+            const startTime = new Date(s.booking.start_time);
+            if (date) {
+                const dateStr = startTime.toISOString().slice(0, 10);
+                return dateStr === date;
+            }
+            if (from && to) {
+                const fromDate = new Date(from + 'T00:00:00.000Z');
+                const toDate = new Date(to + 'T23:59:59.999Z');
+                return startTime >= fromDate && startTime <= toDate;
+            }
+            if (from) {
+                const fromDate = new Date(from + 'T00:00:00.000Z');
+                return startTime >= fromDate;
+            }
+            if (to) {
+                const toDate = new Date(to + 'T23:59:59.999Z');
+                return startTime <= toDate;
+            }
+            return true;
+        });
+    };
+
+    // Aplicar filtro a cada ítem
+    const filteredRows = base.rows
+        .map((item: any) => ({
+            ...item,
+            showtimes: filterShowtimesByDate(item.showtimes || [])
+        }))
+        .filter((item: any) => item.showtimes.length > 0);
+
+    return { count: filteredRows.length, rows: filteredRows };
+}
+
 	async bulkCreateShowtimes(
 		data: any,
 	): Promise<{ created: number; skipped: number; errors: string[]; showtimes: any[] }> {

@@ -1,0 +1,29 @@
+meta {
+  name: Dashboard By Cinema
+  type: http
+  seq: 20
+}
+
+get {
+  url: {{baseUrl}}/reports/cinemas/{{cinemaId}}/dashboard
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  from: {{fromDate}}
+  to: {{toDate}}
+}
+
+vars:pre-request {
+  cinemaId: 1
+}
+
+docs {
+  Dashboard consolidado para una sucursal específica.
+  Permiso: CRUD:READ:REPORTS-ALL
+}
