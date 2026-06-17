@@ -1,0 +1,26 @@
+meta {
+  name: Export Events Global
+  type: http
+  seq: 32
+}
+
+get {
+  url: {{baseUrl}}/reports/events/export?format=pdf&from={{fromDate}}&to={{toDate}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  format: pdf
+  from: {{fromDate}}
+  to: {{toDate}}
+}
+
+docs {
+  Exporta reporte de eventos (todas las sedes).
+  Permiso: CRUD:READ:REPORTS-EXPORT
+}

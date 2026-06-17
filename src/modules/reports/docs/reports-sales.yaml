@@ -1,9 +1,11 @@
 /reports/sales:
     get:
-        summary: Get sales report (employee)
+        summary: Reporte de ventas
         description: |
-            Retrieve consolidated sales report for the authenticated employee's cinema.
-            Required permission: **CRUD:READ:REPORTS-SALES**
+            Reporte consolidado de ventas.
+            - Empleado: cinemaId del JWT.
+            - Superadmin: ?cinemaId opcional (global si se omite).
+            Permiso: **CRUD:READ:REPORTS-SALES**
         tags:
             - Reports
         security:
@@ -14,22 +16,25 @@
               schema:
                   type: string
                   format: date
-              description: Start date (YYYY-MM-DD)
             - in: query
               name: to
               schema:
                   type: string
                   format: date
-              description: End date (YYYY-MM-DD)
             - in: query
               name: channel
               schema:
                   type: string
                   enum: [all, taquilla, web, app]
-              description: Sales channel filter
+                  default: all
+            - in: query
+              name: cinemaId
+              schema:
+                  type: integer
+              description: ID de sucursal (opcional, solo superadmin)
         responses:
             '200':
-                description: Sales report
+                description: Reporte generado
                 content:
                     application/json:
                         schema:
@@ -37,10 +42,8 @@
                             properties:
                                 success:
                                     type: boolean
-                                    example: true
                                 message:
                                     type: string
-                                    example: Reporte de ventas generado exitosamente
                                 data:
                                     type: object
                                     properties:
@@ -50,14 +53,11 @@
                                                 from:
                                                     type: string
                                                     format: date
-                                                    example: '2026-06-01'
                                                 to:
                                                     type: string
                                                     format: date
-                                                    example: '2026-06-08'
                                         channel:
                                             type: string
-                                            example: all
                                         summary:
                                             type: object
                                             properties:
@@ -124,56 +124,6 @@
                                                     total_revenue:
                                                         type: number
             '401':
-                description: Unauthorized
+                description: No autorizado
             '403':
-                description: Insufficient permissions
-
-/reports/cinemas/{cinemaId}/sales:
-    get:
-        summary: Get sales report for a specific cinema (superadmin)
-        description: |
-            Retrieve consolidated sales report for any cinema.
-            Required permission: **CRUD:READ:REPORTS-ALL**
-        tags:
-            - Reports Admin
-        security:
-            - bearerAuth: []
-        parameters:
-            - in: path
-              name: cinemaId
-              required: true
-              schema:
-                  type: integer
-            - in: query
-              name: from
-              schema:
-                  type: string
-                  format: date
-            - in: query
-              name: to
-              schema:
-                  type: string
-                  format: date
-            - in: query
-              name: channel
-              schema:
-                  type: string
-                  enum: [all, taquilla, web, app]
-        responses:
-            '200':
-                description: Sales report for the specified cinema
-                content:
-                    application/json:
-                        schema:
-                            type: object
-                            properties:
-                                success:
-                                    type: boolean
-                                message:
-                                    type: string
-                                data:
-                                    type: object
-            '401':
-                description: Unauthorized
-            '403':
-                description: Insufficient permissions
+                description: Permisos insuficientes

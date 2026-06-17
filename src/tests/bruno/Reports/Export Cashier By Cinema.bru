@@ -1,0 +1,33 @@
+meta {
+  name: Export Cashier By Employee
+  type: http
+  seq: 34
+}
+
+get {
+  url: {{baseUrl}}/reports/cashier/export?format=xlsx&from={{fromDate}}&to={{toDate}}&cinemaId={{cinemaId}}&employeeId={{employeeId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  format: xlsx
+  from: {{fromDate}}
+  to: {{toDate}}
+  cinemaId: {{cinemaId}}
+  employeeId: {{employeeId}}
+}
+
+vars:pre-request {
+  cinemaId: 1
+  employeeId: 5
+}
+
+docs {
+  Exporta reporte de caja de un empleado específico en una sucursal.
+  Permiso: CRUD:READ:REPORTS-EXPORT
+}

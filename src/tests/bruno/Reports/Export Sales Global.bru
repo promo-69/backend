@@ -1,0 +1,27 @@
+meta {
+  name: Export Sales Global
+  type: http
+  seq: 28
+}
+
+get {
+  url: {{baseUrl}}/reports/sales/export?format=csv&from={{fromDate}}&to={{toDate}}&channel=all
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  format: csv
+  from: {{fromDate}}
+  to: {{toDate}}
+  channel: all
+}
+
+docs {
+  Exporta reporte de ventas (todas las sedes) en formato csv, xlsx, pdf, json.
+  Permiso: CRUD:READ:REPORTS-EXPORT
+}

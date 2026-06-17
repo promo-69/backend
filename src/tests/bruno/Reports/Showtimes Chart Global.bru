@@ -1,0 +1,25 @@
+meta {
+  name: Showtimes Chart Global
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{baseUrl}}/reports/showtimes/chart?from={{fromDate}}&to={{toDate}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  from: {{fromDate}}
+  to: {{toDate}}
+}
+
+docs {
+  Datos normalizados para gráfico de funciones (todas las sedes).
+  Permiso: CRUD:READ:REPORTS-CHARTS
+}

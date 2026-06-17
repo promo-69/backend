@@ -1,0 +1,25 @@
+meta {
+  name: Movies Chart Global
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/reports/movies/chart?from={{fromDate}}&to={{toDate}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  from: {{fromDate}}
+  to: {{toDate}}
+}
+
+docs {
+  Datos normalizados para gráfico de películas (todas las sedes).
+  Permiso: CRUD:READ:REPORTS-CHARTS
+}

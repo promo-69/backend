@@ -1,0 +1,26 @@
+meta {
+  name: Export Movies Global
+  type: http
+  seq: 30
+}
+
+get {
+  url: {{baseUrl}}/reports/movies/export?format=xlsx&from={{fromDate}}&to={{toDate}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  format: xlsx
+  from: {{fromDate}}
+  to: {{toDate}}
+}
+
+docs {
+  Exporta reporte de películas (todas las sedes).
+  Permiso: CRUD:READ:REPORTS-EXPORT
+}

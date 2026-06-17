@@ -1,0 +1,26 @@
+meta {
+  name: Sales Global
+  type: http
+  seq: 15
+}
+
+get {
+  url: {{baseUrl}}/reports/sales?from={{fromDate}}&to={{toDate}}&channel=all
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  from: {{fromDate}}
+  to: {{toDate}}
+  channel: all
+}
+
+docs {
+  Reporte de ventas consolidado de todas las sucursales.
+  Permiso: CRUD:READ:REPORTS-SALES
+}

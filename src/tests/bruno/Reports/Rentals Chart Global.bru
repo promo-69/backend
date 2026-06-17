@@ -1,0 +1,25 @@
+meta {
+  name: Rentals Chart Global
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{baseUrl}}/reports/rentals/chart?from={{fromDate}}&to={{toDate}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  from: {{fromDate}}
+  to: {{toDate}}
+}
+
+docs {
+  Datos normalizados para gráfico de alquileres (todas las sedes).
+  Permiso: CRUD:READ:REPORTS-CHARTS
+}

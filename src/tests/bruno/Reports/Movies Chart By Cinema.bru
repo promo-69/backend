@@ -1,11 +1,11 @@
 meta {
   name: Movies Chart By Cinema
   type: http
-  seq: 22
+  seq: 6
 }
 
 get {
-  url: {{baseUrl}}/reports/cinemas/{{cinemaId}}/movies/chart
+  url: {{baseUrl}}/reports/movies/chart?from={{fromDate}}&to={{toDate}}&cinemaId={{cinemaId}}
   body: none
   auth: bearer
 }
@@ -17,6 +17,7 @@ auth:bearer {
 params:query {
   from: {{fromDate}}
   to: {{toDate}}
+  cinemaId: {{cinemaId}}
 }
 
 vars:pre-request {
@@ -25,5 +26,5 @@ vars:pre-request {
 
 docs {
   Datos normalizados para gráfico de películas de una sucursal específica.
-  Permiso: CRUD:READ:REPORTS-ALL
+  Permiso: CRUD:READ:REPORTS-CHARTS
 }

@@ -5,11 +5,11 @@ import { ValidationError } from '@errors/index.js';
 // ── Constantes de dominio ─────────────────────────────────────────────────────
 
 const VALID_REPORT_TYPES = ['sales', 'movies', 'events', 'inventory', 'cashier', 'showtimes', 'rentals'] as const;
-const VALID_FORMATS = ['json', 'csv', 'xlsx', 'pdf'] as const;
-const VALID_GROUP_BY = ['day', 'week', 'month'] as const;
+const VALID_FORMATS      = ['json', 'csv', 'xlsx', 'pdf'] as const;
+const VALID_GROUP_BY     = ['day', 'week', 'month'] as const;
 
 type ReportType = (typeof VALID_REPORT_TYPES)[number];
-type GroupBy = (typeof VALID_GROUP_BY)[number];
+type GroupBy    = (typeof VALID_GROUP_BY)[number];
 
 // ── Interfaces públicas ───────────────────────────────────────────────────────
 
@@ -26,6 +26,7 @@ export interface ChartFilters extends ReportFilters {
 // ── Service ───────────────────────────────────────────────────────────────────
 
 class ReportsModuleService {
+
     // ── Validaciones ──────────────────────────────────────────────────────────
 
     private _assertReportType(reportType: string): asserts reportType is ReportType {
@@ -46,71 +47,66 @@ class ReportsModuleService {
     }
 
     // ── Reportes individuales ─────────────────────────────────────────────────
+    // cinemaId es opcional: undefined = todas las sedes (vista global superadmin)
 
-    getSalesReport(cinemaId: number, filters: ReportFilters) {
-        return ReportsManagementService.getSalesReport(cinemaId, filters);
+    getSalesReport(cinemaId: number | undefined, filters: ReportFilters) {
+        return ReportsManagementService.getSalesReport(cinemaId as number, filters);
     }
-
-    getMoviesReport(cinemaId: number, filters: ReportFilters) {
-        return ReportsManagementService.getMoviesReport(cinemaId, filters);
+    getMoviesReport(cinemaId: number | undefined, filters: ReportFilters) {
+        return ReportsManagementService.getMoviesReport(cinemaId as number, filters);
     }
-
-    getEventsReport(cinemaId: number, filters: ReportFilters) {
-        return ReportsManagementService.getEventsReport(cinemaId, filters);
+    getEventsReport(cinemaId: number | undefined, filters: ReportFilters) {
+        return ReportsManagementService.getEventsReport(cinemaId as number, filters);
     }
-
-    getInventoryReport(cinemaId: number, filters: ReportFilters) {
-        return ReportsManagementService.getInventoryReport(cinemaId, filters);
+    getInventoryReport(cinemaId: number | undefined, filters: ReportFilters) {
+        return ReportsManagementService.getInventoryReport(cinemaId as number, filters);
     }
-
-    getShowtimesReport(cinemaId: number, filters: ReportFilters) {
-        return ReportsManagementService.getShowtimesReport(cinemaId, filters);
+    getShowtimesReport(cinemaId: number | undefined, filters: ReportFilters) {
+        return ReportsManagementService.getShowtimesReport(cinemaId as number, filters);
     }
-
-    getRentalsReport(cinemaId: number, filters: ReportFilters) {
-        return ReportsManagementService.getRentalsReport(cinemaId, filters);
+    getRentalsReport(cinemaId: number | undefined, filters: ReportFilters) {
+        return ReportsManagementService.getRentalsReport(cinemaId as number, filters);
     }
-
-    getCashierReport(employeeId: number, cinemaId: number, filters: ReportFilters) {
+    getCashierReport(employeeId: number, cinemaId: number | undefined, filters: ReportFilters) {
         if (!employeeId) throw new ValidationError('No se pudo determinar el empleado desde la sesión');
-        return ReportsManagementService.getCashierReport(employeeId, cinemaId, filters);
+        return ReportsManagementService.getCashierReport(employeeId, cinemaId as number, filters);
     }
 
-    // ── Export (punto único de entrada, validación centralizada) ──────────────
+    // ── Export ────────────────────────────────────────────────────────────────
 
-    async getReportForExport(reportType: string, format: string, cinemaId: number, filters: ReportFilters, employeeId?: number) {
+    async getReportForExport(
+        reportType: string,
+        format: string,
+        cinemaId: number | undefined,
+        filters: ReportFilters,
+        employeeId?: number,
+    ) {
         this._assertReportType(reportType);
         this._assertFormat(format);
 
         switch (reportType) {
-            case 'sales':
-                return this.getSalesReport(cinemaId, filters);
-            case 'movies':
-                return this.getMoviesReport(cinemaId, filters);
-            case 'events':
-                return this.getEventsReport(cinemaId, filters);
-            case 'inventory':
-                return this.getInventoryReport(cinemaId, filters);
+            case 'sales':     return this.getSalesReport(cinemaId, filters);
+            case 'movies':    return this.getMoviesReport(cinemaId, filters);
+            case 'events':    return this.getEventsReport(cinemaId, filters);
+            case 'inventory': return this.getInventoryReport(cinemaId, filters);
             case 'cashier':
                 if (!employeeId) throw new ValidationError('Se requiere employeeId para exportar reporte de caja');
                 return this.getCashierReport(employeeId, cinemaId, filters);
-            case 'showtimes':
-                return this.getShowtimesReport(cinemaId, filters);
-            case 'rentals':
-                return this.getRentalsReport(cinemaId, filters);
+            case 'showtimes': return this.getShowtimesReport(cinemaId, filters);
+            case 'rentals':   return this.getRentalsReport(cinemaId, filters);
         }
     }
 
     // ── Dashboard consolidado ─────────────────────────────────────────────────
 
-    async getDashboardReport(cinemaId: number, filters: ReportFilters) {
+    async getDashboardReport(cinemaId: number | undefined, filters: ReportFilters) {
         const [sales, movies, events, inventory, showtimes, rentals] = await Promise.all([
-            ReportsManagementService.getSalesReport(cinemaId, filters),
-            ReportsManagementService.getMoviesReport(cinemaId, filters),
-            ReportsManagementService.getEventsReport(cinemaId, filters),
-            ReportsManagementService.getInventoryReport(cinemaId, filters),
-            ReportsManagementService.getShowtimesReport(cinemaId, filters),
-            ReportsManagementService.getRentalsReport(cinemaId, filters),
+            ReportsManagementService.getSalesReport(cinemaId as number, filters),
+            ReportsManagementService.getMoviesReport(cinemaId as number, filters),
+            ReportsManagementService.getEventsReport(cinemaId as number, filters),
+            ReportsManagementService.getInventoryReport(cinemaId as number, filters),
+            ReportsManagementService.getShowtimesReport(cinemaId as number, filters),
+            ReportsManagementService.getRentalsReport(cinemaId as number, filters),
         ]);
 
         const top_movies = (movies.movies ?? [])
@@ -154,11 +150,12 @@ class ReportsModuleService {
                 minimum_stock: p.minimum_stock,
             }));
 
-        // Serie temporal para el widget principal del dashboard (agrupada por día por defecto)
         const daily_series = ReportsChartTransformer.dashboardSeries(sales, 'day');
 
         return {
             period: sales.period,
+            // Indica al front si la vista es global o filtrada por sede
+            scope: cinemaId ? { type: 'cinema', cinemaId } : { type: 'global' },
             kpis: {
                 total_revenue: sales.summary?.total_revenue ?? 0,
                 total_orders: sales.summary?.total_orders ?? 0,
@@ -178,35 +175,35 @@ class ReportsModuleService {
         };
     }
 
-    // ── Chart data (dispatcher → ReportsChartTransformer) ─────────────────────
+    // ── Chart data ────────────────────────────────────────────────────────────
 
-    async getChartData(cinemaId: number, reportType: string, filters: ChartFilters) {
+    async getChartData(cinemaId: number | undefined, reportType: string, filters: ChartFilters) {
         this._assertReportType(reportType);
         const groupBy = this._normalizeGroupBy(filters.groupBy);
 
         switch (reportType) {
             case 'sales': {
-                const data = await ReportsManagementService.getSalesReport(cinemaId, filters);
+                const data = await ReportsManagementService.getSalesReport(cinemaId as number, filters);
                 return ReportsChartTransformer.salesChart(data, groupBy);
             }
             case 'movies': {
-                const data = await ReportsManagementService.getMoviesReport(cinemaId, filters);
+                const data = await ReportsManagementService.getMoviesReport(cinemaId as number, filters);
                 return ReportsChartTransformer.moviesChart(data);
             }
             case 'events': {
-                const data = await ReportsManagementService.getEventsReport(cinemaId, filters);
+                const data = await ReportsManagementService.getEventsReport(cinemaId as number, filters);
                 return ReportsChartTransformer.eventsChart(data);
             }
             case 'inventory': {
-                const data = await ReportsManagementService.getInventoryReport(cinemaId, filters);
+                const data = await ReportsManagementService.getInventoryReport(cinemaId as number, filters);
                 return ReportsChartTransformer.inventoryChart(data);
             }
             case 'showtimes': {
-                const data = await ReportsManagementService.getShowtimesReport(cinemaId, filters);
+                const data = await ReportsManagementService.getShowtimesReport(cinemaId as number, filters);
                 return ReportsChartTransformer.showtimesChart(data);
             }
             case 'rentals': {
-                const data = await ReportsManagementService.getRentalsReport(cinemaId, filters);
+                const data = await ReportsManagementService.getRentalsReport(cinemaId as number, filters);
                 return ReportsChartTransformer.rentalsChart(data);
             }
             case 'cashier':

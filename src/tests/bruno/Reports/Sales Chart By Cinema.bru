@@ -1,11 +1,11 @@
 meta {
   name: Sales Chart By Cinema
   type: http
-  seq: 21
+  seq: 4
 }
 
 get {
-  url: {{baseUrl}}/reports/cinemas/{{cinemaId}}/sales/chart
+  url: {{baseUrl}}/reports/sales/chart?from={{fromDate}}&to={{toDate}}&groupBy=week&channel=all&cinemaId={{cinemaId}}
   body: none
   auth: bearer
 }
@@ -19,6 +19,7 @@ params:query {
   to: {{toDate}}
   groupBy: week
   channel: all
+  cinemaId: {{cinemaId}}
 }
 
 vars:pre-request {
@@ -27,5 +28,5 @@ vars:pre-request {
 
 docs {
   Datos normalizados para gráfico de ventas de una sucursal específica.
-  Permiso: CRUD:READ:REPORTS-ALL
+  Permiso: CRUD:READ:REPORTS-CHARTS
 }

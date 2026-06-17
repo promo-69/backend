@@ -1,11 +1,11 @@
 meta {
   name: Export Sales By Cinema
   type: http
-  seq: 34
+  seq: 29
 }
 
 get {
-  url: {{baseUrl}}/reports/cinemas/{{cinemaId}}/sales/export
+  url: {{baseUrl}}/reports/sales/export?format=csv&from={{fromDate}}&to={{toDate}}&channel=all&cinemaId={{cinemaId}}
   body: none
   auth: bearer
 }
@@ -19,6 +19,7 @@ params:query {
   from: {{fromDate}}
   to: {{toDate}}
   channel: all
+  cinemaId: {{cinemaId}}
 }
 
 vars:pre-request {
@@ -26,7 +27,6 @@ vars:pre-request {
 }
 
 docs {
-  Exporta el reporte de ventas de una sucursal específica.
-  format: json | csv | xlsx | pdf
-  Permiso: CRUD:READ:REPORTS-ALL
+  Exporta reporte de ventas de una sucursal específica.
+  Permiso: CRUD:READ:REPORTS-EXPORT
 }
