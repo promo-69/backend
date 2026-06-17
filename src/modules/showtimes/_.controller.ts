@@ -36,7 +36,7 @@ class ShowtimesController extends ControllerBase {
         const date = query.date as string | undefined;
         const from = query.from as string | undefined;
         const to = query.to as string | undefined;
-        const data = await ShowtimesService.getFullActiveBillboard({ cinemaId, date, from, to });
+        const data = await ShowtimesService.getFullActiveBillboardFiltered({ cinemaId, date, from, to });
         return this.success(data, 'Cartelera activa obtenida exitosamente');
     }
 
