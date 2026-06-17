@@ -15,17 +15,19 @@ auth:bearer {
 }
 
 body:json {
-  {
-    "payment_method": 1,
-    "amount": {{orderTotalBase}},
-    "currency": 1,
-    "reference_number": "{{refNumber}}"
-  }
+  [
+    {
+      "payment_method": 3,
+      "amount": {{orderTotalBase}},
+      "currency": 1,
+      "reference_number": "25898019776310567804"
+    }
+  ]
 }
 
 vars:pre-request {
   refNumber: 1
-  orderTotalBase: 200
+  orderTotalBase: 1000
 }
 
 script:pre-request {

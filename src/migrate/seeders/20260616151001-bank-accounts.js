@@ -23,18 +23,18 @@ module.exports = {
 			{
 				bank: bankId,
 				currency: currencyId,
-				payment_method: 4, // Asumido como Pago Móvil según descripción
+				payment_method: 4,
 				payment_details: JSON.stringify({
-					phone_number: "+584121234567",
+					phone_number: "04121234567",
 					identity_document: "J-123456789"
 				})
 			},
 			{
 				bank: bankId,
 				currency: currencyId,
-				payment_method: 3, // Asumido como Transferencia Bancaria Nacional
+				payment_method: 3,
 				payment_details: JSON.stringify({
-					account_number: "02011234567890123456",
+					account_number: "02013464119733167401",
 					identity_document: "J-123456789"
 				})
 			}
