@@ -75,10 +75,6 @@ export const RentalRejectionEmailTemplate = (eventName: string, requestId: numbe
                                 Si deseas más información sobre esta decisión, por favor contáctanos directamente respondiendo a este correo.
                             </p>
 
-                            <p style="margin: 10px 0 0 0; font-size: 15px; color: #555555;">
-                                También puedes realizar una nueva solicitud con diferentes fechas o salas.
-                            </p>
-
                             <p style="margin: 30px 0 0 0; font-size: 13px; color: #333333; font-family: 'Arial', sans-serif; line-height: 1.7; border-top: 1px solid #e0e0e0; padding-top: 20px;">
                                 Gracias por confiar en Cineflix. Quedamos a tu disposición para cualquier consulta.
                             </p>
