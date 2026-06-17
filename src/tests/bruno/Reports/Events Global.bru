@@ -1,0 +1,25 @@
+meta {
+  name: Events Global
+  type: http
+  seq: 19
+}
+
+get {
+  url: {{baseUrl}}/reports/events?from={{fromDate}}&to={{toDate}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  from: {{fromDate}}
+  to: {{toDate}}
+}
+
+docs {
+  Reporte de eventos de todas las sucursales.
+  Permiso: CRUD:READ:REPORTS-EVENTS
+}

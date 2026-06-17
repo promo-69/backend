@@ -1,0 +1,25 @@
+meta {
+  name: Movies Global
+  type: http
+  seq: 17
+}
+
+get {
+  url: {{baseUrl}}/reports/movies?from={{fromDate}}&to={{toDate}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  from: {{fromDate}}
+  to: {{toDate}}
+}
+
+docs {
+  Reporte de películas de todas las sucursales.
+  Permiso: CRUD:READ:REPORTS-MOVIES
+}

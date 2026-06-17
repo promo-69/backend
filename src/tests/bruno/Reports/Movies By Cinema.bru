@@ -1,11 +1,11 @@
 meta {
   name: Movies By Cinema
   type: http
-  seq: 28
+  seq: 18
 }
 
 get {
-  url: {{baseUrl}}/reports/cinemas/{{cinemaId}}/movies
+  url: {{baseUrl}}/reports/movies?from={{fromDate}}&to={{toDate}}&cinemaId={{cinemaId}}
   body: none
   auth: bearer
 }
@@ -17,6 +17,7 @@ auth:bearer {
 params:query {
   from: {{fromDate}}
   to: {{toDate}}
+  cinemaId: {{cinemaId}}
 }
 
 vars:pre-request {
@@ -25,5 +26,5 @@ vars:pre-request {
 
 docs {
   Reporte de películas de una sucursal específica.
-  Permiso: CRUD:READ:REPORTS-ALL
+  Permiso: CRUD:READ:REPORTS-MOVIES
 }

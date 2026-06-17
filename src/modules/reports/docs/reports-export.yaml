@@ -1,9 +1,12 @@
 /reports/{reportType}/export:
     get:
-        summary: Export any report (employee)
+        summary: Exportar cualquier reporte
         description: |
-            Export a report in JSON, CSV, XLSX, or PDF format.
-            Required permission: **CRUD:READ:REPORTS-EXPORT**
+            Exporta un reporte en JSON, CSV, XLSX o PDF.
+            - Empleado: cinemaId del JWT.
+            - Superadmin: ?cinemaId opcional (global si se omite).
+            - Para exportar caja de empleado específico, enviar ?employeeId (solo superadmin).
+            Permiso: **CRUD:READ:REPORTS-EXPORT**
         tags:
             - Reports Export
         security:
@@ -36,73 +39,19 @@
               schema:
                   type: string
                   enum: [all, taquilla, web, app]
-        responses:
-            '200':
-                description: Exported file
-                content:
-                    application/json:
-                        schema:
-                            type: object
-                    text/csv: {}
-                    application/vnd.openxmlformats-officedocument.spreadsheetml.sheet: {}
-                    application/pdf: {}
-            '401':
-                description: Unauthorized
-            '403':
-                description: Insufficient permissions
-
-/reports/cinemas/{cinemaId}/{reportType}/export:
-    get:
-        summary: Export report for a specific cinema (superadmin)
-        description: |
-            Export a report for any cinema.
-            For cashier reports, use the query parameter `employeeId`.
-            Required permission: **CRUD:READ:REPORTS-ALL**
-        tags:
-            - Reports Export Admin
-        security:
-            - bearerAuth: []
-        parameters:
-            - in: path
+            - in: query
               name: cinemaId
-              required: true
               schema:
                   type: integer
-            - in: path
-              name: reportType
-              required: true
-              schema:
-                  type: string
-                  enum: [sales, movies, events, inventory, cashier, showtimes, rentals]
-            - in: query
-              name: format
-              schema:
-                  type: string
-                  enum: [json, csv, xlsx, pdf]
-                  default: json
-            - in: query
-              name: from
-              schema:
-                  type: string
-                  format: date
-            - in: query
-              name: to
-              schema:
-                  type: string
-                  format: date
-            - in: query
-              name: channel
-              schema:
-                  type: string
-                  enum: [all, taquilla, web, app]
+              description: ID de sucursal (opcional, solo superadmin)
             - in: query
               name: employeeId
               schema:
                   type: integer
-              description: Required for cashier report
+              description: ID de empleado (requerido para exportar caja de otro empleado, solo superadmin)
         responses:
             '200':
-                description: Exported file
+                description: Archivo exportado
                 content:
                     application/json:
                         schema:
@@ -111,58 +60,6 @@
                     application/vnd.openxmlformats-officedocument.spreadsheetml.sheet: {}
                     application/pdf: {}
             '401':
-                description: Unauthorized
+                description: No autorizado
             '403':
-                description: Insufficient permissions
-
-/reports/cinemas/{cinemaId}/cashier/{employeeId}/export:
-    get:
-        summary: Export cashier report for a specific employee (superadmin)
-        description: |
-            Export the cashier report of a specific employee in a cinema.
-            Required permission: **CRUD:READ:REPORTS-ALL**
-        tags:
-            - Reports Export Admin
-        security:
-            - bearerAuth: []
-        parameters:
-            - in: path
-              name: cinemaId
-              required: true
-              schema:
-                  type: integer
-            - in: path
-              name: employeeId
-              required: true
-              schema:
-                  type: integer
-            - in: query
-              name: format
-              schema:
-                  type: string
-                  enum: [json, csv, xlsx, pdf]
-                  default: json
-            - in: query
-              name: from
-              schema:
-                  type: string
-                  format: date
-            - in: query
-              name: to
-              schema:
-                  type: string
-                  format: date
-        responses:
-            '200':
-                description: Exported file
-                content:
-                    application/json:
-                        schema:
-                            type: object
-                    text/csv: {}
-                    application/vnd.openxmlformats-officedocument.spreadsheetml.sheet: {}
-                    application/pdf: {}
-            '401':
-                description: Unauthorized
-            '403':
-                description: Insufficient permissions
+                description: Permisos insuficientes

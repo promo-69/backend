@@ -1,11 +1,11 @@
 meta {
   name: Export Movies By Cinema
   type: http
-  seq: 35
+  seq: 31
 }
 
 get {
-  url: {{baseUrl}}/reports/cinemas/{{cinemaId}}/movies/export
+  url: {{baseUrl}}/reports/movies/export?format=xlsx&from={{fromDate}}&to={{toDate}}&cinemaId={{cinemaId}}
   body: none
   auth: bearer
 }
@@ -18,6 +18,7 @@ params:query {
   format: xlsx
   from: {{fromDate}}
   to: {{toDate}}
+  cinemaId: {{cinemaId}}
 }
 
 vars:pre-request {
@@ -25,7 +26,6 @@ vars:pre-request {
 }
 
 docs {
-  Exporta el reporte de películas de una sucursal específica.
-  format: json | csv | xlsx | pdf
-  Permiso: CRUD:READ:REPORTS-ALL
+  Exporta reporte de películas de una sucursal específica.
+  Permiso: CRUD:READ:REPORTS-EXPORT
 }

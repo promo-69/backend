@@ -1,0 +1,27 @@
+meta {
+  name: Sales Chart Global
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/reports/sales/chart?from={{fromDate}}&to={{toDate}}&groupBy=week&channel=all
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  from: {{fromDate}}
+  to: {{toDate}}
+  groupBy: week
+  channel: all
+}
+
+docs {
+  Datos normalizados para gráfico de ventas (todas las sedes).
+  Permiso: CRUD:READ:REPORTS-CHARTS
+}

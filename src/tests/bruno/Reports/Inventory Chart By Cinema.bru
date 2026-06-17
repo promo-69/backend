@@ -1,11 +1,11 @@
 meta {
   name: Inventory Chart By Cinema
   type: http
-  seq: 24
+  seq: 10
 }
 
 get {
-  url: {{baseUrl}}/reports/cinemas/{{cinemaId}}/inventory/chart
+  url: {{baseUrl}}/reports/inventory/chart?from={{fromDate}}&to={{toDate}}&cinemaId={{cinemaId}}
   body: none
   auth: bearer
 }
@@ -17,6 +17,7 @@ auth:bearer {
 params:query {
   from: {{fromDate}}
   to: {{toDate}}
+  cinemaId: {{cinemaId}}
 }
 
 vars:pre-request {
@@ -25,5 +26,5 @@ vars:pre-request {
 
 docs {
   Datos normalizados para gráfico de inventario de una sucursal específica.
-  Permiso: CRUD:READ:REPORTS-ALL
+  Permiso: CRUD:READ:REPORTS-CHARTS
 }
