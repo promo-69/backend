@@ -1,10 +1,10 @@
 meta {
-  name: Add My Movie Genres
+  name: Remove My Movie Genres (Bulk)
   type: http
   seq: 1
 }
 
-post {
+delete {
   url: {{baseUrl}}/users/me/movie-genres
   body: json
   auth: bearer

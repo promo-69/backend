@@ -55,13 +55,7 @@ export class ConcessionsService extends BaseService {
 	}
 
 	async createProduct(body: CreateProductBody, rawFiles?: RawFiles) {
-		const { name, sku } = body;
-
-		const price = Number(body.price);
-		const productCategory = Number(body.productCategory);
-		const currencyId = Number(body.currencyId);
-		const earnedLoyaltyPoints =
-			body.earnedLoyaltyPoints !== undefined ? Number(body.earnedLoyaltyPoints) : undefined;
+		let { name, sku, productCategory, currencyId, price, earnedLoyaltyPoints } = body;
 
 		this.validateRequired({ name, sku, productCategory, currencyId, price } as any, [
 			'name',
@@ -70,6 +64,12 @@ export class ConcessionsService extends BaseService {
 			'currencyId',
 			'price',
 		]);
+
+		price = Number(body.price);
+		productCategory = Number(body.productCategory);
+		currencyId = Number(body.currencyId);
+		earnedLoyaltyPoints =
+			body.earnedLoyaltyPoints !== undefined ? Number(body.earnedLoyaltyPoints) : undefined;
 
 		if (isNaN(price) || price <= 0) throw new ValidationError('El precio debe ser un número positivo', ['price']);
 

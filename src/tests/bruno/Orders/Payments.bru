@@ -19,7 +19,7 @@ body:json {
     {
       "payment_method": 3,
       "amount": {{orderTotalBase}},
-      "currency": 1,
+      "currency": 2,
       "reference_number": "25898019776310567804"
     }
   ]
@@ -27,7 +27,7 @@ body:json {
 
 vars:pre-request {
   refNumber: 1
-  orderTotalBase: 1000
+  orderTotalBase: 1001
 }
 
 script:pre-request {

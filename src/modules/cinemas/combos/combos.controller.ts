@@ -1,6 +1,7 @@
 import { ControllerBase } from '@bases/controller.base.js';
 import ComboManagementService from '@services/combo-management.service.js';
 import ConcessionsService from '../../concessions/_.service.js';
+
 class CinemaCombosController extends ControllerBase {
     async findAll() {
         const { cinemaId } = this.getParams();
