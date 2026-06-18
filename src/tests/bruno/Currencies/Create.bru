@@ -1,0 +1,23 @@
+meta {
+  name: Create Currency
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/currencies
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "code": "EUR",
+    "description": "Euro",
+    "symbol": "€"
+  }
+}

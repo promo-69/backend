@@ -23,7 +23,7 @@ export class PricingService {
 
 		// Filtra los modificadores aplicables según el contexto
 		const applicableModifiers = activeModifiers.filter((m: any) => {
-			if (m.modifier_scope && m.modifier_scope !== context.modifier_scope) return false;
+			if (m.modifier_scope && m.modifier_scope !== 3 && m.modifier_scope !== context.modifier_scope) return false;
 			
 			// Regla estricta: El modificador DEBE coincidir con la moneda original del ítem,
 			// a menos que sea un modificador porcentual, los cuales son agnósticos a la moneda.
@@ -40,22 +40,19 @@ export class PricingService {
 			// Filtros espaciales y de catalogos
 			if (m.cinema && m.cinema !== context.cinemaId) return false;
 
-			// Dependiendo del scope aplicamos unos u otros filtros
-			if (context.modifier_scope === 1) {
-				// Boletería
-				if (m.booking_type && m.booking_type !== context.booking_type) return false;
-				if (m.movie && m.movie !== context.movie) return false;
-				if (m.projection_type && m.projection_type !== context.projection_type) return false;
-				if (m.seat_category && m.seat_category !== context.seat_category) return false;
-				if (m.room_type && m.room_type !== context.room_type) return false;
-				if (m.audience_category && m.audience_category !== context.audienceCategoryId) return false;
-			} else if (context.modifier_scope === 2) {
-				// Confitería
-				if (m.line_type && m.line_type !== context.line_type) return false;
-				if (m.product_category && m.product_category !== context.product_category) return false;
-				if (m.product && m.product !== context.product) return false;
-				if (m.combo && m.combo !== context.combo) return false;
-			}
+			// Filtros Boletería
+			if (m.booking_type && m.booking_type !== context.booking_type) return false;
+			if (m.movie && m.movie !== context.movie) return false;
+			if (m.projection_type && m.projection_type !== context.projection_type) return false;
+			if (m.seat_category && m.seat_category !== context.seat_category) return false;
+			if (m.room_type && m.room_type !== context.room_type) return false;
+			if (m.audience_category && m.audience_category !== context.audienceCategoryId) return false;
+
+			// Filtros Confitería
+			if (m.line_type && m.line_type !== context.line_type) return false;
+			if (m.product_category && m.product_category !== context.product_category) return false;
+			if (m.product && m.product !== context.product) return false;
+			if (m.combo && m.combo !== context.combo) return false;
 
 			return true;
 		});

@@ -5,10 +5,8 @@ import { QueueProvider } from '@providers/queue.provider.js';
 import { RealtimeProvider } from '@providers/realtime.provider.js';
 import { NotFoundError, ValidationError, BadRequestError, ForbiddenError, ConflictError } from '@errors/index.js';
 import { Transaction } from 'sequelize';
-import { randomUUID } from 'crypto';
 import { JWTUtil } from '@utils/jwt.util.js';
 import { AppConfig } from '@config/app.config.js';
-import { Logger } from '@utils/logger.util.js';
 import { PricingService } from '@services/pricing.service.js';
 import shoppingSessionService from '@services/shopping-session.service.js';
 
@@ -35,11 +33,10 @@ const PAYMENT_METHOD_IDS: Record<string, number> = {
 	points: 6,
 	cinepuntos: 6,
 };
-const PAYMENT_METHOD_DESCRIPTIONS: Record<number, string> = {
-	1: 'Efectivo',
-	3: 'Transferencia',
-	4: 'Pago Móvil',
-	6: 'Puntos de Fidelidad',
+
+const OPERATION_TYPES = {
+	EARN: 1,
+	SPEND: 2,
 };
 
 export class OrdersService extends BaseService {
@@ -113,6 +110,9 @@ export class OrdersService extends BaseService {
 	private get _seats() {
 		return Database.repository('main', 'seats') as any;
 	}
+	private get _currencies() {
+		return Database.repository('main', 'currencies') as any;
+	}
 
 	private async _getCustomerEmail(customerId: number | null, session: any): Promise<string | null> {
 		if (!session.roleCode && session.email) {
@@ -177,12 +177,26 @@ export class OrdersService extends BaseService {
 		const cinemaData = await this._cinemas.count({ id: cinema });
 		if (!cinemaData) throw new NotFoundError('La sucursal no existe.');
 
-		// Obtiene las tasas de cambio de monedas disponibles
-		const allRates = await this._exchangeRates.getAll({ count: false, order: [['id', 'DESC']] });
+		// Obtiene las monedas disponibles y busca únicamente la tasa más reciente de cada una
+		const currencies = await this._currencies.getAll({ count: false });
 		const exchangeRatesDict: Record<number, any> = {};
-		for (const rate of allRates) if (!exchangeRatesDict[rate.currency]) exchangeRatesDict[rate.currency] = rate;
 
-		const baseCurrency = await (Database.repository('main', 'currencies') as any).getOne({
+		// Mapeamos las monedas a un arreglo de promesas
+		const ratePromises = currencies.map(async (c: any) => {
+			const latestRate = await this._exchangeRates.getOne(
+				{ currency: c.id },
+				{ order: [['id', 'DESC']] }
+			);
+			return { currencyId: c.id, rate: latestRate };
+		});
+
+		// Ejecutamos todas las consultas de red simultáneamente
+		const results = await Promise.all(ratePromises);
+
+		for (const result of results)
+			if (result.rate) exchangeRatesDict[result.currencyId] = result.rate;
+
+		const baseCurrency = await this._currencies.getOne({
 			is_base_currency: true,
 		});
 		const systemBaseCurrencyId = baseCurrency ? baseCurrency.id : 1;
@@ -293,9 +307,8 @@ export class OrdersService extends BaseService {
 					{ customer: customerId, order_status: 1 },
 				);
 
-				for (const order of pendingOrders) {
+				for (const order of pendingOrders)
 					await this._orders.update({ id: order.id }, { order_status: 3 }, { transaction });
-				}
 			});
 		}
 
@@ -311,7 +324,7 @@ export class OrdersService extends BaseService {
 			for (const ticket of body.tickets)
 				if (typeof ticket.seatId !== 'number' || typeof ticket.audienceCategoryId !== 'number')
 					throw new BadRequestError(
-						'Cada boleto debe contener seatId y audienceCategoryId y deben ser numéricos',
+						'Cada boleto debe contener de forma válida el identificador del asiento y la categoría de la audiencia',
 					);
 
 		const { concessions = [], tickets = [] } = body;
@@ -496,7 +509,10 @@ export class OrdersService extends BaseService {
 				}
 
 				// Totaliza los montos y crea la cabecera de la orden
-				const totalBase = subtotalBase + taxesBase;
+				const roundMoney = (val: number) => Math.round(val * 100) / 100;
+				subtotalBase = roundMoney(subtotalBase);
+				taxesBase = roundMoney(taxesBase);
+				const totalBase = roundMoney(subtotalBase + taxesBase);
 				const customerId = quoteData.customerId ? Number(quoteData.customerId) : null;
 
 				createdOrder = await this._orders.create(
@@ -518,7 +534,7 @@ export class OrdersService extends BaseService {
 					order: createdOrder.id,
 					tax: Number(taxId),
 					applied_rate: orderTaxesCollector[Number(taxId)].rate,
-					tax_amount_base_currency: orderTaxesCollector[Number(taxId)].amount,
+					tax_amount_base_currency: roundMoney(orderTaxesCollector[Number(taxId)].amount),
 				}));
 				if (taxesToInsert.length > 0) await this._orderTaxes.bulkCreate(taxesToInsert, { transaction });
 
@@ -568,7 +584,6 @@ export class OrdersService extends BaseService {
 		let paymentsInput: any[] = [];
 
 		if (Array.isArray(body)) paymentsInput = body;
-		else if (body && Array.isArray(body)) paymentsInput = body;
 		else if (body && body.payment_method && body.amount !== undefined) paymentsInput = [body];
 		else throw new BadRequestError('Formato de pagos inválido');
 
@@ -650,7 +665,7 @@ export class OrdersService extends BaseService {
 			);
 
 			for (const payment of paymentsInput) {
-				const { payment_method, amount, currency, reference_number } = payment;
+				const { payment_method, amount, currency, reference_number, bypass } = payment;
 				const paymentMethodId = PAYMENT_METHOD_IDS[payment_method] ?? payment_method;
 
 				let exchangeRateValue = 1;
@@ -661,6 +676,8 @@ export class OrdersService extends BaseService {
 					if (rateDb) {
 						exchangeRateValue = Number(rateDb.rate);
 						quotedExchangeRateId = rateDb.id;
+					} else if (currency !== quoteData.system_base_currency) {
+						throw new BadRequestError('Moneda inválida o tasa de cambio no disponible.');
 					}
 				}
 				const amountBase = amount * exchangeRateValue;
@@ -668,26 +685,72 @@ export class OrdersService extends BaseService {
 				// Ramificación según método de pago
 				if (paymentMethodId === 6) {
 					const ledgers = await this._loyaltyLedgers.getAll(
-						{ count: false, order: [['id', 'DESC']], limit: 1, operation: { transaction } },
+						{ count: false, order: [['id', 'DESC']], limit: 1, operation: { transaction, lock: transaction.LOCK.UPDATE } },
 						{ customer: session.customerId },
 					);
+
 					const currentBalance = ledgers.length > 0 ? Number(ledgers[0].points_balance) : 0;
 					if (amount > currentBalance) throw new BadRequestError('Saldo de puntos insuficiente');
 
-					// Descontar puntos de una vez con un registro negativo
+					// Descontar puntos de una vez con un registro decremental
 					await this._loyaltyLedgers.create(
 						{
+							operation_type: 2,
 							customer: session.customerId,
-							points: -amount,
+							points: amount,
 							points_balance: currentBalance - amount,
 							description: `Pago parcial de orden ${order_id}`,
 						},
 						{ transaction },
 					);
-				} else if ([3, 4, 5].includes(paymentMethodId || 0)) {
-					// TODO: Validar referencia con Simulador API
-				} else if ([1, 2].includes(paymentMethodId || 0)) {
-				}
+				} else if ([3, 4, 7].includes(paymentMethodId || 0) || !bypass) {
+					if (!reference_number) throw new BadRequestError('El número de referencia es obligatorio para este método de pago');
+
+					try {
+						const response = await fetch(`https://cineflix-banky.onrender.com/api/external/transactions/${reference_number}`, {
+							method: 'GET',
+							headers: {
+								'Authorization': `Bearer ${AppConfig.load().bankyPersonalApiKey}`,
+								'Accept': 'application/json'
+							}
+						});
+						const data: any = await response.json();
+
+						if (!response.ok || !data.success)
+							throw new BadRequestError(`El pago no pudo ser validado. Banco dice: ${data.message || 'Transacción fallida o no encontrada'}`);
+
+						// Validar si la referencia ya fue utilizada en otra orden válida
+						const existingPayment = await this._orderPayments.getOne(
+							{
+								reference_number,
+								payment_method: paymentMethodId
+							},
+							{
+								attributes: ['id'],
+								transaction,
+								relations: [
+									{
+										attributes: ['id'],
+										association: '_Orders',
+										required: true,
+										where: { order_status: { [Ops.in]: [1, 2, 4] } }
+									},
+									{
+										attributes: ['id'],
+										association: '_ExchangeRates',
+										required: true,
+										where: { currency: currency }
+									}
+								]
+							}
+						);
+
+						if (existingPayment) throw new BadRequestError(`La referencia ${reference_number} ya fue procesada previamente en nuestro sistema.`);
+					} catch (error: any) {
+						if (error instanceof BadRequestError) throw error;
+						throw new BadRequestError(`Error al comprobar la transacción con la entidad bancaria`, error);
+					}
+				} else if ([1, 2].includes(paymentMethodId || 0)) {}
 
 				await this._orderPayments.create(
 					{
@@ -738,9 +801,11 @@ export class OrdersService extends BaseService {
 					orderData = { ...order, qr_code: qrCode, order_status: 4, is_employee: false };
 				}
 
-				// Actualiza inventario y otorga puntos de lealtad
+				// Actualiza inventario
 				if (concessions.length > 0)
 					await this._deductPhysicalInventory(concessions, order, session.userId, transaction);
+
+				// Otorga puntos de lealtad
 				await this._awardLoyaltyPoints(order, transaction);
 			} else {
 				remaining_balance = Number(order.total_amount_base_currency) - totalPaid;
@@ -816,8 +881,9 @@ export class OrdersService extends BaseService {
 						.catch((err) => console.error(err));
 				}
 			}
-		} else if (remaining_balance !== null && remaining_balance > 0)
+		} else if (remaining_balance !== null && remaining_balance > 0) {
 			return { remaining_balance, message: 'Pago parcial registrado exitosamente' };
+		}
 
 		return orderData;
 	}
@@ -861,7 +927,7 @@ export class OrdersService extends BaseService {
 				}
 				const person = order._Customers._People;
 				billingData = {
-					name: `${person.first_name} ${person.last_name}`.trim(),
+					name: `${person.first_name} ${person.last_name ?? ''}`.trim(),
 					document: person.document_number,
 					address: '',
 				};
@@ -1040,21 +1106,41 @@ export class OrdersService extends BaseService {
 				throw new NotFoundError('Uno o más productos no existen en el inventario de esta sucursal.');
 
 			// Busca ordenes pendientes de otros usuarios para reservar inventario logico
+			const comboPartsOfInterest = await this._comboProducts.getAll(
+				{ count: false, attributes: ['combo', 'product', 'quantity'], operation: { transaction } },
+				{ product: productIds }
+			);
+			const comboIdsOfInterest = [...new Set(comboPartsOfInterest.map((c: any) => c.combo))];
+
 			const allPendingLines = await this._orderLines.getAll(
 				{
 					count: false,
-					relations: [{ association: '_Orders', required: true, where: { order_status: [1] } }],
+					relations: [{ association: '_Orders', required: true, where: { order_status: [1], cinema } }],
 					operation: { transaction },
 				},
-				{ product: productIds },
+				{
+					[Ops.or]: [
+						{ product: productIds },
+						{ combo: comboIdsOfInterest }
+					]
+				}
 			);
 
 			// Valida que el stock disponible alcance a cubrir la cantidad solicitada
 			for (const inv of inventories) {
 				const requiredQty = requiredProducts[inv.product];
-				const pendingLines = allPendingLines.filter((line: any) => line.product === inv.product);
+				const pendingLines = allPendingLines.filter(
+					(line: any) => line.product === inv.product || comboIdsOfInterest.includes(line.combo)
+				);
 				let pendingQty = 0;
-				for (const line of pendingLines) pendingQty += line.quantity;
+				for (const line of pendingLines) {
+					if (line.product === inv.product) {
+						pendingQty += line.quantity;
+					} else if (line.combo) {
+						const parts = comboPartsOfInterest.filter((p: any) => p.combo === line.combo && p.product === inv.product);
+						for (const part of parts) pendingQty += line.quantity * part.quantity;
+					}
+				}
 
 				const lastMovements = await this._inventoryMovements.getAll(
 					{ count: false, limit: 1, order: [['id', 'DESC']], operation: { transaction } },
@@ -1123,27 +1209,43 @@ export class OrdersService extends BaseService {
 				{ currentDate, currentTime, currentDay },
 			);
 
-			const finalUnitPrice = finalPriceInItemCurrency * Number(rateObj.rate);
+			const roundMoney = (val: number) => Math.round(val * 100) / 100;
+			const finalUnitPrice = roundMoney(finalPriceInItemCurrency * Number(rateObj.rate));
 
 			item.appliedModifiers = appliedModifiers.map((mod: any) => ({
 				price_modifier: mod.price_modifier,
-				applied_amount_base_currency: mod.applied_amount * Number(rateObj.rate) * item.quantity,
+				applied_amount_base_currency: roundMoney(mod.applied_amount * Number(rateObj.rate) * item.quantity),
 			}));
 
 			subtotalBase += finalUnitPrice * item.quantity;
 
 			// Aplica reglas de impuestos vigentes basadas en la categoria de producto
-			const itemTaxes = activeTaxes.filter(
-				(t: any) =>
-					t.tax_scope === 2 &&
-					(t.product === item.product || t.combo === item.combo || t.product === null) &&
-					(t.product_category === null ||
-						(productData && t.product_category === productData.product_category)) &&
-					(t.line_type === null || t.line_type === item.line_type),
-			);
-			for (const rule of itemTaxes) {
+			const itemTaxes = activeTaxes.filter((t: any) => {
+				if (t.tax_scope !== 2 && t.tax_scope !== 3) return false;
+				if (t.line_type && t.line_type !== item.line_type) return false;
+				if (t.product_category && (!productData || t.product_category !== productData.product_category)) return false;
+				if (t.product && t.product !== item.product) return false;
+				if (t.combo && t.combo !== item.combo) return false;
+				return true;
+			});
+
+			const uniqueTaxesMap = new Map<number, any>();
+			for (const t of itemTaxes) {
+				let score = 0;
+				if (t.product || t.combo) score += 100;
+				if (t.product_category) score += 10;
+				if (t.line_type) score += 5;
+				if (t.cinema) score += 1;
+
+				const existing = uniqueTaxesMap.get(t.tax);
+				if (!existing || score > existing.score) {
+					uniqueTaxesMap.set(t.tax, { rule: t, score });
+				}
+			}
+
+			for (const { rule } of uniqueTaxesMap.values()) {
 				const taxRate = Number(rule._Taxes?.rate ?? 0);
-				const taxAmount = finalUnitPrice * item.quantity * (taxRate / 100);
+				const taxAmount = roundMoney(finalUnitPrice * item.quantity * (taxRate / 100));
 				taxesBase += taxAmount;
 				if (!orderTaxesCollector[rule.tax]) orderTaxesCollector[rule.tax] = { rate: taxRate, amount: 0 };
 				orderTaxesCollector[rule.tax].amount += taxAmount;
@@ -1206,17 +1308,36 @@ export class OrdersService extends BaseService {
 				{ currentDate, currentTime, currentDay },
 			);
 
-			const finalUnitPrice = finalPriceInItemCurrency * Number(rateObj.rate);
+			const roundMoney = (val: number) => Math.round(val * 100) / 100;
+			const finalUnitPrice = roundMoney(finalPriceInItemCurrency * Number(rateObj.rate));
 
 			ticket.appliedModifiers = appliedModifiers.map((mod: any) => ({
 				price_modifier: mod.price_modifier,
-				applied_amount_base_currency: mod.applied_amount * Number(rateObj.rate),
+				applied_amount_base_currency: roundMoney(mod.applied_amount * Number(rateObj.rate)),
 			}));
 			subtotalBase += finalUnitPrice;
-			const ticketTaxes = activeTaxes.filter((t: any) => t.tax_scope === 1);
-			for (const rule of ticketTaxes) {
+
+			const ticketTaxes = activeTaxes.filter(
+				(t: any) =>
+					(t.tax_scope === 1 || t.tax_scope === 3) &&
+					t.product === null &&
+					t.combo === null &&
+					t.product_category === null &&
+					t.line_type === null
+			);
+			const uniqueTaxesMap = new Map<number, any>();
+			for (const t of ticketTaxes) {
+				let score = 0;
+				if (t.cinema) score += 1;
+				const existing = uniqueTaxesMap.get(t.tax);
+				if (!existing || score > existing.score) {
+					uniqueTaxesMap.set(t.tax, { rule: t, score });
+				}
+			}
+
+			for (const { rule } of uniqueTaxesMap.values()) {
 				const ticketTaxRate = Number(rule._Taxes?.rate ?? 0);
-				const taxAmount = finalUnitPrice * (ticketTaxRate / 100);
+				const taxAmount = roundMoney(finalUnitPrice * (ticketTaxRate / 100));
 				taxesBase += taxAmount;
 				if (!orderTaxesCollector[rule.tax]) orderTaxesCollector[rule.tax] = { rate: ticketTaxRate, amount: 0 };
 				orderTaxesCollector[rule.tax].amount += taxAmount;
@@ -1353,26 +1474,34 @@ export class OrdersService extends BaseService {
 
 	private async _awardLoyaltyPoints(order: any, transaction: Transaction) {
 		if (order.customer && Number(order.generated_points) > 0) {
-			const POINTS_EARN_OPERATION_TYPE = 1;
 			const customer = await this._customers.getById(order.customer, {
 				attributes: ['id', 'level_progress_points'],
 				transaction,
+				lock: transaction.LOCK.UPDATE,
 			});
-			const currentPoints = Number(customer?.level_progress_points ?? 0);
+			const currentLevelPoints = Number(customer?.level_progress_points ?? 0);
 			const earnedPoints = Number(order.generated_points);
-			const newBalance = currentPoints + earnedPoints;
+			const newLevelPoints = currentLevelPoints + earnedPoints;
+
+			const ledgers = await this._loyaltyLedgers.getAll(
+				{ count: false, order: [['id', 'DESC']], limit: 1, operation: { transaction, lock: transaction.LOCK.UPDATE } },
+				{ customer: order.customer },
+			);
+			const currentSpendableBalance = ledgers.length > 0 ? Number(ledgers[0].points_balance) : 0;
+			const newSpendableBalance = currentSpendableBalance + earnedPoints;
+
 			await this._loyaltyLedgers.create(
 				{
 					customer: order.customer,
 					order: order.id,
-					operation_type: POINTS_EARN_OPERATION_TYPE,
+					operation_type: OPERATION_TYPES.EARN,
 					points: earnedPoints,
-					points_balance: newBalance,
+					points_balance: newSpendableBalance,
 					remarks: `Puntos ganados por compra en orden #${order.id}`,
 				},
 				{ transaction },
 			);
-			await this._customers.update(order.customer, { level_progress_points: newBalance }, { transaction });
+			await this._customers.update(order.customer, { level_progress_points: newLevelPoints }, { transaction });
 		}
 	}
 
@@ -1434,9 +1563,7 @@ export class OrdersService extends BaseService {
 			{ lock: transaction.LOCK.UPDATE, transaction },
 		);
 
-		if (!sequence) {
-			throw new Error('Secuencia de facturación no configurada para esta sucursal');
-		}
+		if (!sequence) throw new Error('Secuencia de facturación no configurada para esta sucursal');
 
 		const nextValue = sequence.current_value + 1;
 		const invoiceNumber = `${sequence.prefix}${nextValue.toString().padStart(6, '0')}`;

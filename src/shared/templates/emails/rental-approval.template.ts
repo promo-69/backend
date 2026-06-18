@@ -83,7 +83,7 @@ export const RentalApprovalEmailTemplate = (
                             </table>
 
                             <p style="margin: 20px 0 10px 0; font-size: 15px; color: #555555; text-align: center;">
-                                Para confirmar la reserva y activar la sala, debes completar el pago dentro de las próximas <strong>48 horas</strong>.
+                                Para confirmar la reserva y activar la sala, debes completar el pago dentro de las próximas <strong>24 horas</strong>.
                             </p>
 
                             <table align="center" border="0" cellpadding="0" cellspacing="0" style="margin: 30px auto;">
