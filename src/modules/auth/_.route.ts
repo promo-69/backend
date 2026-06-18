@@ -10,7 +10,7 @@ router.post('/verify-signup', preventAuthenticatedAccess, authController.verifyS
 router.post('/login', preventAuthenticatedAccess, authController.login);
 router.post('/login/admin', preventAuthenticatedAccess, authController.loginAdmin);
 router.post('/refresh', authController.refresh);
-router.post('/logout', verifySession, authController.logout);
+router.post('/logout', authController.logout);
 router.get('/permissions', verifySession, authController.getEmployeePermissions);
 
 // --- Password Reset ---
