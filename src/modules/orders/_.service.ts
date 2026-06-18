@@ -34,6 +34,11 @@ const PAYMENT_METHOD_IDS: Record<string, number> = {
 	cinepuntos: 6,
 };
 
+const OPERATION_TYPES = {
+	EARN: 1,
+	SPEND: 2,
+};
+
 export class OrdersService extends BaseService {
 	constructor() {
 		super();
@@ -301,9 +306,8 @@ export class OrdersService extends BaseService {
 					{ customer: customerId, order_status: 1 },
 				);
 
-				for (const order of pendingOrders) {
+				for (const order of pendingOrders)
 					await this._orders.update({ id: order.id }, { order_status: 3 }, { transaction });
-				}
 			});
 		}
 
@@ -319,7 +323,7 @@ export class OrdersService extends BaseService {
 			for (const ticket of body.tickets)
 				if (typeof ticket.seatId !== 'number' || typeof ticket.audienceCategoryId !== 'number')
 					throw new BadRequestError(
-						'Cada boleto debe contener seatId y audienceCategoryId y deben ser numéricos',
+						'Cada boleto debe contener de forma válida el identificador del asiento y la categoría de la audiencia',
 					);
 
 		const { concessions = [], tickets = [] } = body;
@@ -504,7 +508,10 @@ export class OrdersService extends BaseService {
 				}
 
 				// Totaliza los montos y crea la cabecera de la orden
-				const totalBase = subtotalBase + taxesBase;
+				const roundMoney = (val: number) => Math.round(val * 100) / 100;
+				subtotalBase = roundMoney(subtotalBase);
+				taxesBase = roundMoney(taxesBase);
+				const totalBase = roundMoney(subtotalBase + taxesBase);
 				const customerId = quoteData.customerId ? Number(quoteData.customerId) : null;
 
 				createdOrder = await this._orders.create(
@@ -526,7 +533,7 @@ export class OrdersService extends BaseService {
 					order: createdOrder.id,
 					tax: Number(taxId),
 					applied_rate: orderTaxesCollector[Number(taxId)].rate,
-					tax_amount_base_currency: orderTaxesCollector[Number(taxId)].amount,
+					tax_amount_base_currency: roundMoney(orderTaxesCollector[Number(taxId)].amount),
 				}));
 				if (taxesToInsert.length > 0) await this._orderTaxes.bulkCreate(taxesToInsert, { transaction });
 
@@ -1098,21 +1105,41 @@ export class OrdersService extends BaseService {
 				throw new NotFoundError('Uno o más productos no existen en el inventario de esta sucursal.');
 
 			// Busca ordenes pendientes de otros usuarios para reservar inventario logico
+			const comboPartsOfInterest = await this._comboProducts.getAll(
+				{ count: false, attributes: ['combo', 'product', 'quantity'], operation: { transaction } },
+				{ product: productIds }
+			);
+			const comboIdsOfInterest = [...new Set(comboPartsOfInterest.map((c: any) => c.combo))];
+
 			const allPendingLines = await this._orderLines.getAll(
 				{
 					count: false,
-					relations: [{ association: '_Orders', required: true, where: { order_status: [1] } }],
+					relations: [{ association: '_Orders', required: true, where: { order_status: [1], cinema } }],
 					operation: { transaction },
 				},
-				{ product: productIds },
+				{
+					[Ops.or]: [
+						{ product: productIds },
+						{ combo: comboIdsOfInterest }
+					]
+				}
 			);
 
 			// Valida que el stock disponible alcance a cubrir la cantidad solicitada
 			for (const inv of inventories) {
 				const requiredQty = requiredProducts[inv.product];
-				const pendingLines = allPendingLines.filter((line: any) => line.product === inv.product);
+				const pendingLines = allPendingLines.filter(
+					(line: any) => line.product === inv.product || comboIdsOfInterest.includes(line.combo)
+				);
 				let pendingQty = 0;
-				for (const line of pendingLines) pendingQty += line.quantity;
+				for (const line of pendingLines) {
+					if (line.product === inv.product) {
+						pendingQty += line.quantity;
+					} else if (line.combo) {
+						const parts = comboPartsOfInterest.filter((p: any) => p.combo === line.combo && p.product === inv.product);
+						for (const part of parts) pendingQty += line.quantity * part.quantity;
+					}
+				}
 
 				const lastMovements = await this._inventoryMovements.getAll(
 					{ count: false, limit: 1, order: [['id', 'DESC']], operation: { transaction } },
@@ -1181,27 +1208,43 @@ export class OrdersService extends BaseService {
 				{ currentDate, currentTime, currentDay },
 			);
 
-			const finalUnitPrice = finalPriceInItemCurrency * Number(rateObj.rate);
+			const roundMoney = (val: number) => Math.round(val * 100) / 100;
+			const finalUnitPrice = roundMoney(finalPriceInItemCurrency * Number(rateObj.rate));
 
 			item.appliedModifiers = appliedModifiers.map((mod: any) => ({
 				price_modifier: mod.price_modifier,
-				applied_amount_base_currency: mod.applied_amount * Number(rateObj.rate) * item.quantity,
+				applied_amount_base_currency: roundMoney(mod.applied_amount * Number(rateObj.rate) * item.quantity),
 			}));
 
 			subtotalBase += finalUnitPrice * item.quantity;
 
 			// Aplica reglas de impuestos vigentes basadas en la categoria de producto
-			const itemTaxes = activeTaxes.filter(
-				(t: any) =>
-					t.tax_scope === 2 &&
-					(t.product === item.product || t.combo === item.combo || t.product === null) &&
-					(t.product_category === null ||
-						(productData && t.product_category === productData.product_category)) &&
-					(t.line_type === null || t.line_type === item.line_type),
-			);
-			for (const rule of itemTaxes) {
+			const itemTaxes = activeTaxes.filter((t: any) => {
+				if (t.tax_scope !== 2 && t.tax_scope !== 3) return false;
+				if (t.line_type && t.line_type !== item.line_type) return false;
+				if (t.product_category && (!productData || t.product_category !== productData.product_category)) return false;
+				if (t.product && t.product !== item.product) return false;
+				if (t.combo && t.combo !== item.combo) return false;
+				return true;
+			});
+
+			const uniqueTaxesMap = new Map<number, any>();
+			for (const t of itemTaxes) {
+				let score = 0;
+				if (t.product || t.combo) score += 100;
+				if (t.product_category) score += 10;
+				if (t.line_type) score += 5;
+				if (t.cinema) score += 1;
+
+				const existing = uniqueTaxesMap.get(t.tax);
+				if (!existing || score > existing.score) {
+					uniqueTaxesMap.set(t.tax, { rule: t, score });
+				}
+			}
+
+			for (const { rule } of uniqueTaxesMap.values()) {
 				const taxRate = Number(rule._Taxes?.rate ?? 0);
-				const taxAmount = finalUnitPrice * item.quantity * (taxRate / 100);
+				const taxAmount = roundMoney(finalUnitPrice * item.quantity * (taxRate / 100));
 				taxesBase += taxAmount;
 				if (!orderTaxesCollector[rule.tax]) orderTaxesCollector[rule.tax] = { rate: taxRate, amount: 0 };
 				orderTaxesCollector[rule.tax].amount += taxAmount;
@@ -1264,17 +1307,36 @@ export class OrdersService extends BaseService {
 				{ currentDate, currentTime, currentDay },
 			);
 
-			const finalUnitPrice = finalPriceInItemCurrency * Number(rateObj.rate);
+			const roundMoney = (val: number) => Math.round(val * 100) / 100;
+			const finalUnitPrice = roundMoney(finalPriceInItemCurrency * Number(rateObj.rate));
 
 			ticket.appliedModifiers = appliedModifiers.map((mod: any) => ({
 				price_modifier: mod.price_modifier,
-				applied_amount_base_currency: mod.applied_amount * Number(rateObj.rate),
+				applied_amount_base_currency: roundMoney(mod.applied_amount * Number(rateObj.rate)),
 			}));
 			subtotalBase += finalUnitPrice;
-			const ticketTaxes = activeTaxes.filter((t: any) => t.tax_scope === 1);
-			for (const rule of ticketTaxes) {
+
+			const ticketTaxes = activeTaxes.filter(
+				(t: any) =>
+					(t.tax_scope === 1 || t.tax_scope === 3) &&
+					t.product === null &&
+					t.combo === null &&
+					t.product_category === null &&
+					t.line_type === null
+			);
+			const uniqueTaxesMap = new Map<number, any>();
+			for (const t of ticketTaxes) {
+				let score = 0;
+				if (t.cinema) score += 1;
+				const existing = uniqueTaxesMap.get(t.tax);
+				if (!existing || score > existing.score) {
+					uniqueTaxesMap.set(t.tax, { rule: t, score });
+				}
+			}
+
+			for (const { rule } of uniqueTaxesMap.values()) {
 				const ticketTaxRate = Number(rule._Taxes?.rate ?? 0);
-				const taxAmount = finalUnitPrice * (ticketTaxRate / 100);
+				const taxAmount = roundMoney(finalUnitPrice * (ticketTaxRate / 100));
 				taxesBase += taxAmount;
 				if (!orderTaxesCollector[rule.tax]) orderTaxesCollector[rule.tax] = { rate: ticketTaxRate, amount: 0 };
 				orderTaxesCollector[rule.tax].amount += taxAmount;
@@ -1411,26 +1473,34 @@ export class OrdersService extends BaseService {
 
 	private async _awardLoyaltyPoints(order: any, transaction: Transaction) {
 		if (order.customer && Number(order.generated_points) > 0) {
-			const POINTS_EARN_OPERATION_TYPE = 1;
 			const customer = await this._customers.getById(order.customer, {
 				attributes: ['id', 'level_progress_points'],
 				transaction,
+				lock: transaction.LOCK.UPDATE,
 			});
-			const currentPoints = Number(customer?.level_progress_points ?? 0);
+			const currentLevelPoints = Number(customer?.level_progress_points ?? 0);
 			const earnedPoints = Number(order.generated_points);
-			const newBalance = currentPoints + earnedPoints;
+			const newLevelPoints = currentLevelPoints + earnedPoints;
+
+			const ledgers = await this._loyaltyLedgers.getAll(
+				{ count: false, order: [['id', 'DESC']], limit: 1, operation: { transaction, lock: transaction.LOCK.UPDATE } },
+				{ customer: order.customer },
+			);
+			const currentSpendableBalance = ledgers.length > 0 ? Number(ledgers[0].points_balance) : 0;
+			const newSpendableBalance = currentSpendableBalance + earnedPoints;
+
 			await this._loyaltyLedgers.create(
 				{
 					customer: order.customer,
 					order: order.id,
-					operation_type: POINTS_EARN_OPERATION_TYPE,
+					operation_type: OPERATION_TYPES.EARN,
 					points: earnedPoints,
-					points_balance: newBalance,
+					points_balance: newSpendableBalance,
 					remarks: `Puntos ganados por compra en orden #${order.id}`,
 				},
 				{ transaction },
 			);
-			await this._customers.update(order.customer, { level_progress_points: newBalance }, { transaction });
+			await this._customers.update(order.customer, { level_progress_points: newLevelPoints }, { transaction });
 		}
 	}
 
