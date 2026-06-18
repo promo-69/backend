@@ -19,10 +19,7 @@ export class PDFExporter {
         doc.on('data', buffers.push.bind(buffers));
 
         // ── Membrete ──────────────────────────────────────────────────────────────
-        // Empresa (izquierda)
         doc.fontSize(14).font('Helvetica-Bold').fillColor('#231640').text(companyName, { align: 'left' });
-
-        // Sucursal (derecha) - si existe
         if (cinemaName) {
             doc.fontSize(10).font('Helvetica').fillColor('#666666').text(`Sucursal: ${cinemaName}`, { align: 'right' });
         }
@@ -38,7 +35,7 @@ export class PDFExporter {
             .text(`Período: ${data.period?.from || '—'} - ${data.period?.to || '—'}`, { align: 'center' });
         doc.moveDown(1);
 
-        // ── Obtener filas y columnas ─────────────────────────────────────────────
+        // ── Filas y columnas ─────────────────────────────────────────────────────
         const rows = getRowsByReportType(reportType, data);
         if (!rows || rows.length === 0) {
             doc.fontSize(12).text('No hay datos para el período seleccionado.', { align: 'center' });
@@ -51,13 +48,12 @@ export class PDFExporter {
         const totalWidth = columns.reduce((sum, col) => sum + (col.width || 100), 0);
         const scaleFactor = pageWidth / totalWidth;
 
-        // Ajustar anchos proporcionalmente
         const adjustedColumns: (Column & { width: number })[] = columns.map((col) => ({
             ...col,
             width: (col.width || 100) * scaleFactor,
         }));
 
-        // ── Dibujar la tabla ──────────────────────────────────────────────────────
+        // ── Tabla ────────────────────────────────────────────────────────────────
         const rowHeight = 16;
         const headerHeight = 18;
         let currentY = doc.y;
@@ -87,10 +83,7 @@ export class PDFExporter {
 
         const drawRow = (row: any, yPos: number, index: number) => {
             let x = doc.page.margins.left;
-            // Fondo alternado
-            if (index % 2 === 0) {
-                doc.rect(x, yPos, pageWidth, rowHeight).fill('#f9f9f9');
-            }
+            if (index % 2 === 0) doc.rect(x, yPos, pageWidth, rowHeight).fill('#f9f9f9');
             adjustedColumns.forEach((col) => {
                 const value = getNestedValue(row, col.key);
                 const text = value !== undefined && value !== null ? String(value) : '—';
@@ -114,11 +107,9 @@ export class PDFExporter {
                 .stroke();
         };
 
-        // ── Encabezado inicial ────────────────────────────────────────────────────
         drawHeader(currentY);
         currentY += headerHeight;
 
-        // ── Filas ──────────────────────────────────────────────────────────────────
         let rowIndex = 0;
         for (const row of rows) {
             if (currentY + rowHeight > doc.page.height - doc.page.margins.bottom - 20) {
@@ -132,12 +123,11 @@ export class PDFExporter {
             rowIndex++;
         }
 
-        // ── Totales / Resumen ─────────────────────────────────────────────────────
+        // ── Resumen ──────────────────────────────────────────────────────────────
         const summary = this._getSummary(reportType, data);
         if (summary) {
             doc.moveDown(1);
-            doc.fontSize(9).font('Helvetica-Bold').fillColor('#231640');
-            doc.text(summary, { align: 'right' });
+            doc.fontSize(9).font('Helvetica-Bold').fillColor('#231640').text(summary, { align: 'right' });
         }
 
         // ── Pie de página ────────────────────────────────────────────────────────
@@ -157,8 +147,8 @@ export class PDFExporter {
             return `Total órdenes: ${s.total_orders}  |  Ingresos: $${s.total_revenue?.toFixed(2) || '0.00'}  |  Boletos: ${s.total_tickets}`;
         }
         if (reportType === 'movies' && data.movies?.length) {
-            const totalRevenue = data.movies.reduce((acc: number, m: any) => acc + Number(m.total_revenue || 0), 0);
-            return `Ingresos totales: $${totalRevenue.toFixed(2)}  |  Películas: ${data.movies.length}`;
+            const total = data.movies.reduce((acc: number, m: any) => acc + Number(m.total_revenue || 0), 0);
+            return `Ingresos totales: $${total.toFixed(2)}  |  Películas: ${data.movies.length}`;
         }
         if (reportType === 'inventory' && data.products?.length) {
             const totalValue = data.products.reduce((acc: number, p: any) => acc + Number(p.stock_value || 0), 0);
