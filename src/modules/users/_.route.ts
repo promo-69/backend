@@ -7,7 +7,6 @@ const router = Router();
 // --- Perfil del Usuario Logueado)
 router.get('/me', verifySession, usersController.getMyProfile);
 router.patch('/me/profile', verifySession, usersController.updateMyProfile);
-router.patch('/me/security', verifySession, usersController.updateMySecurity);
 router.post('/me/security/verify', verifySession, usersController.verifySecurity);
 router.post('/me/security/change', verifySession, usersController.changePasswordWithToken);
 router.get('/me/orders', verifySession, usersController.getMyOrders);
