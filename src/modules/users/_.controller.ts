@@ -25,6 +25,18 @@ class UsersController extends ControllerBase {
 		return this.success(null, 'Credenciales de seguridad actualizadas correctamente.');
 	}
 
+	async verifySecurity() {
+		const result = await UsersService.verifySecurityForChange(this.getSession().userId, this.getBody());
+
+		return this.success(result, 'Verificación de identidad exitosa.');
+	}
+
+	async changePasswordWithToken() {
+		await UsersService.changePasswordWithSecurityToken(this.getSession().userId, this.getBody());
+
+		return this.success(null, 'Contraseña actualizada correctamente.');
+	}
+
 	// -- Órdenes del Consumidor
 
 	async getMyOrders() {

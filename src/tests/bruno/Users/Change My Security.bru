@@ -1,0 +1,27 @@
+meta {
+  name: Change My Security
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/users/me/security/change
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "securityChangeToken": "{{securityChangeToken}}",
+    "newPassword": "NewStrongPassword456!",
+    "newEmail": "{{newEmail}}"
+  }
+}
+
+vars:pre-request {
+  newEmail: cliente2@cineflix.com
+}
