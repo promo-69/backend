@@ -1,0 +1,49 @@
+/users/me/security/verify:
+    post:
+        tags:
+            - Users (Self-Service)
+        summary: Verify current password for security change
+        description: Verifies the currently authenticated user's password and returns a short-lived token to authorize a password change.
+        security:
+            - cookieAuth: []
+            - bearerAuth: []
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        required:
+                            - password
+                        properties:
+                            password:
+                                type: string
+                                example: oldPassword123
+        responses:
+            '200':
+                description: Verification successful. Returns a short-lived token.
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                    example: true
+                                message:
+                                    type: string
+                                    example: Verificación de identidad exitosa.
+                                data:
+                                    type: object
+                                    properties:
+                                        securityChangeToken:
+                                            type: string
+                                            example: 9f8b7e6c5d4a3b2c1e0f...
+            '400':
+                description: Bad request (validation errors)
+            '401':
+                description: Unauthorized or invalid credentials
+            '429':
+                description: Too many attempts
+            '500':
+                description: Internal server error

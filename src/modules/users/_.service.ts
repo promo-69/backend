@@ -4,6 +4,7 @@ import { Database } from '@database/index.js';
 import { AuthError, ValidationError, NotFoundError } from '@errors/index.js';
 import { BcryptUtil } from '@utils/bcrypt.util.js';
 import { CacheDatabaseProvider } from '@providers/cache-database.provider.js';
+import crypto from 'crypto';
 import { REGEX } from '@constants/regex.constant.js';
 import { type UsersWithPeople } from '@repositories/main/users.repository.js';
 import { tokenBlacklistService } from '@services/token-blacklist.service.js';
@@ -203,7 +204,7 @@ export class UsersService extends BaseService {
 		}*/
 
 		if (newPassword) {
-			if (!BcryptUtil.validatePasswordStrength(newPassword))
+			if (!REGEX.PASSWORD.test(newPassword))
 				throw new ValidationError('La nueva contraseña no cumple con los criterios de seguridad.', []);
 
 			updateData.password = await BcryptUtil.hash(newPassword);
@@ -213,6 +214,102 @@ export class UsersService extends BaseService {
 			throw new ValidationError('No se enviaron cambios de seguridad a aplicar.', []);
 
 		await this._users.update({ id: userId }, updateData);
+	}
+
+	// --- Two-phase security change
+
+	async verifySecurityForChange(userId: number, data: Record<string, any>): Promise<{ securityChangeToken: string }> {
+		const { password } = data;
+		if (!password)
+			throw new ValidationError('Debes ingresar tu contraseña actual para verificar tu identidad.', []);
+
+		const user = await this._users.getById(userId);
+		if (!user) throw new NotFoundError('Usuario', userId.toString());
+
+		const isPasswordValid = await BcryptUtil.compare(password, user.password);
+		if (!isPasswordValid)
+			throw new AuthError('La contraseña actual es incorrecta.', { code: 'INVALID_CREDENTIALS' });
+
+		const redis = CacheDatabaseProvider.getInstance().client;
+
+		// Rate limit: max 5 intentos en 15 minutos
+		const attemptsKey = `security:attempts:${userId}`;
+		const attempts = await redis.incr(attemptsKey);
+		if (attempts === 1) await redis.expire(attemptsKey, 900);
+		if (attempts > 5) throw new ValidationError('Demasiados intentos. Intenta nuevamente más tarde.', []);
+
+		// Generar token criptográfico y almacenarlo en Redis por tiempo limitado
+		const token = crypto.randomBytes(32).toString('hex');
+		const key = `security:change:${token}`;
+		// TTL: 10 minutos
+		await redis.set(key, String(userId), 'EX', 600);
+
+		// Resetear intentos al generar el token
+		await redis.del(attemptsKey);
+
+		return { securityChangeToken: token };
+	}
+
+	async changePasswordWithSecurityToken(userId: number, data: Record<string, any>): Promise<void> {
+		const { securityChangeToken, newPassword, newEmail } = data;
+
+		if (!securityChangeToken) throw new ValidationError('El token de cambio de seguridad es requerido.', []);
+
+		if (!newPassword && !newEmail)
+			throw new ValidationError(
+				'Se requiere enviar al menos una de las opciones: nueva contraseña o nuevo correo.',
+				[],
+			);
+
+		const redis = CacheDatabaseProvider.getInstance().client;
+		const key = `security:change:${securityChangeToken}`;
+		const storedUserId = await redis.get(key);
+		if (!storedUserId || Number(storedUserId) !== Number(userId))
+			throw new AuthError('Token inválido o expirado.', { code: 'INVALID_TOKEN' });
+
+		// Validaciones según lo enviado
+		if (newPassword && !REGEX.PASSWORD.test(newPassword))
+			throw new ValidationError('La nueva contraseña no cumple con los criterios de seguridad.', []);
+
+		if (newEmail) {
+			if (!REGEX.EMAIL.test(newEmail)) throw new ValidationError('Formato de correo inválido.', []);
+
+			const existingUser = await this._users.getByEmail(newEmail);
+			if (existingUser && Number(existingUser.id) !== Number(userId))
+				throw new ValidationError('El correo ya se encuentra en uso por otra cuenta.', []);
+		}
+
+		// Proceder al cambio en transacción
+		await this._users.transaction(async (transaction: Transaction) => {
+			const updateData: any = {};
+
+			if (newPassword) updateData.password = await BcryptUtil.hash(newPassword);
+			if (newEmail) updateData.email = newEmail;
+
+			if (Object.keys(updateData).length > 0)
+				await this._users.update({ id: userId }, updateData, { transaction });
+
+			// If password changed, invalidate sessions
+			if (newPassword) {
+				const { rows: activeSessions } = await this._usersLogins.getAll({}, { user: userId });
+
+				if (activeSessions && activeSessions.length > 0) {
+					const blacklistPromises: Promise<any>[] = [];
+					for (const session of activeSessions) {
+						const expiresAt = Math.floor(new Date(session.expires_at).getTime() / 1000);
+
+						if (session.jti)
+							blacklistPromises.push(tokenBlacklistService.blacklistJti(session.jti, expiresAt));
+					}
+
+					await Promise.all(blacklistPromises);
+					await this._usersLogins.update({ user: userId }, { token_status: 2 }, { transaction });
+				}
+			}
+		});
+
+		// Consumir el token (one-time)
+		await redis.del(key);
 	}
 
 	// --- En relación a las compras realizadas
