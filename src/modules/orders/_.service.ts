@@ -661,14 +661,10 @@ export class OrdersService extends BaseService {
 					paymentCurrency = ptsCurrency.id;
 				}
 
-				if (!paymentCurrency) {
-					paymentCurrency = quoteData.system_base_currency;
-				}
+				if (!paymentCurrency) paymentCurrency = quoteData.system_base_currency;
 
 				const rateDb = exchangeRatesDict[paymentCurrency];
-				if (!rateDb) {
-					throw new BadRequestError('No se encontró tasa de cambio en la cotización para esta moneda.');
-				}
+				if (!rateDb) throw new BadRequestError('No se encontró tasa de cambio en la cotización para esta moneda.');
 
 				const exchangeRateValue = Number(rateDb.rate);
 				const quotedExchangeRateId = rateDb.id;
@@ -697,7 +693,6 @@ export class OrdersService extends BaseService {
 						{ transaction },
 					);
 				} else if ([PAYMENT_METHOD.POS, PAYMENT_METHOD.MOBILE_PAYMENT, PAYMENT_METHOD.BANK_TRANSFER].includes(paymentMethodId) || bypass === true) {
-					console.log('ENTRE AQUI', 2)
 					if (!reference_number) throw new BadRequestError('El número de referencia es obligatorio para este método de pago');
 					if (!bank) throw new BadRequestError('El banco destino es obligatorio para este método de pago');
 					if (!currency) throw new BadRequestError('La moneda es obligatoria para este método de pago');
@@ -722,7 +717,7 @@ export class OrdersService extends BaseService {
 						if (apiUrl) {
 							try {
 								const apiKey = targetAccount.api_key;
-								const response = await fetch(`${apiUrl}/${reference_number}`, {
+								const response = await fetch(`${apiUrl}/external/transactions/${reference_number}`, {
 									method: 'GET',
 									headers: {
 										'Authorization': `Bearer ${apiKey}`,
@@ -732,6 +727,7 @@ export class OrdersService extends BaseService {
 								const data: any = await response.json();
 
 								if (!response.ok || !data.success) throw new BadRequestError(`El pago no pudo ser validado. Banco dice: ${data.message || 'Transacción fallida o no encontrada'}`);
+								if (Number(data.data.amount) !== Number(amount)) throw new BadRequestError(`El monto de la transacción no coincide con el monto descrito.`);
 							} catch (error: any) {
 								if (error instanceof BadRequestError) throw error;
 								throw new BadRequestError(`Error al comprobar la transacción con la entidad bancaria`, error);
@@ -767,9 +763,7 @@ export class OrdersService extends BaseService {
 
 						if (existingPayment) throw new BadRequestError(`La referencia ${reference_number} ya fue procesada previamente.`);
 					}
-				} else if (paymentMethodId === PAYMENT_METHOD.CASH) {
-					console.log('ENTRE AQUI', 3);
-				}
+				} else if (paymentMethodId === PAYMENT_METHOD.CASH) {}
 
 				await this._orderPayments.create(
 					{
@@ -810,7 +804,6 @@ export class OrdersService extends BaseService {
 						relations: this._customers._relations,
 						transaction,
 					});
-					console.log(customer);
 					const billingData = {
 						name: `${customer._People.first_name}${customer._People?.last_name ? ` ${customer._People.last_name}` : ''}`.trim(),
 						document: customer._People.document_number,

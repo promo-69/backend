@@ -67,9 +67,9 @@ export default defineConfig(({ mode }) => {
                 ],
             },
         },
-        // SSR Configuration (Force bundle for everything except natively compiled binaries)
+        // SSR Configuration (Avoid bundling all node_modules to reduce index.js size)
         ssr: {
-            noExternal: true,
+            noExternal: false,
             external: [
                 'pg',
                 'sequelize',
