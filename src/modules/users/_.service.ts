@@ -12,6 +12,7 @@ import { WhereOperators } from '@bases/repository.base.js';
 import { USER_TYPE } from '@constants/magic-vars.constant.js';
 import { CustomerUserSession } from '@rules/api.type.js';
 import { ProcessedQueryFilters } from '@rules/api-query.type.js';
+import { emailService } from '@services/email.service.js';
 
 export class UsersService extends BaseService {
 	constructor() {
@@ -391,7 +392,6 @@ export class UsersService extends BaseService {
 				const user = await userRepo.getOne({}, { person: testOrder._Customers.person });
 
 				if (user && user.email) {
-					const { emailService } = await import('@services/email.service.js');
 					await emailService.sendOrderInvoiceEmail(user.email, orderData, testOrder.qr_code || 'TEST-QR-123');
 				}
 			}

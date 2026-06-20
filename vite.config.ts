@@ -69,7 +69,6 @@ export default defineConfig(({ mode }) => {
         },
         // SSR Configuration (Avoid bundling all node_modules to reduce index.js size)
         ssr: {
-            noExternal: false,
             external: [
                 'pg',
                 'sequelize',
