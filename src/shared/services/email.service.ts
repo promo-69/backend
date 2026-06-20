@@ -5,6 +5,7 @@ import { WelcomeEmailTemplate } from '@templates/emails/welcome.template.js';
 import { OrderInvoiceEmailTemplate } from '@templates/emails/order-invoice.template.js';
 import { RentalApprovalEmailTemplate } from '@templates/emails/rental-approval.template.js';
 import { RentalRejectionEmailTemplate } from '@templates/emails/rental-rejection.template.js';
+import { MovieReminderEmailTemplate, type MovieReminderType } from '@templates/emails/movie-reminder.template.js';
 
 class EmailService {
     private get provider() {
@@ -55,6 +56,27 @@ class EmailService {
     async sendRentalRejection(to: string, eventName: string, requestId: number): Promise<boolean> {
         const subject = `Solicitud de alquiler rechazada: ${eventName}`;
         const html = RentalRejectionEmailTemplate(eventName, requestId);
+        return this.provider.sendMail(to, subject, html);
+    }
+
+    async sendMovieReminderEmail(
+        to: string,
+        name: string,
+        movieTitle: string,
+        releaseDate: string,
+        reminderType: MovieReminderType,
+        posterUrl?: string,
+    ): Promise<boolean> {
+        const subjectMap: Record<MovieReminderType, string> = {
+            presale: `🎟️ ¡Preventa disponible! ${movieTitle} - Cineflix`,
+            '3_weeks': `🎬 Faltan 3 semanas: ${movieTitle} - Cineflix`,
+            '2_weeks': `🎬 ¡Casi llega! ${movieTitle} se estrena en 2 semanas - Cineflix`,
+            '1_week': `⏳ ¡Una semana para el estreno de ${movieTitle}! - Cineflix`,
+            '2_days': `🚨 ¡Solo 2 días! ${movieTitle} llega el viernes - Cineflix`,
+        };
+
+        const subject = subjectMap[reminderType];
+        const html = MovieReminderEmailTemplate(name, movieTitle, releaseDate, reminderType, posterUrl);
         return this.provider.sendMail(to, subject, html);
     }
 }
