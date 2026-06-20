@@ -1,0 +1,27 @@
+meta {
+  name: Export Events
+  type: http
+  seq: 18
+}
+
+get {
+  url: {{baseUrl}}/reports/events/export
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  format: pdf
+  from: {{fromDate}}
+  to: {{toDate}}
+}
+
+docs {
+  Exporta el reporte de eventos.
+  format: json | csv | xlsx | pdf
+  Permiso: CRUD:READ:REPORTS-EXPORT
+}

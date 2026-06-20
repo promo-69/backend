@@ -1,0 +1,25 @@
+meta {
+  name: Showtimes Chart
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/reports/showtimes/chart
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  from: {{fromDate}}
+  to: {{toDate}}
+}
+
+docs {
+  Datos normalizados para gráfico de funciones.
+  Permiso: CRUD:READ:REPORTS-CHARTS
+}

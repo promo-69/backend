@@ -1,0 +1,25 @@
+meta {
+  name: Movies Report
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/reports/movies
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  from: {{fromDate}}
+  to: {{toDate}}
+}
+
+docs {
+  Reporte de películas: funciones, boletos vendidos, ingresos y ocupación.
+  Permiso: CRUD:READ:REPORTS-MOVIES
+}

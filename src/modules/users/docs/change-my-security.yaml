@@ -1,0 +1,52 @@
+/users/me/security/change:
+    post:
+        tags:
+            - Users (Self-Service)
+        summary: Change password using security token
+        description: Changes the password for the authenticated user using a short-lived token previously obtained via `/users/me/security/verify`.
+        security:
+            - cookieAuth: []
+            - bearerAuth: []
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        required:
+                            - securityChangeToken
+                        properties:
+                            securityChangeToken:
+                                type: string
+                                example: 9f8b7e6c5d4a3b2c1e0f
+                            newPassword:
+                                type: string
+                                example: NewStrongPassword456!
+                            newEmail:
+                                type: string
+                                format: email
+                                example: new.login@example.com
+        responses:
+            '200':
+                description: Password updated successfully.
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                    example: true
+                                message:
+                                    type: string
+                                    example: Contraseña actualizada correctamente.
+                                data:
+                                    type: 'null'
+            '400':
+                description: Bad request (validation errors)
+            '401':
+                description: Unauthorized or invalid/expired token
+            '422':
+                description: Unprocessable Entity (password policy violation)
+            '500':
+                description: Internal server error

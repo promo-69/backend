@@ -1,0 +1,22 @@
+meta {
+  name: Update Currency
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}/currencies/1
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "description": "Euro Actualizado",
+    "is_base_currency": true
+  }
+}

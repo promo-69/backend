@@ -1,0 +1,25 @@
+meta {
+  name: Events Chart
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/reports/events/chart
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  from: {{fromDate}}
+  to: {{toDate}}
+}
+
+docs {
+  Datos normalizados para gráfico de eventos.
+  Permiso: CRUD:READ:REPORTS-CHARTS
+}

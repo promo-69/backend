@@ -1,0 +1,31 @@
+meta {
+  name: Sales By Cinema
+  type: http
+  seq: 16
+}
+
+get {
+  url: {{baseUrl}}/reports/sales?from={{fromDate}}&to={{toDate}}&channel=all&cinemaId={{cinemaId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  from: {{fromDate}}
+  to: {{toDate}}
+  channel: all
+  cinemaId: {{cinemaId}}
+}
+
+vars:pre-request {
+  cinemaId: 1
+}
+
+docs {
+  Reporte de ventas de una sucursal específica.
+  Permiso: CRUD:READ:REPORTS-SALES
+}

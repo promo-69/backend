@@ -1,0 +1,36 @@
+meta {
+  name: Payment - Loyalty Points
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/orders/payments
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "payment_method": 5,
+    "amount": {{pointsToSpend}},
+    "currency": 1
+  }
+}
+
+vars:pre-request {
+  pointsToSpend: 500
+}
+
+script:post-response {
+  if (res.status === 200 || res.status === 201) {
+    const data = res.getBody();
+    if (data.data && data.data.qr_code) {
+      bru.setEnvVar("orderQrCode", data.data.qr_code);
+    }
+  }
+}

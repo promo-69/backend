@@ -18,10 +18,6 @@ export default class CustomerFavoriteGenresModel extends SequelizeModelBase {
 				allowNull: false,
 				type: DataTypes.INTEGER,
 			},
-			created_at: {
-				allowNull: false,
-				type: DataTypes.DATE,
-			},
 		};
 	}
 

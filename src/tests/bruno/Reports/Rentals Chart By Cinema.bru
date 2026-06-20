@@ -1,0 +1,30 @@
+meta {
+  name: Rentals Chart By Cinema
+  type: http
+  seq: 14
+}
+
+get {
+  url: {{baseUrl}}/reports/rentals/chart?from={{fromDate}}&to={{toDate}}&cinemaId={{cinemaId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  from: {{fromDate}}
+  to: {{toDate}}
+  cinemaId: {{cinemaId}}
+}
+
+vars:pre-request {
+  cinemaId: 1
+}
+
+docs {
+  Datos normalizados para gráfico de alquileres de una sucursal específica.
+  Permiso: CRUD:READ:REPORTS-CHARTS
+}

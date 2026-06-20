@@ -1,0 +1,25 @@
+meta {
+  name: Movies Chart
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/reports/movies/chart
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  from: {{fromDate}}
+  to: {{toDate}}
+}
+
+docs {
+  Datos normalizados para gráfico de películas.
+  Permiso: CRUD:READ:REPORTS-CHARTS
+}

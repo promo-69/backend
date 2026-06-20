@@ -17,7 +17,7 @@ auth:bearer {
 body:json {
   {
     "concessions": [
-      { "line_type": 1, "product": 2, "quantity": 1 },
+      { "line_type": 1, "product": 2, "quantity": 2 },
       { "line_type": 1, "product": 1, "quantity": 1 }
     ],
     "tickets": []
@@ -31,4 +31,11 @@ script:post-response {
       bru.setEnvVar("orderTotalBase", data.data.total_amount_base_currency);
     }
   }
+}
+
+tests {
+  test("Bugfix: total_amount_base_currency should not be abnormally small due to exchange rate division", function() {
+    const data = res.getBody();
+    expect(Number(data.data.total_amount_base_currency)).to.be.above(1);
+  });
 }

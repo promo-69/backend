@@ -1,0 +1,174 @@
+/showtimes/by-content/{type}/{id}:
+    get:
+        summary: Get showtimes grouped by cinema for a movie or special event
+        description: |
+            Returns all future showtimes of a specific movie or special event, grouped by cinema.
+            Optionally filter by a specific date (`date` query parameter).
+            If no date is provided, the system returns showtimes for the nearest available date.
+            Also returns a list of `available_dates` to build a date carousel in the frontend.
+        tags:
+            - Showtimes
+        security: []
+        parameters:
+            - in: path
+              name: type
+              required: true
+              schema:
+                  type: string
+                  enum: [movie, event]
+              description: 'Content type: `movie` or `event`'
+            - in: path
+              name: id
+              required: true
+              schema:
+                  type: integer
+              description: 'ID of the movie or special event'
+            - in: query
+              name: date
+              schema:
+                  type: string
+                  format: date
+              description: 'Filter by date (YYYY-MM-DD). If omitted, the nearest date with showtimes is used.'
+        responses:
+            '200':
+                description: Successful response
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                    example: true
+                                message:
+                                    type: string
+                                    example: 'Funciones obtenidas exitosamente'
+                                data:
+                                    type: object
+                                    properties:
+                                        movie:
+                                            type: object
+                                            description: Present only if `type=movie`
+                                            properties:
+                                                id:
+                                                    type: integer
+                                                title:
+                                                    type: string
+                                                duration_minutes:
+                                                    type: integer
+                                                poster_url:
+                                                    type: string
+                                                    nullable: true
+                                        event:
+                                            type: object
+                                            description: Present only if `type=event`
+                                            properties:
+                                                id:
+                                                    type: integer
+                                                title:
+                                                    type: string
+                                                duration_minutes:
+                                                    type: integer
+                                                poster_url:
+                                                    type: string
+                                                    nullable: true
+                                        selected_date:
+                                            type: string
+                                            format: date
+                                            description: 'The date for which showtimes are returned (requested or nearest)'
+                                        available_dates:
+                                            type: array
+                                            items:
+                                                type: string
+                                                format: date
+                                            description: 'List of dates that have showtimes for this content (for carousel)'
+                                        cinemas_count:
+                                            type: integer
+                                            description: Number of cinemas with showtimes
+                                        cinemas:
+                                            type: array
+                                            items:
+                                                type: object
+                                                properties:
+                                                    cinema:
+                                                        type: object
+                                                        properties:
+                                                            id:
+                                                                type: integer
+                                                            name:
+                                                                type: string
+                                                    showtimes:
+                                                        type: array
+                                                        items:
+                                                            type: object
+                                                            properties:
+                                                                id:
+                                                                    type: integer
+                                                                booking:
+                                                                    type: object
+                                                                    properties:
+                                                                        id:
+                                                                            type: integer
+                                                                        start_time:
+                                                                            type: string
+                                                                            format: date-time
+                                                                        end_time:
+                                                                            type: string
+                                                                            format: date-time
+                                                                        room:
+                                                                            type: object
+                                                                            properties:
+                                                                                id:
+                                                                                    type: integer
+                                                                                name:
+                                                                                    type: string
+                                                                                total_seats:
+                                                                                    type: integer
+                                                                                available_seats:
+                                                                                    type: integer
+                                                                projection_type:
+                                                                    type: object
+                                                                    properties:
+                                                                        id:
+                                                                            type: integer
+                                                                        description:
+                                                                            type: string
+                                                                language:
+                                                                    type: object
+                                                                    properties:
+                                                                        id:
+                                                                            type: integer
+                                                                        description:
+                                                                            type: string
+                                                                currency:
+                                                                    type: object
+                                                                    properties:
+                                                                        id:
+                                                                            type: integer
+                                                                        code:
+                                                                            type: string
+                                                                        symbol:
+                                                                            type: string
+                                                                price:
+                                                                    type: number
+                                                                earned_loyalty_points:
+                                                                    type: integer
+                                                                    nullable: true
+            '404':
+                description: Content not found or no showtimes available
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                    example: false
+                                message:
+                                    type: string
+                                code:
+                                    type: string
+            '400':
+                description: Invalid parameters (e.g., wrong type)
+            '500':
+                description: Internal server error

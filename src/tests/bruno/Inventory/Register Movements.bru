@@ -1,11 +1,11 @@
 meta {
-  name: Register Inventory Movements
+  name: Register Movements (Entry)
   type: http
-  seq: 3
+  seq: 6
 }
 
 post {
-  url: {{baseUrl}}/inventory/{{testInventoryId}}/movements
+  url: {{baseUrl}}/inventory/{{inventoryId}}/movements
   body: json
   auth: bearer
 }
@@ -16,14 +16,22 @@ auth:bearer {
 
 body:json {
   [
-    { "operationType": 1, "quantity": 100, "remarks": "Weekly replenishment", "unit_cost": 5.50 }
+    {
+      "operationType": {{opTypeIn}},
+      "quantity": 100,
+      "unit_cost": 5.50,
+      "remarks": "Compra a proveedor"
+    }
   ]
 }
 
-script:pre-request {
-  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
-  bru.setVar('baseUrl', baseUrl);
-  if (!bru.getEnvVar('testInventoryId')) {
-    throw new Error('testInventoryId no está definido. Ejecuta primero la creación de inventario.');
-  }
+vars:pre-request {
+  inventoryId: 1
+  opTypeIn: 3
+}
+
+docs {
+  Registra un movimiento de ENTRADA (incrementa stock).
+  `operationType` debe corresponder a un tipo de operación con `is_increment = true`.
+  `unit_cost` es opcional; si no se envía, se mantiene el costo promedio actual.
 }

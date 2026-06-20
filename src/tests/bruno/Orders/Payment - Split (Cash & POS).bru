@@ -1,0 +1,51 @@
+meta {
+  name: Payment - Split (Cash & POS)
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/orders/payments
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  [
+    {
+      "payment_method": 1,
+      "amount": {{cashAmount}},
+      "currency": 1
+    },
+    {
+      "payment_method": 2,
+      "amount": {{posAmount}},
+      "currency": 2,
+      "reference_number": "{{refNumber}}",
+      "bank": 1,
+      "bypass": true
+    }
+  ]
+}
+
+vars:pre-request {
+  cashAmount: 1000
+  posAmount: 3005.34
+}
+
+script:pre-request {
+  bru.setVar("refNumber", "POS-" + Math.floor(Math.random() * 1000000000));
+}
+
+script:post-response {
+  if (res.status === 200 || res.status === 201) {
+    const data = res.getBody();
+    if (data.data && data.data.qr_code) {
+      bru.setEnvVar("orderQrCode", data.data.qr_code);
+    }
+  }
+}

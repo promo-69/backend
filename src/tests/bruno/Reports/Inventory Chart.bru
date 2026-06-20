@@ -1,0 +1,25 @@
+meta {
+  name: Inventory Chart
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/reports/inventory/chart
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  from: {{fromDate}}
+  to: {{toDate}}
+}
+
+docs {
+  Datos normalizados para gráfico de inventario.
+  Permiso: CRUD:READ:REPORTS-CHARTS
+}

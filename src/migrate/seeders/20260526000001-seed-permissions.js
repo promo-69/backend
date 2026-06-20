@@ -144,6 +144,7 @@ module.exports = {
                 ['CRUD', 'CREATE', 'CINEMAS-COMBOS'],
                 ['CRUD', 'READ', 'CINEMAS-ROOMS'],
                 ['CRUD', 'READ', 'CINEMAS-INVENTORY'],
+                ['CRUD', 'CREATE', 'CINEMAS-INVENTORY'],
                 ['CRUD', 'READ', 'CINEMAS-ROOM-EVENTS'],
                 ['CRUD', 'CREATE', 'CINEMAS-ROOM-EVENTS'],
                 ['CRUD', 'READ', 'CINEMAS-SHOWTIMES'], // recurso nuevo

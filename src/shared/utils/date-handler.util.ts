@@ -1,14 +1,47 @@
 export type DateInput = Date | string | null;
 export type DateHandlerResult = HandleredDate | undefined;
-export type TimeUnit = 'ms' | 's' | 'm' | 'min' | 'h';
+export type TimeUnit = 'ms' | 's' | 'm' | 'min' | 'h' | 'd' | 'w';
 export type OutputTimeUnit = 'ms' | 's' | 'm' | 'h';
+export interface TimeConversionOptions { onlyNumberOutput?: boolean; }
 
 const UNIT_TO_MS: Record<TimeUnit, number> = {
-	ms: 1,
-	s: 1000,
-	m: 60 * 1000,
-	min: 60 * 1000,
-	h: 60 * 60 * 1000,
+    ms: 1,
+    s: 1000,
+    m: 60 * 1000,
+    min: 60 * 1000,
+    h: 60 * 60 * 1000,
+    d: 60 * 60 * 24 * 1000,
+    w: 60 * 60 * 24 * 7 * 1000,
+};
+
+export const getTimeIn = (
+    time: string | number,
+    formatOutput: TimeUnit = 'ms',
+    options: TimeConversionOptions = { onlyNumberOutput: false }
+): number | string => {
+    let valueInMs: number;
+
+    if (typeof time === 'number') {
+        valueInMs = time;
+    } else {
+        const timeStr = time.trim();
+        const match = timeStr.match(/^(\d+(?:\.\d+)?)\s*(ms|s|m|min|h|d|w)?$/);
+
+        if (!match) throw new Error(`Formato de tiempo inválido: "${time}". Formatos válidos ej: "100", "10s", "5m", "2h", "3d", "2w"`);
+
+        const numericValue = parseFloat(match[1]);
+        const inputUnit = (match[2] as TimeUnit) || 'ms';
+
+        valueInMs = numericValue * UNIT_TO_MS[inputUnit];
+    }
+
+    const convertedValue = valueInMs / UNIT_TO_MS[formatOutput];
+
+    if (options.onlyNumberOutput) return convertedValue;
+
+    const outputUnitStr = formatOutput === 'min' ? 'm' : formatOutput;
+
+    return `${convertedValue}${outputUnitStr}`;
 };
 
 export class HandleredDate {
@@ -104,35 +137,6 @@ export class HandleredDate {
 		return new HandleredDate(todayDate);
 	}
 }
-
-export const getTimeIn = (time: string, outputUnit: OutputTimeUnit = 'ms'): number => {
-	const timeStr = time.trim();
-
-	// Detectar el valor y unidad de entrada (similar a tu lógica original)
-	const msMatch = timeStr.match(/^(\d+(?:\.\d+)?)(?:ms)?$/);
-	const mMatch = timeStr.match(/^(\d+(?:\.\d+)?)(?:m|min)$/);
-	const sMatch = timeStr.match(/^(\d+(?:\.\d+)?)s$/);
-	const hMatch = timeStr.match(/^(\d+(?:\.\d+)?)h$/);
-
-	let valueInMs: number;
-
-	if (hMatch && hMatch[1]) {
-		valueInMs = parseFloat(hMatch[1]) * UNIT_TO_MS['h'];
-	} else if (mMatch && mMatch[1]) {
-		valueInMs = parseFloat(mMatch[1]) * UNIT_TO_MS['m'];
-	} else if (sMatch && sMatch[1]) {
-		valueInMs = parseFloat(sMatch[1]) * UNIT_TO_MS['s'];
-	} else if (msMatch && msMatch[1]) {
-		valueInMs = parseFloat(msMatch[1]);
-	} else {
-		throw new Error(
-			`Formato de tiempo inválido: "${time}". ` + `Formatos: "100", "100ms", "10s", "5m", "5min", "2h", "1.5h"`,
-		);
-	}
-
-	// Convertir a la unidad de salida deseada
-	return valueInMs / UNIT_TO_MS[outputUnit];
-};
 
 export const dateHandler = (date: DateInput = null, variable: number | null = null): DateHandlerResult => {
 	let handlerDate: Date;

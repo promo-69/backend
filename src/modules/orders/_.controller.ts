@@ -50,3 +50,5 @@ export class OrdersController extends ControllerBase {
 		return await OrdersService.validateQr(this.requireParam('qrCode'), this.getBody(), this.getSession());
 	}
 }
+
+export default new OrdersController();

@@ -1,0 +1,25 @@
+meta {
+  name: Events Chart Global
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/reports/events/chart?from={{fromDate}}&to={{toDate}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  from: {{fromDate}}
+  to: {{toDate}}
+}
+
+docs {
+  Datos normalizados para gráfico de eventos (todas las sedes).
+  Permiso: CRUD:READ:REPORTS-CHARTS
+}

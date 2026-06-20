@@ -1,6 +1,6 @@
 import { SequelizeRepositoryBase } from '@repositories/bases/sequelize.repository.js';
 import UsersModel from '@database/models/main/users.model.js';
-import { Sequelize } from 'sequelize';
+import { USER_TYPE } from '@constants/magic-vars.constant.js';
 
 export interface UsersAttributes {
 	id?: number;
@@ -23,21 +23,31 @@ export interface UsersWithPeople extends UsersAttributes {
 		personal_email: string;
 		phone_number: string;
 	};
+	_UserPermissions?: { permission: number; is_granted: boolean }[];
+	_Roles?: {
+		code: string;
+		_RoleInheritancesChild?: { parent_role: number }[];
+	};
 }
-
-const USER_TYPE_EMPLOYEE = 1;
-const USER_TYPE_CUSTOMER = 2;
 
 class UsersRepository extends SequelizeRepositoryBase<UsersAttributes, number> {
 	constructor() {
 		super(UsersModel);
 	}
 
-	private get _relations() {
+	public get _relations() {
 		return [
 			{
 				association: '_People',
-				attributes: ['first_name', 'last_name', 'personal_email', 'phone_number', 'birth_date', 'gender',],
+				attributes: [
+					'document_number',
+					'first_name',
+					'last_name',
+					'personal_email',
+					'phone_number',
+					'birth_date',
+					'gender',
+				],
 				required: true,
 				nested: [
 					{
@@ -57,19 +67,18 @@ class UsersRepository extends SequelizeRepositoryBase<UsersAttributes, number> {
 					},
 					{
 						association: '_Genders',
-						attributes: ['id','description']
-
-					}
+						attributes: ['id', 'description'],
+					},
 				],
 			},
 			{
 				association: '_Roles',
-				attributes: ['code'],
+				attributes: ['code', 'name'],
 				required: false,
 				nested: [{ association: '_RoleInheritancesChild' }],
 			},
 			{
-				association: '_UserType',
+				association: '_UserTypes',
 				attributes: ['description'],
 				required: true,
 			},
@@ -85,19 +94,22 @@ class UsersRepository extends SequelizeRepositoryBase<UsersAttributes, number> {
 		return this.getOne(
 			{ id },
 			{
-				attributes: [
-					'id',
-					'person',
-					'user_type',
-					'role',
-					'email',
-					'signup_verified_at',
-					'created_at',
-					'updated_at',
-				],
+				attributes: ['id', 'person', 'user_type', 'role', 'email', 'signup_verified_at', 'created_at'],
 				relations: this._relations,
 			},
 		) as Promise<UsersWithPeople | null>;
+	}
+
+	async getAllFull(filters?: any): Promise<{ rows: UsersWithPeople[]; count: number }> {
+		return this.getAll({
+			...filters,
+			count: true,
+			attributes: ['id', 'person', 'user_type', 'role', 'email', 'signup_verified_at', 'created_at'],
+			relations: this._relations,
+		}) as Promise<{
+			rows: UsersWithPeople[];
+			count: number;
+		}>;
 	}
 
 	async getByEmail(email: string) {
@@ -112,7 +124,7 @@ class UsersRepository extends SequelizeRepositoryBase<UsersAttributes, number> {
 
 	async getByClientEmail(email: string) {
 		return this.getOne(
-			{ email, user_type: USER_TYPE_CUSTOMER },
+			{ email, user_type: USER_TYPE.CUSTOMER },
 			{
 				attributes: ['id', 'person', 'user_type', 'role', 'email', 'signup_verified_at', 'signup_code'],
 				relations: this._relations,
@@ -122,33 +134,12 @@ class UsersRepository extends SequelizeRepositoryBase<UsersAttributes, number> {
 
 	async getByEmployeeEmail(email: string) {
 		return this.getOne(
-			{ email, user_type: USER_TYPE_EMPLOYEE },
+			{ email, user_type: USER_TYPE.EMPLOYEE },
 			{
 				attributes: ['id', 'person', 'user_type', 'role', 'email', 'signup_verified_at', 'signup_code'],
 				relations: this._relations,
 			},
 		) as Promise<UsersWithPeople | null>;
-	}
-
-	async getAllFull(filters?: any): Promise<{ rows: UsersWithPeople[]; count: number }> {
-		return this.getAll({
-			...filters,
-			count: true,
-			attributes: [
-				'id',
-				'person',
-				'user_type',
-				'role',
-				'email',
-				'signup_verified_at',
-				'created_at',
-				'updated_at',
-			],
-			relations: this._relations,
-		}) as Promise<{
-			rows: UsersWithPeople[];
-			count: number;
-		}>;
 	}
 }
 

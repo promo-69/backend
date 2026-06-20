@@ -1,0 +1,30 @@
+meta {
+  name: Movies By Cinema
+  type: http
+  seq: 18
+}
+
+get {
+  url: {{baseUrl}}/reports/movies?from={{fromDate}}&to={{toDate}}&cinemaId={{cinemaId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  from: {{fromDate}}
+  to: {{toDate}}
+  cinemaId: {{cinemaId}}
+}
+
+vars:pre-request {
+  cinemaId: 1
+}
+
+docs {
+  Reporte de películas de una sucursal específica.
+  Permiso: CRUD:READ:REPORTS-MOVIES
+}

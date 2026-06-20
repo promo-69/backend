@@ -177,12 +177,32 @@ export class CustomersService extends BaseService {
 
         const newLevelId = await this._calculateLoyaltyLevel(newProgress, transaction);
 
+        // Obtener y bloquear el último registro del ledger para este cliente
+        const lastLedgerResult = await this._loyaltyLedgers.getAll(
+            {
+                count: false,
+                limit: 1,
+                order: [['id', 'DESC']],
+                operation: {
+                    transaction,
+                    lock: transaction.LOCK.UPDATE,
+                },
+            },
+            { customer: customerId },
+        );
+        const lastLedgerList = Array.isArray(lastLedgerResult) ? lastLedgerResult : (lastLedgerResult?.rows ?? []);
+        const lastLedger = lastLedgerList[0];
+        
+        const previousBalance = lastLedger ? (lastLedger.points_balance ?? 0) : 0;
+        const newBalance = previousBalance + delta;
+
         await this._loyaltyLedgers.create(
             {
                 customer: customerId,
                 order: orderId,
                 operation_type: operationTypeId,
                 points: Math.abs(delta),
+                points_balance: newBalance,
             },
             { transaction },
         );

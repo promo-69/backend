@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import authController from './_.controller.js';
-import { preventAuthenticatedAccess, verifySession } from '@middlewares/auth.middleware.js';
+import { preventAuthenticatedAccess, verifyPermission, verifySession } from '@middlewares/auth.middleware.js';
 
 const router = Router();
 
@@ -10,7 +10,8 @@ router.post('/verify-signup', preventAuthenticatedAccess, authController.verifyS
 router.post('/login', preventAuthenticatedAccess, authController.login);
 router.post('/login/admin', preventAuthenticatedAccess, authController.loginAdmin);
 router.post('/refresh', authController.refresh);
-router.post('/logout', verifySession, authController.logout);
+router.post('/logout', authController.logout);
+router.get('/permissions', verifySession, authController.getEmployeePermissions);
 
 // --- Password Reset ---
 router.post('/forgot-password/:accountType', preventAuthenticatedAccess, authController.forgotPassword);

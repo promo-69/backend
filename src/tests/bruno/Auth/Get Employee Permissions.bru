@@ -1,0 +1,23 @@
+meta {
+  name: Get Employee Permissions
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/auth/permissions
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+tests {
+  test("Should successfully retrieve permissions", function() {
+    const data = res.getBody();
+    expect(res.getStatus()).to.equal(200);
+    expect(data.data.permissions).to.be.an('array');
+  });
+}

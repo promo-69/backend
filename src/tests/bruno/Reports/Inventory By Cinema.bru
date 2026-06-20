@@ -1,0 +1,30 @@
+meta {
+  name: Inventory By Cinema
+  type: http
+  seq: 22
+}
+
+get {
+  url: {{baseUrl}}/reports/inventory?from={{fromDate}}&to={{toDate}}&cinemaId={{cinemaId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  from: {{fromDate}}
+  to: {{toDate}}
+  cinemaId: {{cinemaId}}
+}
+
+vars:pre-request {
+  cinemaId: 1
+}
+
+docs {
+  Reporte de inventario de una sucursal específica.
+  Permiso: CRUD:READ:REPORTS-INVENTORY
+}

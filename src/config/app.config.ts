@@ -69,6 +69,7 @@ export interface IAppConfig {
 		urlEndpoint: string;
 	};
 	clientWebAppUrl: string;
+	bankyPersonalApiKey: string;
 }
 
 export class AppConfig {
@@ -164,6 +165,7 @@ export class AppConfig {
 			},
 			clientWebAppUrl: process.env.CLIENT_WEB_APP_URL || '',
 			isDocker: !!process.env.RUNNING_IN_DOCKER,
+			bankyPersonalApiKey: process.env.BANKY_PERSONAL_API_KEY || '',
 		};
 		this._configCache = config;
 

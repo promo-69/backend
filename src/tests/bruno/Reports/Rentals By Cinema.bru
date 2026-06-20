@@ -1,0 +1,30 @@
+meta {
+  name: Rentals By Cinema
+  type: http
+  seq: 26
+}
+
+get {
+  url: {{baseUrl}}/reports/rentals?from={{fromDate}}&to={{toDate}}&cinemaId={{cinemaId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  from: {{fromDate}}
+  to: {{toDate}}
+  cinemaId: {{cinemaId}}
+}
+
+vars:pre-request {
+  cinemaId: 1
+}
+
+docs {
+  Reporte de alquileres de una sucursal específica.
+  Permiso: CRUD:READ:REPORTS-RENTALS
+}
