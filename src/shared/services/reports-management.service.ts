@@ -1,4 +1,3 @@
-import { MathUtil } from '@utils/math.util.js';
 import { Database, Ops } from '@database/index.js';
 import { ValidationError } from '@errors';
 
@@ -175,7 +174,7 @@ export class ReportsManagementService {
         }
         const breakdown_by_payment_method = [...pmMap.entries()].map(([id, v]) => ({
             payment_method: { id, description: v.description },
-            total_amount: MathUtil.roundMoney(),
+            total_amount: Math.round(v.amount * 100) / 100,
             transaction_count: v.count,
         }));
 
@@ -198,7 +197,7 @@ export class ReportsManagementService {
             product_name: v.name,
             type: v.type,
             quantity_sold: v.quantity,
-            total_revenue: MathUtil.roundMoney(),
+            total_revenue: Math.round(v.revenue * 100) / 100,
         }));
 
         // Serie diaria
@@ -221,7 +220,7 @@ export class ReportsManagementService {
                 date,
                 orders: v.orders,
                 tickets: v.tickets,
-                revenue: MathUtil.roundMoney(),
+                revenue: Math.round(v.revenue * 100) / 100,
                 loyalty_points: v.points,
             }));
 
@@ -231,11 +230,11 @@ export class ReportsManagementService {
             summary: {
                 total_orders: totalOrders,
                 total_tickets: totalTickets,
-                total_revenue: MathUtil.roundMoney(),
-                total_tax: MathUtil.roundMoney(),
-                total_concessions_revenue: MathUtil.roundMoney(),
+                total_revenue: Math.round(totalRevenue * 100) / 100,
+                total_tax: Math.round(totalTax * 100) / 100,
+                total_concessions_revenue: Math.round(totalConcessions * 100) / 100,
                 total_loyalty_points_generated: totalPoints,
-                net_revenue: MathUtil.roundMoney(),
+                net_revenue: Math.round((totalRevenue - totalConcessions) * 100) / 100,
             },
             breakdown_by_payment_method,
             daily_series,
@@ -339,7 +338,7 @@ export class ReportsManagementService {
                 movie: { id: m.id, title: m.title, poster_url: m.poster_url },
                 total_showtimes: m.showtimes,
                 total_tickets_sold: m.tickets_sold,
-                total_revenue: MathUtil.roundMoney(),
+                total_revenue: Math.round(m.revenue * 100) / 100,
                 avg_occupancy_pct:
                     m.total_capacity > 0 ? Math.round((m.tickets_sold / m.total_capacity) * 10000) / 100 : 0,
             }))
@@ -649,7 +648,7 @@ export class ReportsManagementService {
         }
         const breakdown_by_payment_method = [...pmMap.entries()].map(([id, v]) => ({
             payment_method: { id, description: v.description },
-            total_amount: MathUtil.roundMoney(),
+            total_amount: Math.round(v.amount * 100) / 100,
             transaction_count: v.count,
         }));
 
@@ -672,8 +671,8 @@ export class ReportsManagementService {
             employee_id: employeeId,
             summary: {
                 total_orders: totalOrders,
-                total_revenue: MathUtil.roundMoney(),
-                total_tax: MathUtil.roundMoney(),
+                total_revenue: Math.round(totalRevenue * 100) / 100,
+                total_tax: Math.round(totalTax * 100) / 100,
                 cancelled_orders: cancelledOrders,
             },
             breakdown_by_payment_method,
@@ -769,7 +768,8 @@ export class ReportsManagementService {
                     room: { id: roomId, name: roomMap.get(roomId) ?? `Sala ${roomId}` },
                     capacity,
                     tickets_sold: sold,
-                    occupancy_pct: capacity > 0 ? MathUtil.roundMoney(),
+                    occupancy_pct: capacity > 0 ? Math.round((sold / capacity) * 10000) / 100 : 0,
+                    revenue: Math.round(revenue * 100) / 100,
                 };
             })
             .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
@@ -836,7 +836,7 @@ export class ReportsManagementService {
         const breakdown_by_status = [...byStatus.entries()].map(([id, v]) => ({
             status: { id, description: v.description },
             count: v.count,
-            revenue: MathUtil.roundMoney(),
+            revenue: Math.round(v.revenue * 100) / 100,
         }));
 
         return {
@@ -844,8 +844,8 @@ export class ReportsManagementService {
             summary: {
                 total_requests: totalCount,
                 pending_review: byStatus.get(RENTAL_STATUS_PENDING)?.count ?? 0,
-                confirmed_revenue: MathUtil.roundMoney(),
-                projected_revenue: MathUtil.roundMoney(),
+                confirmed_revenue: Math.round((byStatus.get(RENTAL_STATUS_PAID)?.revenue ?? 0) * 100) / 100,
+                projected_revenue: Math.round((byStatus.get(RENTAL_STATUS_PENDING_PMT)?.revenue ?? 0) * 100) / 100,
             },
             breakdown_by_status,
             requests: rentalsList.map((r: any) => ({
