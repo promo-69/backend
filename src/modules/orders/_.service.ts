@@ -6,38 +6,22 @@ import { RealtimeProvider } from '@providers/realtime.provider.js';
 import { NotFoundError, ValidationError, BadRequestError, ForbiddenError, ConflictError } from '@errors/index.js';
 import { Transaction } from 'sequelize';
 import { JWTUtil } from '@utils/jwt.util.js';
+import { MathUtil } from '@utils/math.util.js';
 import { AppConfig } from '@config/app.config.js';
 import { PricingService } from '@services/pricing.service.js';
 import shoppingSessionService from '@services/shopping-session.service.js';
-
-export enum LineType {
-	PRODUCT = 1,
-	COMBO = 2,
-}
-export enum OrderStatus {
-	PENDING = 1,
-	PAID = 2,
-	CANCELLED = 3,
-	COMPLETED = 4,
-}
-export enum SessionStatus {
-	PENDING_ORDER = 'pending_order',
-	PENDING_PAYMENT = 'pending_payment',
-	PENDING_BILLING = 'pending_billing',
-	COMPLETED = 'completed',
-}
-const PAYMENT_METHOD_IDS: Record<string, number> = {
-	mobile_payment: 4,
-	cash: 1,
-	transfer: 3,
-	points: 6,
-	cinepuntos: 6,
-};
-
-const OPERATION_TYPES = {
-	EARN: 1,
-	SPEND: 2,
-};
+import {
+	ORDER_STATUS,
+	LINE_TYPE,
+	PAYMENT_METHOD,
+	LOYALTY_OPERATION,
+	VALIDATION_TYPE,
+	MODIFIER_SCOPE,
+	TAX_SCOPE,
+	SHOPPING_SESSION_STATUS,
+	TTL_SECONDS,
+	INVENTORY_OPERATION,
+} from '@constants/magic-vars.constant.js';
 
 export class OrdersService extends BaseService {
 	constructor() {
@@ -113,11 +97,13 @@ export class OrdersService extends BaseService {
 	private get _currencies() {
 		return Database.repository('main', 'currencies') as any;
 	}
+	private get _bankAccounts() {
+		return Database.repository('main', 'bank-accounts') as any;
+	}
 
 	private async _getCustomerEmail(customerId: number | null, session: any): Promise<string | null> {
-		if (!session.roleCode && session.email) {
+		if (!session.roleCode && session.email)
 			return session.email;
-		}
 
 		if (customerId) {
 			const customer = await this._customers.getById(customerId, {
@@ -133,9 +119,8 @@ export class OrdersService extends BaseService {
 					if (verifiedUser && verifiedUser.email) return verifiedUser.email;
 				}
 
-				if (customer._People.personal_email) {
+				if (customer._People.personal_email)
 					return customer._People.personal_email;
-				}
 			}
 		}
 
@@ -199,12 +184,12 @@ export class OrdersService extends BaseService {
 		const baseCurrency = await this._currencies.getOne({
 			is_base_currency: true,
 		});
-		const systemBaseCurrencyId = baseCurrency ? baseCurrency.id : 1;
+		if (!baseCurrency) throw new ConflictError('No se encontró una moneda base configurada en el sistema.');
+		const systemBaseCurrencyId = baseCurrency.id;
 
 		// Establece el tiempo de vida de la cotizacion en 10 minutos
-		const TTL_SECONDS = 600;
 		const createdAt = new Date();
-		const expiresAt = new Date(createdAt.getTime() + TTL_SECONDS * 1000);
+		const expiresAt = new Date(createdAt.getTime() + TTL_SECONDS.ORDER_QUOTE * 1000);
 		const sessionData = {
 			cinema,
 			customerId: finalCustomerId,
@@ -213,7 +198,7 @@ export class OrdersService extends BaseService {
 		};
 		const quoteData = {
 			...sessionData,
-			status: SessionStatus.PENDING_ORDER,
+			status: SHOPPING_SESSION_STATUS.PENDING_ORDER,
 			cinema,
 			customerId: customerId || session.customerId,
 			system_base_currency: systemBaseCurrencyId,
@@ -221,12 +206,12 @@ export class OrdersService extends BaseService {
 		};
 
 		// Guarda la cotizacion en Redis usando el ID del usuario
-		await this._redis.set(userQueueKey, JSON.stringify(quoteData), 'EX', TTL_SECONDS);
+		await this._redis.set(userQueueKey, JSON.stringify(quoteData), 'EX', TTL_SECONDS.ORDER_QUOTE);
 
 		// Devuelve los datos de la cotizacion creada
 		return {
 			...sessionData,
-			expires_in: TTL_SECONDS,
+			expires_in: TTL_SECONDS.ORDER_QUOTE,
 		};
 	}
 
@@ -266,7 +251,7 @@ export class OrdersService extends BaseService {
 		// Busca si ya existe una orden pendiente asociada al cliente
 		const pendingOrder = customerId
 			? await this._orders.getOne(
-					{ customer: customerId, cinema: sessionState.cinema, order_status: 1 },
+					{ customer: customerId, cinema: sessionState.cinema, order_status: ORDER_STATUS.PENDING },
 					{
 						relations: [
 							{
@@ -304,11 +289,11 @@ export class OrdersService extends BaseService {
 			await this._orders.transaction(async (transaction: Transaction) => {
 				const pendingOrders = await this._orders.getAll(
 					{ count: false, operation: { transaction } },
-					{ customer: customerId, order_status: 1 },
+					{ customer: customerId, order_status: ORDER_STATUS.PENDING },
 				);
 
 				for (const order of pendingOrders)
-					await this._orders.update({ id: order.id }, { order_status: 3 }, { transaction });
+					await this._orders.update({ id: order.id }, { order_status: ORDER_STATUS.CANCELLED }, { transaction });
 			});
 		}
 
@@ -335,7 +320,7 @@ export class OrdersService extends BaseService {
 		if (!quoteRaw) throw new BadRequestError('La sesión de compra ha expirado o no existe.');
 
 		const quoteData = JSON.parse(quoteRaw);
-		if (quoteData.status !== SessionStatus.PENDING_ORDER)
+		if (quoteData.status !== SHOPPING_SESSION_STATUS.PENDING_ORDER)
 			throw new ConflictError('La cotización no está disponible para ser procesada.');
 
 		if (quoteData.is_processing) throw new ConflictError('La cotización ya está siendo procesada.');
@@ -428,9 +413,9 @@ export class OrdersService extends BaseService {
 				if (hasConcessions) {
 					// Obtiene productos y combos involucrados para calcular precios base
 					const productIdsForPrice =
-						concessions.filter((c: any) => c.line_type === 1).map((c: any) => c.product) || [];
+						concessions.filter((c: any) => c.line_type === LINE_TYPE.PRODUCT).map((c: any) => c.product) || [];
 					const comboIdsForPrice =
-						concessions.filter((c: any) => c.line_type === 2).map((c: any) => c.combo) || [];
+						concessions.filter((c: any) => c.line_type === LINE_TYPE.COMBO).map((c: any) => c.combo) || [];
 					const loadedProducts = productIdsForPrice.length
 						? await this._products.getAll(
 								{ count: false, operation: { transaction } },
@@ -509,7 +494,7 @@ export class OrdersService extends BaseService {
 				}
 
 				// Totaliza los montos y crea la cabecera de la orden
-				const roundMoney = (val: number) => Math.round(val * 100) / 100;
+				const roundMoney = MathUtil.roundMoney;
 				subtotalBase = roundMoney(subtotalBase);
 				taxesBase = roundMoney(taxesBase);
 				const totalBase = roundMoney(subtotalBase + taxesBase);
@@ -524,7 +509,7 @@ export class OrdersService extends BaseService {
 						tax_amount_base_currency: taxesBase,
 						total_amount_base_currency: totalBase,
 						generated_points: Math.floor(totalBase),
-						order_status: 1,
+						order_status: ORDER_STATUS.PENDING,
 					},
 					{ transaction },
 				);
@@ -545,7 +530,7 @@ export class OrdersService extends BaseService {
 			});
 
 			// Restaura el estado de la cotizacion para permitir el pago
-			quoteData.status = SessionStatus.PENDING_PAYMENT;
+			quoteData.status = SHOPPING_SESSION_STATUS.PENDING_PAYMENT;
 			quoteData.is_processing = false;
 			quoteData.order_id = createdOrder.id;
 			await this._redis.set(userQueueKey, JSON.stringify(quoteData), 'EX', 600);
@@ -567,7 +552,7 @@ export class OrdersService extends BaseService {
 			};
 		} catch (error) {
 			// Revierte estado en caso de error para permitir reintentos
-			quoteData.status = SessionStatus.PENDING_ORDER;
+			quoteData.status = SHOPPING_SESSION_STATUS.PENDING_ORDER;
 			quoteData.is_processing = false;
 			const currentTtl = await this._redis.ttl(userQueueKey);
 			if (currentTtl <= 0) throw new ConflictError('La sesión de compra ha expirado o no existe.');
@@ -608,7 +593,7 @@ export class OrdersService extends BaseService {
 		if (!quoteRaw) throw new BadRequestError('El tiempo para pagar ha expirado o no existe sesión de compra.');
 
 		const quoteData = JSON.parse(quoteRaw);
-		if (quoteData.status !== SessionStatus.PENDING_PAYMENT)
+		if (quoteData.status !== SHOPPING_SESSION_STATUS.PENDING_PAYMENT)
 			throw new BadRequestError('La sesión no se encuentra en la etapa de pago o ya ha sido procesada.');
 
 		const order_id = quoteData.order_id;
@@ -627,7 +612,7 @@ export class OrdersService extends BaseService {
 
 			if (!lockedOrder) throw new NotFoundError('Orden no encontrada');
 
-			if (lockedOrder.order_status !== OrderStatus.PENDING)
+			if (lockedOrder.order_status !== ORDER_STATUS.PENDING)
 				throw new BadRequestError('La orden no admite pagos en este momento');
 
 			const order = await this._orders.getOne(
@@ -664,26 +649,34 @@ export class OrdersService extends BaseService {
 				},
 			);
 
+			const ptsCurrency = await this._currencies.getOne({ code: 'PTS' });
+
 			for (const payment of paymentsInput) {
-				const { payment_method, amount, currency, reference_number, bypass } = payment;
-				const paymentMethodId = PAYMENT_METHOD_IDS[payment_method] ?? payment_method;
+				const { payment_method, amount, currency, reference_number, bank, bypass } = payment;
+				const paymentMethodId = payment_method;
 
-				let exchangeRateValue = 1;
-				let quotedExchangeRateId = 1;
-				if (currency) {
-					const rateDb = exchangeRatesDict[currency];
-
-					if (rateDb) {
-						exchangeRateValue = Number(rateDb.rate);
-						quotedExchangeRateId = rateDb.id;
-					} else if (currency !== quoteData.system_base_currency) {
-						throw new BadRequestError('Moneda inválida o tasa de cambio no disponible.');
-					}
+				let paymentCurrency = currency;
+				if (paymentMethodId === PAYMENT_METHOD.LOYALTY_POINTS) {
+					if (!ptsCurrency) throw new BadRequestError('La moneda de Cinepuntos (PTS) no está configurada.');
+					paymentCurrency = ptsCurrency.id;
 				}
-				const amountBase = amount * exchangeRateValue;
+
+				if (!paymentCurrency) {
+					paymentCurrency = quoteData.system_base_currency;
+				}
+
+				const rateDb = exchangeRatesDict[paymentCurrency];
+				if (!rateDb) {
+					throw new BadRequestError('No se encontró tasa de cambio en la cotización para esta moneda.');
+				}
+
+				const exchangeRateValue = Number(rateDb.rate);
+				const quotedExchangeRateId = rateDb.id;
+
+				const amountBase = MathUtil.roundMoney(amount * exchangeRateValue);
 
 				// Ramificación según método de pago
-				if (paymentMethodId === 6) {
+				if (paymentMethodId === PAYMENT_METHOD.LOYALTY_POINTS) {
 					const ledgers = await this._loyaltyLedgers.getAll(
 						{ count: false, order: [['id', 'DESC']], limit: 1, operation: { transaction, lock: transaction.LOCK.UPDATE } },
 						{ customer: session.customerId },
@@ -695,7 +688,7 @@ export class OrdersService extends BaseService {
 					// Descontar puntos de una vez con un registro decremental
 					await this._loyaltyLedgers.create(
 						{
-							operation_type: 2,
+							operation_type: LOYALTY_OPERATION.SPEND,
 							customer: session.customerId,
 							points: amount,
 							points_balance: currentBalance - amount,
@@ -703,23 +696,50 @@ export class OrdersService extends BaseService {
 						},
 						{ transaction },
 					);
-				} else if ([3, 4, 7].includes(paymentMethodId || 0) || !bypass) {
+				} else if ([PAYMENT_METHOD.POS, PAYMENT_METHOD.MOBILE_PAYMENT, PAYMENT_METHOD.BANK_TRANSFER].includes(paymentMethodId) || bypass === true) {
+					console.log('ENTRE AQUI', 2)
 					if (!reference_number) throw new BadRequestError('El número de referencia es obligatorio para este método de pago');
+					if (!bank) throw new BadRequestError('El banco destino es obligatorio para este método de pago');
+					if (!currency) throw new BadRequestError('La moneda es obligatoria para este método de pago');
 
-					try {
-						const response = await fetch(`https://cineflix-banky.onrender.com/api/external/transactions/${reference_number}`, {
-							method: 'GET',
-							headers: {
-								'Authorization': `Bearer ${AppConfig.load().bankyPersonalApiKey}`,
-								'Accept': 'application/json'
+					if (bypass !== true) {
+						// Obtener cuenta bancaria para validar si acepta el pago y si requiere validación con Banky
+						const searchParams: any = { payment_method: paymentMethodId, currency, bank};
+						const acceptedAccounts = await this._bankAccounts.getAll(
+							{
+								count: false,
+								operation: { transaction },
+								relations: [{ association: '_Banks' }]
+							},
+							searchParams
+						);
+						if (acceptedAccounts.length === 0)
+							throw new BadRequestError('No se encontró una cuenta bancaria destino válida para este método de pago y moneda.');
+
+						const targetAccount = acceptedAccounts[0];
+						const apiUrl = targetAccount._Banks?.api_url;
+
+						if (apiUrl) {
+							try {
+								const apiKey = targetAccount.api_key;
+								const response = await fetch(`${apiUrl}/${reference_number}`, {
+									method: 'GET',
+									headers: {
+										'Authorization': `Bearer ${apiKey}`,
+										'Accept': 'application/json'
+									}
+								});
+								const data: any = await response.json();
+
+								if (!response.ok || !data.success) throw new BadRequestError(`El pago no pudo ser validado. Banco dice: ${data.message || 'Transacción fallida o no encontrada'}`);
+							} catch (error: any) {
+								if (error instanceof BadRequestError) throw error;
+								throw new BadRequestError(`Error al comprobar la transacción con la entidad bancaria`, error);
 							}
-						});
-						const data: any = await response.json();
+						} else {
+							// Para otros bancos/monedas que no son Banky, se confía en la referencia por el momento (o pasará a validación manual)
+						}
 
-						if (!response.ok || !data.success)
-							throw new BadRequestError(`El pago no pudo ser validado. Banco dice: ${data.message || 'Transacción fallida o no encontrada'}`);
-
-						// Validar si la referencia ya fue utilizada en otra orden válida
 						const existingPayment = await this._orderPayments.getOne(
 							{
 								reference_number,
@@ -745,12 +765,11 @@ export class OrdersService extends BaseService {
 							}
 						);
 
-						if (existingPayment) throw new BadRequestError(`La referencia ${reference_number} ya fue procesada previamente en nuestro sistema.`);
-					} catch (error: any) {
-						if (error instanceof BadRequestError) throw error;
-						throw new BadRequestError(`Error al comprobar la transacción con la entidad bancaria`, error);
+						if (existingPayment) throw new BadRequestError(`La referencia ${reference_number} ya fue procesada previamente.`);
 					}
-				} else if ([1, 2].includes(paymentMethodId || 0)) {}
+				} else if (paymentMethodId === PAYMENT_METHOD.CASH) {
+					console.log('ENTRE AQUI', 3);
+				}
 
 				await this._orderPayments.create(
 					{
@@ -783,22 +802,23 @@ export class OrdersService extends BaseService {
 				const isEmployee = !!session.roleCode;
 
 				if (isEmployee) {
-					await this._orders.update({ id: order_id }, { order_status: 2, qr_code: qrCode }, { transaction });
-					orderData = { ...order, qr_code: qrCode, order_status: 2, is_employee: true };
+					await this._orders.update({ id: order_id }, { order_status: ORDER_STATUS.PAID, qr_code: qrCode }, { transaction });
+					orderData = { ...order, qr_code: qrCode, order_status: ORDER_STATUS.PAID, is_employee: true };
 				} else {
 					// Si es un cliente directo, genera factura automatica usando sus datos de sesion
 					const customer = await this._customers.getById(session.customerId, {
-						relations: this._customers.relations,
+						relations: this._customers._relations,
 						transaction,
 					});
+					console.log(customer);
 					const billingData = {
 						name: `${customer._People.first_name}${customer._People?.last_name ? ` ${customer._People.last_name}` : ''}`.trim(),
 						document: customer._People.document_number,
 						address: '',
 					};
 					await this._generateInvoice(order_id, billingData, order.cinema, transaction);
-					await this._orders.update({ id: order_id }, { order_status: 4, qr_code: qrCode }, { transaction });
-					orderData = { ...order, qr_code: qrCode, order_status: 4, is_employee: false };
+					await this._orders.update({ id: order_id }, { order_status: ORDER_STATUS.ONLINE_PAID, qr_code: qrCode }, { transaction });
+					orderData = { ...order, qr_code: qrCode, order_status: ORDER_STATUS.ONLINE_PAID, is_employee: false };
 				}
 
 				// Actualiza inventario
@@ -808,15 +828,15 @@ export class OrdersService extends BaseService {
 				// Otorga puntos de lealtad
 				await this._awardLoyaltyPoints(order, transaction);
 			} else {
-				remaining_balance = Number(order.total_amount_base_currency) - totalPaid;
+				remaining_balance = MathUtil.roundMoney(Number(order.total_amount_base_currency) - totalPaid);
 			}
 		});
 
 		// Acciones posteriores si la orden fue pagada completamente (o requiere billing)
-		if (orderData && (orderData.order_status === 2 || orderData.order_status === 4)) {
+		if (orderData && (orderData.order_status === ORDER_STATUS.PAID || orderData.order_status === ORDER_STATUS.ONLINE_PAID)) {
 			if (orderData.is_employee) {
 				// Extiende la sesion 24 horas para obligar al empleado a facturar
-				quoteData.status = SessionStatus.PENDING_BILLING;
+				quoteData.status = SHOPPING_SESSION_STATUS.PENDING_BILLING;
 				await this._redis.set(userQueueKey, JSON.stringify(quoteData), 'EX', 86400);
 
 				RealtimeProvider.getInstance().emitToRoom(`usr_${session.userId}`, 'billing_required', {
@@ -869,7 +889,7 @@ export class OrdersService extends BaseService {
 			}
 
 			// Envia correo de confirmacion de compra si la orden se completó
-			if (orderData.order_status === 4) {
+			if (orderData.order_status === ORDER_STATUS.ONLINE_PAID) {
 				const customerEmail = await this._getCustomerEmail(orderData.customer, session);
 				if (customerEmail) {
 					QueueProvider.getInstance()
@@ -901,7 +921,7 @@ export class OrdersService extends BaseService {
 		if (!quoteRaw) throw new NotFoundError('No existe una sesión de compra activa.');
 		const quoteData = JSON.parse(quoteRaw);
 
-		if (quoteData.status !== SessionStatus.PENDING_BILLING)
+		if (quoteData.status !== SHOPPING_SESSION_STATUS.PENDING_BILLING)
 			throw new BadRequestError('La sesión no se encuentra en etapa de facturación.');
 
 		await this._orders.transaction(async (transaction: Transaction) => {
@@ -915,7 +935,7 @@ export class OrdersService extends BaseService {
 			);
 
 			if (!order) throw new NotFoundError('Orden no encontrada.');
-			if (order.order_status !== 2) throw new BadRequestError('La orden no se encuentra en estado pagada.');
+			if (order.order_status !== ORDER_STATUS.PAID) throw new BadRequestError('La orden no se encuentra en estado pagada.');
 
 			let billingData = { name: billing_name, document: billing_document, address: billing_address };
 
@@ -936,7 +956,7 @@ export class OrdersService extends BaseService {
 			}
 
 			await this._generateInvoice(quoteData.order_id, billingData, order.cinema, transaction);
-			await this._orders.update({ id: quoteData.order_id }, { order_status: 4 }, { transaction });
+			await this._orders.update({ id: quoteData.order_id }, { order_status: ORDER_STATUS.ONLINE_PAID }, { transaction });
 		});
 
 		// Limpia la sesion y emite el success final
@@ -1033,11 +1053,11 @@ export class OrdersService extends BaseService {
 		}
 
 		// Valida los tiempos de expiracion por tipo de articulo
-		if (validation_type === 1) {
+		if (validation_type === VALIDATION_TYPE.MANUAL) {
 			if (!payload.c_exp || Math.floor(Date.now() / 1000) > payload.c_exp) {
 				throw new BadRequestError('Código QR de confitería expirado o inválido');
 			}
-		} else if (validation_type === 2) {
+		} else if (validation_type === VALIDATION_TYPE.QR) {
 			if (!payload.t_exp || Math.floor(Date.now() / 1000) > payload.t_exp) {
 				throw new BadRequestError('Código QR de boletos expirado o inválido');
 			}
@@ -1047,10 +1067,10 @@ export class OrdersService extends BaseService {
 		if (!order) throw new NotFoundError('Código QR inválido');
 
 		// Registra el uso para prevenir multiples validaciones del mismo codigo
-		if (validation_type === 1) {
+		if (validation_type === VALIDATION_TYPE.MANUAL) {
 			if (order.concessions_validated_at) throw new ConflictError('Confitería ya validada');
 			await this._orders.update({ id: order.id }, { concessions_validated_at: new Date() });
-		} else if (validation_type === 2) {
+		} else if (validation_type === VALIDATION_TYPE.QR) {
 			if (order.tickets_validated_at) throw new ConflictError('Boletos ya validados');
 			await this._orders.update({ id: order.id }, { tickets_validated_at: new Date() });
 		} else {
@@ -1066,7 +1086,7 @@ export class OrdersService extends BaseService {
 	 */
 	private async _checkInventoryForConcessions(concessions: any[], cinema: number, transaction: Transaction) {
 		const requiredProducts: Record<number, number> = {};
-		const comboIds = concessions.filter((c: any) => c.line_type === 2 && c.combo).map((c: any) => c.combo);
+		const comboIds = concessions.filter((c: any) => c.line_type === LINE_TYPE.COMBO && c.combo).map((c: any) => c.combo);
 
 		// Carga la definicion de los combos para conocer los productos que los componen
 		let allComboParts: any[] = [];
@@ -1079,9 +1099,9 @@ export class OrdersService extends BaseService {
 
 		// Consolida la cantidad total requerida por cada producto basico
 		for (const item of concessions) {
-			if (item.line_type === 1 && item.product) {
+			if (item.line_type === LINE_TYPE.PRODUCT && item.product) {
 				requiredProducts[item.product] = (requiredProducts[item.product] || 0) + item.quantity;
-			} else if (item.line_type === 2 && item.combo) {
+			} else if (item.line_type === LINE_TYPE.COMBO && item.combo) {
 				const comboParts = allComboParts.filter((part: any) => part.combo === item.combo);
 				for (const part of comboParts) {
 					requiredProducts[part.product] =
@@ -1183,16 +1203,16 @@ export class OrdersService extends BaseService {
 		for (const item of concessions) {
 			// Determina precio en moneda original y lo convierte a moneda base
 			const priceData =
-				item.line_type === 1
-					? productPriceMap.get(item.product) || { price: 0, currency: 1 }
-					: comboPriceMap.get(item.combo) || { price: 0, currency: 1 };
+				item.line_type === LINE_TYPE.PRODUCT
+					? productPriceMap.get(item.product) || { price: 0, currency: systemBaseCurrency }
+					: comboPriceMap.get(item.combo) || { price: 0, currency: systemBaseCurrency };
 
-			const rateObj = exchangeRatesDict[priceData.currency] || { rate: 1, id: 1 };
+			const rateObj = exchangeRatesDict[priceData.currency] || { rate: 1, id: systemBaseCurrency };
 			item.exchangeRateId = rateObj.id;
 			const productData = item.product ? productsMap.get(item.product) : null;
 
 			const context = {
-				modifier_scope: 2, // Confitería
+				modifier_scope: MODIFIER_SCOPE.PRODUCTS, // Confitería
 				cinemaId: concessions[0]?.cinema, // Not exact but typically orders are per cinema
 				line_type: item.line_type,
 				product_category: productData ? productData.product_category : null,
@@ -1209,7 +1229,7 @@ export class OrdersService extends BaseService {
 				{ currentDate, currentTime, currentDay },
 			);
 
-			const roundMoney = (val: number) => Math.round(val * 100) / 100;
+			const roundMoney = MathUtil.roundMoney;
 			const finalUnitPrice = roundMoney(finalPriceInItemCurrency * Number(rateObj.rate));
 
 			item.appliedModifiers = appliedModifiers.map((mod: any) => ({
@@ -1221,7 +1241,7 @@ export class OrdersService extends BaseService {
 
 			// Aplica reglas de impuestos vigentes basadas en la categoria de producto
 			const itemTaxes = activeTaxes.filter((t: any) => {
-				if (t.tax_scope !== 2 && t.tax_scope !== 3) return false;
+				if (t.tax_scope !== TAX_SCOPE.PRODUCTS && t.tax_scope !== TAX_SCOPE.BOTH) return false;
 				if (t.line_type && t.line_type !== item.line_type) return false;
 				if (t.product_category && (!productData || t.product_category !== productData.product_category)) return false;
 				if (t.product && t.product !== item.product) return false;
@@ -1250,7 +1270,7 @@ export class OrdersService extends BaseService {
 				if (!orderTaxesCollector[rule.tax]) orderTaxesCollector[rule.tax] = { rate: taxRate, amount: 0 };
 				orderTaxesCollector[rule.tax].amount += taxAmount;
 			}
-			item.originalPrice = priceData.price * Number(rateObj.rate);
+			item.originalPrice = MathUtil.roundMoney(priceData.price * Number(rateObj.rate));
 			item.finalPrice = finalUnitPrice;
 		}
 		return { subtotalBase, taxesBase };
@@ -1284,13 +1304,13 @@ export class OrdersService extends BaseService {
 			const seatData = seatsMap.get(ticket.seatId) as any;
 			const rawBasePrice = showtimeData ? Number(showtimeData.price || 0) : 0;
 			const currency = showtimeData ? showtimeData.currency || 1 : 1;
-			const rateObj = exchangeRatesDict[currency] || { rate: 1, id: 1 };
-			const basePrice = rawBasePrice * Number(rateObj.rate);
+			const rateObj = exchangeRatesDict[currency] || { rate: 1, id: systemBaseCurrency };
+			const basePrice = MathUtil.roundMoney(rawBasePrice * Number(rateObj.rate));
 			ticket.exchangeRateId = rateObj.id;
 
 			const context = {
 				cinemaId,
-				modifier_scope: 1,
+				modifier_scope: MODIFIER_SCOPE.TICKETS,
 				booking_type: bookingDb?.booking_type,
 				movie: showtimeData?.movie,
 				projection_type: showtimeData?.projection_type,
@@ -1308,7 +1328,7 @@ export class OrdersService extends BaseService {
 				{ currentDate, currentTime, currentDay },
 			);
 
-			const roundMoney = (val: number) => Math.round(val * 100) / 100;
+			const roundMoney = MathUtil.roundMoney;
 			const finalUnitPrice = roundMoney(finalPriceInItemCurrency * Number(rateObj.rate));
 
 			ticket.appliedModifiers = appliedModifiers.map((mod: any) => ({
@@ -1319,7 +1339,7 @@ export class OrdersService extends BaseService {
 
 			const ticketTaxes = activeTaxes.filter(
 				(t: any) =>
-					(t.tax_scope === 1 || t.tax_scope === 3) &&
+					(t.tax_scope === TAX_SCOPE.TICKETS || t.tax_scope === TAX_SCOPE.BOTH) &&
 					t.product === null &&
 					t.combo === null &&
 					t.product_category === null &&
@@ -1408,10 +1428,9 @@ export class OrdersService extends BaseService {
 	}
 
 	private async _deductPhysicalInventory(concessions: any[], order: any, userId: number, transaction: Transaction) {
-		const SALE_OPERATION_TYPE = 4;
 		const requiredProducts: Record<number, number> = {};
 		const comboIds = concessions
-			.filter((c: any) => c.line_type === 2 && (c.combo || c._Combos?.id))
+			.filter((c: any) => c.line_type === LINE_TYPE.COMBO && (c.combo || c._Combos?.id))
 			.map((c: any) => c.combo || c._Combos?.id);
 		let allComboParts: any[] = [];
 		if (comboIds.length > 0) {
@@ -1421,10 +1440,10 @@ export class OrdersService extends BaseService {
 			);
 		}
 		for (const line of concessions) {
-			if (line.line_type === 1) {
+			if (line.line_type === LINE_TYPE.PRODUCT) {
 				const pId = line.product || line._Products?.id;
 				if (pId) requiredProducts[pId] = (requiredProducts[pId] || 0) + Number(line.quantity);
-			} else if (line.line_type === 2) {
+			} else if (line.line_type === LINE_TYPE.COMBO) {
 				const cId = line.combo || line._Combos?.id;
 				if (cId) {
 					const parts = allComboParts.filter((p: any) => p.combo === cId);
@@ -1458,10 +1477,10 @@ export class OrdersService extends BaseService {
 			await this._inventoryMovements.create(
 				{
 					inventory: inv.id,
-					operation_type: SALE_OPERATION_TYPE,
+					operation_type: INVENTORY_OPERATION.SALE,
 					quantity: qty,
 					unit_cost: unitCost,
-					currency: 1,
+					currency: order.system_base_currency,
 					user: userId,
 					resulting_stock: newStock,
 					resulting_unit_cost_base_currency: unitCost,
@@ -1494,7 +1513,7 @@ export class OrdersService extends BaseService {
 				{
 					customer: order.customer,
 					order: order.id,
-					operation_type: OPERATION_TYPES.EARN,
+					operation_type: LOYALTY_OPERATION.EARN,
 					points: earnedPoints,
 					points_balance: newSpendableBalance,
 					remarks: `Puntos ganados por compra en orden #${order.id}`,
@@ -1545,7 +1564,7 @@ export class OrdersService extends BaseService {
 		let cnc: any[] | undefined = undefined;
 		if (hasConcessions) {
 			cnc = concessions.map((c: any) => ({
-				n: c.line_type === 1 ? c._Products?.name : c._Combos?.name,
+				n: c.line_type === LINE_TYPE.PRODUCT ? c._Products?.name : c._Combos?.name,
 				q: c.quantity,
 			}));
 		}

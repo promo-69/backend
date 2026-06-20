@@ -5,6 +5,7 @@ export interface BanksAttributes {
 	id?: number;
 	name: string;
 	code?: string;
+	api_url?: string;
 	deleted_at?: Date;
 }
 

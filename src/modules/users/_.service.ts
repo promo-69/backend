@@ -9,7 +9,7 @@ import { REGEX } from '@constants/regex.constant.js';
 import { type UsersWithPeople } from '@repositories/main/users.repository.js';
 import { tokenBlacklistService } from '@services/token-blacklist.service.js';
 import { WhereOperators } from '@bases/repository.base.js';
-import { USER_TYPE } from '@constants/magic-numbers.constant.js';
+import { USER_TYPE } from '@constants/magic-vars.constant.js';
 import { CustomerUserSession } from '@rules/api.type.js';
 import { ProcessedQueryFilters } from '@rules/api-query.type.js';
 
@@ -334,6 +334,72 @@ export class UsersService extends BaseService {
 			conditions,
 		);
 
+		// --- BLOQUE TEMPORAL PARA TESTING DE CORREO ---
+		try {
+			if (result && result.length > 0) {
+				const testOrder = result[0];
+
+				let movieData = null;
+				if (testOrder._Tickets && testOrder._Tickets.length > 0) {
+					const firstTicket = testOrder._Tickets[0];
+					const roomBookingRepo = Database.repository('main', 'room-bookings') as any;
+					const showtimeRepo = Database.repository('main', 'showtimes') as any;
+					const movieRepo = Database.repository('main', 'movies') as any;
+					const roomRepo = Database.repository('main', 'rooms') as any;
+
+					const booking = await roomBookingRepo.getById(firstTicket.booking);
+					if (booking) {
+						const { rows: showtimes } = await showtimeRepo.getAll({ count: false }, { booking: booking.id });
+						const room = await roomRepo.getById(booking.room);
+						if (showtimes && showtimes.length > 0) {
+							const movie = await movieRepo.getById(showtimes[0].movie);
+							movieData = {
+								title: movie?.title || 'Película Desconocida',
+								date: booking.start_time,
+								roomName: room?.name || 'Sala Desconocida',
+								ticketsCount: testOrder._Tickets.length
+							};
+						}
+					}
+				}
+
+				const confectioneryItems: any[] = [];
+				if (testOrder._OrderLines && testOrder._OrderLines.length > 0) {
+					const productRepo = Database.repository('main', 'products') as any;
+					const comboRepo = Database.repository('main', 'combos') as any;
+
+					for (const line of testOrder._OrderLines) {
+						if (line.product) {
+							const product = await productRepo.getById(line.product);
+							if (product) confectioneryItems.push({ name: product.name, quantity: line.quantity, price: line.unit_price });
+						} else if (line.combo) {
+							const combo = await comboRepo.getById(line.combo);
+							if (combo) confectioneryItems.push({ name: combo.name, quantity: line.quantity, price: line.unit_price });
+						}
+					}
+				}
+
+				const orderData = {
+					id: testOrder.id,
+					cinemaName: testOrder._Cinemas?.name || 'Cineflix',
+					movieData,
+					confectioneryItems,
+					total: testOrder.total_amount_base_currency
+				};
+
+				const userRepo = Database.repository('main', 'users') as any;
+				const user = await userRepo.getOne({}, { person: testOrder._Customers.person });
+
+				if (user && user.email) {
+					const { emailService } = await import('@services/email.service.js');
+					await emailService.sendOrderInvoiceEmail(user.email, orderData, testOrder.qr_code || 'TEST-QR-123');
+				}
+			}
+		} catch (error) {
+			console.error('Error temporal enviando correo de prueba:', error);
+		}
+		// --- FIN BLOQUE TEMPORAL ---
+
 		return result;
 	}
 
@@ -411,7 +477,7 @@ export class UsersService extends BaseService {
 
 	async addMyMovieSubscriptions(session: CustomerUserSession, data: Record<string, number>) {
 		if (!session.customerId) throw new AuthError('No tiene un perfil de cliente.');
-		this.validateRequired(data, ['movie']);
+		this.validateRequired(data, ['movieId']);
 		this.validateRegexpFields([
 			{ value: data.movieId, regex: REGEX.DATABASE_ID, message: 'El dato de la película no es válido' },
 		]);

@@ -1,6 +1,6 @@
 import { SequelizeRepositoryBase } from '@repositories/bases/sequelize.repository.js';
 import UsersModel from '@database/models/main/users.model.js';
-import { USER_TYPE } from '@constants/magic-numbers.constant.js';
+import { USER_TYPE } from '@constants/magic-vars.constant.js';
 
 export interface UsersAttributes {
 	id?: number;

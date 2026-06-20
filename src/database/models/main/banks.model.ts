@@ -18,6 +18,10 @@ export default class BanksModel extends SequelizeModelBase {
 				allowNull: true,
 				type: DataTypes.STRING(4),
 			},
+			api_url: {
+				allowNull: true,
+				type: DataTypes.STRING(256),
+			},
 			deleted_at: {
 				allowNull: true,
 				type: DataTypes.DATE,

@@ -33,9 +33,9 @@ class EmailService {
         return this.provider.sendMail(to, subject, html);
     }
 
-    async sendOrderInvoiceEmail(to: string, orderId: number, qrCode: string): Promise<boolean> {
-        const subject = `Factura de Compra #${orderId} - Cineflix`;
-        const html = OrderInvoiceEmailTemplate(orderId, qrCode);
+    async sendOrderInvoiceEmail(to: string, order: any, qrCode: string): Promise<boolean> {
+        const subject = `Factura de Compra #${order.id} - Cineflix`;
+        const html = OrderInvoiceEmailTemplate(order, qrCode);
         return this.provider.sendMail(to, subject, html);
     }
 
