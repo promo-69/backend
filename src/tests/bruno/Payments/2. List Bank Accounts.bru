@@ -1,0 +1,15 @@
+meta {
+  name: Get All Bank Accounts
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/payments/bank-accounts
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

@@ -5,7 +5,7 @@ import { AuthError, ForbiddenError, ConflictError, ValidationError } from '@erro
 import { SessionNotFoundError } from '@errors/auth.error.js';
 import { UserSession, AdminUserSession } from '@rules/api.type.js';
 import { tokenBlacklistService } from '@services/token-blacklist.service.js';
-import { USER_TYPE } from '@constants/magic-numbers.constant.js';
+import { USER_TYPE } from '@constants/magic-vars.constant.js';
 import RbacCacheService from '@services/rbac-cache.service.js';
 
 interface AuthConfig {

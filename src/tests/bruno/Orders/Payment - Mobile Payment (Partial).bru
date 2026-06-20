@@ -1,7 +1,7 @@
 meta {
-  name: Pay Order
+  name: Payment - Mobile Payment (Partial)
   type: http
-  seq: 4
+  seq: 5
 }
 
 post {
@@ -15,23 +15,22 @@ auth:bearer {
 }
 
 body:json {
-  [
-    {
-      "payment_method": 1,
-      "amount": {{orderTotalBase}},
-      "currency": 2,
-      "reference_number": "{{refNumber}}"
-    }
-  ]
+  {
+    "payment_method": 3,
+    "amount": {{partialAmount}},
+    "currency": 2,
+    "reference_number": "{{refNumber}}",
+    "bank": 1,
+    "bypass": true
+  }
 }
 
 vars:pre-request {
-  refNumber: 1
-  orderTotalBase: 4005.34
+  partialAmount: 1000.5
 }
 
 script:pre-request {
-  bru.setVar("refNumber", "TX-" + Math.floor(Math.random() * 1000000000));
+  bru.setVar("refNumber", "PM-" + Math.floor(Math.random() * 1000000000));
 }
 
 script:post-response {

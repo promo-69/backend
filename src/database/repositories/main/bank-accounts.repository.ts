@@ -7,6 +7,7 @@ export interface BankAccountsAttributes {
 	currency: number;
 	payment_method: number;
 	payment_details: any;
+	api_key?: string;
 	deleted_at?: Date;
 }
 

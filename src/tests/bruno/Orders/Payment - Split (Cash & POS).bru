@@ -1,7 +1,7 @@
 meta {
-  name: Pay Order
+  name: Payment - Split (Cash & POS)
   type: http
-  seq: 4
+  seq: 7
 }
 
 post {
@@ -18,20 +18,27 @@ body:json {
   [
     {
       "payment_method": 1,
-      "amount": {{orderTotalBase}},
+      "amount": {{cashAmount}},
+      "currency": 1
+    },
+    {
+      "payment_method": 2,
+      "amount": {{posAmount}},
       "currency": 2,
-      "reference_number": "{{refNumber}}"
+      "reference_number": "{{refNumber}}",
+      "bank": 1,
+      "bypass": true
     }
   ]
 }
 
 vars:pre-request {
-  refNumber: 1
-  orderTotalBase: 4005.34
+  cashAmount: 1000
+  posAmount: 3005.34
 }
 
 script:pre-request {
-  bru.setVar("refNumber", "TX-" + Math.floor(Math.random() * 1000000000));
+  bru.setVar("refNumber", "POS-" + Math.floor(Math.random() * 1000000000));
 }
 
 script:post-response {

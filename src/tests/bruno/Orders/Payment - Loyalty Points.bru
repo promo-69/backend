@@ -1,7 +1,7 @@
 meta {
-  name: Pay Order
+  name: Payment - Loyalty Points
   type: http
-  seq: 4
+  seq: 6
 }
 
 post {
@@ -15,23 +15,15 @@ auth:bearer {
 }
 
 body:json {
-  [
-    {
-      "payment_method": 1,
-      "amount": {{orderTotalBase}},
-      "currency": 2,
-      "reference_number": "{{refNumber}}"
-    }
-  ]
+  {
+    "payment_method": 5,
+    "amount": {{pointsToSpend}},
+    "currency": 1
+  }
 }
 
 vars:pre-request {
-  refNumber: 1
-  orderTotalBase: 4005.34
-}
-
-script:pre-request {
-  bru.setVar("refNumber", "TX-" + Math.floor(Math.random() * 1000000000));
+  pointsToSpend: 500
 }
 
 script:post-response {

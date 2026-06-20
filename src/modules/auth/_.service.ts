@@ -15,7 +15,7 @@ import { QueueProvider } from '@providers/queue.provider.js';
 import JWTUtil from '@utils/jwt.util.js';
 import { customAlphabet } from 'nanoid';
 import { Logger } from '@utils/logger.util.js';
-import { TTL_SECONDS, USER_TYPE } from '@constants/magic-numbers.constant.js';
+import { TTL_SECONDS, USER_TYPE } from '@constants/magic-vars.constant.js';
 
 const generateCode = customAlphabet('1234567890', 4);
 
