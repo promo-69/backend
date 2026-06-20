@@ -722,7 +722,7 @@ export class OrdersService extends BaseService {
 						if (apiUrl) {
 							try {
 								const apiKey = targetAccount.api_key;
-								const response = await fetch(`${apiUrl}/${reference_number}`, {
+								const response = await fetch(`${apiUrl}/external/transactions/${reference_number}`, {
 									method: 'GET',
 									headers: {
 										'Authorization': `Bearer ${apiKey}`,
