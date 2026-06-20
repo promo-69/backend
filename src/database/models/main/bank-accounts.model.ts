@@ -26,6 +26,10 @@ export default class BankAccountsModel extends SequelizeModelBase {
 				allowNull: false,
 				type: DataTypes.JSONB,
 			},
+			api_key: {
+				allowNull: true,
+				type: DataTypes.STRING(256),
+			},
 			deleted_at: {
 				allowNull: true,
 				type: DataTypes.DATE,

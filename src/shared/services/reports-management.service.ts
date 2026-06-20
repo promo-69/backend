@@ -1,3 +1,4 @@
+import { MathUtil } from '@utils/math.util.js';
 import { Database, Ops } from '@database/index.js';
 import { ValidationError } from '@errors';
 
@@ -174,7 +175,7 @@ export class ReportsManagementService {
         }
         const breakdown_by_payment_method = [...pmMap.entries()].map(([id, v]) => ({
             payment_method: { id, description: v.description },
-            total_amount: Math.round(v.amount * 100) / 100,
+            total_amount: MathUtil.roundMoney(),
             transaction_count: v.count,
         }));
 
@@ -196,7 +197,7 @@ export class ReportsManagementService {
             product_name: v.name,
             type: v.type,
             quantity_sold: v.quantity,
-            total_revenue: Math.round(v.revenue * 100) / 100,
+            total_revenue: MathUtil.roundMoney(),
         }));
 
         // Serie diaria
@@ -219,7 +220,7 @@ export class ReportsManagementService {
                 date,
                 orders: v.orders,
                 tickets: v.tickets,
-                revenue: Math.round(v.revenue * 100) / 100,
+                revenue: MathUtil.roundMoney(),
                 loyalty_points: v.points,
             }));
 
@@ -229,11 +230,11 @@ export class ReportsManagementService {
             summary: {
                 total_orders: totalOrders,
                 total_tickets: totalTickets,
-                total_revenue: Math.round(totalRevenue * 100) / 100,
-                total_tax: Math.round(totalTax * 100) / 100,
-                total_concessions_revenue: Math.round(totalConcessions * 100) / 100,
+                total_revenue: MathUtil.roundMoney(),
+                total_tax: MathUtil.roundMoney(),
+                total_concessions_revenue: MathUtil.roundMoney(),
                 total_loyalty_points_generated: totalPoints,
-                net_revenue: Math.round((totalRevenue - totalConcessions) * 100) / 100,
+                net_revenue: MathUtil.roundMoney(),
             },
             breakdown_by_payment_method,
             daily_series,
@@ -335,187 +336,11 @@ export class ReportsManagementService {
                 movie: { id: m.id, title: m.title, poster_url: m.poster_url },
                 total_showtimes: m.showtimes,
                 total_tickets_sold: m.tickets_sold,
-                total_revenue: Math.round(m.revenue * 100) / 100,
+                total_revenue: MathUtil.roundMoney(),
                 avg_occupancy_pct:
-                    m.total_capacity > 0 ? Math.round((m.tickets_sold / m.total_capacity) * 10000) / 100 : 0,
-            }))
-            .sort((a, b) => b.total_tickets_sold - a.total_tickets_sold);
-
-        return { period: { from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) }, movies };
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // 3. EVENTOS ESPECIALES (estadísticas)
-    // ─────────────────────────────────────────────────────────────────────────
-    async getEventsReport(cinemaId: number, filters: { from?: string; to?: string } = {}) {
-        const { from, to } = this._buildDateRange(filters.from, filters.to);
-
-        const roomsRaw = await this._rooms.getAll({ count: false, attributes: ['id'] }, { cinema: cinemaId });
-        const roomList: any[] = this._toList(roomsRaw);
-        if (roomList.length === 0)
-            return { period: { from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) }, events: [] };
-
-        const roomIds = roomList.map((r: any) => r.id);
-
-        const bookingsRaw = await this._roomBookings.getAll(
-            { count: false, attributes: ['id', 'room', 'start_time'] },
-            { room: roomIds, start_time: { [Ops.between]: [from, to] } },
-        );
-        const bookings: any[] = this._toList(bookingsRaw);
-        if (bookings.length === 0)
-            return { period: { from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) }, events: [] };
-
-        const bookingIds = bookings.map((b: any) => b.id);
-        const bookingMap = new Map<number, any>(bookings.map((b: any) => [b.id, b]));
-
-        const showtimesRaw = await this._showtimes.getAll(
-            {
-                count: false,
-                attributes: ['id', 'booking', 'special_event_id'],
-                relations: [
-                    { association: '_SpecialEvents', attributes: ['id', 'title', 'poster_url', 'duration_minutes'] },
-                ],
-            },
-            { booking: bookingIds, special_event_id: { [Ops.ne]: null } },
-        );
-        const showtimesList: any[] = this._toList(showtimesRaw);
-        if (showtimesList.length === 0)
-            return { period: { from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) }, events: [] };
-
-        const ticketsRaw = await this._tickets.getAll(
-            { count: false, attributes: ['id', 'booking', 'price'] },
-            { booking: bookingIds },
-        );
-        const ticketsList: any[] = this._toList(ticketsRaw);
-
-        const seatCountMap = new Map<number, number>();
-        await Promise.all(
-            roomIds.map(async (rid: number) => {
-                seatCountMap.set(rid, await this._seats.count({ room: rid }));
-            }),
-        );
-
-        const ticketsByBooking = new Map<number, any[]>();
-        for (const t of ticketsList) {
-            if (!ticketsByBooking.has(t.booking)) ticketsByBooking.set(t.booking, []);
-            ticketsByBooking.get(t.booking)!.push(t);
-        }
-
-        type EventStats = {
-            id: number;
-            title: string;
-            poster_url: string | null;
-            duration_minutes: number;
-            showtimes: number;
-            tickets_sold: number;
-            revenue: number;
-            total_capacity: number;
-        };
-        const eventMap = new Map<number, EventStats>();
-
-        for (const s of showtimesList) {
-            const eventId = s.special_event_id;
-            if (!eventMap.has(eventId)) {
-                eventMap.set(eventId, {
-                    id: eventId,
-                    title: s._SpecialEvents?.title ?? `Evento ${eventId}`,
-                    poster_url: s._SpecialEvents?.poster_url ?? null,
-                    duration_minutes: s._SpecialEvents?.duration_minutes ?? 0,
-                    showtimes: 0,
-                    tickets_sold: 0,
-                    revenue: 0,
-                    total_capacity: 0,
-                });
-            }
-            const stats = eventMap.get(eventId)!;
-            const roomId = bookingMap.get(s.booking)?.room;
-            stats.showtimes += 1;
-            stats.total_capacity += seatCountMap.get(roomId) ?? 0;
-            const tickets = ticketsByBooking.get(s.booking) ?? [];
-            stats.tickets_sold += tickets.length;
-            stats.revenue += tickets.reduce((sum: number, t: any) => sum + Number(t.price), 0);
-        }
-
-        const events = [...eventMap.values()]
-            .map((e) => ({
-                event: { id: e.id, title: e.title, poster_url: e.poster_url, duration_minutes: e.duration_minutes },
-                total_showtimes: e.showtimes,
-                total_tickets_sold: e.tickets_sold,
-                total_revenue: Math.round(e.revenue * 100) / 100,
+                    m.total_capacity > 0 ? MathUtil.roundMoney(),
                 avg_occupancy_pct:
-                    e.total_capacity > 0 ? Math.round((e.tickets_sold / e.total_capacity) * 10000) / 100 : 0,
-            }))
-            .sort((a, b) => b.total_tickets_sold - a.total_tickets_sold);
-
-        return { period: { from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) }, events };
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // 4. INVENTARIO (con precio de venta y valorización)
-    // ─────────────────────────────────────────────────────────────────────────
-    async getInventoryReport(cinemaId: number, filters: { from?: string; to?: string } = {}) {
-        const { from, to } = this._buildDateRange(filters.from, filters.to);
-
-        const inventoriesRaw = await this._inventories.getAll(
-            {
-                count: false,
-                attributes: ['id', 'product', 'stock', 'minimum_stock'],
-                relations: [
-                    {
-                        association: '_Products',
-                        attributes: ['id', 'name', 'sku', 'price', 'currency'],
-                        include: [{ association: '_ProductCategories', attributes: ['id', 'description'] }],
-                    },
-                ],
-            },
-            { cinema: cinemaId },
-        );
-        const inventories: any[] = this._toList(inventoriesRaw);
-        if (inventories.length === 0) {
-            return {
-                period: { from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) },
-                products: [],
-                alerts: [],
-            };
-        }
-
-        const inventoryIds = inventories.map((i: any) => i.id);
-        const movementsRaw = await this._inventoryMovements.getAll(
-            { count: false, attributes: ['id', 'inventory', 'operation_type', 'quantity', 'unit_cost'] },
-            { inventory: inventoryIds, created_at: { [Ops.between]: [from, to] } },
-        );
-        const movements: any[] = this._toList(movementsRaw);
-
-        const soldByInv = new Map<number, number>();
-        const entriesByInv = new Map<number, number>();
-        for (const m of movements) {
-            const qty = Number(m.quantity);
-            if (m.operation_type === INVENTORY_OP_SALE) soldByInv.set(m.inventory, (soldByInv.get(m.inventory) ?? 0) + qty);
-            if (m.operation_type === INVENTORY_OP_ENTRY) entriesByInv.set(m.inventory, (entriesByInv.get(m.inventory) ?? 0) + qty);
-        }
-
-        const currencyMap = new Map<number, string>();
-        const products = inventories
-            .map((inv: any) => {
-                const product = inv._Products;
-                const productPrice = product ? Number(product.price) : 0;
-                const currentStock = inv.stock;
-                const stockValue = currentStock * productPrice;
-                return {
-                    inventory_id: inv.id,
-                    product: {
-                        id: product?.id ?? inv.product,
-                        name: product?.name ?? `Product ${inv.product}`,
-                        sku: product?.sku ?? null,
-                        category: product?._ProductCategories ?? null,
-                        selling_price: productPrice,
-                        currency_id: product?.currency,
-                    },
-                    current_stock: currentStock,
-                    minimum_stock: inv.minimum_stock,
-                    units_sold: soldByInv.get(inv.id) ?? 0,
-                    units_received: entriesByInv.get(inv.id) ?? 0,
-                    stock_value: Math.round(stockValue * 100) / 100,
+                    e.total_capacity > 0 ? MathUtil.roundMoney(),
                     below_minimum: currentStock <= inv.minimum_stock,
                 };
             })
@@ -605,7 +430,7 @@ export class ReportsManagementService {
         }
         const breakdown_by_payment_method = [...pmMap.entries()].map(([id, v]) => ({
             payment_method: { id, description: v.description },
-            total_amount: Math.round(v.amount * 100) / 100,
+            total_amount: MathUtil.roundMoney(),
             transaction_count: v.count,
         }));
 
@@ -628,8 +453,8 @@ export class ReportsManagementService {
             employee_id: employeeId,
             summary: {
                 total_orders: totalOrders,
-                total_revenue: Math.round(totalRevenue * 100) / 100,
-                total_tax: Math.round(totalTax * 100) / 100,
+                total_revenue: MathUtil.roundMoney(),
+                total_tax: MathUtil.roundMoney(),
                 cancelled_orders: cancelledOrders,
             },
             breakdown_by_payment_method,
@@ -721,8 +546,7 @@ export class ReportsManagementService {
                     room: { id: roomId, name: roomMap.get(roomId) ?? `Sala ${roomId}` },
                     capacity,
                     tickets_sold: sold,
-                    occupancy_pct: capacity > 0 ? Math.round((sold / capacity) * 10000) / 100 : 0,
-                    revenue: Math.round(revenue * 100) / 100,
+                    occupancy_pct: capacity > 0 ? MathUtil.roundMoney(),
                 };
             })
             .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
@@ -788,7 +612,7 @@ export class ReportsManagementService {
         const breakdown_by_status = [...byStatus.entries()].map(([id, v]) => ({
             status: { id, description: v.description },
             count: v.count,
-            revenue: Math.round(v.revenue * 100) / 100,
+            revenue: MathUtil.roundMoney(),
         }));
 
         return {
@@ -796,8 +620,8 @@ export class ReportsManagementService {
             summary: {
                 total_requests: totalCount,
                 pending_review: byStatus.get(RENTAL_STATUS_PENDING)?.count ?? 0,
-                confirmed_revenue: Math.round((byStatus.get(RENTAL_STATUS_PAID)?.revenue ?? 0) * 100) / 100,
-                projected_revenue: Math.round((byStatus.get(RENTAL_STATUS_PENDING_PMT)?.revenue ?? 0) * 100) / 100,
+                confirmed_revenue: MathUtil.roundMoney(),
+                projected_revenue: MathUtil.roundMoney(),
             },
             breakdown_by_status,
             requests: rentalsList.map((r: any) => ({
