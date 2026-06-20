@@ -3,6 +3,7 @@ import { NotFoundError, ValidationError, ConflictError } from '@errors';
 import { QueueProvider } from '@providers/queue.provider.js';
 import { Transaction } from 'sequelize';
 import { Logger } from '@utils/logger.util.js';
+import { emailService } from '@services/email.service.js';
 
 export const RENTAL_STATUS = {
 	PENDING_REVIEW: 1,
@@ -535,8 +536,6 @@ export class RentalManagementService {
 			const roomName = room?.name ?? 'Sala no especificada';
 			const cinemaName = room?._Cinemas?.name ?? 'Cine no especificado';
 
-			const { emailService } = await import('@services/email.service.js');
-
 			await emailService.sendRentalApproval(email, request.event_name, roomName, cinemaName, price, request.id);
 		} catch (err) {
 			const error = err instanceof Error ? err : new Error(String(err));
@@ -552,8 +551,6 @@ export class RentalManagementService {
 
 			const email = customer?._People?.personal_email;
 			if (!email) return;
-
-			const { emailService } = await import('@services/email.service.js');
 
 			await emailService.sendRentalRejection(email, request.event_name, request.id);
 		} catch (err) {
