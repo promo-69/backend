@@ -3,6 +3,7 @@
 	"version": "1.0.0",
 	"description": "API Restful by Promo69",
 	"author": "promo69-team",
+	"license": "UNLICENSED",
 	"main": "build/index.js",
 	"type": "module",
 	"scripts": {
