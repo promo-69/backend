@@ -2,73 +2,86 @@ import { DataTypes } from 'sequelize';
 import { type RelationsReturn, SequelizeModelBase } from '@database/models/bases/sequelize.model.js';
 
 export default class InvoicesModel extends SequelizeModelBase {
-	static definition() {
-		return {
-			id: {
-				primaryKey: true,
-				autoIncrement: true,
-				allowNull: false,
-				type: DataTypes.INTEGER,
-			},
-			order: {
-				allowNull: false,
-				type: DataTypes.INTEGER,
-			},
-			invoice_number: {
-				allowNull: false,
-				type: DataTypes.STRING(100),
-			},
-			billing_document: {
-				allowNull: false,
-				type: DataTypes.STRING(100),
-			},
-			billing_name: {
-				allowNull: false,
-				type: DataTypes.STRING(255),
-			},
-			billing_address: {
-				allowNull: true,
-				type: DataTypes.TEXT,
-			},
-			issued_at: {
-				allowNull: false,
-				type: DataTypes.DATE,
-				defaultValue: DataTypes.NOW,
-			},
-			deleted_at: {
-				allowNull: true,
-				type: DataTypes.DATE,
-			}
-		};
-	}
+    static definition() {
+        return {
+            id: {
+                primaryKey: true,
+                autoIncrement: true,
+                allowNull: false,
+                type: DataTypes.INTEGER,
+            },
+            order: {
+                allowNull: false,
+                type: DataTypes.INTEGER,
+            },
+            invoice_number: {
+                allowNull: false,
+                type: DataTypes.STRING(100),
+            },
+            billing_document: {
+                allowNull: false,
+                type: DataTypes.STRING(100),
+            },
+            billing_name: {
+                allowNull: false,
+                type: DataTypes.STRING(255),
+            },
+            billing_address: {
+                allowNull: true,
+                type: DataTypes.TEXT,
+            },
+            issued_at: {
+                allowNull: false,
+                type: DataTypes.DATE,
+                defaultValue: DataTypes.NOW,
+            },
+            voided_reason: {
+                allowNull: true,
+                type: DataTypes.TEXT,
+            },
+            voided_by: {
+                allowNull: true,
+                type: DataTypes.INTEGER,
+            },
+            deleted_at: {
+                allowNull: true,
+                type: DataTypes.DATE,
+            },
+        };
+    }
 
-	static config() {
-		return {
-			timestamps: true,
-			paranoid: true,
-			createdAt: false,
-			updatedAt: false,
-			deletedAt: 'deleted_at',
-			isBasicTable: false,
-			schema: 'public',
-			tableName: 'invoices',
-			appRawName: 'invoices',
-		};
-	}
+    static config() {
+        return {
+            timestamps: true,
+            paranoid: true,
+            createdAt: false,
+            updatedAt: false,
+            deletedAt: 'deleted_at',
+            isBasicTable: false,
+            schema: 'public',
+            tableName: 'invoices',
+            appRawName: 'invoices',
+        };
+    }
 
-	static override relations(): RelationsReturn {
-		return [
-			{
-				type: 'belongsTo',
-				target: 'Orders',
-				options: { foreignKey: 'order', targetKey: 'id', as: '_Orders' },
-			},
-			{
-				inversed: true,
-				type: 'hasMany',
-				target: 'Orders',
-				options: { foreignKey: 'order', targetKey: 'id', as: '_Invoices' },
-			},
-		];
-	}
+    static override relations(): RelationsReturn {
+        return [
+            {
+                type: 'belongsTo',
+                target: 'Orders',
+                options: { foreignKey: 'order', targetKey: 'id', as: '_Orders' },
+            },
+            {
+                inversed: true,
+                type: 'hasMany',
+                target: 'Orders',
+                options: { foreignKey: 'order', targetKey: 'id', as: '_Invoices' },
+            },
+            {
+                type: 'belongsTo',
+                target: 'Employees',
+                options: { foreignKey: 'voided_by', targetKey: 'id', as: '_VoidedByEmployee' },
+            },
+        ];
+    }
 }
