@@ -16,6 +16,7 @@ import { fileURLToPath } from 'url';
 import { buildSwaggerDocs } from './docs/swagger.bundler.js';
 import { RealtimeProvider } from '@providers/realtime.provider.js';
 import { startBackgroundProcesses } from './background/orchestrator.js';
+import { TerminalStreamer } from './terminal.js';
 
 const __dirnameApp = path.dirname(fileURLToPath(import.meta.url));
 
@@ -216,6 +217,7 @@ export class App {
             res.json(welcome);
         });
 
+        this.app.use('/api/system/terminal', TerminalStreamer);
         this.app.use(routerEssentialApi);
 
         // Ruta para mostrar todos los endpoints disponibles
