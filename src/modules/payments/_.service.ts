@@ -46,14 +46,13 @@ export class PaymentsService extends BaseService {
 	}
 
 	async getBankAccounts(queryFilters: Record<string, any>) {
-		return await this._bankAccounts.getAll(queryFilters, {
-			count: false,
+		return await this._bankAccounts.getAll({
 			relations: [
 				{ association: '_Banks', attributes: ['id', 'name', 'code', 'api_url'] },
 				{ association: '_Currencies', attributes: ['id', 'code', 'description', 'symbol'] },
 				{ association: '_PaymentMethods', attributes: ['id', 'description'] },
 			],
-		});
+		}, queryFilters);
 	}
 
 	async createBankAccount(body: BankAccountsAttributes) {
