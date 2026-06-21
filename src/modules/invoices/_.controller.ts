@@ -6,16 +6,24 @@ class InvoicesController extends ControllerBase {
         super();
     }
 
-    private _session() { return this.getSession<any>(); }
-    private _params() { return this.getParams(); }
-    private _query() { return this.getQuery(); }
-    private _body<T = any>() { return this.getBody<T>(); }
+    private _session() {
+        return this.getSession<any>();
+    }
+    private _params() {
+        return this.getParams();
+    }
+    private _query() {
+        return this.getQuery();
+    }
+    private _body<T = any>() {
+        return this.getBody<T>();
+    }
 
     /**
      * Resuelve cinemaId con prioridad:
-     * 1. ?cinemaId (superadmin filtrando sede)
+     * 1. ?cinemaId en query string (superadmin filtrando una sede concreta)
      * 2. cinemaId del JWT (empleado anclado a su sede)
-     * 3. undefined (superadmin vista global)
+     * 3. undefined (superadmin con vista global — backend no filtra por sede)
      */
     private _resolveCinemaId(): number | undefined {
         const q = this._query();
@@ -24,7 +32,7 @@ class InvoicesController extends ControllerBase {
         return sessionCinemaId ? Number(sessionCinemaId) : undefined;
     }
 
-    // GET /invoices
+    // GET /invoices  — todas (activas + anuladas) o filtradas por ?status=
     async findAll() {
         const q = this._query();
         const data = await InvoicesService.findAll({
@@ -38,6 +46,22 @@ class InvoicesController extends ControllerBase {
             limit: q.limit ? Number(q.limit) : 20,
         });
         return this.success(data, 'Facturas obtenidas exitosamente');
+    }
+
+    // GET /invoices/voided  — shorthand: solo facturas canceladas/anuladas
+    async findVoided() {
+        const q = this._query();
+        const data = await InvoicesService.findAll({
+            cinemaId: this._resolveCinemaId(),
+            employeeId: q.employeeId ? Number(q.employeeId) : undefined,
+            from: q.from as string | undefined,
+            to: q.to as string | undefined,
+            search: q.search as string | undefined,
+            status: 'voided',
+            page: q.page ? Number(q.page) : 1,
+            limit: q.limit ? Number(q.limit) : 20,
+        });
+        return this.success(data, 'Facturas anuladas obtenidas exitosamente');
     }
 
     // GET /invoices/:id
@@ -55,6 +79,7 @@ class InvoicesController extends ControllerBase {
 
         const data = await InvoicesService.findById(Number(id), this._resolveCinemaId());
         const pdfBuffer = await InvoicesService.generatePdf(data);
+
         this.getResponse().setHeader('Content-Type', 'application/pdf');
         this.getResponse().setHeader(
             'Content-Disposition',

@@ -6,6 +6,11 @@ class InvoicesModuleService {
         return InvoiceManagementService.findAll(filters);
     }
 
+    /** Shorthand: siempre status='voided' */
+    findVoided(filters: Omit<Parameters<typeof InvoiceManagementService.findAll>[0], 'status'>) {
+        return InvoiceManagementService.findAll({ ...filters, status: 'voided' });
+    }
+
     findById(id: number, cinemaId?: number) {
         return InvoiceManagementService.findById(id, cinemaId);
     }
