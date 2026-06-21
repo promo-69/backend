@@ -364,9 +364,14 @@ TerminalStreamer.get('/', (req: Request, res: Response) => {
         <div class="terminal-wrapper">
             <div class="header">
                 <h1><div class="status-dot"></div> Live Server Terminal</h1>
-                <button class="toggle-sidebar-btn" id="toggleBtn" title="Toggle Sidebar">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="15" y1="3" x2="15" y2="21"></line></svg>
-                </button>
+                <div style="display: flex; gap: 8px;">
+                    <button class="toggle-sidebar-btn" id="logoutBtn" title="Cerrar Sesión">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                    </button>
+                    <button class="toggle-sidebar-btn" id="toggleBtn" title="Toggle Sidebar">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="15" y1="3" x2="15" y2="21"></line></svg>
+                    </button>
+                </div>
             </div>
             <div class="terminal-scroll-area" id="terminal">
                 <!-- Logs aparecerán aquí -->
@@ -389,12 +394,21 @@ TerminalStreamer.get('/', (req: Request, res: Response) => {
         const sidebar = document.getElementById('sidebar');
         const sidebarContent = document.getElementById('sidebarContent');
         const toggleBtn = document.getElementById('toggleBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
         let logCounter = 0;
         let isAutoScrollEnabled = true;
 
         // Toggle panel lateral
         toggleBtn.addEventListener('click', () => {
             sidebar.classList.toggle('collapsed');
+        });
+
+        // Logout Basic Auth trick
+        logoutBtn.addEventListener('click', () => {
+            const url = new URL(window.location.href);
+            url.username = 'cerrar';
+            url.password = 'sesion';
+            window.location.href = url.toString();
         });
 
         // Detectar si el usuario subió el scroll manualmente
