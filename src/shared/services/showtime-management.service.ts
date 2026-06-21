@@ -1626,7 +1626,34 @@ export class ShowtimeManagementService {
 		const lockedRaw = await redis.zrange(zsetKey, 0, -1);
 		const lockedSeats = lockedRaw.map(Number);
 
-		return { sold: soldSeats, locked: lockedSeats };
+		let nonOperationalSeats = 0;
+		let totalSeats = 0;
+		try {
+			const showtimeFull = await this._showtimesRepo.getById(showtimeId, {
+				relations: [
+					{
+						association: '_RoomBookings',
+						required: true,
+						attributes: ['room'],
+					},
+				],
+			});
+			const roomId = (showtimeFull as any)?._RoomBookings?.room;
+			if (roomId) {
+				const allSeats = await this._seats.getAll(
+					{ count: false, attributes: ['id', 'seat_condition'] },
+					{ room: roomId, deleted_at: null },
+				);
+				const allList = Array.isArray(allSeats) ? allSeats : (allSeats as any).rows || [];
+				totalSeats = allList.length;
+				const soldSet = new Set(soldSeats);
+				nonOperationalSeats = allList.filter((s: any) => s.seat_condition !== 1 && !soldSet.has(s.id)).length;
+			}
+		} catch {
+			// Ignorar — este campo es informativo
+		}
+
+		return { sold: soldSeats, locked: lockedSeats, total_seats: totalSeats, non_operational_seats: nonOperationalSeats };
 	}
 
 	async findAllShowtimes(filters?: any) {
