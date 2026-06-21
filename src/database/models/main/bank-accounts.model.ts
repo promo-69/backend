@@ -29,6 +29,9 @@ export default class BankAccountsModel extends SequelizeModelBase {
 			api_key: {
 				allowNull: true,
 				type: DataTypes.STRING(256),
+				enhancedData: {
+					visible: false
+				}
 			},
 			deleted_at: {
 				allowNull: true,

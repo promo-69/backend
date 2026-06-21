@@ -290,7 +290,7 @@ export class AuthService extends BaseService {
 				return { createdUser, createdCustomer, signupCode };
 			});
 		} catch (error: any) {
-			throw new AuthError('No se pudo completar el registro del usuario', error?.());
+			throw new AuthError('No se pudo completar el registro del usuario', error);
 		}
 
 		emailService
