@@ -475,6 +475,38 @@ export class UsersService extends BaseService {
 		return result;
 	}
 
+	async getMyMovieSubscriptionById(session: CustomerUserSession, movieId: number) {
+		if (!session.customerId) throw new AuthError('No tiene un perfil de cliente.');
+
+		this.validateRegexpFields([
+			{ value: movieId, regex: REGEX.DATABASE_ID, message: 'La película no es válida.' },
+		]);
+
+		const result = await this._movieSubscriptions.getOne(
+			{ customer: session.customerId, movie: movieId },
+			{
+				attributes: ['id', 'movie', 'is_notified'],
+				relations: [
+					{
+						association: '_Movies',
+						attributes: [
+							'id',
+							'title',
+							'release_date',
+							'duration_minutes',
+							'lifecycle_state',
+							'poster_url',
+						],
+					},
+				],
+			},
+		);
+
+		if (!result) throw new NotFoundError('No se encontró suscripción a la película.');
+
+		return result;
+	}
+
 	async addMyMovieSubscriptions(session: CustomerUserSession, data: Record<string, number>) {
 		if (!session.customerId) throw new AuthError('No tiene un perfil de cliente.');
 		this.validateRequired(data, ['movieId']);

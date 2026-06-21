@@ -20,6 +20,7 @@ router.post('/me/movie-genres', verifySession, usersController.addMyMovieGenres)
 router.delete('/me/movie-genres', verifySession, usersController.removeMyMovieGenres);
 router.delete('/me/movie-genres/:genreId', verifySession, usersController.removeMyMovieGenres);
 router.get('/me/movie-subscriptions', verifySession, usersController.getMyMovieSubscriptions);
+router.get('/me/movie-subscriptions/:movieId', verifySession, usersController.getMyMovieSubscriptionById);
 router.post('/me/movie-subscriptions', verifySession, usersController.addMyMovieSubscriptions);
 router.delete('/me/movie-subscriptions', verifySession, usersController.removeMyMovieSubscription);
 router.delete('/me/movie-subscriptions/:movieId', verifySession, usersController.removeMyMovieSubscription);
