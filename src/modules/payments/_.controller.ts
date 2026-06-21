@@ -14,6 +14,10 @@ class PaymentsController extends ControllerBase {
 		return await PaymentsService.getBankAccounts(this.getQuery());
 	}
 
+	async getBankAccountById() {
+		return await PaymentsService.getBankAccountById(Number(this.getParams().id));
+	}
+
 	async createBankAccount() {
 		const account = await PaymentsService.createBankAccount(this.getBody());
 

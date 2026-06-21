@@ -16,9 +16,9 @@ auth:bearer {
 
 body:json {
   {
-    "payment_details": {
-      "account_number": "02019999999999999999"
-    },
+    "payment_details": [
+      { "label": "Número de Cuenta", "value": "02019999999999999999" }
+    ],
     "api_key": "updated-secret-token"
   }
 }

@@ -46,11 +46,33 @@ paths:
                 payment_method:
                   type: integer
                 payment_details:
-                  type: object
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      label:
+                        type: string
+                      value:
+                        type: string
       responses:
         '201':
           description: Cuenta creada.
   /payments/bank-accounts/{id}:
+    get:
+      summary: Obtener una cuenta bancaria
+      tags:
+        - Bank Accounts
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Datos de la cuenta bancaria devueltos exitosamente.
     patch:
       summary: Actualizar una cuenta bancaria
       tags:
@@ -77,7 +99,14 @@ paths:
                 payment_method:
                   type: integer
                 payment_details:
-                  type: object
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      label:
+                        type: string
+                      value:
+                        type: string
       responses:
         '200':
           description: Cuenta actualizada.
