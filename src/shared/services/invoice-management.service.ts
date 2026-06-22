@@ -201,10 +201,6 @@ class InvoiceManagementService extends BaseService {
 
     // ── Anulación ─────────────────────────────────────────────────────────────
     //
-    // economy.md exige que el Backend sea la única fuente de verdad financiera
-    // y que el ledger de puntos sea append-only. Anular una factura no es un
-    // simple soft-delete: implica revertir el efecto económico de la orden.
-    //
     // Reglas aplicadas:
     //   1. No se puede anular una orden cuyos tickets ya fueron validados
     //      (el servicio ya se consumió — eso requiere un flujo de nota de
@@ -386,9 +382,6 @@ class InvoiceManagementService extends BaseService {
                       generated_points: order.generated_points,
                       qr_code: order.qr_code,
                       created_at: order.created_at,
-                      // currency = moneda base del sistema (la que reporta esta orden).
-                      // Si is_base_currency es true para VES, este monto YA está en
-                      // bolívares — no requiere conversión adicional para mostrarse.
                       currency: order._Currencies,
                       status: order._OrderStatuses,
                   }
@@ -402,11 +395,7 @@ class InvoiceManagementService extends BaseService {
                 unit_price: l.unit_price,
                 line_total: Number(l.unit_price) * Number(l.quantity),
             })),
-            // Cada pago se guarda SIEMPRE convertido a la moneda base (bolívares).
-            // Si el cliente pagó en otra moneda (ej. USD), reconstruimos el monto
-            // y la moneda originales dividiendo por la tasa usada en ese momento
-            // (quoted_exchange_rate), para que la factura pueda desglosar ambos
-            // valores cuando el pago no fue en bolívares.
+
             payments: (Array.isArray(payments) ? payments : []).map((p: any) => {
                 const rate = p._ExchangeRates?.rate ? Number(p._ExchangeRates.rate) : null;
                 const paymentCurrency = p._ExchangeRates?._Currencies ?? null;

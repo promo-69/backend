@@ -18,10 +18,6 @@ export class InvoicePDFExporter {
         const MR = 40; // margen derecho
         const INNER = PAGE_W - ML - MR; // 515.28 — ancho real del contenido
 
-        // Bolívar Soberano (VES) es la moneda base del sistema (is_base_currency=true).
-        // El monto de la orden SIEMPRE se guarda ya convertido a esa moneda — por
-        // eso el fallback nunca debe ser '$': si la relación de moneda no cargó,
-        // seguimos mostrando bolívares, no dólares.
         const sym = invoice.order?.currency?.symbol ?? 'Bs.';
 
         // ── CABECERA ──────────────────────────────────────────────────────────
@@ -75,7 +71,7 @@ export class InvoicePDFExporter {
         }
 
         const totalX = ML + INNER / 2 + 5;
-        const totalColW = halfW - 13; // margen de seguridad real para que el texto no toque el borde
+        const totalColW = halfW - 13;
         doc.fontSize(11)
             .font('Helvetica-Bold')
             .fillColor(PRIMARY)
