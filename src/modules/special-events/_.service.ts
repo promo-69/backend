@@ -89,6 +89,20 @@ export class SpecialEventsService extends BaseService {
         return ShowtimeManagementService.getEventsBillboardByLifecycle(4, cinemaId);
     }
 
+    //  CARTELERA ACTIVA GLOBAL (estados 2, 3, 4) — sin filtro de sucursal
+    //  Eventos activos que tengan al menos una función real futura.
+
+    async getActiveWithShowtimes() {
+        return ShowtimeManagementService.getEventsBillboardByLifecycle(2, undefined).then(async (premiere) => {
+            const [billboard, lastDays] = await Promise.all([
+                ShowtimeManagementService.getEventsBillboardByLifecycle(3, undefined),
+                ShowtimeManagementService.getEventsBillboardByLifecycle(4, undefined),
+            ]);
+            const rows = [...premiere.rows, ...billboard.rows, ...lastDays.rows];
+            return { count: rows.length, rows };
+        });
+    }
+
     // CARTELERA Y FUNCIONES PÚBLICAS
 
     async getPublicEventDetail(id: number) {
