@@ -82,6 +82,15 @@ class UsersController extends ControllerBase {
 		return this.success(data, 'Suscripciones de películas recuperadas exitosamente.');
 	}
 
+	async getMyMovieSubscriptionById() {
+		const data = await UsersService.getMyMovieSubscriptionById(
+			this.getSession() as CustomerUserSession,
+			Number(this.getParams().movieId),
+		);
+
+		return this.success(data, 'Suscripción de película recuperada exitosamente.');
+	}
+
 	async addMyMovieSubscriptions() {
 		await UsersService.addMyMovieSubscriptions(this.getSession() as CustomerUserSession, this.getBody());
 

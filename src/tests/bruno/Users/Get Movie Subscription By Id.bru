@@ -1,11 +1,11 @@
 meta {
-  name: Get My Order Ticket
+  name: Get Movie Subscription By Id
   type: http
-  seq: 21
+  seq: 25
 }
 
 get {
-  url: {{baseUrl}}/users/me/orders/{{orderId}}/ticket
+  url: {{baseUrl}}/users/me/movie-subscriptions/{{moveId}}
   body: none
   auth: bearer
 }
@@ -15,5 +15,5 @@ auth:bearer {
 }
 
 vars:pre-request {
-  orderId: 
+  moveId: 1
 }
