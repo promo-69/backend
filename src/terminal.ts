@@ -356,6 +356,36 @@ TerminalStreamer.get('/', (req: Request, res: Response) => {
         ::-webkit-scrollbar-track { background: var(--bg-dark); }
         ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: absolute;
+                right: 0;
+                top: 50px;
+                height: calc(100% - 50px);
+                width: 100%;
+                max-width: 100%;
+                border-left: none;
+                box-shadow: -5px 0 15px rgba(0,0,0,0.5);
+            }
+            
+            .sidebar.collapsed {
+                position: absolute;
+                right: 0;
+                top: 50px;
+                height: calc(100% - 50px);
+            }
+
+            .terminal-scroll-area {
+                font-size: 11px; /* Letra ligeramente más pequeña en móviles */
+                padding: 10px;
+            }
+
+            .header h1 {
+                font-size: 12px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -397,6 +427,11 @@ TerminalStreamer.get('/', (req: Request, res: Response) => {
         const logoutBtn = document.getElementById('logoutBtn');
         let logCounter = 0;
         let isAutoScrollEnabled = true;
+
+        // Auto-colapsar en móviles al inicio
+        if (window.innerWidth <= 768) {
+            sidebar.classList.add('collapsed');
+        }
 
         // Toggle panel lateral
         toggleBtn.addEventListener('click', () => {
@@ -485,7 +520,13 @@ TerminalStreamer.get('/', (req: Request, res: Response) => {
 
             const card = document.createElement('div');
             card.className = 'event-card ' + (isError ? 'error' : 'info');
-            card.onclick = () => scrollToLog(logId);
+            card.onclick = () => {
+                scrollToLog(logId);
+                // Si estamos en móvil, cerramos el panel automáticamente al tocar un evento para ver la terminal
+                if (window.innerWidth <= 768) {
+                    sidebar.classList.add('collapsed');
+                }
+            };
             
             const timeStr = new Date().toLocaleTimeString('es-ES', { hour12: false });
             
