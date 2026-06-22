@@ -1,9 +1,8 @@
 import { BaseService } from '@bases/service.base.js';
-import { Database } from '@database/index.js';
+import { Database, Ops } from '@database/index.js';
 import { NotFoundError, ValidationError, ConflictError } from '@errors/index.js';
 import { Transaction } from 'sequelize';
 import { ORDER_STATUS, LOYALTY_OPERATION } from '@constants/magic-vars.constant.js';
-import { Op } from 'sequelize';
 
 class InvoiceManagementService extends BaseService {
     constructor() {
@@ -38,26 +37,26 @@ class InvoiceManagementService extends BaseService {
 
         if (from || to) {
             const dateRange: any = {};
-            if (from) dateRange[Op.gte] = new Date(from);
+            if (from) dateRange[Ops.gte] = new Date(from);
             if (to) {
                 const toDate = new Date(to);
                 toDate.setHours(23, 59, 59, 999);
-                dateRange[Op.lte] = toDate;
+                dateRange[Ops.lte] = toDate;
             }
             where.issued_at = dateRange;
         }
 
         if (search) {
-            where[Op.or] = [
-                { invoice_number: { [Op.iLike]: `%${search}%` } },
-                { billing_name: { [Op.iLike]: `%${search}%` } },
-                { billing_document: { [Op.iLike]: `%${search}%` } },
+            where[Ops.or] = [
+                { invoice_number: { [Ops.contains]: search } },
+                { billing_name: { [Ops.contains]: search } },
+                { billing_document: { [Ops.contains]: search } },
             ];
         }
 
         if (status === 'voided') {
-            where.deleted_at = { [Op.ne]: null };
-		}
+            where.deleted_at = { [Ops.isNotNull]: true };
+        }
 
         const relations: any[] = [
             {
@@ -87,7 +86,7 @@ class InvoiceManagementService extends BaseService {
                 order: [['issued_at', 'DESC']],
                 limit,
                 offset: (page - 1) * limit,
-                paranoid,
+                operation: { paranoid },
             },
             where,
         );
@@ -176,7 +175,14 @@ class InvoiceManagementService extends BaseService {
                 {
                     count: false,
                     attributes: ['id', 'amount', 'reference_number', 'is_approved'],
-                    relations: [{ association: '_PaymentMethods', attributes: ['id', 'description'] }],
+                    relations: [
+                        { association: '_PaymentMethods', attributes: ['id', 'description'] },
+                        {
+                            association: '_ExchangeRates',
+                            attributes: ['id', 'rate', 'currency'],
+                            nested: [{ association: '_Currencies', attributes: ['id', 'code', 'symbol'] }],
+                        },
+                    ],
                 },
                 { order: orderId },
             ),
@@ -243,7 +249,7 @@ class InvoiceManagementService extends BaseService {
         // anulación simple no aplica — el servicio ya fue consumido.
         const validatedTicketsCount = await this._tickets.count({
             order: order.id,
-            validation_time: { [Op.ne]: null },
+            validation_time: { [Ops.isNotNull]: true },
         });
         if (validatedTicketsCount > 0) {
             throw new ConflictError(
@@ -380,6 +386,9 @@ class InvoiceManagementService extends BaseService {
                       generated_points: order.generated_points,
                       qr_code: order.qr_code,
                       created_at: order.created_at,
+                      // currency = moneda base del sistema (la que reporta esta orden).
+                      // Si is_base_currency es true para VES, este monto YA está en
+                      // bolívares — no requiere conversión adicional para mostrarse.
                       currency: order._Currencies,
                       status: order._OrderStatuses,
                   }
@@ -393,13 +402,30 @@ class InvoiceManagementService extends BaseService {
                 unit_price: l.unit_price,
                 line_total: Number(l.unit_price) * Number(l.quantity),
             })),
-            payments: (Array.isArray(payments) ? payments : []).map((p: any) => ({
-                id: p.id,
-                method: p._PaymentMethods,
-                amount: p.amount,
-                reference_number: p.reference_number ?? null,
-                is_approved: p.is_approved,
-            })),
+            // Cada pago se guarda SIEMPRE convertido a la moneda base (bolívares).
+            // Si el cliente pagó en otra moneda (ej. USD), reconstruimos el monto
+            // y la moneda originales dividiendo por la tasa usada en ese momento
+            // (quoted_exchange_rate), para que la factura pueda desglosar ambos
+            // valores cuando el pago no fue en bolívares.
+            payments: (Array.isArray(payments) ? payments : []).map((p: any) => {
+                const rate = p._ExchangeRates?.rate ? Number(p._ExchangeRates.rate) : null;
+                const paymentCurrency = p._ExchangeRates?._Currencies ?? null;
+                const amountBaseCurrency = Number(p.amount);
+                const wasPaidInBaseCurrency = !paymentCurrency || paymentCurrency.code === order?._Currencies?.code;
+
+                return {
+                    id: p.id,
+                    method: p._PaymentMethods,
+                    amount_base_currency: amountBaseCurrency,
+                    base_currency: order?._Currencies ?? null,
+                    paid_in_other_currency: !wasPaidInBaseCurrency,
+                    original_currency: !wasPaidInBaseCurrency ? paymentCurrency : null,
+                    original_amount: !wasPaidInBaseCurrency && rate ? Number((amountBaseCurrency / rate).toFixed(2)) : null,
+                    exchange_rate: !wasPaidInBaseCurrency ? rate : null,
+                    reference_number: p.reference_number ?? null,
+                    is_approved: p.is_approved,
+                };
+            }),
             taxes: (Array.isArray(taxes) ? taxes : []).map((t: any) => ({
                 id: t.id,
                 tax: t._Taxes,

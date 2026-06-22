@@ -18,7 +18,11 @@ export class InvoicePDFExporter {
         const MR = 40; // margen derecho
         const INNER = PAGE_W - ML - MR; // 515.28 — ancho real del contenido
 
-        const sym = invoice.order?.currency?.symbol ?? '$';
+        // Bolívar Soberano (VES) es la moneda base del sistema (is_base_currency=true).
+        // El monto de la orden SIEMPRE se guarda ya convertido a esa moneda — por
+        // eso el fallback nunca debe ser '$': si la relación de moneda no cargó,
+        // seguimos mostrando bolívares, no dólares.
+        const sym = invoice.order?.currency?.symbol ?? 'Bs.';
 
         // ── CABECERA ──────────────────────────────────────────────────────────
         doc.rect(ML, 40, INNER, 60).fill(PRIMARY);
@@ -71,27 +75,31 @@ export class InvoicePDFExporter {
         }
 
         const totalX = ML + INNER / 2 + 5;
-        doc.fontSize(12)
+        const totalColW = halfW - 13; // margen de seguridad real para que el texto no toque el borde
+        doc.fontSize(11)
             .font('Helvetica-Bold')
             .fillColor(PRIMARY)
             .text(`Total: ${sym} ${Number(invoice.order?.total ?? 0).toFixed(2)}`, totalX, y + 7, {
-                width: halfW - 5,
+                width: totalColW,
                 align: 'right',
                 lineBreak: false,
+                ellipsis: true,
             });
 
         doc.fontSize(8.5)
             .font('Helvetica')
             .fillColor(GRAY)
             .text(`Subtotal: ${sym} ${Number(invoice.order?.subtotal ?? 0).toFixed(2)}`, totalX, y + 27, {
-                width: halfW - 5,
+                width: totalColW,
                 align: 'right',
                 lineBreak: false,
+                ellipsis: true,
             })
             .text(`Impuestos: ${sym} ${Number(invoice.order?.tax_amount ?? 0).toFixed(2)}`, totalX, y + 39, {
-                width: halfW - 5,
+                width: totalColW,
                 align: 'right',
                 lineBreak: false,
+                ellipsis: true,
             });
 
         y += 66;
@@ -198,20 +206,42 @@ export class InvoicePDFExporter {
             this._drawSectionTitle(doc, 'MÉTODOS DE PAGO', ML, y, INNER);
             y += 20;
 
+            const amountColW = 130;
+            const labelColW = INNER - 16 - amountColW - 6;
+            const colLabel = ML + 8;
+            const colAmount = colLabel + labelColW + 6;
+
             for (const p of invoice.payments) {
                 const ref = p.reference_number ? ` (Ref: ${p.reference_number})` : '';
                 const label = `${p.method?.description ?? 'Pago'}${ref}`;
-                const amount = `${sym} ${Number(p.amount).toFixed(2)}`;
+                const baseSym = p.base_currency?.symbol ?? sym;
+                const amount = `${baseSym} ${Number(p.amount_base_currency ?? 0).toFixed(2)}`;
 
                 doc.fontSize(8.5)
                     .font('Helvetica')
                     .fillColor(PRIMARY)
-                    .text(label, ML + 8, y, { width: INNER - 100, lineBreak: false });
+                    .text(label, colLabel, y, { width: labelColW, lineBreak: false, ellipsis: true });
                 doc.fontSize(8.5)
                     .font('Helvetica-Bold')
                     .fillColor(PRIMARY)
-                    .text(amount, ML + 8, y, { width: INNER - 16, align: 'right', lineBreak: false });
+                    .text(amount, colAmount, y, { width: amountColW, align: 'right', lineBreak: false });
                 y += 14;
+
+                // Si pagó en otra moneda (ej. USD), se desglosa el monto original
+                // debajo, en letra pequeña, sin invadir la columna de monto principal.
+                if (p.paid_in_other_currency && p.original_amount != null) {
+                    const origSym = p.original_currency?.symbol ?? '';
+                    doc.fontSize(7.5)
+                        .font('Helvetica')
+                        .fillColor(GRAY)
+                        .text(
+                            `Pagado en ${p.original_currency?.code ?? 'divisa'}: ${origSym} ${Number(p.original_amount).toFixed(2)} (Tasa: ${Number(p.exchange_rate ?? 0).toFixed(2)})`,
+                            colLabel,
+                            y,
+                            { width: INNER - 16, lineBreak: false },
+                        );
+                    y += 12;
+                }
             }
             y += 6;
         }
@@ -221,17 +251,23 @@ export class InvoicePDFExporter {
             this._drawSectionTitle(doc, 'IMPUESTOS APLICADOS', ML, y, INNER);
             y += 20;
 
+            const taxAmountColW = 110;
+            const taxLabelColW = INNER - 16 - taxAmountColW - 6;
+            const colTaxLabel = ML + 8;
+            const colTaxAmount = colTaxLabel + taxLabelColW + 6;
+            const baseSym = invoice.order?.currency?.symbol ?? sym;
+
             // Subtotal base (antes de impuestos)
             const subtotal = Number(invoice.order?.subtotal ?? 0);
             doc.fontSize(8)
                 .font('Helvetica')
                 .fillColor(GRAY)
-                .text('Base imponible:', ML + 8, y, { width: INNER - 100, lineBreak: false });
+                .text('Base imponible:', colTaxLabel, y, { width: taxLabelColW, lineBreak: false });
             doc.fontSize(8)
                 .font('Helvetica')
                 .fillColor(GRAY)
-                .text(`${sym} ${subtotal.toFixed(2)}`, ML + 8, y, {
-                    width: INNER - 16,
+                .text(`${baseSym} ${subtotal.toFixed(2)}`, colTaxAmount, y, {
+                    width: taxAmountColW,
                     align: 'right',
                     lineBreak: false,
                 });
@@ -245,21 +281,19 @@ export class InvoicePDFExporter {
             for (const t of invoice.taxes) {
                 const taxName = t.tax?.name ?? 'Impuesto';
                 const rate = `${Number(t.applied_rate).toFixed(1)}%`;
-                const baseCalc = subtotal > 0 ? ` (${sym} ${subtotal.toFixed(2)} × ${rate})` : '';
-                const label = `${taxName} ${rate}${baseCalc}`;
-                const amount = `${sym} ${Number(t.amount).toFixed(2)}`;
+                const label = `${taxName} (${rate})`;
+                const amount = `${baseSym} ${Number(t.amount).toFixed(2)}`;
 
+                const startY = y;
                 doc.fontSize(8.5)
                     .font('Helvetica')
                     .fillColor(PRIMARY)
-                    .text(label, ML + 8, y, { width: INNER - 100 });
-                const blockH = doc.y - y;
-                // Importe alineado a la derecha en la misma "línea base"
+                    .text(label, colTaxLabel, y, { width: taxLabelColW, ellipsis: true, lineBreak: false });
                 doc.fontSize(8.5)
                     .font('Helvetica-Bold')
                     .fillColor(PRIMARY)
-                    .text(amount, ML + 8, y, { width: INNER - 16, align: 'right', lineBreak: false });
-                y += Math.max(blockH, 13) + 2;
+                    .text(amount, colTaxAmount, startY, { width: taxAmountColW, align: 'right', lineBreak: false });
+                y += 14;
             }
 
             // Línea separadora + Total impuestos
@@ -272,12 +306,12 @@ export class InvoicePDFExporter {
             doc.fontSize(8.5)
                 .font('Helvetica-Bold')
                 .fillColor(PRIMARY)
-                .text('Total impuestos:', ML + 8, y, { width: INNER - 100, lineBreak: false });
+                .text('Total impuestos:', colTaxLabel, y, { width: taxLabelColW, lineBreak: false });
             doc.fontSize(8.5)
                 .font('Helvetica-Bold')
                 .fillColor(PRIMARY)
-                .text(`${sym} ${totalTax.toFixed(2)}`, ML + 8, y, {
-                    width: INNER - 16,
+                .text(`${baseSym} ${totalTax.toFixed(2)}`, colTaxAmount, y, {
+                    width: taxAmountColW,
                     align: 'right',
                     lineBreak: false,
                 });
@@ -288,7 +322,7 @@ export class InvoicePDFExporter {
             doc.fontSize(10)
                 .font('Helvetica-Bold')
                 .fillColor('#ffffff')
-                .text(`TOTAL A PAGAR: ${sym} ${Number(invoice.order?.total ?? 0).toFixed(2)}`, ML + 8, y + 6, {
+                .text(`TOTAL A PAGAR: ${baseSym} ${Number(invoice.order?.total ?? 0).toFixed(2)}`, ML + 8, y + 6, {
                     width: INNER - 16,
                     align: 'right',
                     lineBreak: false,
@@ -359,7 +393,7 @@ export class InvoicePDFExporter {
         if (!lines.length) return y;
 
         this._drawSectionTitle(doc, 'DETALLE DE LA COMPRA', x, y, width);
-        y += 18;
+        y += 24;
 
         // Anchos de columna (suma = width)
         const itemW = width - 150;
