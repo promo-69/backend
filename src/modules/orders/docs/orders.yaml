@@ -147,6 +147,7 @@ paths:
   /orders/qr/{qrCode}/concessions:
     get:
       summary: "Ver dulcería de orden por QR"
+      description: "Permisos necesarios: 'CRUD:READ:ORDER-DETAILS'"
       tags:
         - Orders
       security:
@@ -163,6 +164,7 @@ paths:
   /orders/qr/{qrCode}/tickets:
     get:
       summary: "Ver boletos de orden por QR"
+      description: "Permisos necesarios: 'CRUD:READ:ORDER-DETAILS'"
       tags:
         - Orders
       security:
@@ -179,6 +181,7 @@ paths:
   /orders/validate-qr/{qrCode}:
     post:
       summary: "Validar QR (Consumir beneficios)"
+      description: "Permisos necesarios: 'CRUD:UPDATE:ORDER-DETAILS'"
       tags:
         - Orders
       security:

@@ -30,7 +30,7 @@ export class RoomsService extends BaseService {
 
     /** Capacidad total real = número de asientos activos */
     private async _getRoomTotalCapacity(roomId: number, transaction?: Transaction): Promise<number> {
-        return this._seats.count({ room: roomId }, { transaction });
+        return this._seats.count({ room: roomId, seat_condition: 1 }, { transaction });
     }
 
     private async _attachTotalCapacity(room: any) {
@@ -184,7 +184,7 @@ export class RoomsService extends BaseService {
                 { transaction },
             );
             const bookingsArr = Array.isArray(bookings) ? bookings : bookings.rows || [];
-            
+
             // 2. Verificar si existe al menos una reserva o función que aún no ha culminado
             const now = new Date();
             const activeBookings = bookingsArr.filter((b: any) => new Date(b.end_time) > now);
@@ -201,15 +201,15 @@ export class RoomsService extends BaseService {
 
             // Desactivar todos los asientos de la sala
             await this._seats.update(
-                { room: id, deleted_at: null }, 
-                { deleted_at: deletedAt }, 
+                { room: id, deleted_at: null },
+                { deleted_at: deletedAt },
                 { transaction }
             );
 
             // Desactivar todos los tipos de proyección asignados a la sala
             await this._roomProjectionTypes.update(
-                { room: id, deleted_at: null }, 
-                { deleted_at: deletedAt }, 
+                { room: id, deleted_at: null },
+                { deleted_at: deletedAt },
                 { transaction }
             );
 

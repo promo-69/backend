@@ -100,7 +100,7 @@ TerminalStreamer.get('/', (req: Request, res: Response) => {
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Live Server Terminal</title>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
@@ -129,6 +129,7 @@ TerminalStreamer.get('/', (req: Request, res: Response) => {
             color: var(--text-main);
             font-family: 'Inter', sans-serif;
             height: 100vh;
+            height: 100dvh; /* Adaptación real al alto disponible del teléfono (barras de navegación) */
             display: flex;
             overflow: hidden;
         }

@@ -13,30 +13,6 @@ module.exports = {
 			const peopleData = [
 				{
 					document_number: 'V-10000001',
-					first_name: 'Super',
-					last_name: 'Admin',
-					gender: 1,
-					personal_email: 'sa@cineflix.com',
-					birth_date: '1990-01-01',
-				},
-				{
-					document_number: 'V-10000002',
-					first_name: 'Gerente',
-					last_name: 'General',
-					gender: 1,
-					personal_email: 'gg@cineflix.com',
-					birth_date: '1990-01-01',
-				},
-				{
-					document_number: 'V-10000003',
-					first_name: 'Gerente',
-					last_name: 'Sucursal',
-					gender: 1,
-					personal_email: 'gs@cineflix.com',
-					birth_date: '1990-01-01',
-				},
-				{
-					document_number: 'V-10000004',
 					first_name: 'Cajero',
 					last_name: 'Cine',
 					gender: 1,
@@ -44,7 +20,7 @@ module.exports = {
 					birth_date: '1990-01-01',
 				},
 				{
-					document_number: 'V-10000005',
+					document_number: 'V-10000002',
 					first_name: 'Operador',
 					last_name: 'Usher',
 					gender: 1,
@@ -80,18 +56,12 @@ module.exports = {
 				peopleRecords.push({ ...p, id: result[0].id });
 			}
 
-			const empSA = peopleRecords[0].id;
-			const empGG = peopleRecords[1].id;
-			const empGS = peopleRecords[2].id;
-			const empCA = peopleRecords[3].id;
-			const empUS = peopleRecords[4].id;
-			const cl1 = peopleRecords[5].id;
-			const cl2 = peopleRecords[6].id;
+			const empCA = peopleRecords[0].id;
+			const empUS = peopleRecords[1].id;
+			const cl1 = peopleRecords[2].id;
+			const cl2 = peopleRecords[3].id;
 
 			const employeesData = [
-				{ person: empSA, employee_code: 'EMP-SA' },
-				{ person: empGG, employee_code: 'EMP-GG' },
-				{ person: empGS, employee_code: 'EMP-GS' },
 				{ person: empCA, employee_code: 'EMP-CA' },
 				{ person: empUS, employee_code: 'EMP-US' },
 			];
@@ -115,28 +85,12 @@ module.exports = {
 					start_date: '2026-06-01',
 					salary_base: 5000,
 				},
-				// El Gerente General (employeeRecords[1]) NO tiene un registro de employee_position,
-				// logrando así que no esté "asociado a una sucursal específica" como fue solicitado.
 				{
-					employee: employeeRecords[2].id,
+					employee: employeeRecords[1].id,
 					job_position: 2,
 					cinema: cinemaId,
 					start_date: '2026-06-01',
 					salary_base: 3000,
-				},
-				{
-					employee: employeeRecords[3].id,
-					job_position: 3,
-					cinema: cinemaId,
-					start_date: '2026-06-01',
-					salary_base: 1500,
-				},
-				{
-					employee: employeeRecords[4].id,
-					job_position: 4,
-					cinema: cinemaId,
-					start_date: '2026-06-01',
-					salary_base: 1000,
 				},
 			];
 
@@ -149,9 +103,6 @@ module.exports = {
 			}
 
 			const usersData = [
-				{ person: empSA, user_type: 1, role: 1, email: 'sa@cineflix.com', password },
-				{ person: empGG, user_type: 1, role: 2, email: 'gg@cineflix.com', password },
-				{ person: empGS, user_type: 1, role: 3, email: 'gs@cineflix.com', password },
 				{ person: empCA, user_type: 1, role: 4, email: 'ca@cineflix.com', password },
 				{ person: empUS, user_type: 1, role: 5, email: 'us@cineflix.com', password },
 				{ person: cl1, user_type: 2, role: null, email: 'cl1@cineflix.com', password },
