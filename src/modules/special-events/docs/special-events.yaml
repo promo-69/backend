@@ -74,7 +74,7 @@
 
     post:
         summary: Crear evento especial (solo super admin)
-        description: Registra un nuevo evento en el catálogo. Soporta subida de poster y banner mediante `multipart/form-data`.
+        description: Registra un nuevo evento en el catálogo. Soporta subida de poster y banner mediante `multipart/form-data`. Permisos necesarios: "CRUD:CREATE:SPECIAL_EVENTS"
         tags:
             - Special Events Admin
         security:
@@ -303,6 +303,7 @@
 
     patch:
         summary: Actualizar evento especial (solo super admin)
+        description: Actualiza campos de un evento. Soporta subida de poster y banner mediante `multipart/form-data`. Permisos necesarios: "CRUD:UPDATE:SPECIAL_EVENTS"
         tags:
             - Special Events Admin
         security:
@@ -360,7 +361,7 @@
 
     delete:
         summary: Eliminar evento especial (solo super admin)
-        description: Soft delete. Falla si el evento tiene funciones activas.
+        description: Soft delete. Falla si el evento tiene funciones activas. Permisos necesarios: 'CRUD:DELETE:SPECIAL_EVENTS'
         tags:
             - Special Events Admin
         security:
@@ -536,7 +537,8 @@
 /special-events/admin/showtimes:
     get:
         summary: Listado administrativo de funciones de eventos especiales
-        description: |
+        description: | 
+            Permisos necesarios: 'CRUD:READ:SPECIAL_EVENTS'
             Filtros disponibles:
             - `cinemaId` (super admin puede filtrar por cualquier sucursal; empleado solo ve su sucursal)
             - `eventId` (filtrar por evento específico)

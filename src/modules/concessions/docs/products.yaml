@@ -59,7 +59,7 @@
                 description: Internal server error
     post:
         summary: Create Product
-        description: Register a new concession product. Supports optional image upload.
+        description: Register a new concession product. Supports optional image upload. Permisos necesarios: 'CRUD:CREATE:PRODUCTS'
         tags:
             - Concessions
         security:

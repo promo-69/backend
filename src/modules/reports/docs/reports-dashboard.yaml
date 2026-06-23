@@ -2,10 +2,10 @@
     get:
         summary: Obtener dashboard consolidado
         description: |
+            Permisos necesarios: 'CRUD:READ:REPORTS-DASHBOARD'
             Retorna KPIs, top películas/eventos, stock bajo, desglose de pagos y serie temporal.
             - Empleado: cinemaId del JWT (no enviar ?cinemaId).
             - Superadmin: ?cinemaId opcional para filtrar por sede; si se omite, vista global.
-            Permiso: **CRUD:READ:REPORTS-DASHBOARD**
         tags:
             - Reports Dashboard
         security:

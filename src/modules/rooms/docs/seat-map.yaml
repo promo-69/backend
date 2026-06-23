@@ -3,7 +3,7 @@
         summary: Get Seat Map
         description: |
             Retrieve the complete seat layout of a room.
-            Required permission: **CRUD:READ:SEATS**
+            Permisos necesarios: "CRUD:READ:SEATS"
         tags:
             - Rooms
         security:
@@ -49,7 +49,7 @@
         summary: Create Seats
         description: |
             Add one or more seats to a room. The body is an array of seat objects.
-            Required permission: **CRUD:CREATE:SEATS**
+            Permisos necesarios: "CRUD:CREATE:SEATS"
         tags:
             - Rooms
         security:
@@ -100,7 +100,7 @@
         summary: Bulk Update Seats
         description: |
             Update multiple seats of a room at once. The body is an array of objects specifying seatId and the fields to update.
-            Required permission: **CRUD:UPDATE:SEATS**
+            Permisos necesarios: "CRUD:UPDATE:SEATS"
         tags:
             - Rooms
         security:

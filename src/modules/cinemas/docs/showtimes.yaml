@@ -3,7 +3,6 @@
         summary: List Showtimes by Cinema (Explicit)
         description: |
             Returns all showtimes for a specific cinema.
-            Required permission: **CRUD:READ:CINEMAS-SHOWTIMES**
         tags:
             - Showtimes
         security:
@@ -21,7 +20,7 @@
         summary: Create Showtime for Cinema (Explicit)
         description: |
             Schedule a new showtime in a specific cinema.
-            Required permission: **CRUD:CREATE:CINEMAS-SHOWTIMES**
+            Permisos necesarios: "CRUD:CREATE:SHOWTIMES"
         tags:
             - Showtimes
         security:

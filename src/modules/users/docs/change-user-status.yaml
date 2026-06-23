@@ -3,7 +3,7 @@
         tags:
         - Users (Manager)
         summary: Change user status
-        description: Block or unblock a user. Blocking a user applies logical deletion
+        description: Block or unblock a user. Blocking a user applies logical deletion Permisos necesarios: 'FEAT:DO:MANAGE_USERS'
             and invalidates active sessions. Exclusive for users with FEAT:DO:MANAGE_USERS
             permission.
         security:

@@ -2,10 +2,10 @@
     get:
         summary: Reporte de ventas
         description: |
+            Permisos necesarios: 'CRUD:READ:REPORTS-SALES'
             Reporte consolidado de ventas.
             - Empleado: cinemaId del JWT.
             - Superadmin: ?cinemaId opcional (global si se omite).
-            Permiso: **CRUD:READ:REPORTS-SALES**
         tags:
             - Reports
         security:

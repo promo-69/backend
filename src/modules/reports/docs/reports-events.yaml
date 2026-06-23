@@ -2,10 +2,10 @@
     get:
         summary: Reporte de eventos especiales
         description: |
+            Permisos necesarios: 'CRUD:READ:REPORTS-EVENTS'
             Estadísticas de eventos especiales (concerts, etc.).
             - Empleado: cinemaId del JWT.
             - Superadmin: ?cinemaId opcional.
-            Permiso: **CRUD:READ:REPORTS-EVENTS**
         tags:
             - Reports
         security:

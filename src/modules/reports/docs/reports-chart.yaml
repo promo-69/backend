@@ -2,11 +2,11 @@
     get:
         summary: Obtener datos para gráfico
         description: |
+            Permisos necesarios: 'CRUD:READ:REPORTS-CHARTS'
             Devuelve datos normalizados para Recharts/Chart.js.
             Tipos: sales, movies, events, inventory, showtimes, rentals.
             - Empleado: cinemaId del JWT.
             - Superadmin: ?cinemaId opcional.
-            Permiso: **CRUD:READ:REPORTS-CHARTS**
         tags:
             - Reports Charts
         security:

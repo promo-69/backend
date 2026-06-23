@@ -1,7 +1,7 @@
 /price-modifiers/{id}:
     get:
         summary: Get Price Modifier by Id
-        description: Retrieve a single price modifier rule by its identifier.
+        description: Retrieve a single price modifier rule by its identifier. Permisos necesarios: 'CRUD:READ:PRICE-MODIFIERS'
         tags:
             - Price Modifiers
         security:
@@ -102,7 +102,7 @@
                 description: Internal server error
     put:
         summary: Update Price Modifier
-        description: Update the description, value, percentage flag or operation type of an existing price modifier. Scope and qualifier fields cannot be changed after creation.
+        description: Update the description, value, percentage flag or operation type of an existing price modifier. Scope and qualifier fields cannot be changed after creation. Permisos necesarios: 'CRUD:UPDATE:PRICE-MODIFIERS'
         tags:
             - Price Modifiers
         security:
@@ -145,7 +145,7 @@
                 description: Internal server error
     delete:
         summary: Delete Price Modifier
-        description: Soft-delete a price modifier rule (status set to 4).
+        description: Soft-delete a price modifier rule (status set to 4). Permisos necesarios: 'CRUD:DELETE:PRICE-MODIFIERS'
         tags:
             - Price Modifiers
         security:

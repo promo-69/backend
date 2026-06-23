@@ -33,7 +33,7 @@
                 description: Internal server error
     post:
         summary: Create Cinema
-        description: Register a new cinema. Requires general management role.
+        description: Register a new cinema. Requires general management role. Permisos necesarios: 'CRUD:CREATE:CINEMAS'
         tags:
             - Cinemas
         security:
@@ -77,7 +77,7 @@
                 description: Internal server error
     patch:
         summary: Update Own Cinema (Implicit Context)
-        description: Update the operating policies (phone, schedules) of the cinema assigned to the authenticated user. The cinema ID is taken from the JWT.
+        description: Update the operating policies (phone, schedules) of the cinema assigned to the authenticated user. The cinema ID is taken from the JWT. Permisos necesarios: 'CRUD:UPDATE_OWN:CINEMAS'
         tags:
             - Cinemas
         security:
@@ -128,7 +128,7 @@
                 description: Internal server error
     patch:
         summary: Update Cinema
-        description: Update any cinema. Requires general management role.
+        description: Update any cinema. Requires general management role. Permisos necesarios: "CRUD:UPDATE:CINEMAS"
         tags:
             - Cinemas
         security:
@@ -171,7 +171,7 @@
                 description: Internal server error
     delete:
         summary: Delete Cinema
-        description: Delete a cinema (soft delete). Requires general management role.
+        description: Delete a cinema (soft delete). Requires general management role. Permisos necesarios: "CRUD:DELETE:CINEMAS"
         tags:
             - Cinemas
         security:
@@ -195,7 +195,7 @@
 /cinemas/{cinemaId}/employees:
     get:
         summary: Get Cinema Employees
-        description: List all employees in a specific cinema.
+        description: List all employees in a specific cinema. Permisos necesarios: 'CRUD:READ:CINEMAS-EMPLOYEES'
         tags:
             - Cinemas
         security:
@@ -215,7 +215,7 @@
                 description: Internal server error
     post:
         summary: Create Employee in Cinema
-        description: Register a new employee and associate them with the cinema.
+        description: Register a new employee and associate them with the cinema. Permisos necesarios: 'CRUD:CREATE:EMPLOYEES'
         tags:
             - Cinemas
         security:
@@ -277,7 +277,7 @@
 /cinemas/{cinemaId}/employees/{employeeId}:
     delete:
         summary: Remove Employee from Cinema
-        description: Deactivate an employee.
+        description: Deactivate an employee. Permisos necesarios: 'CRUD:DELETE:EMPLOYEES'
         tags:
             - Cinemas
         security:

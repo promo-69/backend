@@ -1,9 +1,9 @@
 /rooms/{id}/projection-types:
     get:
         summary: Get Room Projection Types
-        description: |
+        description: | Permisos necesarios: 'CRUD:READ:ROOMS'
             Retrieve all projection types currently assigned to a room.
-            Required permission: **CRUD:READ:ROOMS**
+            Permisos necesarios: "CRUD:READ:ROOMS"
         tags:
             - Rooms
         security:
@@ -41,9 +41,9 @@
                 description: Internal server error
     post:
         summary: Add Projection Type To Room
-        description: |
+        description: | Permisos necesarios: 'CRUD:UPDATE:ROOMS'
             Assign an additional projection type to an existing room.
-            Required permission: **CRUD:UPDATE:ROOMS**
+            Permisos necesarios: "CRUD:UPDATE:ROOMS"
         tags:
             - Rooms
         security:
