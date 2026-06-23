@@ -2,6 +2,7 @@
     get:
         summary: List / Search Customers
         description: |
+            Permisos necesarios: 'CRUD:READ:CUSTOMERS'
             Retrieves a paginated list of customers. Supports filters via query
             parameters (e.g. document_number for quick taquilla search).
         tags:
@@ -80,6 +81,7 @@
     post:
         summary: Quick Taquilla Registration
         description: |
+            Permisos necesarios: 'CRUD:CREATE:CUSTOMERS'
             Creates a new customer for a physical or digital buyer.
             If the person already exists by document number, the existing record
             is reused. No user account is created (taquilla registration).
@@ -159,7 +161,7 @@
         summary: Get Customer Detail
         description: |
             Retrieves the details of a specific customer by ID.
-            Required permission: **CRUD:READ:CUSTOMERS**
+            Permisos necesarios: "CRUD:READ:CUSTOMERS"
         tags:
             - Customers
         security:
@@ -183,7 +185,7 @@
         summary: Update Customer
         description: |
             Partial update of customer biographical data.
-            Required permission: **CRUD:UPDATE:CUSTOMERS**
+            Permisos necesarios: "CRUD:UPDATE:CUSTOMERS"
         tags:
             - Customers
         security:
@@ -229,8 +231,9 @@
     patch:
         summary: Adjust Loyalty Points
         description: |
+            Permisos necesarios: 'FEAT:DO:POINTS-ADJUSTMENT'
             Manual administrative adjustment of loyalty points.
-            Required permission: **FEAT:DO:POINTS-ADJUSTMENT**
+            Permisos necesarios: "FEAT:DO:POINTS-ADJUSTMENT"
         tags:
             - Customers
         security:

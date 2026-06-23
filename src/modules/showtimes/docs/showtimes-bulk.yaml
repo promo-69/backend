@@ -10,7 +10,7 @@
             - `daily_slots`: list of time slots with `start_time` and `end_time` in HH:MM format
             - The system validates each showtime against overlapping bookings and release date
             - Conflicts are skipped and reported in response.
-            Required permission: **CRUD:CREATE:SHOWTIMES**
+            Permisos necesarios: "CRUD:CREATE:SHOWTIMES"
         tags:
             - Showtimes Admin
         security:

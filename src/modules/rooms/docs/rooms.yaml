@@ -3,7 +3,7 @@
         summary: List Rooms (implicit context)
         description: |
             Retrieves all rooms belonging to the cinema of the authenticated user (JWT).
-            Required permission: **CRUD:READ:ROOMS**
+            Permisos necesarios: "CRUD:READ:ROOMS"
         tags:
             - Rooms
         security:
@@ -43,7 +43,7 @@
         summary: List Rooms by Cinema (explicit context)
         description: |
             Retrieve all active rooms belonging to a specific cinema location.
-            Required permission: **CRUD:READ:CINEMAS-ROOMS**
+            Permisos necesarios: "CRUD:READ:CINEMAS-ROOMS"
         tags:
             - Rooms
         security:
@@ -89,7 +89,7 @@
         summary: Create Room
         description: |
             Register a new room in a cinema location.
-            Required permission: **CRUD:CREATE:ROOMS**
+            Permisos necesarios: "CRUD:CREATE:ROOMS"
         tags:
             - Rooms
         security:
@@ -155,7 +155,7 @@
 /rooms/{id}:
     get:
         summary: Get Room by ID
-        description: Retrieves the room details.
+        description: Retrieves the room details. Permisos necesarios: "CRUD:READ:ROOMS"
         tags:
             - Rooms
         security:
@@ -216,6 +216,7 @@
 /rooms/{id}/projection-types:
     get:
         summary: Get Room Projection Types
+        description: Retrieves the list of projection types associated with the room. Permisos necesarios: "CRUD:READ:ROOMS"
         tags:
             - Rooms
         security:
@@ -231,6 +232,7 @@
                 description: List of projection types
     post:
         summary: Add Projection Type to Room
+        description: Add a projection type to the room. Permisos necesarios: "CRUD:UPDATE:ROOMS"
         tags:
             - Rooms
         security:
@@ -259,6 +261,7 @@
 /rooms/{id}/projection-types/{projectionTypeId}:
     delete:
         summary: Remove Projection Type from Room
+        description: Remove a projection type from the room. Permisos necesarios: "CRUD:UPDATE:ROOMS"
         tags:
             - Rooms
         security:
@@ -276,11 +279,12 @@
                   type: integer
         responses:
             '204':
-                description: Projection type removed
+                description: Projection type removed Permisos necesarios: "CRUD:UPDATE:ROOMS"
 
 /rooms/{id}/seats:
     get:
         summary: Get Room Seat Map
+        description: Retrieves the seat map of the room. Permisos necesarios: 'CRUD:READ:SEATS'
         tags:
             - Rooms
         security:
@@ -296,6 +300,7 @@
                 description: Seat map
     post:
         summary: Add Seat
+        description: Add a new seat to the room. Permisos necesarios: 'CRUD:CREATE:SEATS'
         tags:
             - Rooms
         security:
@@ -325,6 +330,7 @@
                 description: Seat added
     patch:
         summary: Bulk Update Seats
+        description: Update multiple seats in the room. Permisos necesarios: 'CRUD:UPDATE:SEATS'
         tags:
             - Rooms
         security:
@@ -358,6 +364,7 @@
 /rooms/{id}/seat-grid:
     put:
         summary: Configure Seat Grid
+        description: Configure the seat grid for the room. Permisos necesarios: 'CRUD:UPDATE:ROOMS'
         tags:
             - Rooms
         security:
@@ -384,4 +391,4 @@
                                 type: integer
         responses:
             '200':
-                description: Seat grid configured
+                description: Seat grid configured Permisos necesarios: 'CRUD:UPDATE:ROOMS'

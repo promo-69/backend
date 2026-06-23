@@ -4,7 +4,7 @@
         description: |
             Lists and paginates rental requests for the authenticated manager's cinema.
             The cinema is derived from the JWT (`cinemaId`), not from a query parameter.
-            Required permission: **CRUD:READ:RENTALS**
+            Permisos necesarios: "CRUD:READ:RENTALS"
         tags:
             - Rentals
         security:

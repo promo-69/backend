@@ -1,33 +1,5 @@
 'use strict';
 
-/**
- * Seeder de permisos del sistema.
- *
- * CORRECCIONES aplicadas respecto a la versión anterior:
- *
- * 1. ACCIONES: 'CHANGE' y 'MANAGE' se agregaban sin ID fijo (auto-increment),
- *    causando que sus IDs variaran entre entornos. Ahora se insertan con IDs
- *    fijos (id: 7 y id: 8) como extensión del catálogo del seeder core.
- *
- * 2. TIPOS DE PERMISO: El seeder anterior intentaba insertar 'TOTAL', un tipo
- *    que no existía en el seeder core ni era usado por ningún permiso en la
- *    lista. Se elimina 'TOTAL'. Los tres tipos válidos (VIEW, CRUD, FEAT)
- *    ya los establece el seeder core con IDs fijos; aquí solo verificamos
- *    su existencia sin re-insertarlos.
- *
- * 3. RECURSOS FALTANTES: Se agregan SHOWTIMES y CINEMAS-SHOWTIMES, que son
- *    referenciados por los middleware verifyPermission() en los routes de
- *    showtimes pero no existían en ningún seeder.
- *
- * 4. MOVIES: el seeder core insertó el recurso MOVIES con id:1. Los permisos
- *    CRUD completos para MOVIES se agregan aquí (READ, CREATE, UPDATE, DELETE)
- *    ya que el seeder core solo insertó UPDATE y DELETE.
- *
- * 5. DOWN: ahora limpia solo lo que este seeder insertó, sin afectar lo del
- *    seeder core.
- *
- * @type {import('sequelize-cli').Migration}
- */
 module.exports = {
     async up(queryInterface) {
         await queryInterface.sequelize.transaction(async (transaction) => {

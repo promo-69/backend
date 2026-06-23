@@ -2,10 +2,10 @@
     get:
         summary: Reporte de funciones
         description: |
+            Permisos necesarios: 'CRUD:READ:REPORTS-SHOWTIMES'
             Ocupación e ingresos por función.
             - Empleado: cinemaId del JWT.
             - Superadmin: ?cinemaId opcional.
-            Permiso: **CRUD:READ:REPORTS-SHOWTIMES**
         tags:
             - Reports
         security:

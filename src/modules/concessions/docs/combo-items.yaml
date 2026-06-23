@@ -1,7 +1,7 @@
 /concessions/combos/{id}/items:
     post:
         summary: Add Items to Combo
-        description: Add one or more products to an existing combo. Requires admin role.
+        description: Add one or more products to an existing combo. Requires admin role. Permisos necesarios: 'FEAT:MANAGE:COMBOS_ITEMS'
         tags:
             - Concessions
         security:
@@ -59,7 +59,7 @@
 /concessions/combos/{id}/items/{itemId}:
     delete:
         summary: Remove Item from Combo
-        description: Remove a specific product from a combo. Requires admin role.
+        description: Remove a specific product from a combo. Requires admin role. Permisos necesarios: 'FEAT:MANAGE:COMBOS_ITEMS'
         tags:
             - Concessions
         security:

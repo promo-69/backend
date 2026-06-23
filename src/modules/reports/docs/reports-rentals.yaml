@@ -2,10 +2,10 @@
     get:
         summary: Reporte de alquileres
         description: |
+            Permisos necesarios: 'CRUD:READ:REPORTS-RENTALS'
             Solicitudes de alquiler, estado, ingresos confirmados y proyectados.
             - Empleado: cinemaId del JWT.
             - Superadmin: ?cinemaId opcional.
-            Permiso: **CRUD:READ:REPORTS-RENTALS**
         tags:
             - Reports
         security:

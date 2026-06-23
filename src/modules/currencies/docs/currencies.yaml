@@ -1,7 +1,7 @@
 /currencies:
     get:
         summary: List Currencies
-        description: Retrieve a list of all currencies.
+        description: Retrieve a list of all currencies. Permisos necesarios: 'CRUD:READ:CURRENCIES'
         tags:
             - Currencies
         security:
@@ -35,7 +35,7 @@
                 description: Internal server error
     post:
         summary: Create Currency
-        description: Create a new currency.
+        description: Create a new currency. Permisos necesarios: 'CRUD:CREATE:CURRENCIES'
         tags:
             - Currencies
         security:
@@ -83,7 +83,7 @@
 /currencies/{id}:
     get:
         summary: Get Currency by Id
-        description: Retrieve a single currency by its identifier.
+        description: Retrieve a single currency by its identifier. Permisos necesarios: 'CRUD:READ:CURRENCIES'
         tags:
             - Currencies
         security:
@@ -123,7 +123,7 @@
                 description: Internal server error
     patch:
         summary: Update Currency
-        description: Update the code, description, symbol, or base currency status of an existing currency. Setting is_base_currency to true will automatically unset the previous base currency.
+        description: Update the code, description, symbol, or base currency status of an existing currency. Setting is_base_currency to true will automatically unset the previous base currency. Permisos necesarios: 'CRUD:UPDATE:CURRENCIES'
         tags:
             - Currencies
         security:
@@ -166,7 +166,7 @@
                 description: Internal server error
     delete:
         summary: Delete Currency
-        description: Soft-delete a currency. Will fail if the currency is the base currency or if it is currently in use by products, combos, showtimes, or active rental requests.
+        description: Soft-delete a currency. Will fail if the currency is the base currency or if it is currently in use by products, combos, showtimes, or active rental requests. Permisos necesarios: 'CRUD:DELETE:CURRENCIES'
         tags:
             - Currencies
         security:

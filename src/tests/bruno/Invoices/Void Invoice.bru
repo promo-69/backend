@@ -1,0 +1,41 @@
+meta {
+  name: Void Invoice
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{baseUrl}}/invoices/{{invoice_id}}/void
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "reason": "Error en el monto cobrado, se procede a anular y reemitir."
+  }
+}
+
+vars:pre-request {
+  invoice_id: 1
+}
+
+docs {
+  Anula una factura (soft delete).
+
+  Requisitos:
+  - Motivo de anulación obligatorio
+  - La orden no debe tener boletos validados
+  - Solo usuarios con permiso CRUD:DELETE:INVOICES (SUPER_ADMIN o CINEMA_MANAGER)
+
+  Efectos:
+  - La factura se marca como anulada (deleted_at)
+  - La orden pasa a estado CANCELLED
+  - Los puntos de lealtad se revierten (si aplica)
+
+  Permiso: CRUD:DELETE:INVOICES
+}

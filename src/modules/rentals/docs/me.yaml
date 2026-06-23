@@ -3,7 +3,6 @@
         summary: My Rental Requests (Authenticated Customer)
         description: |
             Authenticated customer queries the real-time status of their own rental requests.
-            Required permission: **VIEW:ACCESS:RENTALS-MY**
         tags:
             - Rentals
         security:

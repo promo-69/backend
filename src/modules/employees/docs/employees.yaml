@@ -4,7 +4,7 @@
         description: |
             Retrieves all employees who have an active position in the cinema
             extracted from the authenticated user's JWT.
-            Required permission: **CRUD:READ:EMPLOYEES**
+            Permisos necesarios: "CRUD:READ:EMPLOYEES"
         tags:
             - Employees
         security:
@@ -63,7 +63,7 @@
             created. The cinema is taken from the authenticated user's JWT.
             Optionally, if email and password are provided, a user account is
             created for the employee.
-            Required permission: **CRUD:CREATE:EMPLOYEES**
+            Permisos necesarios: "CRUD:CREATE:EMPLOYEES"
         tags:
             - Employees
         security:

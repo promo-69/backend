@@ -1,0 +1,31 @@
+meta {
+  name: Get Invoice Detail
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/invoices/{{invoice_id}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+vars:pre-request {
+  invoice_id: 1
+}
+
+docs {
+  Obtiene el detalle completo de una factura, incluyendo:
+  - Datos de facturación y cliente
+  - Líneas de la orden
+  - Pagos
+  - Impuestos
+  - QR de validación
+  - Información de anulación (si aplica)
+
+  Permiso: CRUD:READ:INVOICES
+}

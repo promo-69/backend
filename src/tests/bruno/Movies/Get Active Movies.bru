@@ -1,0 +1,18 @@
+meta {
+  name: Get Active Movies (Active Billboard - Global)
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/movies/active
+  body: none
+  auth: none
+}
+
+docs {
+  Retorna películas con lifecycle_state 2, 3 o 4 (Estreno, En Cartelera, Últimos Días)
+  que tengan al menos una función real futura en cualquier sucursal.
+  No requiere cinemaId. Equivalente global de /movies/by-cinema/:id/now-playing
+  pero agrupando los tres estados activos.
+}
