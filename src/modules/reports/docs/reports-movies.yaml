@@ -2,10 +2,10 @@
     get:
         summary: Reporte de películas
         description: |
+            Permisos necesarios: 'CRUD:READ:REPORTS-MOVIES'
             Estadísticas de películas (funciones, boletos, ingresos, ocupación).
             - Empleado: cinemaId del JWT.
             - Superadmin: ?cinemaId opcional.
-            Permiso: **CRUD:READ:REPORTS-MOVIES**
         tags:
             - Reports
         security:

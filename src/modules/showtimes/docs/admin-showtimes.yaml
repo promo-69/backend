@@ -1,6 +1,14 @@
 /showtimes/admin/movies:
     get:
         summary: 'PRIVADO — Listar películas por estado de ciclo de vida'
+        description: | Permisos necesarios: 'CRUD:READ:SHOWTIMES'
+            Permite a administradores listar películas filtradas por estado de ciclo de vida.
+            Los estados posibles son:
+            - 1: Próximamente
+            - 2: Estreno
+            - 3: Regular
+            - 4: Últimos días
+            - 5: Fuera de cartelera
         tags:
             - Showtimes Admin
         security:
@@ -60,7 +68,8 @@
 /showtimes/admin:
     get:
         summary: 'PRIVADO — Listar todas las funciones con filtros avanzados'
-        description: |
+        description: | 
+            Permisos necesarios: 'CRUD:READ:SHOWTIMES'
             Permite a administradores listar funciones con filtros de rango de fechas, película, sucursal.
             Por defecto (`onlyFuture=true`) devuelve solo funciones futuras.
             Con `onlyFuture=false` devuelve también funciones pasadas (útil para auditoría y reportes).
@@ -120,6 +129,11 @@
 /showtimes/admin/movies/{movieId}/showtimes:
     get:
         summary: 'PRIVADO — Funciones de una película (backoffice)'
+        description: |
+            Permisos necesarios: 'CRUD:READ:SHOWTIMES'
+            Permite a administradores listar funciones de una película específica.
+            Por defecto (`onlyFuture=true`) devuelve solo funciones futuras.
+            Con `onlyFuture=false` devuelve también funciones pasadas (útil para auditoría y reportes).
         tags:
             - Showtimes Admin
         security:
@@ -167,6 +181,11 @@
 /showtimes/admin/cinemas/{cinemaId}/showtimes:
     get:
         summary: 'PRIVADO — Funciones por sucursal (backoffice)'
+        description: | 
+            Permisos necesarios: 'CRUD:READ:SHOWTIMES'
+            Permite a administradores listar funciones de una sucursal específica.
+            Por defecto (`onlyFuture=true`) devuelve solo funciones futuras.
+            Con `onlyFuture=false` devuelve también funciones pasadas (útil para auditoría y reportes).
         tags:
             - Showtimes Admin
         security:

@@ -2,10 +2,10 @@
     get:
         summary: Reporte de caja
         description: |
+            Permisos necesarios: 'CRUD:READ:REPORTS-CASHIER'
             Reporte de caja de un empleado.
             - Empleado: usa su propio employeeId y cinemaId del JWT.
             - Superadmin: debe enviar ?cinemaId y ?employeeId.
-            Permiso: **CRUD:READ:REPORTS-CASHIER**
         tags:
             - Reports
         security:

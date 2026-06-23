@@ -3,7 +3,7 @@
         summary: Get all permissions
         description: |
             Retrieve all permission records.
-            Required permission: **CRUD:READ:PERMISSIONS**
+            Permisos necesarios: "CRUD:READ:PERMISSIONS"
         tags:
             - Permissions
         security:
@@ -15,7 +15,7 @@
         summary: Create a permission record
         description: |
             Create a new permission entry.
-            Required permission: **CRUD:CREATE:PERMISSIONS**
+            Permisos necesarios: "CRUD:CREATE:PERMISSIONS"
         tags:
             - Permissions
         security:
@@ -45,7 +45,7 @@
         summary: Get permission by ID
         description: |
             Retrieve a permission by its ID.
-            Required permission: **CRUD:READ:PERMISSIONS**
+            Permisos necesarios: "CRUD:READ:PERMISSIONS"
         tags:
             - Permissions
         security:
@@ -65,7 +65,7 @@
         summary: Update a permission record
         description: |
             Update a permission entry.
-            Required permission: **CRUD:UPDATE:PERMISSIONS**
+            Permisos necesarios: "CRUD:UPDATE:PERMISSIONS"
         tags:
             - Permissions
         security:
@@ -98,7 +98,7 @@
         summary: Delete a permission record
         description: |
             Perform logical deletion of a permission.
-            Required permission: **CRUD:DELETE:PERMISSIONS**
+            Permisos necesarios: "CRUD:DELETE:PERMISSIONS"
         tags:
             - Permissions
         security:
