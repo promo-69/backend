@@ -64,9 +64,7 @@ export class MoviesService extends BaseService {
         return Database.repository('main', 'age-classifications') as any;
     }
 
-    // -------------------------------------------------------------------------
     //  CATÁLOGO GLOBAL (sin sucursal)
-    // -------------------------------------------------------------------------
 
     async getMovies(filters?: ProcessedQueryFilters) {
         return this._movies.getAllFull(filters);
@@ -86,16 +84,11 @@ export class MoviesService extends BaseService {
         return this._movies.getAll({ ...filters, count: true }, { lifecycle_state: lifecycleState, deleted_at: null });
     }
 
-    // -------------------------------------------------------------------------
     //  FILTROS POR LIFECYCLE + SUCURSAL
-    //  Cruza lifecycle con funciones reales en la sucursal vía ShowtimeManagementService.
-    //  lifecycle = 1 no necesita cruzar con funciones (próximamente = sin funciones aún),
-    //  por eso se resuelve directo en el repositorio filtrando por cinemaId en showtimes.
-    // -------------------------------------------------------------------------
 
     // lifecycle_state = 1 por sucursal — devuelve películas upcoming que tienen al menos
     // un showtime futuro asignado a una sala de esa sucursal.
-    async getUpcomingByCinema(cinemaId: number, filters?: ProcessedQueryFilters) {
+    async getUpcomingByCinema(cinemaId: number, _filters?: ProcessedQueryFilters) {
         return ShowtimeManagementService.getBillboardByLifecycle(1, cinemaId);
     }
 
@@ -112,6 +105,21 @@ export class MoviesService extends BaseService {
     // lifecycle_state = 4 por sucursal
     async getLastDaysByCinema(cinemaId: number) {
         return ShowtimeManagementService.getBillboardByLifecycle(4, cinemaId);
+    }
+
+    //  CARTELERA ACTIVA GLOBAL (estados 2, 3, 4) — sin filtro de sucursal
+
+    async getActiveWithShowtimes() {
+        return ShowtimeManagementService.getFullActiveBillboard();
+    }
+
+    //  FILTRO POR GÉNERO
+
+    async getByGenres(genreIds: number[], filters?: ProcessedQueryFilters) {
+        if (!Array.isArray(genreIds) || genreIds.length === 0) {
+            throw new Error('Debe especificar al menos un género');
+        }
+        return this._movies.getByGenres(genreIds, filters);
     }
 
     // -------------------------------------------------------------------------

@@ -13,13 +13,6 @@ module.exports = {
         type: Sequelize.STRING(256),
         allowNull: true,
       }, { transaction });
-
-      // Seed api_url for Banky (id 20)
-      await queryInterface.sequelize.query(`
-        UPDATE banks 
-        SET api_url = 'https://cineflix-banky.onrender.com/api/external/transactions' 
-        WHERE id = 20 AND code = '0201'
-      `, { transaction });
     });
   },
 

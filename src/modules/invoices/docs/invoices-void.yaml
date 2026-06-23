@@ -1,0 +1,67 @@
+/invoices/{id}/void:
+    delete:
+        summary: Anular factura
+        description: |
+            Anula una factura (soft delete) con reversa de puntos de lealtad.
+
+            **Restricciones:**
+            - La orden no debe tener boletos validados
+            - Motivo de anulación obligatorio
+            - La factura no debe estar ya anulada
+
+            **Efectos:**
+            - La factura se marca con `deleted_at`
+            - La orden cambia a estado `CANCELLED`
+            - Los puntos de lealtad se revierten (si aplica)
+
+            **Permiso:** CRUD:DELETE:INVOICES
+        tags:
+            - Invoices
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: path
+              name: id
+              required: true
+              schema:
+                  type: integer
+              description: ID de la factura
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        required:
+                            - reason
+                        properties:
+                            reason:
+                                type: string
+                                description: Motivo de la anulación
+                                example: Error en el monto cobrado, se procede a anular y reemitir.
+        responses:
+            '200':
+                description: Factura anulada exitosamente
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                    example: true
+                                message:
+                                    type: string
+                                    example: Factura anulada exitosamente
+                                data:
+                                    type: null
+            '400':
+                description: Error de validación (motivo requerido, ya anulada, etc.)
+            '401':
+                description: No autorizado
+            '403':
+                description: Permisos insuficientes (requiere CRUD:DELETE:INVOICES)
+            '404':
+                description: Factura no encontrada
+            '409':
+                description: Conflicto (tickets ya validados, no se puede anular)

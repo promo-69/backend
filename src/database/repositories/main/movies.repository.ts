@@ -160,6 +160,28 @@ class MoviesRepository extends SequelizeRepositoryBase<MoviesAttributes, number>
 		return this.parseResponse(result) as MoviesAttributes | null;
 	}
 
+	async getByGenres(genreIds: number[], filters?: any): Promise<{ rows: MovieFull[]; count: number }> {
+		// Subquery: IDs de películas activas (lifecycle 2, 3, 4) que tengan al menos uno de los géneros pedidos
+		const activeMovieIdsLiteral = literal(
+			`(SELECT DISTINCT mg."movie" FROM "movie_genres" mg WHERE mg."genre" IN (${genreIds.join(',')}) AND mg."deleted_at" IS NULL)`,
+		);
+
+		const result = (await this.getAll(
+			{ ...filters, count: true, relations: this._relations },
+			{
+				id: { [Ops.in]: activeMovieIdsLiteral },
+				lifecycle_state: { [Ops.in]: [2, 3, 4] },
+				deleted_at: null,
+			},
+		)) as { rows: any[]; count: number };
+
+		return {
+			count: result.count,
+			rows: this.parseResponse(result.rows) as MovieFull[],
+		};
+	}
+
+
 	async getWithShowtimes(filters?: any): Promise<{ rows: MovieFull[]; count: number }> {
 		const activeMovieIdsLiteral = literal(
 			`(SELECT DISTINCT "movie" FROM "showtimes" s INNER JOIN "room_bookings" rb ON s."booking" = rb."id" WHERE rb."start_time" > NOW())`,

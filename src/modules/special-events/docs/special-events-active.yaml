@@ -1,0 +1,49 @@
+/special-events/active:
+    get:
+        summary: Get active special events — global billboard (lifecycle 2, 3 & 4)
+        description: |
+            Returns special events with lifecycle_state 2 (Estreno), 3 (En Cartelera) or 4 (Últimos Días)
+            that have at least one future showtime in **any** cinema branch.
+
+            This is the global equivalent of `/special-events/by-cinema/{cinemaId}/now-playing` but
+            without filtering by branch and grouping all three active states.
+
+            Public endpoint — no authentication required.
+        tags:
+            - Special Events
+        security: []
+        responses:
+            '200':
+                description: Active billboard — special events with real future showtimes across all branches
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                    example: true
+                                message:
+                                    type: string
+                                    example: Cartelera activa de eventos especiales obtenida exitosamente
+                                data:
+                                    type: object
+                                    properties:
+                                        count:
+                                            type: integer
+                                            example: 3
+                                        rows:
+                                            type: array
+                                            items:
+                                                type: object
+                                                properties:
+                                                    event:
+                                                        type: object
+                                                        description: Special event detail including lifecycle state
+                                                    showtimes:
+                                                        type: array
+                                                        description: Future showtimes for this event across all branches
+                                                        items:
+                                                            type: object
+            '500':
+                description: Internal server error

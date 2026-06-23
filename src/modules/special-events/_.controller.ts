@@ -2,11 +2,11 @@ import { ControllerBase } from '@bases/controller.base.js';
 import SpecialEventsService from './_.service.js';
 
 class SpecialEventsController extends ControllerBase {
-    constructor() { super(); }
+    constructor() {
+        super();
+    }
 
-    // =========================================================================
     //  CATÁLOGO GLOBAL — sin filtro de sucursal
-    // =========================================================================
 
     async findAll() {
         const data = await SpecialEventsService.getPublicEvents(this.getQueryFilters());
@@ -37,9 +37,7 @@ class SpecialEventsController extends ControllerBase {
         return this.success(data, 'Eventos en últimos días obtenidos exitosamente');
     }
 
-    // =========================================================================
     //  POR SUCURSAL — cruza lifecycle con funciones reales de la sucursal
-    // =========================================================================
 
     // GET /special-events/by-cinema/:cinemaId/upcoming
     async getUpcomingByCinema() {
@@ -69,9 +67,13 @@ class SpecialEventsController extends ControllerBase {
         return this.success(data, 'Eventos en últimos días obtenidos exitosamente');
     }
 
-    // =========================================================================
+    // GET /special-events/active — estados 2, 3, 4 con funciones reales (sin cinemaId)
+    async getActiveWithShowtimes() {
+        const data = await SpecialEventsService.getActiveWithShowtimes();
+        return this.success(data, 'Cartelera activa de eventos especiales obtenida exitosamente');
+    }
+
     //  CARTELERA DE FUNCIONES Y DETALLE
-    // =========================================================================
 
     // GET /special-events/showtimes/billboard?cinemaId=
     async getBillboard() {
@@ -95,9 +97,7 @@ class SpecialEventsController extends ControllerBase {
         return this.success(data, 'Funciones del evento obtenidas exitosamente');
     }
 
-    // =========================================================================
     //  ADMINISTRATIVOS
-    // =========================================================================
 
     async findAllAdmin() {
         const data = await SpecialEventsService.getAdminEvents(this.getQueryFilters());

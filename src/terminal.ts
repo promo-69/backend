@@ -356,6 +356,45 @@ TerminalStreamer.get('/', (req: Request, res: Response) => {
         ::-webkit-scrollbar-track { background: var(--bg-dark); }
         ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                right: 0;
+                top: 50px;
+                height: calc(100% - 50px);
+                width: 100%;
+                max-width: 100%;
+                border-left: none;
+                box-shadow: -5px 0 15px rgba(0,0,0,0.5);
+                z-index: 100;
+            }
+            
+            .sidebar.collapsed {
+                position: fixed;
+                right: 0;
+                top: 50px;
+                height: calc(100% - 50px);
+                transform: translateX(100%);
+            }
+
+            .terminal-scroll-area {
+                font-size: 11px; /* Letra ligeramente más pequeña en móviles */
+                padding: 10px;
+            }
+
+            .header {
+                padding: 0 10px;
+            }
+
+            .header h1 {
+                font-size: 12px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+        }
     </style>
 </head>
 <body>
@@ -364,7 +403,7 @@ TerminalStreamer.get('/', (req: Request, res: Response) => {
         <div class="terminal-wrapper">
             <div class="header">
                 <h1><div class="status-dot"></div> Live Server Terminal</h1>
-                <div style="display: flex; gap: 8px;">
+                <div style="display: flex; gap: 8px; flex-shrink: 0; align-items: center;">
                     <button class="toggle-sidebar-btn" id="logoutBtn" title="Cerrar Sesión">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
                     </button>
@@ -397,6 +436,11 @@ TerminalStreamer.get('/', (req: Request, res: Response) => {
         const logoutBtn = document.getElementById('logoutBtn');
         let logCounter = 0;
         let isAutoScrollEnabled = true;
+
+        // Auto-colapsar en móviles al inicio
+        if (window.innerWidth <= 768) {
+            sidebar.classList.add('collapsed');
+        }
 
         // Toggle panel lateral
         toggleBtn.addEventListener('click', () => {
@@ -485,7 +529,13 @@ TerminalStreamer.get('/', (req: Request, res: Response) => {
 
             const card = document.createElement('div');
             card.className = 'event-card ' + (isError ? 'error' : 'info');
-            card.onclick = () => scrollToLog(logId);
+            card.onclick = () => {
+                scrollToLog(logId);
+                // Si estamos en móvil, cerramos el panel automáticamente al tocar un evento para ver la terminal
+                if (window.innerWidth <= 768) {
+                    sidebar.classList.add('collapsed');
+                }
+            };
             
             const timeStr = new Date().toLocaleTimeString('es-ES', { hour12: false });
             

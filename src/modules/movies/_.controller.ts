@@ -1,14 +1,13 @@
 import { ControllerBase } from '@bases/controller.base.js';
 import MoviesService from './_.service.js';
+import { ValidationError } from '@errors';
 
 class MoviesController extends ControllerBase {
     constructor() {
         super();
     }
 
-    // =========================================================================
     //  CATÁLOGO GLOBAL — sin filtro de sucursal
-    // =========================================================================
 
     // GET /movies
     async findAll() {
@@ -46,9 +45,7 @@ class MoviesController extends ControllerBase {
         return this.success(data, 'Películas en últimos días obtenidas exitosamente');
     }
 
-    // =========================================================================
     //  POR SUCURSAL — cruza lifecycle con funciones reales de la sucursal
-    // =========================================================================
 
     // GET /movies/by-cinema/:cinemaId/upcoming
     async upcomingByCinema() {
@@ -78,9 +75,31 @@ class MoviesController extends ControllerBase {
         return this.success(data, 'Películas en últimos días obtenidas exitosamente');
     }
 
-    // =========================================================================
     //  DETALLE Y CRUD
-    // =========================================================================
+
+    // GET /movies/active — estados 2, 3, 4 con funciones reales (sin cinemaId)
+    async activeWithShowtimes() {
+        const data = await MoviesService.getActiveWithShowtimes();
+        return this.success(data, 'Cartelera activa obtenida exitosamente');
+    }
+
+    // GET /movies/by-genre?genres=1,2,3 — películas activas filtradas por género(s)
+    async byGenre() {
+        const query = this.getQuery();
+        const raw = query.genres as string | undefined;
+        if (!raw) {
+            throw new ValidationError('El parámetro genres es obligatorio', ['genres']);
+        }
+        const genreIds = raw
+            .split(',')
+            .map((g: string) => Number(g.trim()))
+            .filter((n: number) => !isNaN(n) && n > 0);
+        if (genreIds.length === 0) {
+            throw new ValidationError('El parámetro genres debe contener al menos un ID numérico válido', ['genres']);
+        }
+        const data = await MoviesService.getByGenres(genreIds, this.getQueryFilters());
+        return this.success(data, 'Películas filtradas por género obtenidas exitosamente');
+    }
 
     // GET /movies/:id
     async findById() {
