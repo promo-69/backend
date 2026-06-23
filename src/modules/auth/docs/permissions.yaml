@@ -1,0 +1,29 @@
+/auth/permissions:
+    get:
+        tags:
+            - Auth
+        summary: Get employee permissions
+        description: Returns the permissions associated with the authenticated employee's session.
+        security:
+            - cookieAuth: []
+            - bearerAuth: []
+        responses:
+            '200':
+                description: Permissions retrieved successfully
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                    example: true
+                                data:
+                                    type: array
+                                    items:
+                                        type: string
+                                    example: ["CRUD:READ:USERS", "FEAT:DO:MANAGE_USERS"]
+            '401':
+                description: Unauthorized
+            '500':
+                description: Internal server error

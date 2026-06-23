@@ -34,3 +34,112 @@
                 description: Unauthorized
             '500':
                 description: Internal server error
+    post:
+        tags:
+            - Users (Self-Service)
+        summary: Add movie subscriptions
+        description: Subscribes the user to be notified about specific movies.
+        security:
+            - cookieAuth: []
+            - bearerAuth: []
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            movies:
+                                type: array
+                                items:
+                                    type: integer
+                                example: [101, 102]
+                        required:
+                            - movies
+        responses:
+            '200':
+                description: Subscriptions added successfully.
+            '400':
+                description: Validation error
+            '401':
+                description: Unauthorized
+            '500':
+                description: Internal server error
+    delete:
+        tags:
+            - Users (Self-Service)
+        summary: Remove movie subscriptions
+        description: Unsubscribes the user from specific movies.
+        security:
+            - cookieAuth: []
+            - bearerAuth: []
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            movies:
+                                type: array
+                                items:
+                                    type: integer
+                                example: [101]
+                        required:
+                            - movies
+        responses:
+            '200':
+                description: Subscriptions removed successfully.
+            '400':
+                description: Validation error
+            '401':
+                description: Unauthorized
+            '500':
+                description: Internal server error
+/users/me/movie-subscriptions/{movieId}:
+    get:
+        tags:
+            - Users (Self-Service)
+        summary: Get specific movie subscription
+        description: Checks if the user is subscribed to a specific movie.
+        security:
+            - cookieAuth: []
+            - bearerAuth: []
+        parameters:
+            - in: path
+              name: movieId
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Subscription retrieved successfully.
+            '401':
+                description: Unauthorized
+            '404':
+                description: Not Found
+            '500':
+                description: Internal server error
+    delete:
+        tags:
+            - Users (Self-Service)
+        summary: Remove specific movie subscription
+        description: Unsubscribes the user from a specific movie.
+        security:
+            - cookieAuth: []
+            - bearerAuth: []
+        parameters:
+            - in: path
+              name: movieId
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Subscription removed successfully.
+            '401':
+                description: Unauthorized
+            '404':
+                description: Not Found
+            '500':
+                description: Internal server error
