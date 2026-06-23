@@ -1,0 +1,45 @@
+meta {
+  name: List Voided Invoices
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/invoices/voided
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  cinemaId: {{cinemaId}}
+  employeeId:
+  from: {{from}}
+  to: {{to}}
+  search:
+  page: 1
+  limit: 10
+}
+
+vars:pre-request {
+  cinemaId: 1
+  from: 2026-01-01
+  to: 2026-06-30
+}
+
+docs {
+  Listado exclusivo de facturas anuladas/canceladas.
+  Equivale a GET /invoices?status=voided pero como endpoint semántico propio.
+
+  Filtros disponibles:
+  - cinemaId: Sede (superadmin; empleados usan el cinemaId del JWT)
+  - employeeId: Filtrar por empleado
+  - from / to: Rango de fechas (YYYY-MM-DD)
+  - search: Búsqueda por número, nombre o documento
+  - page / limit: Paginación
+
+  Permiso: CRUD:READ:INVOICES
+}

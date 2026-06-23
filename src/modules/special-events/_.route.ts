@@ -13,9 +13,10 @@ const imageUpload = uploadFields(
     { maxSizeMB: 10 },
 );
 
-// =============================================================================
 //  RUTAS ESTÁTICAS GLOBALES — catálogo sin filtro de sucursal
-// =============================================================================
+
+// lifecycle_states 2, 3, 4 con funciones reales — global, sin cinemaId
+router.get('/active', optionalAuth, specialEventsController.getActiveWithShowtimes);
 
 // GET /special-events/upcoming — lifecycle_state = 1 (global)
 router.get('/upcoming', optionalAuth, specialEventsController.getUpcoming);
@@ -44,11 +45,7 @@ router.post(
     specialEventsController.create,
 );
 
-// =============================================================================
 //  RUTAS POR SUCURSAL — /special-events/by-cinema/:cinemaId/*
-//  Cruzan lifecycle con funciones reales en esa sucursal.
-//  Deben ir ANTES de /:id para evitar colisiones.
-// =============================================================================
 
 // lifecycle_state = 1 por sucursal
 router.get('/by-cinema/:cinemaId/upcoming', optionalAuth, specialEventsController.getUpcomingByCinema);
@@ -62,9 +59,7 @@ router.get('/by-cinema/:cinemaId/now-playing', optionalAuth, specialEventsContro
 // lifecycle_state = 4 por sucursal
 router.get('/by-cinema/:cinemaId/last-days', optionalAuth, specialEventsController.getLastDaysByCinema);
 
-// =============================================================================
 //  RUTAS ADMINISTRATIVAS ESTÁTICAS — antes de /:id y /admin/:id
-// =============================================================================
 
 // GET /special-events/admin/showtimes?cinemaId=&eventId=&startDate=&endDate=&onlyFuture=
 router.get(
@@ -77,9 +72,7 @@ router.get(
 // GET /special-events/admin
 router.get('/admin', verifySession, verifyPermission('CRUD:READ:SPECIAL_EVENTS'), specialEventsController.findAllAdmin);
 
-// =============================================================================
 //  RUTAS DINÁMICAS — con :id, siempre al final
-// =============================================================================
 
 // GET /special-events/:id
 router.get('/:id', optionalAuth, specialEventsController.findById);

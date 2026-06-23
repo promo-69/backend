@@ -1,0 +1,144 @@
+/movies/active:
+    get:
+        summary: Get active movies — global billboard (lifecycle 2, 3 & 4)
+        description: |
+            Returns movies with lifecycle_state 2 (Estreno), 3 (En Cartelera) or 4 (Últimos Días)
+            that have at least one future showtime in **any** cinema branch.
+
+            This is the global equivalent of `/movies/by-cinema/{cinemaId}/now-playing` but
+            without filtering by branch and grouping all three active states.
+
+            Public endpoint — no authentication required.
+        tags:
+            - Movies
+        security: []
+        responses:
+            '200':
+                description: Active billboard — movies with real future showtimes across all branches
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                    example: true
+                                message:
+                                    type: string
+                                    example: Cartelera activa obtenida exitosamente
+                                data:
+                                    type: object
+                                    properties:
+                                        count:
+                                            type: integer
+                                            example: 8
+                                        rows:
+                                            type: array
+                                            items:
+                                                type: object
+                                                properties:
+                                                    movie:
+                                                        type: object
+                                                        description: Movie detail including lifecycle state
+                                                    showtimes:
+                                                        type: array
+                                                        description: Future showtimes for this movie across all branches
+                                                        items:
+                                                            type: object
+            '500':
+                description: Internal server error
+
+/movies/by-genre:
+    get:
+        summary: Get active movies filtered by genre(s)
+        description: |
+            Returns movies with lifecycle_state 2, 3 or 4 (active states only) that belong
+            to **at least one** of the specified genres.
+
+            The `genres` parameter accepts one or more genre IDs separated by commas.
+
+            **Examples:**
+            - `?genres=1` → Action only
+            - `?genres=1,3` → Action or Comedy
+            - `?genres=2,4,7` → Drama, Horror or Animation
+
+            Movies with lifecycle_state 1 (Próximamente) or 5 (out of catalog) are excluded.
+            Supports pagination via `page` and `limit`.
+
+            Public endpoint — no authentication required.
+        tags:
+            - Movies
+        security: []
+        parameters:
+            - in: query
+              name: genres
+              required: true
+              schema:
+                  type: string
+                  example: '1,3'
+              description: >
+                  Comma-separated list of genre IDs. At least one is required.
+                  Example: `1` for a single genre, `1,3,5` for multiple.
+            - in: query
+              name: page
+              schema:
+                  type: integer
+                  example: 1
+              description: Page number (pagination)
+            - in: query
+              name: limit
+              schema:
+                  type: integer
+                  example: 10
+              description: Items per page (pagination)
+        responses:
+            '200':
+                description: Active movies matching the specified genre(s)
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                    example: true
+                                message:
+                                    type: string
+                                    example: Películas filtradas por género obtenidas exitosamente
+                                data:
+                                    type: object
+                                    properties:
+                                        count:
+                                            type: integer
+                                            example: 5
+                                        rows:
+                                            type: array
+                                            items:
+                                                type: object
+                                                properties:
+                                                    id:
+                                                        type: integer
+                                                    title:
+                                                        type: string
+                                                    lifecycle_state:
+                                                        type: integer
+                                                        description: Will always be 2, 3 or 4
+                                                    genres:
+                                                        type: array
+                                                        items:
+                                                            type: object
+            '400':
+                description: Missing or invalid `genres` parameter
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                    example: false
+                                message:
+                                    type: string
+                                    example: El parámetro genres es obligatorio
+            '500':
+                description: Internal server error
