@@ -8,7 +8,7 @@ module.exports = {
 			'room_types',
 			[
 				{ id: 1, description: 'Tradicional' },
-				{ id: 2, description: 'Premium' },
+				{ id: 2, description: '4DX' },
 				{ id: 3, description: 'VIP' },
 				{ id: 4, description: 'IMAX' },
 			],
@@ -30,8 +30,7 @@ module.exports = {
 			'seat_categories',
 			[
 				{ id: 1, description: 'General' },
-				{ id: 2, description: 'Preferencial / VIP' },
-				{ id: 3, description: 'Discapacitados (Silla de Ruedas)' },
+				{ id: 2, description: 'Discapacitados' },
 			],
 			{},
 		);
@@ -40,8 +39,8 @@ module.exports = {
 			'seat_conditions',
 			[
 				{ id: 1, description: 'Operativa' },
-				{ id: 2, description: 'Dañada / Fuera de Servicio' },
-				{ id: 3, description: 'En Mantenimiento' },
+				{ id: 2, description: 'En Mantenimiento' },
+				{ id: 3, description: 'Dañada / Fuera de Servicio' },
 			],
 			{},
 		);
@@ -71,13 +70,6 @@ module.exports = {
 					symbol: 'Pts',
 					is_base_currency: false,
 				},
-				{
-					id: 4,
-					code: 'COP',
-					description: 'Peso Colombiano',
-					symbol: '$',
-					is_base_currency: false,
-				},
 			],
 			{},
 		);
@@ -92,6 +84,12 @@ module.exports = {
 				{ id: 4, description: 'Ciencia Ficción' },
 				{ id: 5, description: 'Terror / Suspenso' },
 				{ id: 6, description: 'Animación / Infantil' },
+				{ id: 7, description: 'Documental' },
+				{ id: 8, description: 'Musical' },
+				{ id: 9, description: 'Romance' },
+				{ id: 10, description: 'Aventura' },
+				{ id: 11, description: 'Fantasía' },
+				{ id: 12, description: 'Misterio' },
 			],
 			{},
 		);
@@ -179,10 +177,10 @@ module.exports = {
 		await queryInterface.bulkInsert(
 			'loyalty_levels',
 			[
-				{ id: 1, name: 'Bronce', required_points: 300 },
-				{ id: 2, name: 'Plata', required_points: 900 },
-				{ id: 3, name: 'Oro', required_points: 2100 },
-				{ id: 4, name: 'VIP', required_points: 4500 },
+				{ id: 1, name: 'Bronce', required_points: 500 },
+				{ id: 2, name: 'Plata', required_points: 1000 },
+				{ id: 3, name: 'Oro', required_points: 2000 },
+				{ id: 4, name: 'VIP', required_points: 4000 },
 			],
 			{},
 		);
