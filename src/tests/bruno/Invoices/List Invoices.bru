@@ -1,0 +1,48 @@
+meta {
+  name: List Invoices
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/invoices
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  cinemaId: {{cinemaId}}
+  employeeId:
+  from: {{from}}
+  to: {{to}}
+  search:
+  voided: false
+  page: 1
+  limit: 10
+}
+
+vars:pre-request {
+  cinemaId: 1
+  from: 2026-01-01
+  to: 2026-06-20
+}
+
+docs {
+  Listado de facturas con filtros.
+
+  Filtros disponibles:
+  - cinemaId: Filtrar por sucursal (solo superadmin)
+  - employeeId: Filtrar por empleado
+  - from: Fecha inicio (YYYY-MM-DD)
+  - to: Fecha fin (YYYY-MM-DD)
+  - search: Búsqueda por número, nombre o documento
+  - voided: true (solo anuladas) | false (solo activas) | omitir (todas)
+  - page: Número de página
+  - limit: Registros por página
+
+  Permiso: CRUD:READ:INVOICES
+}

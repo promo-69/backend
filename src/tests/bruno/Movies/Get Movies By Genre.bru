@@ -1,0 +1,28 @@
+meta {
+  name: Get Movies By Genre
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/movies/by-genre
+  body: none
+  auth: none
+}
+
+params:query {
+  genres: 1,2
+  page: 1
+  limit: 10
+}
+
+docs {
+  Retorna películas activas (lifecycle_state 2, 3 o 4) filtradas por uno o más géneros.
+  El parámetro genres acepta uno o varios IDs de género separados por coma.
+  Ejemplos:
+    ?genres=1          → solo Acción
+    ?genres=1,3        → Acción o Comedia
+    ?genres=2,4,7      → Drama, Terror o Animación
+  Solo aplica sobre películas en estado Estreno, En Cartelera y Últimos Días.
+  Películas en Próximamente (estado 1) o fuera de catálogo (estado 5) quedan excluidas.
+}
