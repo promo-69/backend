@@ -135,7 +135,7 @@ export class OrdersService extends BaseService {
 		const { cinema: _cinema, customerId } = body;
 
 		if (!_cinema && !session.cinemaId) throw new ValidationError('La sucursal es requerida', []);
-		const cinema = session.cinemaId || _cinema;
+		const cinema = _cinema || session.cinemaId;
 
 		if (session.roleCode != null && !customerId)
 			throw new ValidationError(

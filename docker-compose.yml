@@ -23,6 +23,8 @@ services:
             - IS_DOCKER=true
             - DB_POSTGRESQL_MAIN_HOST=db
             - DB_POSTGRESQL_MAIN_PORT=5432
+            - CACHE_DATABASE_HOST=redis
+            - CACHE_DATABASE_PORT=6379
             - NPM_CONFIG_UPDATE_NOTIFIER=false
         networks:
             - cineflix-network
