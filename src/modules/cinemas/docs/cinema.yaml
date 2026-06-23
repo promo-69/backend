@@ -39,7 +39,7 @@
                 description: Internal server error
     patch:
         summary: Update Cinema (Explicit Context)
-        description: Full update of a cinema by general management. All fields can be modified.
+        description: Full update of a cinema by general management. All fields can be modified. Permisos necesarios: 'CRUD:UPDATE:CINEMAS'
         tags:
             - Cinemas
         security:
@@ -82,7 +82,7 @@
                 description: Internal server error
     delete:
         summary: Delete Cinema
-        description: Soft‑delete a cinema. Fails if the cinema has active rooms.
+        description: Soft‑delete a cinema. Fails if the cinema has active rooms. Permisos necesarios: 'CRUD:DELETE:CINEMAS'
         tags:
             - Cinemas
         security:

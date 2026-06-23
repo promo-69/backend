@@ -2,10 +2,10 @@
     get:
         summary: Reporte de inventario
         description: |
+            Permisos necesarios: 'CRUD:READ:REPORTS-INVENTORY'
             Stock actual, unidades vendidas, recibidas, valorización y alertas de stock bajo.
             - Empleado: cinemaId del JWT.
             - Superadmin: ?cinemaId opcional.
-            Permiso: **CRUD:READ:REPORTS-INVENTORY**
         tags:
             - Reports
         security:

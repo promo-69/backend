@@ -6,7 +6,7 @@
             Shows all contact info (from `people` via `customers`), estimated attendees,
             room, cinema, requested schedule and event type so the manager can evaluate
             before approving, setting a price and generating a proforma.
-            Required permission: **CRUD:READ:RENTALS**
+            Permisos necesarios: "CRUD:READ:RENTALS"
         tags:
             - Rentals
         security:

@@ -3,7 +3,7 @@
         summary: List Combos by Cinema
         description: |
             Returns all combos belonging to a specific cinema.
-            Required permission: **CRUD:READ:CINEMAS-COMBOS**
+            Permisos necesarios: "CRUD:READ:CINEMAS-COMBOS"
         tags:
             - Cinemas
         security:
@@ -25,7 +25,7 @@
         summary: Create Combo in Cinema
         description: |
             Creates a new combo for a specific cinema.
-            Required permission: **CRUD:CREATE:CINEMAS-COMBOS**
+            Permisos necesarios: "CRUD:CREATE:CINEMAS-COMBOS"
         tags:
             - Cinemas
         security:
@@ -89,6 +89,7 @@
 /cinemas/{cinemaId}/combos/{id}:
     patch:
         summary: Update Combo in Cinema
+        description: Permisos necesarios: "CRUD:UPDATE:CINEMAS-COMBOS"
         tags:
             - Cinemas
         security:
@@ -127,6 +128,7 @@
                 description: Combo updated
     delete:
         summary: Delete Combo from Cinema
+        description: Permisos necesarios: "CRUD:DELETE:CINEMAS-COMBOS"
         tags:
             - Cinemas
         security:
@@ -149,6 +151,7 @@
 /cinemas/{cinemaId}/combos/{id}/items:
     post:
         summary: Add Items to Combo
+        description: Permisos necesarios: "CRUD:UPDATE:CINEMAS-COMBOS"
         tags:
             - Cinemas
         security:
@@ -192,6 +195,7 @@
 /cinemas/{cinemaId}/combos/{id}/items/{itemId}:
     delete:
         summary: Remove Item from Combo
+        description: Permisos necesarios: "CRUD:UPDATE:CINEMAS-COMBOS"
         tags:
             - Cinemas
         security:

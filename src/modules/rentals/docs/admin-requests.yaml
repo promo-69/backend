@@ -4,7 +4,7 @@
         description: |
             Super admin endpoint that returns all rental requests across all cinemas.
             Supports filtering by status and date range.
-            Required permission: **CRUD:READ:RENTALS_GLOBAL**
+            Permisos necesarios: "CRUD:READ:RENTALS_GLOBAL"
         tags:
             - Rentals Admin
         security:

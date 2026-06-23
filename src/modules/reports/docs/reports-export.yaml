@@ -2,11 +2,11 @@
     get:
         summary: Exportar cualquier reporte
         description: |
+            Permisos necesarios: 'CRUD:READ:REPORTS-EXPORT'
             Exporta un reporte en JSON, CSV, XLSX o PDF.
             - Empleado: cinemaId del JWT.
             - Superadmin: ?cinemaId opcional (global si se omite).
             - Para exportar caja de empleado específico, enviar ?employeeId (solo superadmin).
-            Permiso: **CRUD:READ:REPORTS-EXPORT**
         tags:
             - Reports Export
         security:

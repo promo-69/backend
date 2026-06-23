@@ -1,9 +1,9 @@
 /rooms/{id}:
     get:
         summary: Get Room By ID
-        description: |
+        description: | Permisos necesarios: 'CRUD:READ:ROOMS'
             Retrieve a single active room by its ID.
-            Required permission: **CRUD:READ:ROOMS**
+            Permisos necesarios: "CRUD:READ:ROOMS"
         tags:
             - Rooms
         security:
@@ -45,9 +45,9 @@
                 description: Internal server error
     patch:
         summary: Update Room (Partial)
-        description: |
+        description: | Permisos necesarios: 'CRUD:UPDATE:ROOMS'
             Update the name and/or projection types of an existing room.
-            Required permission: **CRUD:UPDATE:ROOMS**
+            Permisos necesarios: "CRUD:UPDATE:ROOMS"
         tags:
             - Rooms
         security:
@@ -88,9 +88,9 @@
                 description: Internal server error
     delete:
         summary: Delete Room
-        description: |
+        description: | Permisos necesarios: 'CRUD:DELETE:ROOMS'
             Soft-delete a room. Fails if the room has future active showtimes.
-            Required permission: **CRUD:DELETE:ROOMS**
+            Permisos necesarios: "CRUD:DELETE:ROOMS"
         tags:
             - Rooms
         security:

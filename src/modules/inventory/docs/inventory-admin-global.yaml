@@ -4,7 +4,7 @@
         description: |
             Returns inventory records for all cinemas.
             Super admin only.
-            Required permission: **CRUD:READ:CINEMAS-INVENTORY**
+            Permisos necesarios: "CRUD:READ:CINEMAS-INVENTORY"
         tags:
             - Inventory Admin
         security:

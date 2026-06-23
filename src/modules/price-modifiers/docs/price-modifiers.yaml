@@ -1,7 +1,7 @@
 /price-modifiers:
     get:
         summary: List Price Modifiers
-        description: Retrieve a list of active price modifier rules.
+        description: Retrieve a list of active price modifier rules. Permisos necesarios: 'CRUD:READ:PRICE-MODIFIERS'
         tags:
             - Price Modifiers
         security:
@@ -96,7 +96,8 @@
                 description: Internal server error
     post:
         summary: Create Price Modifier
-        description: |
+        description: | 
+            Permisos necesarios: 'CRUD:CREATE:PRICE-MODIFIERS'
             Create a pricing rule that applies a discount or surcharge to ticket or concession prices.
             The fields allowed depend on the modifier scope:
             - scope 1 (Ticketing): `audienceCategory`, `weekDay`, `seatCategory`, `projectionType` are valid. `productCategory`, `product`, `combo` must be omitted.
