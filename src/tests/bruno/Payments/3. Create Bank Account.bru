@@ -19,10 +19,10 @@ body:json {
     "bank": 20,
     "currency": 2,
     "payment_method": 4,
-    "payment_details": {
-      "account_number": "02011234567890123456",
-      "identity_document": "J-123456789"
-    },
+    "payment_details": [
+      { "label": "Número de Cuenta", "value": "02011234567890123456" },
+      { "label": "Documento", "value": "J-123456789" }
+    ],
     "api_key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
   }
 }
