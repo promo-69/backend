@@ -23,7 +23,7 @@ module.exports = {
 			{ code: '0175', name: 'Banco Bicentenario' },
 			{ code: '0191', name: 'BNC (Banco Nacional de Crédito)' },
 			{ code: '0001', name: 'Banco Central de Venezuela (BCV)' },
-			{ code: '0201', name: 'Banky' }
+			{ code: '0201', name: 'Banky', api_url: 'https://cineflix-banky.onrender.com/api/external/transactions' }
 		];
 
 		await queryInterface.bulkInsert('banks', banks, {});

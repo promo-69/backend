@@ -24,6 +24,7 @@ module.exports = {
 				bank: bankId,
 				currency: currencyId,
 				payment_method: 4,
+				api_key: 'Fa968r_g4pVhDdmtvo9OuvIBm0lCluDjyfTSany5SsJOKs7KoKNo-sd4FmdXSLC7',
 				payment_details: JSON.stringify({
 					phone_number: "04121234567",
 					identity_document: "J-123456789"
@@ -33,6 +34,7 @@ module.exports = {
 				bank: bankId,
 				currency: currencyId,
 				payment_method: 3,
+				api_key: 'Fa968r_g4pVhDdmtvo9OuvIBm0lCluDjyfTSany5SsJOKs7KoKNo-sd4FmdXSLC7',
 				payment_details: JSON.stringify({
 					account_number: "02013464119733167401",
 					identity_document: "J-123456789"

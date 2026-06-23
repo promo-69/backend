@@ -15,19 +15,19 @@ router.get('/:id', verifySession, OrdersController.getOrderById);
 router.get(
 	'/qr/:qrCode/concessions',
 	verifySession,
-	//verifyPermission('CRUD:READ:ORDER-DETAILS'),
+	verifyPermission('CRUD:READ:ORDER-DETAILS'),
 	OrdersController.getConcessionsByQr,
 );
 router.get(
 	'/qr/:qrCode/tickets',
 	verifySession,
-	//verifyPermission('CRUD:READ:ORDER-DETAILS'),
+	verifyPermission('CRUD:READ:ORDER-DETAILS'),
 	OrdersController.getTicketsByQr,
 );
 router.post(
 	'/validate-qr/:qrCode',
 	verifySession,
-	//verifyPermission('CRUD:UPDATE:ORDER-DETAILS'),
+	verifyPermission('CRUD:UPDATE:ORDER-DETAILS'),
 	OrdersController.validateQr,
 );
 
