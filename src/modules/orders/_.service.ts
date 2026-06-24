@@ -135,7 +135,7 @@ export class OrdersService extends BaseService {
 		const { cinema: _cinema, customerId } = body;
 
 		if (!_cinema && !session.cinemaId) throw new ValidationError('La sucursal es requerida', []);
-		const cinema = session.cinemaId || _cinema;
+		const cinema = _cinema || session.cinemaId;
 
 		if (session.roleCode != null && !customerId)
 			throw new ValidationError(
@@ -235,6 +235,8 @@ export class OrdersService extends BaseService {
 			created_at: quoteData.created_at,
 			expires_at: quoteData.expires_at,
 			expires_in: currentTtl,
+			system_base_currency: quoteData.system_base_currency,
+			exchange_rates: quoteData.exchange_rates,
 		};
 	}
 
@@ -784,6 +786,9 @@ export class OrdersService extends BaseService {
 				{ order: order_id },
 			);
 			const totalPaid = payments.reduce((acc: number, p: any) => acc + Number(p.amount), 0);
+
+			if (totalPaid > Number(order.total_amount_base_currency))
+				throw new BadRequestError('El monto pagado excede el total de la orden');
 
 			if (totalPaid >= Number(order.total_amount_base_currency)) {
 				const tickets = (order as any)._Tickets || [];

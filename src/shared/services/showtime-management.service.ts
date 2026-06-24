@@ -382,6 +382,8 @@ export class ShowtimeManagementService {
 					room: {
 						id: room.id,
 						name: room.name,
+						grid_rows: room.grid_rows,
+						grid_columns: room.grid_columns,
 						cinema: cinema ? { id: cinema.id, name: cinema.name } : null,
 					},
 				},
@@ -1624,7 +1626,34 @@ export class ShowtimeManagementService {
 		const lockedRaw = await redis.zrange(zsetKey, 0, -1);
 		const lockedSeats = lockedRaw.map(Number);
 
-		return { sold: soldSeats, locked: lockedSeats };
+		let nonOperationalSeats = 0;
+		let totalSeats = 0;
+		try {
+			const showtimeFull = await this._showtimesRepo.getById(showtimeId, {
+				relations: [
+					{
+						association: '_RoomBookings',
+						required: true,
+						attributes: ['room'],
+					},
+				],
+			});
+			const roomId = (showtimeFull as any)?._RoomBookings?.room;
+			if (roomId) {
+				const allSeats = await this._seats.getAll(
+					{ count: false, attributes: ['id', 'seat_condition'] },
+					{ room: roomId, deleted_at: null },
+				);
+				const allList = Array.isArray(allSeats) ? allSeats : (allSeats as any).rows || [];
+				totalSeats = allList.length;
+				const soldSet = new Set(soldSeats);
+				nonOperationalSeats = allList.filter((s: any) => s.seat_condition !== 1 && !soldSet.has(s.id)).length;
+			}
+		} catch {
+			// Ignorar — este campo es informativo
+		}
+
+		return { sold: soldSeats, locked: lockedSeats, total_seats: totalSeats, non_operational_seats: nonOperationalSeats };
 	}
 
 	async findAllShowtimes(filters?: any) {
@@ -1659,13 +1688,8 @@ export class ShowtimeManagementService {
 			const bookingQueryOptions: any = {
 				count: false,
 				attributes: ['id', 'room', 'start_time', 'end_time'],
-				relations: [
-					{
-						association: '_Rooms',
-						attributes: ['id', 'name', 'cinema', 'grid_rows', 'grid_columns'],
-						required: true,
-					},
-				],
+				relations: [{ 					association: '_Rooms',
+					attributes: ['id', 'name', 'cinema', 'grid_rows', 'grid_columns'], required: true }],
 			};
 			const allBookings = await this._roomBookings.getAll(bookingQueryOptions, bookingWhere);
 			let bookingList = Array.isArray(allBookings) ? allBookings : allBookings.rows || [];
@@ -2072,6 +2096,7 @@ export class ShowtimeManagementService {
 				column: seat.column_number,
 				label: `${seat.row_identifier}${seat.column_number}`,
 				category: { id: category.id ?? null, description: category.description ?? null },
+				seat_condition: seat.seat_condition,
 				status,
 			};
 		});
