@@ -19,6 +19,7 @@ export class BookingSocketService {
 				const quoteRaw = await redis.get(userQueueKey);
 
 				if (!quoteRaw) {
+					console.log('first error', { data, quoteRaw })
 					RealtimeProvider.getInstance().emitToSocket(socket.id, 'join_error', {
 						message: 'Función no válida para la sucursal actual o sesión expirada',
 					});
@@ -32,7 +33,7 @@ export class BookingSocketService {
 				if (previousShowtimeIdRaw && Number(previousShowtimeIdRaw) !== Number(data.showtimeId)) {
 					const prevShowtimeId = Number(previousShowtimeIdRaw);
 					socket.leave(`showtime_${prevShowtimeId}`);
-					
+
 					await seatLockService.forceUnlockUserSeats(prevShowtimeId, user.userId);
 				}
 
@@ -43,6 +44,8 @@ export class BookingSocketService {
 				const showtimeCinemaId = showtime?._RoomBookings?._Rooms?.cinema;
 
 				if (!showtimeCinemaId || Number(showtimeCinemaId) !== Number(quoteData.cinema)) {
+					console.log('second error', { data, quoteRaw, quoteData, showtime, showtimeCinemaId })
+
 					RealtimeProvider.getInstance().emitToSocket(socket.id, 'join_error', {
 						message: 'Función no válida para la sucursal actual o sesión expirada',
 					});
@@ -51,6 +54,7 @@ export class BookingSocketService {
 
 				socket.join(`showtime_${data.showtimeId}`);
 				await redis.set(`ws:context:usr:${user.userId}`, String(data.showtimeId), 'EX', 3600);
+				console.log('third success', { data, showtimeCinemaId, quoteData })
 				RealtimeProvider.getInstance().emitToSocket(socket.id, 'join_success', { showtimeId: data.showtimeId });
 			}
 		});
