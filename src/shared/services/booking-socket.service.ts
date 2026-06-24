@@ -96,10 +96,10 @@ export class BookingSocketService {
 
 				await redis.sadd(`usr:${user.userId}:showtime:${showtimeId}:locked_seats`, String(data.seatId));
 				await redis.expire(`usr:${user.userId}:showtime:${showtimeId}:locked_seats`, 3600);
-				
+
 				Logger.info(`[WS] lock_seat exitoso - user: ${user.userId}, seatId: ${data.seatId}, showtimeId: ${showtimeId}`);
 			} catch (err: any) {
-				Logger.error(`[WS] lock_seat error - user: ${user.userId}: ${err.message}`);
+				Logger.error(`[WS] lock_seat error - user: ${user.userId}: ${err.message}`, err);
 				RealtimeProvider.getInstance().emitToSocket(socket.id, 'seat_lock_error', {
 					message: err.message || 'Asiento ocupado',
 					seatId: data.seatId,
