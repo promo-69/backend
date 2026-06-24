@@ -677,19 +677,21 @@ export class OrdersService extends BaseService {
 
 				// Ramificación según método de pago
 				if (paymentMethodId === PAYMENT_METHOD.LOYALTY_POINTS) {
+					const loyaltyCustomerId = quoteData.customerId || session.customerId;
+					if (!loyaltyCustomerId) throw new BadRequestError('No hay un cliente asociado a esta orden para usar puntos de fidelidad');
+
 					const ledgers = await this._loyaltyLedgers.getAll(
 						{ count: false, order: [['id', 'DESC']], limit: 1, operation: { transaction, lock: transaction.LOCK.UPDATE } },
-						{ customer: session.customerId },
+						{ customer: loyaltyCustomerId },
 					);
 
 					const currentBalance = ledgers.length > 0 ? Number(ledgers[0].points_balance) : 0;
 					if (amount > currentBalance) throw new BadRequestError('Saldo de puntos insuficiente');
 
-					// Descontar puntos de una vez con un registro decremental
 					await this._loyaltyLedgers.create(
 						{
 							operation_type: LOYALTY_OPERATION.SPEND,
-							customer: session.customerId,
+							customer: loyaltyCustomerId,
 							points: amount,
 							points_balance: currentBalance - amount,
 							description: `Pago parcial de orden ${order_id}`,
@@ -697,11 +699,12 @@ export class OrdersService extends BaseService {
 						{ transaction },
 					);
 				} else if ([PAYMENT_METHOD.POS, PAYMENT_METHOD.MOBILE_PAYMENT, PAYMENT_METHOD.BANK_TRANSFER].includes(paymentMethodId) || bypass === true) {
-					if (!reference_number) throw new BadRequestError('El número de referencia es obligatorio para este método de pago');
-					if (!bank) throw new BadRequestError('El banco destino es obligatorio para este método de pago');
 					if (!currency) throw new BadRequestError('La moneda es obligatoria para este método de pago');
 
 					if (bypass !== true) {
+						if (!reference_number) throw new BadRequestError('El número de referencia es obligatorio para este método de pago');
+						if (!bank) throw new BadRequestError('El banco destino es obligatorio para este método de pago');
+
 						// Obtener cuenta bancaria para validar si acepta el pago y si requiere validación con Banky
 						const searchParams: any = { payment_method: paymentMethodId, currency, bank};
 						const acceptedAccounts = await this._bankAccounts.getAll(
@@ -1119,8 +1122,13 @@ export class OrdersService extends BaseService {
 				},
 				{ cinema, product: productIds },
 			);
-			if (inventories.length !== productIds.length)
-				throw new NotFoundError('Uno o más productos no existen en el inventario de esta sucursal.');
+			if (inventories.length !== productIds.length) {
+				const foundIds = new Set(inventories.map((inv: any) => inv.product));
+				const missing = productIds.filter((pid: number) => !foundIds.has(pid));
+				throw new NotFoundError(
+					`Los siguientes productos no tienen inventario en esta sucursal: ${missing.join(', ')}`,
+				);
+			}
 
 			// Busca ordenes pendientes de otros usuarios para reservar inventario logico
 			const comboPartsOfInterest = await this._comboProducts.getAll(

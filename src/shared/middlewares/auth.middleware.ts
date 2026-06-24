@@ -126,21 +126,21 @@ export class AuthMiddleware {
 	}
 
 	static async socketAuth(socket: any, next: (err?: any) => void): Promise<void> {
+		if (!socket.data) socket.data = {};
+
 		try {
 			const token = AuthMiddleware.extractTokenFromSocket(socket, 'access');
-			const result = await AuthMiddleware.validateToken(token as string);
+			if (!token) {
+				socket.data.session = null;
+				return next();
+			}
 
-			if (!socket.data) socket.data = {};
+			const result = await AuthMiddleware.validateToken(token);
 			socket.data.session = result.session;
-
 			next();
-		} catch (error: any) {
-			const socketError: any = new Error(error.message || 'Falló la autenticación');
-			socketError.data = {
-				code: error.code || 'AUTH_FAILED',
-				details: error.details || error.message,
-			};
-			next(socketError);
+		} catch {
+			socket.data.session = null;
+			next();
 		}
 	}
 
