@@ -75,13 +75,7 @@ export class ComboManagementService {
 			count: true,
 			...filters,
 		};
-		if (filters?.cinemaId) {
-			options.where = { cinema: filters.cinemaId };
-			options.relations = [
-				...(filters?.relations || []),
-				{ association: '_ComboProducts', attributes: ['product', 'quantity'] },
-			];
-		}
+		if (filters?.cinemaId) options.where = { cinema: filters.cinemaId };
 
 		const rawCombos = await this._combos.getAll(options);
 		let comboList = Array.isArray(rawCombos) ? rawCombos : rawCombos.rows || [];
