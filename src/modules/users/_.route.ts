@@ -13,6 +13,7 @@ router.get('/me/orders', verifySession, usersController.getMyOrders);
 router.get('/me/orders/:orderId/ticket', verifySession, usersController.getMyOrderTicket);
 router.get('/me/loyalty', verifySession, usersController.getMyLoyaltyInfo);
 router.get('/me/loyalty/ledgers', verifySession, usersController.getMyLoyaltyLedgers);
+router.get('/me/loyalty/levels', verifySession, usersController.getMyLoyaltyLevels);
 
 // --- Géneros Favoritos & Subscripciones a Estrenos del Cliente
 router.get('/me/movie-genres', verifySession, usersController.getMyMovieGenres);
@@ -31,28 +32,28 @@ router.get('/:id/role', verifySession, verifyPermission(['FEAT:DO:MANAGE_USERS']
 router.post('/:id/role', verifySession, verifyPermission(['FEAT:DO:MANAGE_USERS']), usersController.assignUserRole);
 router.delete('/:id/role', verifySession, verifyPermission(['FEAT:DO:MANAGE_USERS']), usersController.removeUserRole);
 router.get(
-	'/:id/permissions',
-	verifySession,
-	verifyPermission(['FEAT:DO:MANAGE_USERS']),
-	usersController.getUserPermissions,
+    '/:id/permissions',
+    verifySession,
+    verifyPermission(['FEAT:DO:MANAGE_USERS']),
+    usersController.getUserPermissions,
 );
 router.post(
-	'/:id/permissions',
-	verifySession,
-	verifyPermission(['FEAT:DO:MANAGE_USERS']),
-	usersController.assignUserPermissions,
+    '/:id/permissions',
+    verifySession,
+    verifyPermission(['FEAT:DO:MANAGE_USERS']),
+    usersController.assignUserPermissions,
 );
 router.delete(
-	'/:id/permissions',
-	verifySession,
-	verifyPermission(['FEAT:DO:MANAGE_USERS']),
-	usersController.removeUserPermissions,
+    '/:id/permissions',
+    verifySession,
+    verifyPermission(['FEAT:DO:MANAGE_USERS']),
+    usersController.removeUserPermissions,
 );
 router.patch(
-	'/:id/status',
-	verifySession,
-	verifyPermission(['FEAT:DO:MANAGE_USERS']),
-	usersController.changeUserStatus,
+    '/:id/status',
+    verifySession,
+    verifyPermission(['FEAT:DO:MANAGE_USERS']),
+    usersController.changeUserStatus,
 );
 
 export default router;

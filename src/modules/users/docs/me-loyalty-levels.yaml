@@ -1,0 +1,52 @@
+/users/me/loyalty/levels:
+    get:
+        tags:
+            - Users (Self-Service)
+        summary: Get loyalty levels ladder and my progress
+        description: Returns the full loyalty levels ladder (id, name, required_points) along with the authenticated user's current level, next level and points remaining to reach it.
+        security:
+            - cookieAuth: []
+            - bearerAuth: []
+        responses:
+            '200':
+                description: Loyalty levels retrieved successfully.
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                    example: true
+                                message:
+                                    type: string
+                                    example: Niveles de lealtad recuperados correctamente
+                                data:
+                                    type: object
+                                    properties:
+                                        levels:
+                                            type: array
+                                            items:
+                                                type: object
+                                                properties:
+                                                    id:
+                                                        type: integer
+                                                    name:
+                                                        type: string
+                                                    required_points:
+                                                        type: integer
+                                                        nullable: true
+                                        current_level:
+                                            type: object
+                                            nullable: true
+                                        next_level:
+                                            type: object
+                                            nullable: true
+                                        level_progress_points:
+                                            type: integer
+                                        points_to_next_level:
+                                            type: integer
+            '401':
+                description: Unauthorized
+            '500':
+                description: Internal server error

@@ -71,6 +71,12 @@ class UsersController extends ControllerBase {
 		return this.success(data, 'Balance de lealtad recuperados correctamente');
 	}
 
+	async getMyLoyaltyLevels() {
+		const data = await UsersService.getMyLoyaltyLevels(this.getSession() as CustomerUserSession);
+
+		return this.success(data, 'Niveles de lealtad recuperados correctamente');
+	}
+
 	// --- Subscripciones a Películas por el Consumidor
 
 	async getMyMovieSubscriptions() {

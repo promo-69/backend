@@ -43,6 +43,9 @@ export class UsersService extends BaseService {
 	private get _loyaltyLedgers() {
 		return Database.repository('main', 'loyalty-ledgers') as any;
 	}
+	private get _loyaltyLevels() {
+		return Database.repository('main', 'loyalty-levels') as any;
+	}
 	private get _movieSubscriptions() {
 		return Database.repository('main', 'movie-user-subscriptions') as any;
 	}
@@ -441,9 +444,46 @@ export class UsersService extends BaseService {
 	async getMyLoyaltyLedgers(session: CustomerUserSession, queryFilters: Record<string, any>) {
 		if (!session.customerId) throw new AuthError('No tiene un perfil de cliente.');
 
-		const ledgersResult = await this._loyaltyLedgers.getAll(queryFilters, { customer: session.customerId });
+		const ledgersResult = await this._loyaltyLedgers.getAll(
+			{
+				...queryFilters,
+				relations: [
+					{ association: '_OperationTypes', required: false },
+					{ association: '_Orders', required: false, attributes: ['id'] },
+				],
+			},
+			{ customer: session.customerId },
+		);
 
 		return ledgersResult;
+	}
+
+	async getMyLoyaltyLevels(session: CustomerUserSession) {
+		if (!session.customerId) throw new AuthError('No tiene un perfil de cliente.');
+
+		const levels = await this._loyaltyLevels.getAll(
+			{ count: false, order: [['required_points', 'ASC']] },
+			{},
+		);
+
+		const levelsList: any[] = Array.isArray(levels) ? levels : (levels?.rows ?? []);
+
+		const customer = await this._customers.getById(session.customerId, { attributes: ['id', 'level_progress_points'] });
+		const progressPoints = Number(customer?.level_progress_points ?? 0);
+
+		const currentLevelIndex = levelsList.reduce((acc, level, idx) => {
+			return progressPoints >= Number(level.required_points ?? 0) ? idx : acc;
+		}, 0);
+
+		const nextLevel = levelsList[currentLevelIndex + 1] ?? null;
+
+		return {
+			levels: levelsList,
+			current_level: levelsList[currentLevelIndex] ?? null,
+			next_level: nextLevel,
+			level_progress_points: progressPoints,
+			points_to_next_level: nextLevel ? Math.max(0, Number(nextLevel.required_points) - progressPoints) : 0,
+		};
 	}
 
 	// --- Subscripciones a Películas
