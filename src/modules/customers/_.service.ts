@@ -41,32 +41,67 @@ export class CustomersService extends BaseService {
                 : null,
 
             customer: {
-                ...customerFields,
+                id: customerFields.id,
+                loyalty_level: customerFields.loyalty_level,
+                level_progress_points: customerFields.level_progress_points,
+                registration_date: customerFields.registration_date,
                 loyalty: {
                     level_id: customerFields.loyalty_level,
                     level_name: loyaltyLevel?.name ?? null,
                     progress_points: customerFields.level_progress_points,
                 },
+                points_balance: 0,
             },
         };
     }
 
-    async findAllCustomers(filters?: any) {
-        // Las relaciones viven en el repositorio — se reutilizan sin duplicar.
-        const result = await this._customers.getAll({
-            count: true,
-            relations: this._customers.relations,
-            ...filters,
-        });
+    private async _attachBalance(customerId: number): Promise<number> {
+        const last = await this._loyaltyLedgers.getOne(
+            { customer: customerId },
+            { order: [['created_at', 'DESC']] },
+        );
+        return last?.points_balance ?? 0;
+    }
 
-        if (Array.isArray(result)) {
-            return result.map((c: any) => this._formatCustomerResponse(c));
+    async findAllCustomers(filters?: any) {
+        const queryOptions: any = {
+            count: true,
+            relations: this._customers._relations,
+        };
+
+        const rawParams = filters?.raw || {};
+        const docNumber = rawParams.document_number || rawParams.documentNumber;
+        const personWhere: any = {};
+        if (docNumber) {
+            const normalized = docNumber.toUpperCase().replace(/\s+/g, '');
+            personWhere.document_number = normalized.includes('-')
+                ? normalized
+                : normalized.replace(/^([VEJPG])/, '$1-');
         }
 
-        return {
-            ...result,
-            rows: result.rows.map((c: any) => this._formatCustomerResponse(c)),
+        if (Object.keys(personWhere).length > 0) {
+            queryOptions.relations = queryOptions.relations.map((r: any) => {
+                if (r.association === '_People') {
+                    return { ...r, where: personWhere };
+                }
+                return r;
+            });
+        }
+
+        const result = await this._customers.getAll(queryOptions);
+
+        const mapWithBalance = async (c: any) => {
+            const resp = this._formatCustomerResponse(c)!;
+            resp.customer.points_balance = await this._attachBalance(c.id);
+            return resp;
         };
+
+        if (Array.isArray(result)) {
+            return Promise.all(result.map(mapWithBalance));
+        }
+
+        const rows = await Promise.all(result.rows.map(mapWithBalance));
+        return { ...result, rows };
     }
 
     async createCustomer(body: any) {
@@ -111,13 +146,14 @@ export class CustomersService extends BaseService {
     }
 
     async findCustomerById(id: number) {
-        // Reutiliza las mismas relaciones del repositorio.
         const raw = await this._customers.getById(id, {
-            relations: this._customers.relations,
+            relations: this._customers._relations,
         });
 
         if (!raw) throw new NotFoundError('Cliente no encontrado');
-        return this._formatCustomerResponse(raw);
+        const resp = this._formatCustomerResponse(raw)!;
+        resp.customer.points_balance = await this._attachBalance(id);
+        return resp;
     }
 
     async updateCustomer(id: number, body: any) {

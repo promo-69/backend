@@ -404,6 +404,20 @@ export class RentalManagementService {
 					throw new ValidationError('El precio debe ser un número positivo al aprobar');
 				}
 
+				// Validar que la sala no esté ocupada en ese horario antes de crear el booking
+				const overlapping = await this._roomBookings.getOne(
+					{
+						room: request.room,
+						start_time: { [Ops.lt]: request.requested_end_time },
+						end_time: { [Ops.gt]: request.requested_start_time },
+						deleted_at: null,
+					},
+					{ transaction },
+				);
+				if (overlapping) {
+					throw new ConflictError('La sala ya está reservada en ese horario.', 'ROOM_OVERLAP');
+				}
+
 				let booking: any;
 				try {
 					booking = await this._roomBookings.create(
@@ -416,9 +430,12 @@ export class RentalManagementService {
 						{ transaction },
 					);
 				} catch (err: any) {
+					const originalErr = err.cause ?? err.original ?? err;
 					if (
 						err.name === 'SequelizeExclusionConstraintError' ||
-						err.message?.includes('exclusion constraint')
+						originalErr.name === 'SequelizeExclusionConstraintError' ||
+						err.message?.includes('exclusion constraint') ||
+						originalErr.message?.includes('exclusion constraint')
 					) {
 						throw new ConflictError('La sala ya está reservada en ese horario.', 'ROOM_OVERLAP');
 					}
