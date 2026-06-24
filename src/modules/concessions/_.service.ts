@@ -258,12 +258,7 @@ export class ConcessionsService extends BaseService {
 		const enrichedList = inventoryList.map((inv: any) => {
 			if (!inv._Products) return null;
 			const p = inv._Products;
-			const productClone = { ...(p.toJSON ? p.toJSON() : p), stock: inv.stock };
-			// Asegurar _ProductCategories con id y description
-			const catId = productClone.product_category;
-			if (catId && !productClone._ProductCategories) {
-				productClone._ProductCategories = { id: catId };
-			}
+			const productClone = { ...p.toJSON ? p.toJSON() : p };
 
 			if (!cacheData) return productClone;
 

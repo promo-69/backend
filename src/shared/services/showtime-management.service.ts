@@ -2096,7 +2096,6 @@ export class ShowtimeManagementService {
 				column: seat.column_number,
 				label: `${seat.row_identifier}${seat.column_number}`,
 				category: { id: category.id ?? null, description: category.description ?? null },
-				seat_condition: seat.seat_condition,
 				status,
 			};
 		});
