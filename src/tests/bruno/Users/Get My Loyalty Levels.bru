@@ -1,0 +1,15 @@
+meta {
+  name: Get My Loyalty Levels
+  type: http
+  seq: 26
+}
+
+get {
+  url: {{baseUrl}}/users/me/loyalty/levels
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
