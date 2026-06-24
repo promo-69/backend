@@ -8,9 +8,10 @@ export class BookingSocketService {
 	static initialize() {
 		// Suscripción a la sala de una función
 		RealtimeProvider.getInstance().registerEventHandler('join_showtime', async (socket, data: any) => {
+			const user = socket.data.session;
+			Logger.info(`[WS] Accediendo a join_showtime - user: ${user?.userId}, data: ${JSON.stringify(data)}`);
 			if (!data?.showtimeId) return;
 
-			const user = socket.data.session;
 			if (user?.userId) {
 				const redis = CacheDatabaseProvider.getInstance().client;
 
@@ -19,7 +20,7 @@ export class BookingSocketService {
 				const quoteRaw = await redis.get(userQueueKey);
 
 				if (!quoteRaw) {
-					console.log('first error', { data, quoteRaw })
+					Logger.warn(`[WS] join_showtime error - Sesión expirada o no existe (user: ${user.userId})`);
 					RealtimeProvider.getInstance().emitToSocket(socket.id, 'join_error', {
 						message: 'Función no válida para la sucursal actual o sesión expirada',
 					});
@@ -44,8 +45,7 @@ export class BookingSocketService {
 				const showtimeCinemaId = showtime?._RoomBookings?._Rooms?.cinema;
 
 				if (!showtimeCinemaId || Number(showtimeCinemaId) !== Number(quoteData.cinema)) {
-					console.log('second error', { data, quoteRaw, quoteData, showtime, showtimeCinemaId })
-
+					Logger.warn(`[WS] join_showtime error - Sucursal inválida o no coincide (user: ${user.userId})`);
 					RealtimeProvider.getInstance().emitToSocket(socket.id, 'join_error', {
 						message: 'Función no válida para la sucursal actual o sesión expirada',
 					});
@@ -54,28 +54,31 @@ export class BookingSocketService {
 
 				socket.join(`showtime_${data.showtimeId}`);
 				await redis.set(`ws:context:usr:${user.userId}`, String(data.showtimeId), 'EX', 3600);
-				console.log('third success', { data, showtimeCinemaId, quoteData })
+				Logger.info(`[WS] join_showtime exitoso - user: ${user.userId}, showtimeId: ${data.showtimeId}`);
 				RealtimeProvider.getInstance().emitToSocket(socket.id, 'join_success', { showtimeId: data.showtimeId });
 			}
 		});
 
 		// Desuscripción a la sala
 		RealtimeProvider.getInstance().registerEventHandler('leave_showtime', async (socket, data: any) => {
+			const user = socket.data.session;
+			Logger.info(`[WS] Accediendo a leave_showtime - user: ${user?.userId}, data: ${JSON.stringify(data)}`);
 			if (!data?.showtimeId) return;
 			socket.leave(`showtime_${data.showtimeId}`);
 
-			const user = socket.data.session;
 			if (user?.userId) {
 				const redis = CacheDatabaseProvider.getInstance().client;
 				await redis.del(`ws:context:usr:${user.userId}`);
 
 				await seatLockService.forceUnlockUserSeats(data.showtimeId, user.userId);
+				Logger.info(`[WS] leave_showtime exitoso - user: ${user.userId}, showtimeId: ${data.showtimeId}`);
 			}
 		});
 
 		// Intento de bloquear un asiento
 		RealtimeProvider.getInstance().registerEventHandler('lock_seat', async (socket, data: any) => {
 			const user = socket.data.session;
+			Logger.info(`[WS] Accediendo a lock_seat - user: ${user?.userId}, data: ${JSON.stringify(data)}`);
 			if (!user?.userId || !data?.seatId) return;
 			try {
 				const redis = CacheDatabaseProvider.getInstance().client;
@@ -93,7 +96,10 @@ export class BookingSocketService {
 
 				await redis.sadd(`usr:${user.userId}:showtime:${showtimeId}:locked_seats`, String(data.seatId));
 				await redis.expire(`usr:${user.userId}:showtime:${showtimeId}:locked_seats`, 3600);
+				
+				Logger.info(`[WS] lock_seat exitoso - user: ${user.userId}, seatId: ${data.seatId}, showtimeId: ${showtimeId}`);
 			} catch (err: any) {
+				Logger.error(`[WS] lock_seat error - user: ${user.userId}: ${err.message}`);
 				RealtimeProvider.getInstance().emitToSocket(socket.id, 'seat_lock_error', {
 					message: err.message || 'Asiento ocupado',
 					seatId: data.seatId,
@@ -104,6 +110,7 @@ export class BookingSocketService {
 		// Intento de liberar un asiento
 		RealtimeProvider.getInstance().registerEventHandler('unlock_seat', async (socket, data: any) => {
 			const user = socket.data.session;
+			Logger.info(`[WS] Accediendo a unlock_seat - user: ${user?.userId}, data: ${JSON.stringify(data)}`);
 			if (!user?.userId || !data?.seatId) return;
 			try {
 				const redis = CacheDatabaseProvider.getInstance().client;
@@ -114,16 +121,17 @@ export class BookingSocketService {
 				if (!quoteRaw) throw new Error('La sesión de compra no existe o ha expirado');
 
 				const showtimeIdRaw = await redis.get(`ws:context:usr:${user.userId}`);
-				if (!showtimeIdRaw) return;
+				if (!showtimeIdRaw) throw new Error('No estás conectado a ninguna función');
 				const showtimeId = Number(showtimeIdRaw);
 
 				const unlocked = await seatLockService.unlockSeat(showtimeId, data.seatId, user.userId);
 
 				if (unlocked) {
 					await redis.srem(`usr:${user.userId}:showtime:${showtimeId}:locked_seats`, String(data.seatId));
+					Logger.info(`[WS] unlock_seat exitoso - user: ${user.userId}, seatId: ${data.seatId}, showtimeId: ${showtimeId}`);
 				}
 			} catch (err: any) {
-				Logger.error(`[Socket.io] Error unlocking seat: ${err.message}`, err);
+				Logger.error(`[WS] unlock_seat error - user: ${user.userId}: ${err.message}`, err);
 			}
 		});
 	}
