@@ -207,6 +207,7 @@ export class App {
                 ...(this.appConfig.appEnv == 'development'
                     ? {
 						development: {
+							monitor: `${this.appConfig.protocol}://${interfaceIp}/api/system/terminal`,
 							server_time: new Date().toLocaleString('en-US', { timeZoneName: 'short' }) + ' | ' + new Date().toLocaleString('es-VE', { timeZoneName: 'short', timeZone: 'America/Caracas' }),
 							routes: `See ${this.appConfig.protocol}://${interfaceIp}/api/v[version-number]/[module]: API endpoints`,
 						},

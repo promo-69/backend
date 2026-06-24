@@ -23,6 +23,7 @@ class RolesRepository extends SequelizeRepositoryBase<Roles, number> {
 			{
 				association: '_RolePermissions',
 				required: false,
+				separate: true,
 				nested: [
 					{
 						association: '_Permissions',
@@ -43,7 +44,7 @@ class RolesRepository extends SequelizeRepositoryBase<Roles, number> {
 	}
 
 	async getAllFull(filters?: any) {
-		const operation = { ...(filters?.operation ?? {}), subQuery: false };
+		const operation = { ...(filters?.operation ?? {}) };
 		return this.getAll({ ...filters, count: true, relations: this._relations, operation });
 	}
 }

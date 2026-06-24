@@ -33,22 +33,7 @@ export class BookingSocketService {
 					const prevShowtimeId = Number(previousShowtimeIdRaw);
 					socket.leave(`showtime_${prevShowtimeId}`);
 					
-					const lockedSeatsKey = `usr:${user.userId}:showtime:${prevShowtimeId}:locked_seats`;
-					const seatIdsRaw = await redis.smembers(lockedSeatsKey);
-
-					if (seatIdsRaw && seatIdsRaw.length > 0) {
-						await redis.del(lockedSeatsKey);
-						const seatIds = seatIdsRaw.map(Number);
-						const pipeline = redis.pipeline();
-						for (const seatId of seatIds) {
-							pipeline.del(`lock:showtime:${prevShowtimeId}:seat:${seatId}`);
-							pipeline.zrem(`showtime:${prevShowtimeId}:locked_seats`, String(seatId));
-						}
-						await pipeline.exec();
-						RealtimeProvider.getInstance().emitToRoom(`showtime_${prevShowtimeId}`, 'seats_unlocked', {
-							seatIds,
-						});
-					}
+					await seatLockService.forceUnlockUserSeats(prevShowtimeId, user.userId);
 				}
 
 				const showtime = await (Database.repository('main', 'showtimes') as any).getById(data.showtimeId, {
@@ -80,24 +65,7 @@ export class BookingSocketService {
 				const redis = CacheDatabaseProvider.getInstance().client;
 				await redis.del(`ws:context:usr:${user.userId}`);
 
-				const lockedSeatsKey = `usr:${user.userId}:showtime:${data.showtimeId}:locked_seats`;
-				const seatIdsRaw = await redis.smembers(lockedSeatsKey);
-
-				if (seatIdsRaw && seatIdsRaw.length > 0) {
-					await redis.del(lockedSeatsKey);
-					const seatIds = seatIdsRaw.map(Number);
-
-					const pipeline = redis.pipeline();
-					for (const seatId of seatIds) {
-						pipeline.del(`lock:showtime:${data.showtimeId}:seat:${seatId}`);
-						pipeline.zrem(`showtime:${data.showtimeId}:locked_seats`, String(seatId));
-					}
-					await pipeline.exec();
-
-					RealtimeProvider.getInstance().emitToRoom(`showtime_${data.showtimeId}`, 'seats_unlocked', {
-						seatIds,
-					});
-				}
+				await seatLockService.forceUnlockUserSeats(data.showtimeId, user.userId);
 			}
 		});
 
