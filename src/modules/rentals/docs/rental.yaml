@@ -18,7 +18,7 @@
             **Cancelling (status: 5 — Cancelada)**
             - Allowed from any non-terminal status. Releases the room booking if one exists.
 
-            Required permission: **CRUD:UPDATE:RENTALS**
+            Permisos necesarios: "CRUD:UPDATE:RENTALS"
         tags:
             - Rentals
         security:

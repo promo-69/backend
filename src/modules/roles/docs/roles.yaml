@@ -3,7 +3,7 @@
         summary: Get all roles
         description: |
             Retrieve all roles.
-            Required permission: **CRUD:READ:ROLES**
+            Permisos necesarios: "CRUD:READ:ROLES"
         tags:
             - Roles
         security:
@@ -72,7 +72,7 @@
         summary: Create a new role
         description: |
             Create a role that can be assigned to users.
-            Required permission: **CRUD:CREATE:ROLES**
+            Permisos necesarios: "CRUD:CREATE:ROLES"
         tags:
             - Roles
         security:
@@ -101,7 +101,7 @@
         summary: Get role by ID
         description: |
             Retrieve a role by its ID.
-            Required permission: **CRUD:READ:ROLES**
+            Permisos necesarios: "CRUD:READ:ROLES"
         tags:
             - Roles
         security:
@@ -178,7 +178,7 @@
         summary: Update a role
         description: |
             Update role fields.
-            Required permission: **CRUD:UPDATE:ROLES**
+            Permisos necesarios: "CRUD:UPDATE:ROLES"
         tags:
             - Roles
         security:
@@ -210,7 +210,7 @@
         summary: Delete a role
         description: |
             Perform logical deletion of a role.
-            Required permission: **CRUD:DELETE:ROLES**
+            Permisos necesarios: "CRUD:DELETE:ROLES"
         tags:
             - Roles
         security:
@@ -231,7 +231,7 @@
         summary: Assign permissions to a role
         description: |
             Attach permissions to a role.
-            Required permission: **CRUD:UPDATE:ROLES**
+            Permisos necesarios: "CRUD:UPDATE:ROLES"
         tags:
             - Roles
         security:
@@ -263,7 +263,7 @@
         summary: Remove permissions from a role
         description: |
             Remove permissions from a role.
-            Required permission: **CRUD:UPDATE:ROLES**
+            Permisos necesarios: "CRUD:UPDATE:ROLES"
         tags:
             - Roles
         security:

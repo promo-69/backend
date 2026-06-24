@@ -3,7 +3,7 @@
         tags:
             - Users
         summary: Get user role
-        description: Returns the role assigned to the specified user.
+        description: Returns the role assigned to the specified user. Permisos necesarios: 'FEAT:DO:MANAGE_USERS'
         security:
             - cookieAuth: []
             - bearerAuth: []
@@ -54,7 +54,7 @@
         tags:
             - Users
         summary: Assign role to user
-        description: Assigns a role to the specified user.
+        description: Assigns a role to the specified user. Permisos necesarios: 'FEAT:DO:MANAGE_USERS'
         security:
             - cookieAuth: []
             - bearerAuth: []
@@ -104,7 +104,7 @@
         tags:
             - Users
         summary: Remove user role
-        description: Removes the role assignment from the specified user.
+        description: Removes the role assignment from the specified user. Permisos necesarios: 'FEAT:DO:MANAGE_USERS'
         security:
             - cookieAuth: []
             - bearerAuth: []
@@ -143,7 +143,7 @@
         tags:
             - Users
         summary: Get user permissions
-        description: Returns direct permissions assigned to the specified user.
+        description: Returns direct permissions assigned to the specified user. Permisos necesarios: 'FEAT:DO:MANAGE_USERS'
         security:
             - cookieAuth: []
             - bearerAuth: []
@@ -209,7 +209,7 @@
         tags:
             - Users
         summary: Assign permissions to user
-        description: Assigns direct permissions to the specified user.
+        description: Assigns direct permissions to the specified user. Permisos necesarios: 'FEAT:DO:MANAGE_USERS'
         security:
             - cookieAuth: []
             - bearerAuth: []
@@ -261,7 +261,7 @@
         tags:
             - Users
         summary: Remove permissions from user
-        description: Logically removes direct permissions from the specified user.
+        description: Logically removes direct permissions from the specified user. Permisos necesarios: 'FEAT:DO:MANAGE_USERS'
         security:
             - cookieAuth: []
             - bearerAuth: []

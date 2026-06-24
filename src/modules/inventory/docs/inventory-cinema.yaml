@@ -1,6 +1,7 @@
 /cinemas/{cinemaId}/inventory:
     get:
         summary: Get inventory of a specific cinema
+        description: Evaluar localizacion de este .yaml. Permisos necesarios: "CRUD:READ:CINEMAS-INVENTORY"
         tags:
             - Inventory Admin
         security:
@@ -45,6 +46,7 @@
 /cinemas/{cinemaId}/inventory/products/{productId}:
     get:
         summary: Get product stock in a specific cinema
+        description: Evaluar localizacion de este .yaml. Permisos necesarios "CRUD:READ:CINEMAS-INVENTORY"
         tags:
             - Inventory Admin
         security:
@@ -89,6 +91,7 @@
                 description: Product not provisioned in this cinema
     post:
         summary: Provision product in a specific cinema
+        description: Evaluar localizacion de este .yaml. Permisos necesarios "CRUD:CREATE:CINEMAS-INVENTORY"
         tags:
             - Inventory Admin
         security:
@@ -127,6 +130,7 @@
 /cinemas/{cinemaId}/inventory/{id}:
     get:
         summary: Get inventory record details in a specific cinema
+        description: Evaluar localizacion de este .yaml. Permisos necesarios "CRUD:READ:CINEMAS-INVENTORY"
         tags:
             - Inventory Admin
         security:
@@ -191,6 +195,7 @@
 /cinemas/{cinemaId}/inventory/{id}/movements:
     post:
         summary: Register movements in a specific cinema
+        description: Evaluar localizacion de este .yaml. Permisos necesarios "CRUD:CREATE:CINEMAS-INVENTORY"
         tags:
             - Inventory Admin
         security:

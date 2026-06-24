@@ -6,8 +6,10 @@ const PRODUCT_RELATIONS = [
     {
         association: '_Products',
         required: true,
-        relations: [{ association: '_ProductCategories', attributes: ['id', 'description'] }],
-    },
+        relations: [
+			{ association: '_ProductCategories', attributes: ['id', 'description'] },
+		],
+    }
 ];
 
 export class InventoryManagementService {

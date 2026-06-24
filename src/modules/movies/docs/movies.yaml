@@ -24,7 +24,7 @@
                 description: Internal server error
     post:
         summary: Create Movie
-        description: Register a new movie in the catalog. Requires SUPER_ADMIN or GENERAL_MANAGER role. Supports multipart/form-data for uploading poster and banner images.
+        description: Register a new movie in the catalog. Requires SUPER_ADMIN or GENERAL_MANAGER role. Supports multipart/form-data for uploading poster and banner images. Permisos necesarios: "CRUD:UPDATE:MOVIES"
         tags:
             - Movies
         security:
@@ -167,7 +167,7 @@
                 description: Internal server error
     patch:
         summary: Update Movie
-        description: Update movie details. Requires SUPER_ADMIN or GENERAL_MANAGER role. Supports multipart/form-data.
+        description: Update movie details. Requires SUPER_ADMIN or GENERAL_MANAGER role. Supports multipart/form-data. Permisos necesarios: 'CRUD:UPDATE:MOVIES'
         tags:
             - Movies
         security:
@@ -225,7 +225,7 @@
                 description: Internal server error
     delete:
         summary: Delete Movie
-        description: Soft-delete a movie from the catalog. Cannot delete a movie that has active future showtimes. Requires SUPER_ADMIN or GENERAL_MANAGER role.
+        description: Soft-delete a movie from the catalog. Cannot delete a movie that has active future showtimes. Requires SUPER_ADMIN or GENERAL_MANAGER role. Permisos necesarios: 'CRUD:DELETE:MOVIES'
         tags:
             - Movies
         security:

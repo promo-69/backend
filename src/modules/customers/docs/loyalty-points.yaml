@@ -7,6 +7,7 @@
             race conditions. The loyalty level is automatically recalculated
             based on the new point total. An entry in the loyalty ledger is
             recorded for auditing.
+            Permisos necesarios: "FEAT:DO:POINTS-ADJUSTMENT"
         tags:
             - Customers
         security:

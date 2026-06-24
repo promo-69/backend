@@ -127,3 +127,41 @@
                 description: Unauthorized
             '500':
                 description: Internal server error
+/users/me/movie-genres/{genreId}:
+    delete:
+        tags:
+            - Users
+        summary: Remove a specific movie genre from my profile
+        description: Removes a specific favorite movie genre from the currently logged-in user's profile.
+        security:
+            - cookieAuth: []
+            - bearerAuth: []
+        parameters:
+            - in: path
+              name: genreId
+              required: true
+              schema:
+                  type: integer
+              description: Genre ID
+        responses:
+            '200':
+                description: Genre removed successfully.
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                    example: true
+                                message:
+                                    type: string
+                                    example: Género favorito removido correctamente.
+                                data:
+                                    type: 'null'
+            '401':
+                description: Unauthorized
+            '404':
+                description: Genre not found in user profile
+            '500':
+                description: Internal server error

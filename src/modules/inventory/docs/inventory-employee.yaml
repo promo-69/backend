@@ -1,10 +1,10 @@
 /inventory:
     get:
         summary: Get inventory of current cinema
-        description: |
+        description: | Permisos necesarios: 'CRUD:READ:INVENTORY'
             Returns the stock and product information for the authenticated user's cinema.
             The cinema ID is extracted from the JWT token.
-            Required permission: **CRUD:READ:INVENTORY**
+            Permisos necesarios: "CRUD:READ:INVENTORY"
         tags:
             - Inventory
         security:
@@ -83,7 +83,7 @@
                   type: integer
         responses:
             '200':
-                description: Product stock details
+                description: Product stock details Permisos necesarios: 'CRUD:READ:INVENTORY'
                 content:
                     application/json:
                         schema:
@@ -110,10 +110,10 @@
                 description: Product not provisioned in this cinema
     post:
         summary: Provision product in current cinema
-        description: |
+        description: | Permisos necesarios: 'CRUD:CREATE:INVENTORY_MOVEMENT'
             Creates an inventory record for a product in the current cinema.
             Stock starts at 0. Minimum stock can be specified.
-            Required permission: **CRUD:CREATE:INVENTORY_MOVEMENT**
+            Permisos necesarios: "CRUD:CREATE:INVENTORY_MOVEMENT"
         tags:
             - Inventory
         security:
@@ -171,7 +171,7 @@
                   type: integer
         responses:
             '200':
-                description: Inventory detail with movement history
+                description: Inventory detail with movement history Permisos necesarios: 'CRUD:READ:INVENTORY'
                 content:
                     application/json:
                         schema:
@@ -218,11 +218,11 @@
 /inventory/{id}/movements:
     post:
         summary: Register inventory movements
-        description: |
+        description: | Permisos necesarios: 'CRUD:CREATE:INVENTORY_MOVEMENT'
             Register one or more movements (entry, exit, manual adjustment) for an inventory record.
             Each movement can specify `operationType`, `quantity`, optional `unit_cost` (for entries),
             and `adjustmentDirection` to force increase/decrease.
-            Required permission: **CRUD:CREATE:INVENTORY_MOVEMENT**
+            Permisos necesarios: "CRUD:CREATE:INVENTORY_MOVEMENT"
         tags:
             - Inventory
         security:
