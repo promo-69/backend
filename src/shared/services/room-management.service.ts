@@ -1,7 +1,7 @@
 import { Database } from '@database/index.js';
 import { NotFoundError, ValidationError, ConflictError } from '@errors';
 import { type ProcessedQueryFilters } from '@rules/api-query.type.js';
-import { type Transaction } from 'sequelize';
+import { type Transaction, literal } from 'sequelize';
 
 export class RoomManagementService {
     private get _rooms() {
@@ -22,17 +22,35 @@ export class RoomManagementService {
         const cinema = await this._cinemas.getById(cinemaId, { attributes: ['id'] });
         if (!cinema) throw new NotFoundError('No se encontró la sucursal especificada');
 
-        return this._rooms.getAll(
+        const rooms = await this._rooms.getAll(
             {
                 count: true,
                 relations: [
                     { association: '_Cinema', attributes: ['id', 'name'], required: false },
                     { association: '_RoomProjectionTypes', attributes: ['id', 'projection_type'], required: false },
                 ],
+                attributes: {
+                    include: [
+                        [
+                            literal(`(
+                                SELECT COUNT(*)
+                                FROM seats AS seat
+                                WHERE
+                                    seat.room = "RoomsModel".id
+                                    AND seat.seat_condition = 1
+									AND seat.seat_condition = 1
+                                    AND seat.deleted_at IS NULL
+                            )`),
+                            'current_capacity',
+                        ],
+                    ],
+                },
                 ...filters,
             },
             { cinema: cinemaId },
         );
+
+		return rooms;
     }
 
     async createRoom(cinemaId: number, body: any, _actorUserId?: number) {
