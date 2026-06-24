@@ -153,7 +153,8 @@ export class AuthService extends BaseService {
 		device?: string,
 	): Promise<LoginResponse> {
 		if (!email || !password) throw new ValidationError('Las credenciales están incompletas', []);
-
+		console.log('SI ENVIE CLAVE Y CORREO, SON:', email, password);
+		console.log('VALIDEZ?:', { correo: REGEX.EMAIL.test(email), clave: REGEX.PASSWORD.test(password) });
 		if (!REGEX.EMAIL.test(email) || !REGEX.PASSWORD.test(password))
 			throw new ValidationError('Credenciales inválidas', []);
 
@@ -162,12 +163,21 @@ export class AuthService extends BaseService {
 			{ relations: this._users._relations },
 		);
 
+		console.log('Found User:', foundUser);
+		console.log('Clave correcta?:', {
+			clave_enviada: password,
+			clave_hasheada: foundUser.password,
+			resultado: await BcryptUtil.compare(password, foundUser.password),
+		});
 		if (!foundUser || !(await BcryptUtil.compare(password, foundUser.password)))
 			throw new AuthError('Credenciales inválidas', { code: 'INVALID_LOGIN' });
 
 		const isEmployee = foundUser.role !== null && foundUser.role !== undefined;
 		const expectedIsEmployee = expectedUserType === USER_TYPE.EMPLOYEE;
 
+		console.log('es empleado?:', isEmployee);
+		console.log('es empleado esperado?:', expectedIsEmployee);
+		console.log('es diferente?:', isEmployee !== expectedIsEmployee);
 		if (isEmployee !== expectedIsEmployee) throw new AuthError('Credenciales inválidas', { code: 'INVALID_LOGIN' });
 
 		const roleCode = foundUser.role ? (await this._roles.getById(foundUser.role))?.code : null;
