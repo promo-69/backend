@@ -673,7 +673,16 @@ export class OrdersService extends BaseService {
 				const exchangeRateValue = Number(rateDb.rate);
 				const quotedExchangeRateId = rateDb.id;
 
-				const amountBase = MathUtil.roundMoney(amount * exchangeRateValue);
+				let amountBase = MathUtil.roundMoney(amount * exchangeRateValue);
+
+				// Pago con Cinepuntos: como los puntos son indivisibles, el monto
+				// convertido puede exceder el total por unos céntimos al redondear
+				// hacia arriba. Topamos el monto al total de la orden para que el
+				// pago cubra exactamente sin "exceder", sin cobrar de más.
+				if (paymentMethodId === PAYMENT_METHOD.LOYALTY_POINTS) {
+					const orderTotal = Number(order.total_amount_base_currency);
+					if (amountBase > orderTotal) amountBase = orderTotal;
+				}
 
 				// Ramificación según método de pago
 				if (paymentMethodId === PAYMENT_METHOD.LOYALTY_POINTS) {
