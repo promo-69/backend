@@ -90,7 +90,8 @@ class ShowtimesController extends ControllerBase {
 
     async getSeatMap() {
         const { id } = this.getParams();
-        const data = await ShowtimesService.getSeatMap(Number(id));
+        const session = this.getSession<{ userId?: number }>();
+        const data = await ShowtimesService.getSeatMap(Number(id), session?.userId);
         return this.success(data, 'Mapa de asientos obtenido exitosamente.');
     }
 
