@@ -118,6 +118,10 @@ export class OrdersService extends BaseService {
 					const verifiedUser = users.find((u: any) => u.signup_verified_at !== null && !u.deleted_at);
 					if (verifiedUser && verifiedUser.email) return verifiedUser.email;
 				}
+				
+				// Opcional: si la sesión es de empleado y la persona no tiene usuario verificado,
+				// retornamos null directamente (evitando usar el personal_email que a veces puede estar sucio o no asociado a cuenta).
+				if (session.roleCode) return null;
 
 				if (customer._People.personal_email)
 					return customer._People.personal_email;
