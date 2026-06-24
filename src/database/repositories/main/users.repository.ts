@@ -73,7 +73,7 @@ class UsersRepository extends SequelizeRepositoryBase<UsersAttributes, number> {
 			},
 			{
 				association: '_Roles',
-				attributes: ['code', 'name'],
+				attributes: ['code', 'name', 'description'],
 				required: false,
 				nested: [{ association: '_RoleInheritancesChild' }],
 			},
