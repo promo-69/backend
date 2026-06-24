@@ -21,7 +21,7 @@ export class Logger {
 		message: string,
 		{ format, firm }: { format?: string; firm?: string } = {},
 	): string {
-		const timestamp = new Date().toLocaleString();
+		const timestamp = new Date().toLocaleString('es-VE', { timeZoneName: 'short', timeZone: 'America/Caracas' });
 		const prefixFormat = format != null ? format : '';
 		const suffixFormat = ANSI.getCode('reset');
 		let logType: string = '';

@@ -27,7 +27,7 @@ export class ShoppingSessionService {
 	async clearSessionAndLocks(session: any) {
 		const userQueueKey = `queue:usr:${session.userId}`;
 		const quoteRaw = await this._redis.get(userQueueKey);
-		
+
 		await this._redis.del(userQueueKey);
 
 		let customerId = session.customerId ? Number(session.customerId) : null;

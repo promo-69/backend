@@ -8,7 +8,35 @@ export class SeatLockService {
 	}
 
 	async handleQuoteExpiration(userId: number) {
+		const redis = this._redis;
+		const showtimeIdRaw = await redis.get(`ws:context:usr:${userId}`);
+
+		if (showtimeIdRaw) {
+			const showtimeId = Number(showtimeIdRaw);
+			await this.forceUnlockUserSeats(showtimeId, userId);
+		}
+
 		RealtimeProvider.getInstance().emitToRoom(`usr_${userId}`, 'quote_expired', {});
+	}
+
+	async forceUnlockUserSeats(showtimeId: number, userId: number) {
+		const redis = this._redis;
+		const lockedSeatsKey = `usr:${userId}:showtime:${showtimeId}:locked_seats`;
+		const seatIdsRaw = await redis.smembers(lockedSeatsKey);
+
+		if (seatIdsRaw && seatIdsRaw.length > 0) {
+			await redis.del(lockedSeatsKey);
+			const seatIds = seatIdsRaw.map(Number);
+			const pipeline = redis.pipeline();
+
+			for (const seatId of seatIds) {
+				pipeline.del(`lock:showtime:${showtimeId}:seat:${seatId}`);
+				pipeline.zrem(`showtime:${showtimeId}:locked_seats`, String(seatId));
+			}
+			await pipeline.exec();
+
+			RealtimeProvider.getInstance().emitToRoom(`showtime_${showtimeId}`, 'seats_unlocked', { seatIds });
+		}
 	}
 
 	async handleSeatExpiration(showtimeId: number, seatId: number) {
