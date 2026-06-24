@@ -244,8 +244,24 @@ export class ConcessionsService extends BaseService {
 	async findAllAvailableProducts(filters?: ProcessedQueryFilters, context?: { cinemaId?: number; userId?: number }) {
 		if (!context?.cinemaId) throw new ValidationError('cinemaId es requerido');
 
-		const rawInventories = await inventoryManagementService.getStockByCinema(context.cinemaId, filters);
-		let inventoryList = Array.isArray(rawInventories) ? rawInventories : rawInventories.rows || [];
+		const productsRepo = Database.repository('main', 'products') as any;
+
+		const [allProducts, rawInventories] = await Promise.all([
+			productsRepo.getAll({
+				count: false,
+				relations: [{ association: '_ProductCategories', attributes: ['id', 'description'] }],
+			}),
+			inventoryManagementService.getStockByCinema(context.cinemaId).catch(() => ({ rows: [] })),
+		]);
+
+		const productList = Array.isArray(allProducts) ? allProducts : allProducts.rows || [];
+		const inventoryList = Array.isArray(rawInventories) ? rawInventories : rawInventories.rows || [];
+
+		const stockMap = new Map<number, number>();
+		for (const inv of inventoryList) {
+			const productId = inv._Products?.id ?? inv.product;
+			if (productId) stockMap.set(productId, inv.stock ?? 0);
+		}
 
 		let activeQuote = null;
 		let cacheData: any = null;
@@ -255,10 +271,8 @@ export class ConcessionsService extends BaseService {
 		const allCurrencies = await (Database.repository('main', 'currencies') as any).getAll({ count: false });
 		const currencyMap = new Map<number, string>(allCurrencies.map((c: any) => [c.id, c.description]));
 
-		const enrichedList = inventoryList.map((inv: any) => {
-			if (!inv._Products) return null;
-			const p = inv._Products;
-			const productClone = { ...p.toJSON ? p.toJSON() : p };
+		const enrichedList = productList.map((p: any) => {
+			const productClone = { ...p.toJSON ? p.toJSON() : p, stock: stockMap.get(p.id) ?? 0 };
 
 			if (!cacheData) return productClone;
 
@@ -268,7 +282,7 @@ export class ConcessionsService extends BaseService {
 			const currentDay = sessionDate.getDay() === 0 ? 7 : sessionDate.getDay();
 			const timeContext = { currentDate, currentTime, currentDay };
 			const pricingContext = {
-				modifier_scope: 2, // Confitería
+				modifier_scope: 2,
 				cinemaId: activeQuote ? activeQuote.cinema : context.cinemaId,
 				line_type: null,
 				product_category: p.product_category,
@@ -287,7 +301,7 @@ export class ConcessionsService extends BaseService {
 			const pricingObj: any = {
 				currency: itemCurr,
 				currency_description: currencyMap.get(itemCurr) || 'Desconocido',
-				base_price: inv._Products.price,
+				base_price: p.price,
 				final_price: basePricing.finalPrice,
 				applied_modifiers: basePricing.appliedModifiers,
 			};
@@ -313,7 +327,7 @@ export class ConcessionsService extends BaseService {
 			delete productClone.currency;
 
 			return productClone;
-		}).filter(Boolean);
+		});
 
 		return enrichedList;
 	}

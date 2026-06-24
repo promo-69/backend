@@ -2078,7 +2078,9 @@ export class ShowtimeManagementService {
 			(Array.isArray(categoriesRaw) ? categoriesRaw : categoriesRaw.rows).map((c: any) => [c.id, c]),
 		);
 
-		const seats = allSeats.map((seat: any) => {
+		const seats = allSeats
+			.filter((seat: any) => seat.seat_condition !== 3)
+			.map((seat: any) => {
 			let status: 'available' | 'locked' | 'sold' | 'maintenance';
 			if (seat.seat_condition !== 1) {
 				status = 'maintenance';
@@ -2096,6 +2098,7 @@ export class ShowtimeManagementService {
 				column: seat.column_number,
 				label: `${seat.row_identifier}${seat.column_number}`,
 				category: { id: category.id ?? null, description: category.description ?? null },
+				seat_condition: seat.seat_condition,
 				status,
 			};
 		});
