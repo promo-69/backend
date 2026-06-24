@@ -118,10 +118,6 @@ export class OrdersService extends BaseService {
 					const verifiedUser = users.find((u: any) => u.signup_verified_at !== null && !u.deleted_at);
 					if (verifiedUser && verifiedUser.email) return verifiedUser.email;
 				}
-				
-				// Opcional: si la sesión es de empleado y la persona no tiene usuario verificado,
-				// retornamos null directamente (evitando usar el personal_email que a veces puede estar sucio o no asociado a cuenta).
-				if (session.roleCode) return null;
 
 				if (customer._People.personal_email)
 					return customer._People.personal_email;
@@ -239,6 +235,8 @@ export class OrdersService extends BaseService {
 			created_at: quoteData.created_at,
 			expires_at: quoteData.expires_at,
 			expires_in: currentTtl,
+			system_base_currency: quoteData.system_base_currency,
+			exchange_rates: quoteData.exchange_rates,
 		};
 	}
 
@@ -553,6 +551,8 @@ export class OrdersService extends BaseService {
 				success: true,
 				subtotal_base_currency: createdOrder.subtotal_base_currency,
 				total_amount_base_currency: createdOrder.total_amount_base_currency,
+				system_base_currency: quoteData.system_base_currency,
+				exchange_rates: quoteData.exchange_rates,
 			};
 		} catch (error) {
 			// Revierte estado en caso de error para permitir reintentos
@@ -677,21 +677,19 @@ export class OrdersService extends BaseService {
 
 				// Ramificación según método de pago
 				if (paymentMethodId === PAYMENT_METHOD.LOYALTY_POINTS) {
-					const loyaltyCustomerId = quoteData.customerId || session.customerId;
-					if (!loyaltyCustomerId) throw new BadRequestError('No hay un cliente asociado a esta orden para usar puntos de fidelidad');
-
 					const ledgers = await this._loyaltyLedgers.getAll(
 						{ count: false, order: [['id', 'DESC']], limit: 1, operation: { transaction, lock: transaction.LOCK.UPDATE } },
-						{ customer: loyaltyCustomerId },
+						{ customer: session.customerId },
 					);
 
 					const currentBalance = ledgers.length > 0 ? Number(ledgers[0].points_balance) : 0;
 					if (amount > currentBalance) throw new BadRequestError('Saldo de puntos insuficiente');
 
+					// Descontar puntos de una vez con un registro decremental
 					await this._loyaltyLedgers.create(
 						{
 							operation_type: LOYALTY_OPERATION.SPEND,
-							customer: loyaltyCustomerId,
+							customer: session.customerId,
 							points: amount,
 							points_balance: currentBalance - amount,
 							description: `Pago parcial de orden ${order_id}`,
@@ -699,12 +697,11 @@ export class OrdersService extends BaseService {
 						{ transaction },
 					);
 				} else if ([PAYMENT_METHOD.POS, PAYMENT_METHOD.MOBILE_PAYMENT, PAYMENT_METHOD.BANK_TRANSFER].includes(paymentMethodId) || bypass === true) {
+					if (!reference_number) throw new BadRequestError('El número de referencia es obligatorio para este método de pago');
+					if (!bank) throw new BadRequestError('El banco destino es obligatorio para este método de pago');
 					if (!currency) throw new BadRequestError('La moneda es obligatoria para este método de pago');
 
 					if (bypass !== true) {
-						if (!reference_number) throw new BadRequestError('El número de referencia es obligatorio para este método de pago');
-						if (!bank) throw new BadRequestError('El banco destino es obligatorio para este método de pago');
-
 						// Obtener cuenta bancaria para validar si acepta el pago y si requiere validación con Banky
 						const searchParams: any = { payment_method: paymentMethodId, currency, bank};
 						const acceptedAccounts = await this._bankAccounts.getAll(
@@ -791,6 +788,9 @@ export class OrdersService extends BaseService {
 				{ order: order_id },
 			);
 			const totalPaid = payments.reduce((acc: number, p: any) => acc + Number(p.amount), 0);
+
+			if (totalPaid > Number(order.total_amount_base_currency))
+				throw new BadRequestError('El monto pagado excede el total de la orden');
 
 			if (totalPaid >= Number(order.total_amount_base_currency)) {
 				const tickets = (order as any)._Tickets || [];
@@ -1122,13 +1122,8 @@ export class OrdersService extends BaseService {
 				},
 				{ cinema, product: productIds },
 			);
-			if (inventories.length !== productIds.length) {
-				const foundIds = new Set(inventories.map((inv: any) => inv.product));
-				const missing = productIds.filter((pid: number) => !foundIds.has(pid));
-				throw new NotFoundError(
-					`Los siguientes productos no tienen inventario en esta sucursal: ${missing.join(', ')}`,
-				);
-			}
+			if (inventories.length !== productIds.length)
+				throw new NotFoundError('Uno o más productos no existen en el inventario de esta sucursal.');
 
 			// Busca ordenes pendientes de otros usuarios para reservar inventario logico
 			const comboPartsOfInterest = await this._comboProducts.getAll(
