@@ -27,9 +27,6 @@ export class ShowtimeManagementService {
 	private get _tickets() {
 		return Database.repository('main', 'tickets') as any;
 	}
-	private get _orders() {
-		return Database.repository('main', 'orders') as any;
-	}
 	private get _bookingTypes() {
 		return Database.repository('main', 'booking-types') as any;
 	}
@@ -1613,7 +1610,7 @@ export class ShowtimeManagementService {
 					{
 						association: '_Orders',
 						required: true,
-						where: { order_status: 2 },
+						where: { order_status: [ORDER_STATUS.PAID, ORDER_STATUS.ONLINE_PAID] },
 					},
 				],
 			},
@@ -2065,7 +2062,6 @@ export class ShowtimeManagementService {
 			{ booking: showtime.booking, deleted_at: null },
 		);
 
-		console.log('soldTickets', soldTickets);
 		const soldSeatIds = new Set<number>(
 			(Array.isArray(soldTickets) ? soldTickets : (soldTickets as any).rows || []).map((t: any) => t.seat),
 		);

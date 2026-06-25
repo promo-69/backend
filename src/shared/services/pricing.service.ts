@@ -24,7 +24,7 @@ export class PricingService {
 		// Filtra los modificadores aplicables según el contexto
 		const applicableModifiers = activeModifiers.filter((m: any) => {
 			if (m.modifier_scope && m.modifier_scope !== 3 && m.modifier_scope !== context.modifier_scope) return false;
-			
+
 			// Regla estricta: El modificador DEBE coincidir con la moneda original del ítem,
 			// a menos que sea un modificador porcentual, los cuales son agnósticos a la moneda.
 			if (!m.is_percentage && m.currency !== itemCurrency) return false;
@@ -71,6 +71,7 @@ export class PricingService {
 			finalUnitPrice += netChange;
 
 			appliedModifiers.push({
+				modifier_description: mod.description,
 				price_modifier: mod.id,
 				applied_amount: netChange, // Cantidad descontada/incrementada en la moneda original
 			});
