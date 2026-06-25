@@ -298,7 +298,7 @@ export class ShowtimeManagementService {
 		const movies = await this._movies.getAll(
 			{
 				count: false,
-				attributes: ['id', 'title', 'duration_minutes', 'poster_url', 'lifecycle_state', 'banner_url'],
+				attributes: ['id', 'title', 'duration_minutes', 'poster_url', 'lifecycle_state'],
 				relations: [
 					{ association: '_LifecycleStates', attributes: ['id', 'description'], required: false },
 					{ association: '_AgeClassifications', attributes: ['id', 'description'], required: false },
@@ -354,6 +354,7 @@ export class ShowtimeManagementService {
 						title: movie.title,
 						duration_minutes: movie.duration_minutes,
 						poster_url: movie.poster_url ?? null,
+						banner_url: movie.banner_url ?? null,
 						lifecycle: movie._LifecycleStates
 							? { id: movie._LifecycleStates.id, description: movie._LifecycleStates.description }
 							: null,
@@ -457,7 +458,7 @@ export class ShowtimeManagementService {
 		const events = await this._specialEvents.getAll(
 			{
 				count: false,
-				attributes: ['id', 'title', 'duration_minutes', 'poster_url', 'lifecycle_state'],
+				attributes: ['id', 'title', 'duration_minutes', 'poster_url', 'banner_url', 'lifecycle_state'],
 				relations: [
 					{ association: '_LifecycleStates', attributes: ['id', 'description'], required: false },
 					{ association: '_AgeClassifications', attributes: ['id', 'description'], required: false },
@@ -512,6 +513,7 @@ export class ShowtimeManagementService {
 						title: event.title,
 						duration_minutes: event.duration_minutes,
 						poster_url: event.poster_url ?? null,
+						banner_url: event.banner_url ?? null,
 						lifecycle: event._LifecycleStates
 							? { id: event._LifecycleStates.id, description: event._LifecycleStates.description }
 							: null,
@@ -2089,9 +2091,7 @@ export class ShowtimeManagementService {
 			(Array.isArray(categoriesRaw) ? categoriesRaw : categoriesRaw.rows).map((c: any) => [c.id, c]),
 		);
 
-		const seats = allSeats
-			.filter((seat: any) => seat.seat_condition !== 3)
-			.map((seat: any) => {
+		const seats = allSeats.map((seat: any) => {
 			let status: 'available' | 'locked' | 'sold' | 'maintenance';
 			if (seat.seat_condition !== 1) {
 				status = 'maintenance';
