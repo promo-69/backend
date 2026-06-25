@@ -297,7 +297,7 @@ export class ShowtimeManagementService {
 		const movies = await this._movies.getAll(
 			{
 				count: false,
-				attributes: ['id', 'title', 'duration_minutes', 'poster_url', 'lifecycle_state'],
+				attributes: ['id', 'title', 'duration_minutes', 'poster_url', 'lifecycle_state', 'banner_url'],
 				relations: [
 					{ association: '_LifecycleStates', attributes: ['id', 'description'], required: false },
 					{ association: '_AgeClassifications', attributes: ['id', 'description'], required: false },

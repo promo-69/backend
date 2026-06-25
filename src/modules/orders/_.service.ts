@@ -551,6 +551,8 @@ export class OrdersService extends BaseService {
 				success: true,
 				subtotal_base_currency: createdOrder.subtotal_base_currency,
 				total_amount_base_currency: createdOrder.total_amount_base_currency,
+				system_base_currency: quoteData.system_base_currency,
+				exchange_rates: quoteData.exchange_rates,
 			};
 		} catch (error) {
 			// Revierte estado en caso de error para permitir reintentos
@@ -671,25 +673,32 @@ export class OrdersService extends BaseService {
 				const exchangeRateValue = Number(rateDb.rate);
 				const quotedExchangeRateId = rateDb.id;
 
-				const amountBase = MathUtil.roundMoney(amount * exchangeRateValue);
+				let amountBase = MathUtil.roundMoney(amount * exchangeRateValue);
+
+				// Pago con Cinepuntos: como los puntos son indivisibles, el monto
+				// convertido puede exceder el total por unos céntimos al redondear
+				// hacia arriba. Topamos el monto al total de la orden para que el
+				// pago cubra exactamente sin "exceder", sin cobrar de más.
+				if (paymentMethodId === PAYMENT_METHOD.LOYALTY_POINTS) {
+					const orderTotal = Number(order.total_amount_base_currency);
+					if (amountBase > orderTotal) amountBase = orderTotal;
+				}
 
 				// Ramificación según método de pago
 				if (paymentMethodId === PAYMENT_METHOD.LOYALTY_POINTS) {
-					const loyaltyCustomerId = quoteData.customerId || session.customerId;
-					if (!loyaltyCustomerId) throw new BadRequestError('No hay un cliente asociado a esta orden para usar puntos de fidelidad');
-
 					const ledgers = await this._loyaltyLedgers.getAll(
 						{ count: false, order: [['id', 'DESC']], limit: 1, operation: { transaction, lock: transaction.LOCK.UPDATE } },
-						{ customer: loyaltyCustomerId },
+						{ customer: session.customerId },
 					);
 
 					const currentBalance = ledgers.length > 0 ? Number(ledgers[0].points_balance) : 0;
 					if (amount > currentBalance) throw new BadRequestError('Saldo de puntos insuficiente');
 
+					// Descontar puntos de una vez con un registro decremental
 					await this._loyaltyLedgers.create(
 						{
 							operation_type: LOYALTY_OPERATION.SPEND,
-							customer: loyaltyCustomerId,
+							customer: session.customerId,
 							points: amount,
 							points_balance: currentBalance - amount,
 							description: `Pago parcial de orden ${order_id}`,
@@ -697,12 +706,11 @@ export class OrdersService extends BaseService {
 						{ transaction },
 					);
 				} else if ([PAYMENT_METHOD.POS, PAYMENT_METHOD.MOBILE_PAYMENT, PAYMENT_METHOD.BANK_TRANSFER].includes(paymentMethodId) || bypass === true) {
+					if (!reference_number) throw new BadRequestError('El número de referencia es obligatorio para este método de pago');
+					if (!bank) throw new BadRequestError('El banco destino es obligatorio para este método de pago');
 					if (!currency) throw new BadRequestError('La moneda es obligatoria para este método de pago');
 
 					if (bypass !== true) {
-						if (!reference_number) throw new BadRequestError('El número de referencia es obligatorio para este método de pago');
-						if (!bank) throw new BadRequestError('El banco destino es obligatorio para este método de pago');
-
 						// Obtener cuenta bancaria para validar si acepta el pago y si requiere validación con Banky
 						const searchParams: any = { payment_method: paymentMethodId, currency, bank};
 						const acceptedAccounts = await this._bankAccounts.getAll(
@@ -789,6 +797,9 @@ export class OrdersService extends BaseService {
 				{ order: order_id },
 			);
 			const totalPaid = payments.reduce((acc: number, p: any) => acc + Number(p.amount), 0);
+
+			if (totalPaid > Number(order.total_amount_base_currency))
+				throw new BadRequestError('El monto pagado excede el total de la orden');
 
 			if (totalPaid >= Number(order.total_amount_base_currency)) {
 				const tickets = (order as any)._Tickets || [];
@@ -1120,13 +1131,8 @@ export class OrdersService extends BaseService {
 				},
 				{ cinema, product: productIds },
 			);
-			if (inventories.length !== productIds.length) {
-				const foundIds = new Set(inventories.map((inv: any) => inv.product));
-				const missing = productIds.filter((pid: number) => !foundIds.has(pid));
-				throw new NotFoundError(
-					`Los siguientes productos no tienen inventario en esta sucursal: ${missing.join(', ')}`,
-				);
-			}
+			if (inventories.length !== productIds.length)
+				throw new NotFoundError('Uno o más productos no existen en el inventario de esta sucursal.');
 
 			// Busca ordenes pendientes de otros usuarios para reservar inventario logico
 			const comboPartsOfInterest = await this._comboProducts.getAll(

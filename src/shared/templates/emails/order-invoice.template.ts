@@ -1,77 +1,113 @@
-export const OrderInvoiceEmailTemplate = (order: any, qrCode: string) => `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>Factura de Compra - Cineflix</title>
-  <style>
-    body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 40px 20px; color: #333; }
-    .container { background-color: #ffffff; padding: 40px; border-radius: 12px; max-width: 700px; margin: auto; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-    .header { text-align: center; border-bottom: 2px solid #eee; padding-bottom: 20px; margin-bottom: 30px; }
-    h1 { color: #e50914; margin: 0; font-size: 28px; }
-    .order-info { text-align: center; margin-bottom: 30px; color: #666; font-size: 16px; }
-    .details-container { display: flex; flex-wrap: wrap; gap: 20px; }
-    .section { flex: 1; min-width: 280px; background: #f9fafb; padding: 20px; border-radius: 8px; border: 1px solid #eaeaea; }
-    .section-title { font-size: 18px; color: #333; border-bottom: 2px solid #e50914; padding-bottom: 10px; margin-top: 0; margin-bottom: 15px; }
-    .item-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; }
-    .item-name { font-weight: bold; }
-    .total-row { display: flex; justify-content: space-between; margin-top: 20px; font-size: 18px; font-weight: bold; padding-top: 15px; border-top: 2px dashed #ccc; }
-    .qr-box { text-align: center; margin-top: 30px; padding: 20px; background: #fff; border: 2px dashed #e50914; border-radius: 8px; }
-    .qr-code { font-size: 32px; letter-spacing: 5px; color: #e50914; margin: 15px 0; font-weight: bold; }
-    .footer { text-align: center; margin-top: 30px; font-size: 12px; color: #999; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1>Cineflix</h1>
-    </div>
-    
-    <div class="order-info">
-      <strong>¡Gracias por tu compra!</strong><br>
-      Tu orden <strong>#${order.id}</strong> en <strong>${order.cinemaName}</strong> ha sido procesada.
-    </div>
+import { EmailLayout, SectionTitle, colors } from '../components/email.template.js';
 
-    <div class="details-container">
-      ${order.movieData ? `
-      <div class="section">
-        <h3 class="section-title">🎬 Tu Película</h3>
-        <div class="item-row"><span>Película:</span> <span class="item-name">${order.movieData.title}</span></div>
-        <div class="item-row"><span>Fecha/Hora:</span> <span>${new Date(order.movieData.date).toLocaleString()}</span></div>
-        <div class="item-row"><span>Sala:</span> <span>${order.movieData.roomName}</span></div>
-        <div class="item-row"><span>Entradas:</span> <span>${order.movieData.ticketsCount}</span></div>
-      </div>
-      ` : ''}
+export const OrderInvoiceEmailTemplate = (order: any, qrCodeBase64: string) => {
+    const symbol = order.currencySymbol || 'Bs.';
 
-      ${order.confectioneryItems && order.confectioneryItems.length > 0 ? `
-      <div class="section">
-        <h3 class="section-title">🍿 Confitería</h3>
-        ${order.confectioneryItems.map((item: any) => `
-          <div class="item-row">
-            <span class="item-name">${item.quantity}x ${item.name}</span>
-            <span>$${item.price}</span>
-          </div>
-        `).join('')}
-      </div>
-      ` : ''}
-    </div>
+    const content = `
+    ${SectionTitle('Factura de Compra')}
+    <tr>
+        <td style="padding: 30px 40px; font-family: 'Arial', sans-serif;">
+            
+            <p style="margin: 0 0 25px 0; font-size: 15px; color: ${colors.textMedium}; line-height: 1.6; text-align: center;">
+                ¡Hola! Gracias por tu compra.<br><br>
+                Tu orden <strong style="color: ${colors.secondary};">#${order.id}</strong> en <strong style="color: ${colors.secondary};">${order.cinemaName}</strong> ha sido procesada exitosamente.
+            </p>
 
-    <div class="total-row">
-      <span>Total Pagado:</span>
-      <span>$${order.total}</span>
-    </div>
+            ${order.movieData ? `
+            <div style="margin-bottom: 25px;">
+                <h3 style="margin: 0 0 10px 0; font-size: 18px; color: ${colors.secondary}; border-bottom: 2px solid ${colors.primary}; padding-bottom: 5px;">🎬 Detalles de la Película</h3>
+                <p style="margin: 0 0 15px 0; font-size: 16px; font-weight: bold; color: ${colors.accent};">${order.movieData.title}</p>
+                
+                <p style="margin: 0 0 15px 0; font-size: 14px; color: ${colors.textMedium};">
+                    <strong>Horario:</strong> ${new Date(order.movieData.date).toLocaleString('es-VE')}<br>
+                    <strong>Sala:</strong> ${order.movieData.roomName}
+                </p>
 
-    <div class="qr-box">
-      <h3>Tu Código de Acceso</h3>
-      <p style="color: #666; font-size: 14px;">Presenta este código en taquilla y dulcería</p>
-      <div class="qr-code">${qrCode}</div>
-    </div>
+                <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse; margin-bottom: 10px;">
+                    <tr>
+                        <th align="left" style="padding: 10px; background-color: ${colors.background}; font-size: 13px; color: ${colors.textMedium}; border-bottom: 1px solid ${colors.border};">Cant.</th>
+                        <th align="left" style="padding: 10px; background-color: ${colors.background}; font-size: 13px; color: ${colors.textMedium}; border-bottom: 1px solid ${colors.border};">Boletos</th>
+                        <th align="right" style="padding: 10px; background-color: ${colors.background}; font-size: 13px; color: ${colors.textMedium}; border-bottom: 1px solid ${colors.border};">P. Unit</th>
+                        <th align="right" style="padding: 10px; background-color: ${colors.background}; font-size: 13px; color: ${colors.textMedium}; border-bottom: 1px solid ${colors.border};">Total</th>
+                    </tr>
+                    ${order.movieData.ticketsList.map((t: any) => `
+                    <tr>
+                        <td align="center" style="padding: 12px 10px; border-bottom: 1px solid ${colors.border}; font-size: 14px; color: ${colors.textDark}; width: 10%;">${t.count}x</td>
+                        <td align="left" style="padding: 12px 10px; border-bottom: 1px solid ${colors.border}; font-size: 14px; color: ${colors.textDark};">Entrada ${t.name}</td>
+                        <td align="right" style="padding: 12px 10px; border-bottom: 1px solid ${colors.border}; font-size: 14px; color: ${colors.textMedium};">${symbol}${t.unitPrice}</td>
+                        <td align="right" style="padding: 12px 10px; border-bottom: 1px solid ${colors.border}; font-size: 14px; color: ${colors.textDark}; font-weight: bold;">${symbol}${t.total}</td>
+                    </tr>
+                    `).join('')}
+                </table>
+            </div>
+            ` : ''}
 
-    <div class="footer">
-      <p>Este es un comprobante de tu compra. Por favor guárdalo para tu visita.</p>
-      <p>&copy; ${new Date().getFullYear()} Cineflix. Todos los derechos reservados.</p>
-    </div>
-  </div>
-</body>
-</html>
-`;
+            ${order.confectioneryItems && order.confectioneryItems.length > 0 ? `
+            <div style="margin-bottom: 25px;">
+                <h3 style="margin: 0 0 10px 0; font-size: 18px; color: ${colors.secondary}; border-bottom: 2px solid ${colors.primary}; padding-bottom: 5px;">🍿 Confitería</h3>
+                
+                <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse; margin-bottom: 10px;">
+                    <tr>
+                        <th align="left" style="padding: 10px; background-color: ${colors.background}; font-size: 13px; color: ${colors.textMedium}; border-bottom: 1px solid ${colors.border};">Cant.</th>
+                        <th align="left" style="padding: 10px; background-color: ${colors.background}; font-size: 13px; color: ${colors.textMedium}; border-bottom: 1px solid ${colors.border};">Producto / Combo</th>
+                        <th align="right" style="padding: 10px; background-color: ${colors.background}; font-size: 13px; color: ${colors.textMedium}; border-bottom: 1px solid ${colors.border};">P. Unit</th>
+                        <th align="right" style="padding: 10px; background-color: ${colors.background}; font-size: 13px; color: ${colors.textMedium}; border-bottom: 1px solid ${colors.border};">Total</th>
+                    </tr>
+                    ${order.confectioneryItems.map((item: any) => `
+                    <tr>
+                        <td align="center" style="padding: 12px 10px; border-bottom: 1px solid ${colors.border}; font-size: 14px; color: ${colors.textDark}; width: 10%;">${item.quantity}x</td>
+                        <td align="left" style="padding: 12px 10px; border-bottom: 1px solid ${colors.border}; font-size: 14px; color: ${colors.textDark};">${item.name}</td>
+                        <td align="right" style="padding: 12px 10px; border-bottom: 1px solid ${colors.border}; font-size: 14px; color: ${colors.textMedium};">${symbol}${item.unitPrice}</td>
+                        <td align="right" style="padding: 12px 10px; border-bottom: 1px solid ${colors.border}; font-size: 14px; color: ${colors.textDark}; font-weight: bold;">${symbol}${item.totalPrice}</td>
+                    </tr>
+                    `).join('')}
+                </table>
+            </div>
+            ` : ''}
+
+            ${order.payments && order.payments.length > 0 ? `
+            <div style="margin-bottom: 25px;">
+                <h3 style="margin: 0 0 10px 0; font-size: 18px; color: ${colors.secondary}; border-bottom: 2px solid ${colors.primary}; padding-bottom: 5px;">💳 Pagos Realizados</h3>
+                
+                <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse; margin-bottom: 10px;">
+                    <tr>
+                        <th align="left" style="padding: 10px; background-color: ${colors.background}; font-size: 13px; color: ${colors.textMedium}; border-bottom: 1px solid ${colors.border};">Método de Pago</th>
+                        <th align="left" style="padding: 10px; background-color: ${colors.background}; font-size: 13px; color: ${colors.textMedium}; border-bottom: 1px solid ${colors.border};">Referencia</th>
+                        <th align="right" style="padding: 10px; background-color: ${colors.background}; font-size: 13px; color: ${colors.textMedium}; border-bottom: 1px solid ${colors.border};">Monto</th>
+                    </tr>
+                    ${order.payments.map((p: any) => `
+                    <tr>
+                        <td align="left" style="padding: 12px 10px; border-bottom: 1px solid ${colors.border}; font-size: 14px; color: ${colors.textDark};">${p.method}</td>
+                        <td align="left" style="padding: 12px 10px; border-bottom: 1px solid ${colors.border}; font-size: 14px; color: ${colors.textMedium};">${p.reference === 'N/A' ? '-' : p.reference}</td>
+                        <td align="right" style="padding: 12px 10px; border-bottom: 1px solid ${colors.border}; font-size: 14px; color: ${colors.textDark}; font-weight: bold;">${symbol}${p.amount}</td>
+                    </tr>
+                    `).join('')}
+                </table>
+            </div>
+            ` : ''}
+
+            <div style="text-align: right; padding: 20px 10px; border-top: 2px solid ${colors.secondary}; margin-top: 15px;">
+                <span style="font-size: 18px; color: ${colors.textMedium}; font-weight: bold;">Total Pagado:</span>
+                <span style="font-size: 22px; color: ${colors.accent}; margin-left: 15px; font-weight: bold;">${symbol}${order.total}</span>
+            </div>
+
+            <div style="background-color: ${colors.background}; border: 2px dashed ${colors.border}; border-radius: 8px; text-align: center; padding: 30px 20px; margin-top: 40px;">
+                <h3 style="margin: 0 0 10px 0; color: ${colors.secondary};">Tu Código de Acceso</h3>
+                <p style="margin: 0 0 20px 0; color: ${colors.textMedium}; font-size: 14px; line-height: 1.5;">
+                    Presenta este código en la taquilla y/o área de dulcería para validar tu compra. Puedes mostrarlo desde tu celular.
+                </p>
+                ${qrCodeBase64 ? `<img src="${qrCodeBase64}" alt="Código QR" style="max-width: 200px; height: auto; display: block; margin: 0 auto;" />` : '<p style="font-style: italic; color: #999;">Código QR no disponible en este momento</p>'}
+            </div>
+
+            <div style="text-align: center; margin-top: 30px;">
+                <p style="margin: 0; font-size: 13px; color: ${colors.textLight}; line-height: 1.6;">
+                    Este es un comprobante automático de tu compra.<br>Por favor guárdalo para tu visita.
+                </p>
+            </div>
+        </td>
+    </tr>
+    `;
+
+    return EmailLayout(`Factura de Compra #${order.id} - Cineflix`, content);
+};
+
