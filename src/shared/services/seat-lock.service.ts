@@ -51,18 +51,31 @@ export class SeatLockService {
 	 */
 	async lockSeat(showtimeId: number, seatId: number, userId: number, socketId?: string) {
 		const lockKey = `lock:showtime:${showtimeId}:seat:${seatId}`;
-		const success = await this._redis.set(lockKey, String(userId), 'EX', 480, 'NX');
 
-		if (!success) throw new ConflictError('Asiento ocupado');
+		// Intentar adquirir el lock
+		const acquired = await this._redis.set(lockKey, String(userId), 'EX', 600, 'NX');
 
-		const expireTimestamp = Date.now() + 480000;
-		await this._redis.zadd(`showtime:${showtimeId}:locked_seats`, expireTimestamp, String(seatId));
+		if (acquired) {
+			const expireTimestamp = Date.now() + 600000;
+			await this._redis.zadd(`showtime:${showtimeId}:locked_seats`, expireTimestamp, String(seatId));
 
-		if (socketId) RealtimeProvider.getInstance().emitToSocket(socketId, 'seat_lock_success', { seatId });
+			if (socketId) RealtimeProvider.getInstance().emitToSocket(socketId, 'seat_lock_success', { seatId });
 
-		RealtimeProvider.getInstance().broadcastToRoomExclude(`showtime_${showtimeId}`, 'seat_locked_by_other', { seatId }, socketId);
+			RealtimeProvider.getInstance().broadcastToRoomExclude(`showtime_${showtimeId}`, 'seat_locked_by_other', { seatId }, socketId);
 
-		return true;
+			return true;
+		}
+
+		// Lock ya existe — verificar si es del mismo usuario
+		const lockedBy = await this._redis.get(lockKey);
+		if (lockedBy === String(userId)) {
+			// Extender TTL del lock existente
+			await this._redis.expire(lockKey, 600);
+			if (socketId) RealtimeProvider.getInstance().emitToSocket(socketId, 'seat_lock_success', { seatId });
+			return true;
+		}
+
+		throw new ConflictError('Asiento ocupado');
 	}
 
 	async unlockSeat(showtimeId: number, seatId: number, userId: number) {
