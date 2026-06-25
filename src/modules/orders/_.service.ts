@@ -235,8 +235,8 @@ export class OrdersService extends BaseService {
 			created_at: quoteData.created_at,
 			expires_at: quoteData.expires_at,
 			expires_in: currentTtl,
-			system_base_currency: quoteData.system_base_currency,
 			exchange_rates: quoteData.exchange_rates,
+			system_base_currency: quoteData.system_base_currency,
 		};
 	}
 

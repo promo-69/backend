@@ -1860,7 +1860,10 @@ export class ShowtimeManagementService {
 		const isEvent = raw.special_event_id !== null && raw.special_event_id !== undefined;
 
 		const [booking, projType, language, currency] = await Promise.all([
-			this._roomBookings.getById(raw.booking, { attributes: ['id', 'room', 'start_time', 'end_time'] }),
+			this._roomBookings.getById(raw.booking, {
+				attributes: ['id', 'room', 'start_time', 'end_time'],
+				relations: [{ association: '_Rooms', attributes: ['id', 'name', 'cinema'] }],
+			}),
 			(Database.repository('main', 'projection-types') as any).getById(raw.projection_type, {
 				attributes: ['id', 'description'],
 			}),
@@ -1877,10 +1880,11 @@ export class ShowtimeManagementService {
 			showtime_type: isEvent ? 'event' : 'movie',
 			booking: {
 				id: booking?.id,
-				room: booking?.room,
+				room: booking?._Rooms?.id || booking?.room,
 				start_time: booking?.start_time,
 				end_time: booking?.end_time,
 			},
+			cinema: booking?._Rooms?.cinema ? { id: booking._Rooms.cinema } : undefined,
 			projection_type: { id: projType?.id, description: projType?.description },
 			language: { id: language?.id, description: language?.description },
 			currency: { id: currency?.id, code: currency?.code, symbol: currency?.symbol },

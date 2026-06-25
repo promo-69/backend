@@ -38,7 +38,7 @@ class RentalsController extends ControllerBase {
     async findById() {
         const session = this.getSession<any>();
         const { id } = this.getParams();
-        const data = await RentalsService.findById(Number(id), session.cinemaId);
+        const data = await RentalsService.findById(Number(id), session.roleCode === 'SUPER_ADMIN' ? undefined : session.cinemaId);
         return this.success(data, 'Solicitud de alquiler obtenida exitosamente');
     }
 
@@ -55,7 +55,7 @@ class RentalsController extends ControllerBase {
         const session = this.getSession<any>();
         const { id } = this.getParams();
         const body = this.getBody();
-        await RentalsService.updateStatus(Number(id), body, session.cinemaId);
+        await RentalsService.updateStatus(Number(id), body, session.roleCode === 'SUPER_ADMIN' ? undefined : session.cinemaId);
         return this.success(
             null,
             body.status === 2
@@ -68,7 +68,7 @@ class RentalsController extends ControllerBase {
     async confirmPayment() {
         const session = this.getSession<any>();
         const { id } = this.getParams();
-        await RentalsService.confirmPayment(Number(id), session?.customerId, session?.cinemaId);
+        await RentalsService.confirmPayment(Number(id), session?.customerId, session.roleCode === 'SUPER_ADMIN' ? undefined : session?.cinemaId);
         return this.success(null, 'Pago confirmado. La reserva de sala está activa.');
     }
 }

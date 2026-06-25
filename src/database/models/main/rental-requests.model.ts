@@ -46,7 +46,7 @@ export default class RentalRequestsModel extends SequelizeModelBase {
         return {
             timestamps: true,
             paranoid: true,
-            createdAt: false,
+            createdAt: 'created_at',
             updatedAt: false,
             deletedAt: 'deleted_at',
             isBasicTable: false,
