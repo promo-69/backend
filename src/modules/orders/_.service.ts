@@ -235,8 +235,8 @@ export class OrdersService extends BaseService {
 			created_at: quoteData.created_at,
 			expires_at: quoteData.expires_at,
 			expires_in: currentTtl,
-			system_base_currency: quoteData.system_base_currency,
 			exchange_rates: quoteData.exchange_rates,
+			system_base_currency: quoteData.system_base_currency,
 		};
 	}
 
@@ -294,8 +294,15 @@ export class OrdersService extends BaseService {
 					{ customer: customerId, order_status: ORDER_STATUS.PENDING },
 				);
 
-				for (const order of pendingOrders)
-					await this._orders.update({ id: order.id }, { order_status: ORDER_STATUS.CANCELLED }, { transaction });
+				for (const order of pendingOrders) {
+					// Borramos los boletos de la orden pendiente antes de cancelarla.
+					await this._tickets.delete({ order: order.id }, { transaction });
+					await this._orders.update(
+						{ id: order.id },
+						{ order_status: ORDER_STATUS.CANCELLED },
+						{ transaction },
+					);
+				}
 			});
 		}
 
@@ -642,7 +649,6 @@ export class OrdersService extends BaseService {
 									required: false,
 									nested: [
 										{ association: '_Showtimes', required: false },
-										{ association: '_RentalRequests', required: false },
 										{ association: '_RoomEvents', required: false },
 									],
 								},
@@ -706,11 +712,12 @@ export class OrdersService extends BaseService {
 						{ transaction },
 					);
 				} else if ([PAYMENT_METHOD.POS, PAYMENT_METHOD.MOBILE_PAYMENT, PAYMENT_METHOD.BANK_TRANSFER].includes(paymentMethodId) || bypass === true) {
-					if (!reference_number) throw new BadRequestError('El número de referencia es obligatorio para este método de pago');
-					if (!bank) throw new BadRequestError('El banco destino es obligatorio para este método de pago');
 					if (!currency) throw new BadRequestError('La moneda es obligatoria para este método de pago');
 
 					if (bypass !== true) {
+						if (!reference_number) throw new BadRequestError('El número de referencia es obligatorio para este método de pago');
+						if (!bank) throw new BadRequestError('El banco destino es obligatorio para este método de pago');
+
 						// Obtener cuenta bancaria para validar si acepta el pago y si requiere validación con Banky
 						const searchParams: any = { payment_method: paymentMethodId, currency, bank};
 						const acceptedAccounts = await this._bankAccounts.getAll(
