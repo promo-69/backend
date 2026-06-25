@@ -294,8 +294,15 @@ export class OrdersService extends BaseService {
 					{ customer: customerId, order_status: ORDER_STATUS.PENDING },
 				);
 
-				for (const order of pendingOrders)
-					await this._orders.update({ id: order.id }, { order_status: ORDER_STATUS.CANCELLED }, { transaction });
+				for (const order of pendingOrders) {
+					// Borramos los boletos de la orden pendiente antes de cancelarla.
+					await this._tickets.delete({ order: order.id }, { transaction });
+					await this._orders.update(
+						{ id: order.id },
+						{ order_status: ORDER_STATUS.CANCELLED },
+						{ transaction },
+					);
+				}
 			});
 		}
 
