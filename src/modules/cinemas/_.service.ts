@@ -339,7 +339,6 @@ export class CinemasService extends BaseService {
 	}
 
 	async findAllWithRooms(filters?: ProcessedQueryFilters) {
-		console.log('wirh rooms');
 		const data = await this._cinemas.getAll({
 			...filters,
 			relations: [

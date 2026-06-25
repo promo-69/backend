@@ -2,8 +2,8 @@ export class MathUtil {
 	/**
 	 * Redondea un número monetario a dos decimales de forma segura
 	 */
-	static roundMoney(value: number): number {
-		return Math.round(value * 100) / 100;
+	static roundMoney(value: number, decimals: number = 2): number {
+		return Math.round(value * Math.pow(10, decimals)) / Math.pow(10, decimals);
 	}
 
 	/**

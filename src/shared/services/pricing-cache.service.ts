@@ -23,7 +23,7 @@ export class PricingCacheService {
 	 */
 	static async getActiveModifiers() {
 		const redis = CacheDatabaseProvider.getInstance().client;
-		
+
 		try {
 			const cached = await redis.get(this.CACHE_KEY);
 			if (cached) {
@@ -47,7 +47,7 @@ export class PricingCacheService {
 		}
 
 		Logger.info('[PricingCache] Cargando modificadores en bloque desde la base de datos...');
-		
+
 		// Bulk load from DB
 		const modifiersRepo = Database.repository('main', 'price-modifiers') as any;
 		const opTypesRepo = Database.repository('main', 'operation-types') as any;
@@ -65,7 +65,7 @@ export class PricingCacheService {
 		const opTypes = Array.isArray(opTypesList) ? opTypesList : opTypesList.rows || [];
 		const audienceCategories = Array.isArray(audienceList) ? audienceList : audienceList.rows || [];
 		const seatCategories = Array.isArray(seatList) ? seatList : seatList.rows || [];
-		
+
 		// Construimos un Map para uso en memoria
 		const opTypesMap = new Map<number, any>(opTypes.map((op: any) => [op.id, op]));
 
