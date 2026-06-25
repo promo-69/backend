@@ -642,7 +642,6 @@ export class OrdersService extends BaseService {
 									required: false,
 									nested: [
 										{ association: '_Showtimes', required: false },
-										{ association: '_RentalRequests', required: false },
 										{ association: '_RoomEvents', required: false },
 									],
 								},
