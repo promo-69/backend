@@ -5,6 +5,7 @@ import { CacheDatabaseProvider } from '@providers/cache-database.provider.js';
 import { PricingService } from '@services/pricing.service.js';
 import { PricingCacheService } from '@services/pricing-cache.service.js';
 import shoppingSessionService from '@services/shopping-session.service.js';
+import { ORDER_STATUS } from '@constants/magic-vars.constant.js';
 
 // IDs de booking_types (seed: 1='Película', 2='Evento Alternativo')
 const BOOKING_TYPE_ID_SHOWTIME = 1;
@@ -25,6 +26,9 @@ export class ShowtimeManagementService {
 	}
 	private get _tickets() {
 		return Database.repository('main', 'tickets') as any;
+	}
+	private get _orders() {
+		return Database.repository('main', 'orders') as any;
 	}
 	private get _bookingTypes() {
 		return Database.repository('main', 'booking-types') as any;
@@ -2052,9 +2056,16 @@ export class ShowtimeManagementService {
 		}
 
 		const soldTickets = await this._tickets.getAll(
-			{ count: false, attributes: ['seat'] },
+			{ count: false, attributes: ['seat'], relations: [
+				{
+					association: '_Orders',
+					where: { order_status: [ORDER_STATUS.PAID, ORDER_STATUS.ONLINE_PAID]}
+				}
+			] },
 			{ booking: showtime.booking, deleted_at: null },
 		);
+
+		console.log('soldTickets', soldTickets);
 		const soldSeatIds = new Set<number>(
 			(Array.isArray(soldTickets) ? soldTickets : (soldTickets as any).rows || []).map((t: any) => t.seat),
 		);
