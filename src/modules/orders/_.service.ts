@@ -705,11 +705,12 @@ export class OrdersService extends BaseService {
 						{ transaction },
 					);
 				} else if ([PAYMENT_METHOD.POS, PAYMENT_METHOD.MOBILE_PAYMENT, PAYMENT_METHOD.BANK_TRANSFER].includes(paymentMethodId) || bypass === true) {
-					if (!reference_number) throw new BadRequestError('El número de referencia es obligatorio para este método de pago');
-					if (!bank) throw new BadRequestError('El banco destino es obligatorio para este método de pago');
 					if (!currency) throw new BadRequestError('La moneda es obligatoria para este método de pago');
 
 					if (bypass !== true) {
+						if (!reference_number) throw new BadRequestError('El número de referencia es obligatorio para este método de pago');
+						if (!bank) throw new BadRequestError('El banco destino es obligatorio para este método de pago');
+
 						// Obtener cuenta bancaria para validar si acepta el pago y si requiere validación con Banky
 						const searchParams: any = { payment_method: paymentMethodId, currency, bank};
 						const acceptedAccounts = await this._bankAccounts.getAll(
