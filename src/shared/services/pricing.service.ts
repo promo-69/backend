@@ -1,3 +1,5 @@
+import { MathUtil } from "@utils/math.util.js";
+
 export class PricingService {
 	/**
 	 * Calcula el precio final iterando sobre los modificadores aplicables y aplicándolos al precio base.
@@ -42,6 +44,7 @@ export class PricingService {
 
 			// Filtros Boletería
 			if (m.booking_type && m.booking_type !== context.booking_type) return false;
+
 			if (m.movie && m.movie !== context.movie) return false;
 			if (m.projection_type && m.projection_type !== context.projection_type) return false;
 			if (m.seat_category && m.seat_category !== context.seat_category) return false;
@@ -50,8 +53,11 @@ export class PricingService {
 
 			// Filtros Confitería
 			if (m.line_type && m.line_type !== context.line_type) return false;
+
 			if (m.product_category && m.product_category !== context.product_category) return false;
+
 			if (m.product && m.product !== context.product) return false;
+
 			if (m.combo && m.combo !== context.combo) return false;
 
 			return true;
@@ -61,11 +67,10 @@ export class PricingService {
 			const opType = opTypesMap.get(mod.operation_type) || ({} as any);
 			let modValue = 0;
 
-			if (mod.is_percentage) {
-				modValue = basePrice * (Number(mod.value) / 100);
-			} else {
-				modValue = Number(mod.value);
-			}
+			if (mod.is_percentage) modValue = basePrice * (Number(mod.value) / 100);
+			else modValue = Number(mod.value);
+
+			modValue = MathUtil.roundMoney(modValue, 2);
 
 			const netChange = opType.is_increment ? modValue : -modValue;
 			finalUnitPrice += netChange;

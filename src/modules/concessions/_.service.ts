@@ -10,6 +10,7 @@ import inventoryManagementService from '@services/inventory-management.service.j
 import { Logger } from '@utils/logger.util.js';
 import { type ProcessedQueryFilters } from '@rules/api-query.type.js';
 import { type Transaction } from 'sequelize';
+import { LINE_TYPE } from '@constants/magic-vars.constant.js';
 
 interface CreateProductBody {
 	name: string;
@@ -193,7 +194,7 @@ export class ConcessionsService extends BaseService {
 			const context = {
 				modifier_scope: 2, // Confitería
 				cinemaId: activeQuote ? activeQuote.cinema : null, // Si no hay sesión, los mod de sucursal específica podrían no aplicar si requiere null
-				line_type: null,
+				line_type: LINE_TYPE.PRODUCT,
 				product_category: p.product_category,
 				product: p.id,
 				combo: null,
@@ -284,7 +285,7 @@ export class ConcessionsService extends BaseService {
 			const pricingContext = {
 				modifier_scope: 2,
 				cinemaId: activeQuote ? activeQuote.cinema : context.cinemaId,
-				line_type: null,
+				line_type: LINE_TYPE.PRODUCT,
 				product_category: p.product_category,
 				product: p.id,
 				combo: null,
@@ -355,7 +356,7 @@ export class ConcessionsService extends BaseService {
 		const context = {
 			modifier_scope: 2, // Confitería
 			cinemaId: activeQuote ? activeQuote.cinema : null,
-			line_type: null,
+			line_type: LINE_TYPE.PRODUCT,
 			product_category: _product.product_category,
 			product: _product.id,
 			combo: null,
@@ -582,7 +583,7 @@ export class ConcessionsService extends BaseService {
 		const context = {
 			modifier_scope: 2, // Confitería
 			cinemaId: activeQuote ? activeQuote.cinema : _combo.cinema || null,
-			line_type: null,
+			line_type: LINE_TYPE.COMBO,
 			product_category: null,
 			product: null,
 			combo: _combo.id,
