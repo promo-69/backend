@@ -78,7 +78,6 @@ export class RentalManagementService {
 			requested_start_time: raw.requested_start_time,
 			requested_end_time: raw.requested_end_time,
 			attendees: raw.attendees ?? null,
-			created_at: raw.created_at,
 			contact_name: people ? `${people.first_name} ${people.last_name}`.trim() : null,
 			contact_email: people?.personal_email ?? null,
 			contact_phone: people?.phone_number ?? null,
