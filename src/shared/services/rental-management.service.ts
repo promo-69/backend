@@ -53,6 +53,9 @@ export class RentalManagementService {
 		return {
 			id: raw.id,
 			event_name: raw.event_name,
+			event_type: raw._EventTypes
+				? { id: raw._EventTypes.id, description: raw._EventTypes.description }
+				: { id: raw.event_type },
 			contact_name: contact?.name ?? null,
 			requested_start_time: raw.requested_start_time,
 			cinema_name: cinema?.name ?? null,
@@ -75,6 +78,7 @@ export class RentalManagementService {
 			requested_start_time: raw.requested_start_time,
 			requested_end_time: raw.requested_end_time,
 			attendees: raw.attendees ?? null,
+			created_at: raw.created_at,
 			contact_name: people ? `${people.first_name} ${people.last_name}`.trim() : null,
 			contact_email: people?.personal_email ?? null,
 			contact_phone: people?.phone_number ?? null,
@@ -114,6 +118,9 @@ export class RentalManagementService {
 		return {
 			id: raw.id,
 			event_name: raw.event_name,
+			event_type: raw._EventTypes
+				? { id: raw._EventTypes.id, description: raw._EventTypes.description }
+				: { id: raw.event_type },
 			requested_start_time: raw.requested_start_time,
 			status: raw._Statuses
 				? { id: raw._Statuses.id, description: raw._Statuses.description }
@@ -193,6 +200,7 @@ export class RentalManagementService {
 				attributes: ['id', 'event_name', 'requested_start_time', 'status', 'price'],
 				relations: [
 					{ association: '_Statuses', attributes: ['id', 'description'] },
+					{ association: '_EventTypes', attributes: ['id', 'description'] },
 					{
 						association: '_Customers',
 						attributes: ['id', 'person'],
