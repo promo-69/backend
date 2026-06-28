@@ -55,5 +55,11 @@ router.patch(
     verifyPermission(['FEAT:DO:MANAGE_USERS']),
     usersController.changeUserStatus,
 );
+router.patch(
+    '/:id/email',
+    verifySession,
+    verifyPermission(['FEAT:DO:MANAGE_USERS']),
+    usersController.changeUserEmail,
+);
 
 export default router;

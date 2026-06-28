@@ -85,13 +85,14 @@ export class EmployeesService extends BaseService {
 	private async _attachUser(formatted: any, personId: number) {
 		if (!formatted) return null;
 		try {
-			const user = await this._users.getOne({ person: personId });
+			const user = await this._users.getOne({ person: personId }, { paranoid: false });
 			formatted.user = user
 				? {
 						id: user.id,
 						email: user.email,
 						user_type: user.user_type,
 						signup_verified_at: user.signup_verified_at ?? null,
+						is_active: user.deleted_at == null, // false = cuenta baneada
 					}
 				: null;
 		} catch {

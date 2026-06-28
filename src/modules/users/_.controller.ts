@@ -147,7 +147,13 @@ class UsersController extends ControllerBase {
 	}
 
 	async changeUserStatus() {
-		const result = await UsersService.changeUserStatus(Number(this.getParams().id), this.getBody());
+		const result = await UsersService.changeUserStatus(Number(this.getParams().id), this.getBody().status);
+
+		return this.success(null, result.message);
+	}
+
+	async changeUserEmail() {
+		const result = await UsersService.changeUserEmail(Number(this.getParams().id), this.getBody().email);
 
 		return this.success(null, result.message);
 	}
