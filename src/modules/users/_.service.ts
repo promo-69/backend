@@ -695,6 +695,23 @@ export class UsersService extends BaseService {
 		}
 	}
 
+	async changeUserEmail(userId: number, email: string) {
+    if (!email || !REGEX.EMAIL.test(email))
+        throw new ValidationError('Formato de correo inválido.', []);
+
+    const user = await this._users.getById(userId);
+    if (!user) throw new NotFoundError('No se encontró ningún usuario con esa referencia.');
+
+    // Unicidad: que el correo no esté tomado por otra cuenta.
+    const existing = await this._users.getByEmail(email);
+    if (existing && existing.id !== userId)
+        throw new ValidationError('Ese correo ya está en uso por otra cuenta.', []);
+
+    await this._users.update(userId, { email });
+
+    return { message: 'Correo actualizado correctamente.' };
+}
+
 	private validatePositiveInteger(value: any, fieldName: string) {
 		if (typeof value !== 'number' || !Number.isInteger(value) || value <= 0)
 			throw new ValidationError(`El campo ${fieldName} debe ser un número entero positivo.`, []);
