@@ -68,6 +68,12 @@ export interface IAppConfig {
 		privateKey: string;
 		urlEndpoint: string;
 	};
+	llm: {
+		provider: string;
+		apiKey: string;
+		model: string;
+		baseUrl: string;
+	};
 	clientWebAppUrl: string;
 	bankyPersonalApiKey: string;
 }
@@ -162,6 +168,21 @@ export class AppConfig {
 				publicKey: process.env.IMAGECLOUD_PUBLIC_KEY || '',
 				privateKey: process.env.IMAGECLOUD_PRIVATE_KEY || '',
 				urlEndpoint: process.env.IMAGECLOUD_URL_ENDPOINT || '',
+			},
+			llm: {
+				provider: process.env.LLM_PROVIDER || 'openai',
+				apiKey:
+					(process.env.LLM_PROVIDER || 'openai').toLowerCase() === 'google'
+						? process.env.GOOGLE_API_KEY || ''
+						: process.env.OPENAI_API_KEY || '',
+				model:
+					(process.env.LLM_PROVIDER || 'openai').toLowerCase() === 'google'
+						? process.env.GOOGLE_AI_MODEL || 'gemini-2.5-flash'
+						: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+				baseUrl:
+					(process.env.LLM_PROVIDER || 'openai').toLowerCase() === 'google'
+						? process.env.GOOGLE_AI_API_BASE_URL || 'https://generativelanguage.googleapis.com/v1beta2'
+						: process.env.OPENAI_API_BASE_URL || 'https://api.openai.com',
 			},
 			clientWebAppUrl: process.env.CLIENT_WEB_APP_URL || '',
 			isDocker: !!process.env.RUNNING_IN_DOCKER,
