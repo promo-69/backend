@@ -35,7 +35,11 @@ export class AssistantService extends BaseService {
 		super();
 	}
 
-	async processChatMessage(payload: AssistantChatRequest, session: any): Promise<AssistantChatResponse> {
+	async processChatMessage(
+		payload: AssistantChatRequest,
+		session: any,
+		requestContext?: Record<string, unknown>,
+	): Promise<AssistantChatResponse> {
 		this.validateRequired(payload, ['message']);
 
 		const message = String(payload.message || '').trim();
@@ -54,7 +58,25 @@ export class AssistantService extends BaseService {
 				? `Aquí tienes las funciones disponibles${cinemaId ? ` en la sucursal ${cinemaId}` : ''}${date ? ` para ${date}` : ''}.`
 				: 'No encontré funciones disponibles con esos parámetros. Prueba con otra sucursal o fecha.';
 
-			const llmMessage = await this.generateAssistantText(message, intent, recommendations, 'showtime');
+			const llmContext = this.buildAssistantContext({
+				session,
+				request: {
+					...(requestContext ?? {}),
+					message,
+					intent,
+					type: 'showtime',
+					cinemaId,
+					date,
+					recommendationsCount: recommendations.length,
+				},
+			});
+			const llmMessage = await this.generateAssistantText(
+				message,
+				intent,
+				recommendations,
+				'showtime',
+				llmContext,
+			);
 
 			return {
 				intent,
@@ -73,7 +95,20 @@ export class AssistantService extends BaseService {
 			? `${genreId ? 'Estas son algunas películas recomendadas según tu preferencia:' : 'Te comparto algunas películas que están en cartelera ahora mismo:'}`
 			: 'No pude encontrar recomendaciones en este momento. Intenta con otro género o fecha.';
 
-		const llmMessage = await this.generateAssistantText(message, intent, recommendations, 'movie');
+		const llmContext = this.buildAssistantContext({
+			session,
+			request: {
+				...(requestContext ?? {}),
+				message,
+				intent,
+				type: 'movie',
+				cinemaId,
+				date,
+				genreId,
+				recommendationsCount: recommendations.length,
+			},
+		});
+		const llmMessage = await this.generateAssistantText(message, intent, recommendations, 'movie', llmContext);
 
 		return {
 			intent,
@@ -135,18 +170,22 @@ export class AssistantService extends BaseService {
 	}
 
 	private async findShowtimeRecommendations(cinemaId?: number, date?: string): Promise<any[]> {
-		const result = await ShowtimesService.getBillboard(cinemaId);
-		const rows = Array.isArray(result.rows) ? result.rows : [];
+		try {
+			const result = await ShowtimesService.getBillboard(cinemaId);
+			const rows = Array.isArray(result.rows) ? result.rows : [];
 
-		return rows
-			.map((entry: any) => ({
-				...entry,
-				showtimes: Array.isArray(entry.showtimes)
-					? entry.showtimes.filter((showtime: any) => this.isShowtimeOnDate(showtime, date))
-					: [],
-			}))
-			.filter((entry: any) => entry.showtimes.length > 0)
-			.slice(0, 10);
+			return rows
+				.map((entry: any) => ({
+					...entry,
+					showtimes: Array.isArray(entry.showtimes)
+						? entry.showtimes.filter((showtime: any) => this.isShowtimeOnDate(showtime, date))
+						: [],
+				}))
+				.filter((entry: any) => entry.showtimes.length > 0)
+				.slice(0, 10);
+		} catch {
+			return [];
+		}
 	}
 
 	private isShowtimeOnDate(showtime: any, date?: string): boolean {
@@ -216,11 +255,160 @@ export class AssistantService extends BaseService {
 		return `${year}-${month}-${day}`;
 	}
 
+	private buildAssistantContext(options: { session?: any; request?: Record<string, unknown> }) {
+		const session = options.session;
+		const user = session?.userId
+			? {
+					isAuthenticated: true,
+					userId: session.userId,
+					firstName: session.firstName ?? null,
+					lastName: session.lastName ?? null,
+					email: session.email ?? null,
+					roleCode: session.roleCode ?? null,
+					permissions: Array.isArray(session.permissions) ? session.permissions : [],
+				}
+			: {
+					isAuthenticated: false,
+					userId: null,
+					roleCode: null,
+					permissions: [],
+				};
+
+		return {
+			user,
+			request: options.request ?? {},
+			backend: {
+				currentDate: new Date().toISOString(),
+				source: 'assistant-module',
+				channel: 'web-mobile',
+			},
+		};
+	}
+
+	private normalizeContext(context?: Record<string, unknown>): Record<string, unknown> {
+		if (!context || (context.user && context.request) || context.backend) {
+			return (context ?? {}) as Record<string, unknown>;
+		}
+
+		const maybeContext = context as Record<string, unknown> & {
+			isAuthenticated?: boolean;
+			user?: Record<string, unknown>;
+			cinemaId?: number;
+		};
+		const userContext = (maybeContext.user as Record<string, unknown> | undefined) ?? {
+			isAuthenticated: maybeContext.isAuthenticated ?? false,
+			userId: maybeContext.userId ?? null,
+			firstName: maybeContext.firstName ?? null,
+			lastName: maybeContext.lastName ?? null,
+			email: maybeContext.email ?? null,
+			roleCode: maybeContext.roleCode ?? null,
+			permissions: Array.isArray(maybeContext.permissions) ? maybeContext.permissions : [],
+		};
+
+		return {
+			user: userContext,
+			request: {
+				...(maybeContext.request as Record<string, unknown> | undefined),
+				cinemaId: maybeContext.cinemaId,
+			},
+			backend: {
+				currentDate: new Date().toISOString(),
+				source: 'assistant-module',
+				channel: 'web-mobile',
+			},
+		};
+	}
+
+	async processAudioMessage(
+		payload: AssistantChatRequest,
+		session: any,
+		requestContext?: Record<string, unknown>,
+		audioBuffer?: Buffer,
+		mimeType?: string,
+	): Promise<AssistantChatResponse> {
+		const message = String(payload.message || '').trim();
+		const intent = this.detectIntent(message);
+		const date = this.resolveDate(payload.date, message);
+		const cinemaId = payload.cinemaId;
+		const genreId = this.detectGenre(message);
+		const recommendations = await this.resolveRecommendations(intent, cinemaId, date, genreId);
+		const llmContext = this.buildAssistantContext({
+			session,
+			request: {
+				...(requestContext ?? {}),
+				message,
+				intent,
+				type: 'audio',
+				cinemaId,
+				date,
+				genreId,
+				recommendationsCount: recommendations.length,
+			},
+		});
+
+		const prompt = `Usuario: ${message}\nIntención detectada: ${intent}\nTipo: audio`;
+		const llmMessage =
+			audioBuffer && mimeType
+				? await this.generateAssistantAudio(prompt, audioBuffer, mimeType, llmContext)
+				: null;
+
+		return {
+			intent,
+			message: llmMessage || 'Escuché tu mensaje de voz. Te ayudo a encontrar lo que necesitas.',
+			suggestedAction: recommendations.length ? 'browse_movies' : 'ask_more',
+			followUpQuestions: this.buildFollowUpQuestions(intent),
+			recommendations,
+			data: { movies: recommendations.filter((item) => item.type === 'movie') },
+		};
+	}
+
+	private async resolveRecommendations(
+		intent: AssistantIntent,
+		cinemaId?: number,
+		date?: string,
+		genreId?: number,
+	): Promise<AssistantRecommendation[]> {
+		try {
+			if (intent === 'showtimes') {
+				const showtimes = await this.findShowtimeRecommendations(cinemaId, date);
+				return showtimes.map(this.buildShowtimeCard);
+			}
+
+			const movies = await this.findMovieRecommendations(genreId, cinemaId);
+			return movies.map(this.buildMovieCard);
+		} catch {
+			return [];
+		}
+	}
+
+	private async generateAssistantAudio(
+		prompt: string,
+		audioBuffer: Buffer,
+		mimeType: string,
+		context?: Record<string, unknown>,
+	): Promise<string | null> {
+		try {
+			const provider = LLMProvider.getInstance();
+			const systemInstruction =
+				'Eres CineBot, el asistente virtual de Cineflix. Responde en español, breve y útil. ' +
+				'Si el usuario habla de horarios, funciones o películas, responde de forma concreta y orienta al usuario al flujo correcto.';
+
+			const normalizedContext = this.normalizeContext(context);
+			return await provider.createAudioCompletion(audioBuffer, mimeType, prompt, {
+				systemInstruction,
+				context: normalizedContext,
+			});
+		} catch {
+			return null;
+		}
+	}
+
 	private async generateAssistantText(
 		userMessage: string,
 		intent: AssistantIntent,
 		recommendations: AssistantRecommendation[],
 		type: 'movie' | 'showtime',
+		context?: Record<string, unknown>,
 	): Promise<string | null> {
 		try {
 			const provider = LLMProvider.getInstance();
@@ -230,13 +418,16 @@ export class AssistantService extends BaseService {
 					.map((item) => `- ${item.title}${item.subtitle ? ` (${item.subtitle})` : ''}`)
 					.join('\n') || 'No hay recomendaciones disponibles en este momento.';
 
+			const systemInstruction =
+				'Eres CineBot, el asistente virtual de Cineflix. Responde en español con un tono amigable, breve y útil. ' +
+				'Si el usuario consulta horarios o funciones, menciona que puede abrir los detalles en la app o web. ' +
+				'Si no hay recomendaciones, sugiere cambiar el género, fecha o sucursal. ' +
+				'No puedes crear órdenes, pagos ni reservas directamente; guía al usuario a la interfaz correspondiente.';
+
 			const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
 				{
 					role: 'system',
-					content:
-						'Eres un asistente virtual de Cineflix que responde en español. Usa un tono amable, breve y útil. ' +
-						'Si el usuario pide horarios, menciona que puede ver los detalles de la función en la app o web. ' +
-						'Si no hay recomendaciones, sugiere al usuario cambiar el género, fecha o sucursal.',
+					content: systemInstruction,
 				},
 				{
 					role: 'user',
@@ -244,9 +435,13 @@ export class AssistantService extends BaseService {
 				},
 			];
 
-			const response = await provider.createChatCompletion(messages);
+			const normalizedContext = this.normalizeContext(context);
+			const response = await provider.createChatCompletion(messages, {
+				systemInstruction,
+				context: normalizedContext,
+			});
 			return response;
-		} catch (error) {
+		} catch {
 			return null;
 		}
 	}
