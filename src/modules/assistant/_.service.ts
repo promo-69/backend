@@ -1,7 +1,7 @@
 import { BaseService } from '@bases/service.base.js';
 import MoviesService from '@modules/movies/_.service.js';
 import ShowtimesService from '@modules/showtimes/_.service.js';
-import { ValidationError } from '@errors';
+import { ValidationError, DatabaseError, UnknownError, AppError } from '@errors';
 import { LLMProvider } from '@providers/llm.provider.js';
 import type {
 	AssistantChatRequest,
@@ -151,8 +151,8 @@ export class AssistantService extends BaseService {
 	}
 
 	private async findMovieRecommendations(genreId?: number, cinemaId?: number): Promise<any[]> {
-		if (genreId) {
-			try {
+		try {
+			if (genreId) {
 				const result = await MoviesService.getByGenres([genreId], {
 					pagination: { offset: 0, limit: 10 },
 					order: [],
@@ -160,13 +160,13 @@ export class AssistantService extends BaseService {
 					raw: {},
 				});
 				return result.rows;
-			} catch {
-				return [];
 			}
-		}
 
-		const result = await MoviesService.getActiveWithShowtimes();
-		return result.rows.slice(0, 10);
+			const result = await MoviesService.getActiveWithShowtimes();
+			return result.rows.slice(0, 10);
+		} catch (error) {
+			throw this.wrapAssistantError(error, 'movie recommendations');
+		}
 	}
 
 	private async findShowtimeRecommendations(cinemaId?: number, date?: string): Promise<any[]> {
@@ -183,8 +183,8 @@ export class AssistantService extends BaseService {
 				}))
 				.filter((entry: any) => entry.showtimes.length > 0)
 				.slice(0, 10);
-		} catch {
-			return [];
+		} catch (error) {
+			throw this.wrapAssistantError(error, 'showtime recommendations');
 		}
 	}
 
@@ -326,6 +326,10 @@ export class AssistantService extends BaseService {
 		audioBuffer?: Buffer,
 		mimeType?: string,
 	): Promise<AssistantChatResponse> {
+		if (!audioBuffer || !mimeType) {
+			throw new ValidationError('Se requiere un archivo de audio válido para procesar la solicitud.', ['audio']);
+		}
+
 		const message = String(payload.message || '').trim();
 		const intent = this.detectIntent(message);
 		const date = this.resolveDate(payload.date, message);
@@ -376,8 +380,8 @@ export class AssistantService extends BaseService {
 
 			const movies = await this.findMovieRecommendations(genreId, cinemaId);
 			return movies.map(this.buildMovieCard);
-		} catch {
-			return [];
+		} catch (error) {
+			throw this.wrapAssistantError(error, 'resolve recommendations');
 		}
 	}
 
@@ -386,7 +390,7 @@ export class AssistantService extends BaseService {
 		audioBuffer: Buffer,
 		mimeType: string,
 		context?: Record<string, unknown>,
-	): Promise<string | null> {
+	): Promise<string> {
 		try {
 			const provider = LLMProvider.getInstance();
 			const systemInstruction =
@@ -398,8 +402,8 @@ export class AssistantService extends BaseService {
 				systemInstruction,
 				context: normalizedContext,
 			});
-		} catch {
-			return null;
+		} catch (error) {
+			throw this.wrapAssistantError(error, 'audio generation');
 		}
 	}
 
@@ -409,7 +413,7 @@ export class AssistantService extends BaseService {
 		recommendations: AssistantRecommendation[],
 		type: 'movie' | 'showtime',
 		context?: Record<string, unknown>,
-	): Promise<string | null> {
+	): Promise<string> {
 		try {
 			const provider = LLMProvider.getInstance();
 			const recommendationSummary =
@@ -441,9 +445,39 @@ export class AssistantService extends BaseService {
 				context: normalizedContext,
 			});
 			return response;
-		} catch {
-			return null;
+		} catch (error) {
+			throw this.wrapAssistantError(error, 'text generation');
 		}
+	}
+
+	private wrapAssistantError(error: unknown, context: string): AppError {
+		if (error instanceof AppError) return error;
+
+		if (error instanceof Error) {
+			const message = error.message || 'Error inesperado en el asistente';
+			const normalizedMessage = message.toLowerCase();
+
+			if (
+				normalizedMessage.includes('database') ||
+				normalizedMessage.includes('repository') ||
+				normalizedMessage.includes('sequelize')
+			) {
+				return new DatabaseError(`No se pudieron obtener los datos para ${context}.`, context, {
+					details: { source: 'assistant.service' },
+					cause: error,
+				});
+			}
+
+			return new UnknownError(error, {
+				source: 'assistant.service',
+				context,
+			});
+		}
+
+		return new UnknownError(new Error(`Error inesperado en ${context}`), {
+			source: 'assistant.service',
+			context,
+		});
 	}
 }
 
