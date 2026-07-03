@@ -8,7 +8,7 @@ import type {
 	AssistantChatResponse,
 	AssistantRecommendation,
 	AssistantIntent,
-} from './assistant.types.js';
+} from '@rules/assistant.type.js';
 
 const GENRE_KEYWORDS: Record<string, number> = {
 	terror: 5,
