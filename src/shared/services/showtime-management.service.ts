@@ -6,6 +6,7 @@ import { PricingService } from '@services/pricing.service.js';
 import { PricingCacheService } from '@services/pricing-cache.service.js';
 import shoppingSessionService from '@services/shopping-session.service.js';
 import { ORDER_STATUS } from '@constants/magic-vars.constant.js';
+import movieLifecycleService from '@services/movie-lifecycle.service.js';
 
 // IDs de booking_types (seed: 1='Película', 2='Evento Alternativo')
 const BOOKING_TYPE_ID_SHOWTIME = 1;
@@ -93,51 +94,7 @@ export class ShowtimeManagementService {
 	//  CICLO DE VIDA - PELÍCULAS
 	// -------------------------------------------------------------------------
 	private async _syncMovieLifecycle(movieId: number, transaction?: Transaction) {
-		const movie = await this._movies.getById(movieId, {
-			attributes: ['id', 'release_date', 'lifecycle_state'],
-			transaction,
-		});
-		if (!movie) return;
-
-		const now = new Date();
-		const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-		const releaseDate = new Date(movie.release_date);
-		const unDiaEnMilsegundos = 24 * 60 * 60 * 1000;
-		const diasParaElEstreno = Math.ceil((releaseDate.getTime() - today.getTime()) / unDiaEnMilsegundos);
-
-		const remainingShowtimes = await this._showtimesRepo.getAll(
-			{ count: true },
-			{ movie: movieId, deleted_at: null },
-		);
-		const totalFunctions = Array.isArray(remainingShowtimes)
-			? remainingShowtimes.length
-			: (remainingShowtimes.count ?? remainingShowtimes.rows?.length ?? 0);
-
-		const stateIds = await this._getLifecycleStateIds();
-		const COMING_SOON = stateIds['Próximamente'] || 1;
-		const PREMIERE = stateIds['En Cartelera (Estreno)'] || 2;
-		const REGULAR = stateIds['En Cartelera (Regular)'] || 3;
-		const LAST_DAYS = stateIds['Últimos Días'] || 4;
-		const OFF = stateIds['Fuera de Cartelera'] || 5;
-
-		let targetLifecycle = movie.lifecycle_state;
-		if (movie.lifecycle_state === LAST_DAYS) return;
-
-		if (diasParaElEstreno > 7) {
-			targetLifecycle = COMING_SOON;
-		} else if (diasParaElEstreno <= 7 && diasParaElEstreno > 0) {
-			targetLifecycle = PREMIERE;
-		} else {
-			if (totalFunctions === 0) {
-				targetLifecycle = OFF;
-			} else {
-				targetLifecycle = REGULAR;
-			}
-		}
-
-		if (movie.lifecycle_state !== targetLifecycle) {
-			await this._movies.update(movieId, { lifecycle_state: targetLifecycle }, { transaction });
-		}
+		await movieLifecycleService.syncMovieLifecycle(movieId, transaction);
 	}
 
 	// -------------------------------------------------------------------------
@@ -1656,7 +1613,12 @@ export class ShowtimeManagementService {
 			// Ignorar — este campo es informativo
 		}
 
-		return { sold: soldSeats, locked: lockedSeats, total_seats: totalSeats, non_operational_seats: nonOperationalSeats };
+		return {
+			sold: soldSeats,
+			locked: lockedSeats,
+			total_seats: totalSeats,
+			non_operational_seats: nonOperationalSeats,
+		};
 	}
 
 	async findAllShowtimes(filters?: any) {
@@ -1691,8 +1653,13 @@ export class ShowtimeManagementService {
 			const bookingQueryOptions: any = {
 				count: false,
 				attributes: ['id', 'room', 'start_time', 'end_time'],
-				relations: [{ 					association: '_Rooms',
-					attributes: ['id', 'name', 'cinema', 'grid_rows', 'grid_columns'], required: true }],
+				relations: [
+					{
+						association: '_Rooms',
+						attributes: ['id', 'name', 'cinema', 'grid_rows', 'grid_columns'],
+						required: true,
+					},
+				],
 			};
 			const allBookings = await this._roomBookings.getAll(bookingQueryOptions, bookingWhere);
 			let bookingList = Array.isArray(allBookings) ? allBookings : allBookings.rows || [];
@@ -2055,12 +2022,16 @@ export class ShowtimeManagementService {
 		}
 
 		const soldTickets = await this._tickets.getAll(
-			{ count: false, attributes: ['seat'], relations: [
-				{
-					association: '_Orders',
-					where: { order_status: [ORDER_STATUS.PAID, ORDER_STATUS.ONLINE_PAID]}
-				}
-			] },
+			{
+				count: false,
+				attributes: ['seat'],
+				relations: [
+					{
+						association: '_Orders',
+						where: { order_status: [ORDER_STATUS.PAID, ORDER_STATUS.ONLINE_PAID] },
+					},
+				],
+			},
 			{ booking: showtime.booking, deleted_at: null },
 		);
 
@@ -2314,55 +2285,50 @@ export class ShowtimeManagementService {
 	}
 
 	// NUEVO MÉTODO: versión con filtros de fecha
-async getFullActiveBillboardFiltered(filters?: {
-    cinemaId?: number;
-    date?: string;
-    from?: string;
-    to?: string;
-}) {
-    const ACTIVE_STATES = [2, 3, 4];
-    const { cinemaId, date, from, to } = filters || {};
+	async getFullActiveBillboardFiltered(filters?: { cinemaId?: number; date?: string; from?: string; to?: string }) {
+		const ACTIVE_STATES = [2, 3, 4];
+		const { cinemaId, date, from, to } = filters || {};
 
-    // Usar el método original para obtener la cartelera base (sin filtros de fecha)
-    const base = await this.getFullActiveBillboard(cinemaId);
-    if (base.count === 0) return base;
+		// Usar el método original para obtener la cartelera base (sin filtros de fecha)
+		const base = await this.getFullActiveBillboard(cinemaId);
+		if (base.count === 0) return base;
 
-    // Función para filtrar showtimes por fecha
-    const filterShowtimesByDate = (showtimes: any[]) => {
-        if (!date && !from && !to) return showtimes;
-        return showtimes.filter((s: any) => {
-            const startTime = new Date(s.booking.start_time);
-            if (date) {
-                const dateStr = startTime.toISOString().slice(0, 10);
-                return dateStr === date;
-            }
-            if (from && to) {
-                const fromDate = new Date(from + 'T00:00:00.000Z');
-                const toDate = new Date(to + 'T23:59:59.999Z');
-                return startTime >= fromDate && startTime <= toDate;
-            }
-            if (from) {
-                const fromDate = new Date(from + 'T00:00:00.000Z');
-                return startTime >= fromDate;
-            }
-            if (to) {
-                const toDate = new Date(to + 'T23:59:59.999Z');
-                return startTime <= toDate;
-            }
-            return true;
-        });
-    };
+		// Función para filtrar showtimes por fecha
+		const filterShowtimesByDate = (showtimes: any[]) => {
+			if (!date && !from && !to) return showtimes;
+			return showtimes.filter((s: any) => {
+				const startTime = new Date(s.booking.start_time);
+				if (date) {
+					const dateStr = startTime.toISOString().slice(0, 10);
+					return dateStr === date;
+				}
+				if (from && to) {
+					const fromDate = new Date(from + 'T00:00:00.000Z');
+					const toDate = new Date(to + 'T23:59:59.999Z');
+					return startTime >= fromDate && startTime <= toDate;
+				}
+				if (from) {
+					const fromDate = new Date(from + 'T00:00:00.000Z');
+					return startTime >= fromDate;
+				}
+				if (to) {
+					const toDate = new Date(to + 'T23:59:59.999Z');
+					return startTime <= toDate;
+				}
+				return true;
+			});
+		};
 
-    // Aplicar filtro a cada ítem
-    const filteredRows = base.rows
-        .map((item: any) => ({
-            ...item,
-            showtimes: filterShowtimesByDate(item.showtimes || [])
-        }))
-        .filter((item: any) => item.showtimes.length > 0);
+		// Aplicar filtro a cada ítem
+		const filteredRows = base.rows
+			.map((item: any) => ({
+				...item,
+				showtimes: filterShowtimesByDate(item.showtimes || []),
+			}))
+			.filter((item: any) => item.showtimes.length > 0);
 
-    return { count: filteredRows.length, rows: filteredRows };
-}
+		return { count: filteredRows.length, rows: filteredRows };
+	}
 
 	async bulkCreateShowtimes(
 		data: any,
