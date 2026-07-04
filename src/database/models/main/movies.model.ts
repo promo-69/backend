@@ -46,10 +46,18 @@ export default class MoviesModel extends SequelizeModelBase {
 				allowNull: false,
 				type: DataTypes.DATEONLY,
 			},
+			lifecycle_state_changed_at: {
+				allowNull: true,
+				type: DataTypes.DATE,
+			},
+			lifecycle_state_next_change_at: {
+				allowNull: true,
+				type: DataTypes.DATE,
+			},
 			deleted_at: {
 				allowNull: true,
 				type: DataTypes.DATE,
-			}
+			},
 		};
 	}
 

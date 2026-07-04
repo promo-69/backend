@@ -1,0 +1,30 @@
+meta {
+  name: Mark Movie as Last Days
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/movies/{{testMovieId}}/last-days
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "daysUntilOut": 7
+  }
+}
+
+vars:pre-request {
+  testMovieId: 2
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  bru.setVar('baseUrl', baseUrl);
+}

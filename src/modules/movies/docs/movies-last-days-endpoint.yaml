@@ -1,0 +1,41 @@
+/movies/{id}/last-days:
+    post:
+        summary: Mark movie as last days
+        description: |
+            Mark a movie as lifecycle_state = 4 (Últimos Días), schedule its automatic transition to state 5 after the requested number of days, and cancel future showtimes beyond the selected cutoff date.
+            Requires the CRUD:UPDATE:MOVIES permission.
+        tags:
+            - Movies
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              description: Movie ID to update
+              schema:
+                  type: integer
+        requestBody:
+            required: false
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            daysUntilOut:
+                                type: integer
+                                minimum: 1
+                                example: 7
+        responses:
+            '200':
+                description: Movie marked as last days successfully
+            '400':
+                description: Invalid daysUntilOut value
+            '401':
+                description: Unauthorized
+            '403':
+                description: Forbidden (insufficient permissions)
+            '404':
+                description: Movie not found
+            '500':
+                description: Internal server error

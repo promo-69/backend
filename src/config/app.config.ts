@@ -74,6 +74,12 @@ export interface IAppConfig {
 		model: string;
 		baseUrl: string;
 	};
+	movieLifecycle: {
+		syncCron: string;
+		lastDaysWeekday: number;
+		lastDaysHour: number;
+		timezone: string;
+	};
 	clientWebAppUrl: string;
 	bankyPersonalApiKey: string;
 }
@@ -183,6 +189,12 @@ export class AppConfig {
 					(process.env.LLM_PROVIDER || 'openai').toLowerCase() === 'google'
 						? process.env.GOOGLE_AI_API_BASE_URL || 'https://generativelanguage.googleapis.com/v1beta2'
 						: process.env.OPENAI_API_BASE_URL || 'https://api.openai.com',
+			},
+			movieLifecycle: {
+				syncCron: process.env.MOVIE_LIFECYCLE_SYNC_CRON || '0 * * * *',
+				lastDaysWeekday: parseInt(process.env.MOVIE_LIFECYCLE_LAST_DAYS_WEEKDAY || '5', 10),
+				lastDaysHour: parseInt(process.env.MOVIE_LIFECYCLE_LAST_DAYS_HOUR || '17', 10),
+				timezone: process.env.MOVIE_LIFECYCLE_TIMEZONE || 'America/Caracas',
 			},
 			clientWebAppUrl: process.env.CLIENT_WEB_APP_URL || '',
 			isDocker: !!process.env.RUNNING_IN_DOCKER,
