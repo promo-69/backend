@@ -29,6 +29,9 @@
                                                 type: string
                                             closing_time:
                                                 type: string
+                                            facade_url:
+                                                type: string
+                                                nullable: true
             '500':
                 description: Internal server error
     post:
@@ -41,7 +44,7 @@
         requestBody:
             required: true
             content:
-                application/json:
+                multipart/form-data:
                     schema:
                         type: object
                         required:
@@ -64,6 +67,10 @@
                                 type: string
                                 pattern: '^([01]\d|2[0-3]):[0-5]\d$'
                                 example: '23:00'
+                            image:
+                                type: string
+                                format: binary
+                                description: Imagen de fachada de la sucursal
         responses:
             '201':
                 description: Cinema created
@@ -85,7 +92,7 @@
         requestBody:
             required: true
             content:
-                application/json:
+                multipart/form-data:
                     schema:
                         type: object
                         properties:
@@ -97,6 +104,13 @@
                             closingTime:
                                 type: string
                                 pattern: '^([01]\d|2[0-3]):[0-5]\d$'
+                            image:
+                                type: string
+                                format: binary
+                                description: Imagen de fachada de la sucursal
+                            facadeUrl:
+                                type: string
+                                description: Enviar el texto 'null' explícitamente para borrar la imagen actual.
         responses:
             '200':
                 description: Cinema updated
@@ -142,7 +156,7 @@
         requestBody:
             required: true
             content:
-                application/json:
+                multipart/form-data:
                     schema:
                         type: object
                         properties:
@@ -158,6 +172,13 @@
                             closingTime:
                                 type: string
                                 pattern: '^([01]\d|2[0-3]):[0-5]\d$'
+                            image:
+                                type: string
+                                format: binary
+                                description: Imagen de fachada de la sucursal
+                            facadeUrl:
+                                type: string
+                                description: Enviar el texto 'null' explícitamente para borrar la imagen actual.
         responses:
             '200':
                 description: Cinema updated

@@ -22,6 +22,10 @@ export default class CinemasModel extends SequelizeModelBase {
 				allowNull: true,
 				type: DataTypes.STRING(50),
 			},
+			facade_url: {
+				allowNull: true,
+				type: DataTypes.STRING(255),
+			},
 			opening_time: {
 				allowNull: false,
 				type: DataTypes.TIME,
