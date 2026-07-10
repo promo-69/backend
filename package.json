@@ -101,6 +101,7 @@
 		"vite-node": "^6.0.0"
 	},
 	"dependencies": {
+		"@google/generative-ai": "^0.24.1",
 		"@socket.io/redis-adapter": "^8.3.0",
 		"@types/cheerio": "^1.0.0",
 		"@types/cookie-parser": "^1.4.10",

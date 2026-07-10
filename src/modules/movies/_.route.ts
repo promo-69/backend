@@ -6,11 +6,11 @@ import { uploadFields } from '@middlewares/upload.middleware.js';
 const router = Router();
 
 const imageUpload = uploadFields(
-    [
-        { name: 'banner', maxCount: 1 },
-        { name: 'poster', maxCount: 1 },
-    ],
-    { maxSizeMB: 25 },
+	[
+		{ name: 'banner', maxCount: 1 },
+		{ name: 'poster', maxCount: 1 },
+	],
+	{ maxSizeMB: 25 },
 );
 
 //  RUTAS ESTÁTICAS GLOBALES — catálogo sin filtro de sucursal
@@ -61,6 +61,7 @@ router.post('/', verifySession, verifyPermission('CRUD:UPDATE:MOVIES'), imageUpl
 //  RUTAS DINÁMICAS — con :id, siempre al final
 
 router.get('/:id', optionalAuth, moviesController.findById);
+router.post('/:id/last-days', verifySession, verifyPermission('CRUD:UPDATE:MOVIES'), moviesController.markAsLastDays);
 router.patch('/:id', verifySession, verifyPermission('CRUD:UPDATE:MOVIES'), imageUpload, moviesController.update);
 router.delete('/:id', verifySession, verifyPermission('CRUD:DELETE:MOVIES'), moviesController.remove);
 

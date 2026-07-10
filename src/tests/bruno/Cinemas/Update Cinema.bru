@@ -6,7 +6,7 @@ meta {
 
 patch {
   url: {{baseUrl}}/cinemas/{{testCinemaId}}
-  body: json
+  body: multipartForm
   auth: bearer
 }
 
@@ -14,13 +14,17 @@ auth:bearer {
   token: {{accessToken}}
 }
 
-body:json {
-  {
-    "name": "Test Cinema Bruno Updated",
-    "address": "456 Updated Ave",
-    "openingTime": "10:00",
-    "closingTime": "22:00"
-  }
+body:multipart-form {
+  name: Test Cinema Bruno Updated
+  address: 456 Updated Ave
+  openingTime: 10:00
+  closingTime: 22:00
+  ~image: @file(/path/to/image.jpg)
+  ~facadeUrl: null
+}
+
+vars:pre-request {
+  testCinemaId: 1
 }
 
 script:pre-request {

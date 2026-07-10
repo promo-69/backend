@@ -9,6 +9,8 @@ export interface MoviesAttributes {
 	duration_minutes: number;
 	age_classification: number;
 	lifecycle_state: number;
+	lifecycle_state_changed_at?: Date;
+	lifecycle_state_next_change_at?: Date;
 	synopsis: string;
 	trailer_url?: string;
 	poster_url?: string;
@@ -180,7 +182,6 @@ class MoviesRepository extends SequelizeRepositoryBase<MoviesAttributes, number>
 			rows: this.parseResponse(result.rows) as MovieFull[],
 		};
 	}
-
 
 	async getWithShowtimes(filters?: any): Promise<{ rows: MovieFull[]; count: number }> {
 		const activeMovieIdsLiteral = literal(

@@ -1,0 +1,22 @@
+meta {
+  name: Assistant Audio
+  type: http
+  seq: …
+}
+
+post {
+  url: {{baseUrl}}/assistant/audio
+  body: multipartForm
+  auth: none
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'http://127.0.0.1:4000/api/v1';
+  bru.setVar('baseUrl', baseUrl);
+}
+
+body:multipart-form {
+  ~message: "¿Qué funciones hay mañana en mi cine?"
+  ~cinemaId: 1
+  ~audio: @file(/path/to/assistant-audio.wav)
+}

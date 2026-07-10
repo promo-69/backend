@@ -3,6 +3,7 @@ import { Database, Ops } from '@database/index.js';
 import { ConflictError, NotFoundError, ValidationError } from '@errors';
 import { type ProcessedQueryFilters } from '@rules/api-query.type.js';
 import { type Transaction } from 'sequelize';
+import { cinemaImagesService } from '@services/cinema-images.service.js';
 
 interface CreateCinemaBody {
 	name: string;
@@ -19,6 +20,7 @@ interface UpdateCinemaBody {
 	phone?: string;
 	openingTime?: string;
 	closingTime?: string;
+	facadeUrl?: string | null;
 }
 
 const TIME_REGEX = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -79,7 +81,11 @@ export class CinemasService extends BaseService {
 		return result;
 	}
 
-	async createCinema(body: CreateCinemaBody, actorUserId?: number) {
+	async createCinema(
+		body: CreateCinemaBody,
+		actorUserId?: number,
+		rawFiles?: Express.Multer.File[] | { [fieldname: string]: Express.Multer.File[] } | undefined,
+	) {
 		const { name, branchCode, address, phone, openingTime, closingTime } = body;
 
 		this.validateRequired({ name, openingTime, closingTime } as any, ['name', 'openingTime', 'closingTime']);
@@ -92,17 +98,23 @@ export class CinemasService extends BaseService {
 		const existing = await this._cinemas.getByName(name);
 		if (existing) throw new ConflictError('Ya existe una sucursal con ese nombre', 'CINEMA_NAME_DUPLICATE');
 
-		const createdCinema = await this._cinemas.transaction(async (transaction: Transaction) => {
-			const created = await this._cinemas.create(
-				{
-					name,
-					address: address ?? null,
-					phone: phone ?? null,
-					opening_time: openingTime,
-					closing_time: closingTime,
-				},
-				{ transaction },
-			);
+		const imageFiles = cinemaImagesService.extractFromRequest(rawFiles);
+		const { imageUrl: uploadedImageUrl, imageFileId } = await cinemaImagesService.uploadCinemaImage(imageFiles);
+		const finalFacadeUrl = uploadedImageUrl ?? null;
+
+		try {
+			const createdCinema = await this._cinemas.transaction(async (transaction: Transaction) => {
+				const created = await this._cinemas.create(
+					{
+						name,
+						address: address ?? null,
+						phone: phone ?? null,
+						opening_time: openingTime,
+						closing_time: closingTime,
+						facade_url: finalFacadeUrl,
+					},
+					{ transaction },
+				);
 			let invoiceSequencePrefix: string = this._generateLetters(3).toUpperCase();
 
 			for (let i = 0; i < 10; i++) {
@@ -129,16 +141,31 @@ export class CinemasService extends BaseService {
 			return created;
 		});
 
-		return this._cinemas.getFull(createdCinema.id);
+			return this._cinemas.getFull(createdCinema.id);
+		} catch (error) {
+			await cinemaImagesService.rollbackUploadedImages([imageFileId]);
+			throw error;
+		}
 	}
 
-	async updateCinema(id: number, body: UpdateCinemaBody, actorUserId?: number, restricted = false) {
-		return this._cinemas.transaction(async (transaction: Transaction) => {
-			const cinema = await this._cinemas.getById(id, {
-				transaction,
-				lock: transaction.LOCK.UPDATE,
-			});
-			if (!cinema) throw new NotFoundError('Sucursal no encontrada');
+	async updateCinema(
+		id: number,
+		body: UpdateCinemaBody,
+		actorUserId?: number,
+		restricted = false,
+		rawFiles?: Express.Multer.File[] | { [fieldname: string]: Express.Multer.File[] } | undefined,
+	) {
+		const imageFiles = cinemaImagesService.extractFromRequest(rawFiles);
+		const { imageUrl: uploadedImageUrl, imageFileId } = await cinemaImagesService.uploadCinemaImage(imageFiles);
+		let oldFacadeUrlToDelete: string | null = null;
+
+		try {
+			await this._cinemas.transaction(async (transaction: Transaction) => {
+				const cinema = await this._cinemas.getById(id, {
+					transaction,
+					lock: transaction.LOCK.UPDATE,
+				});
+				if (!cinema) throw new NotFoundError('Sucursal no encontrada');
 
 			const { name, address, phone, openingTime, closingTime } = body;
 			const updateData: Record<string, any> = {};
@@ -152,6 +179,13 @@ export class CinemasService extends BaseService {
 				if (closingTime !== undefined) {
 					this._validateTimeFormat(closingTime, 'closingTime');
 					updateData.closing_time = closingTime;
+				}
+				if (uploadedImageUrl) {
+					updateData.facade_url = uploadedImageUrl;
+					if (cinema.facade_url) oldFacadeUrlToDelete = cinema.facade_url;
+				} else if (body.facadeUrl === 'null' || body.facadeUrl === null) {
+					updateData.facade_url = null;
+					if (cinema.facade_url) oldFacadeUrlToDelete = cinema.facade_url;
 				}
 			} else {
 				if (name !== undefined && name !== cinema.name) {
@@ -170,6 +204,13 @@ export class CinemasService extends BaseService {
 					this._validateTimeFormat(closingTime, 'closingTime');
 					updateData.closing_time = closingTime;
 				}
+				if (uploadedImageUrl) {
+					updateData.facade_url = uploadedImageUrl;
+					if (cinema.facade_url) oldFacadeUrlToDelete = cinema.facade_url;
+				} else if (body.facadeUrl === 'null' || body.facadeUrl === null) {
+					updateData.facade_url = null;
+					if (cinema.facade_url) oldFacadeUrlToDelete = cinema.facade_url;
+				}
 			}
 
 			if (Object.keys(updateData).length > 0) {
@@ -186,7 +227,15 @@ export class CinemasService extends BaseService {
 
 			await this._cinemas.update(id, updateData, { transaction });
 		});
+
+		if (oldFacadeUrlToDelete) {
+			await cinemaImagesService.deleteCinemaImageByUrl(oldFacadeUrlToDelete);
+		}
+	} catch (error) {
+		await cinemaImagesService.rollbackUploadedImages([imageFileId]);
+		throw error;
 	}
+}
 
 	async deleteCinema(id: number) {
 		return this._cinemas.transaction(async (transaction: Transaction) => {

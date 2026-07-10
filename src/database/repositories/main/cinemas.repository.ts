@@ -6,6 +6,7 @@ export interface CinemasAttributes {
 	name: string;
 	address?: string;
 	phone?: string;
+	facade_url?: string | null;
 	opening_time: any;
 	closing_time: any;
 	deleted_at?: Date;
