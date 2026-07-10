@@ -255,7 +255,7 @@ export class ShowtimeManagementService {
 		const movies = await this._movies.getAll(
 			{
 				count: false,
-				attributes: ['id', 'title', 'duration_minutes', 'poster_url', 'lifecycle_state'],
+				attributes: ['id', 'title', 'duration_minutes', 'poster_url', 'banner_url', 'lifecycle_state'],
 				relations: [
 					{ association: '_LifecycleStates', attributes: ['id', 'description'], required: false },
 					{ association: '_AgeClassifications', attributes: ['id', 'description'], required: false },
@@ -706,7 +706,8 @@ export class ShowtimeManagementService {
 				id: movie.id,
 				title: movie.title,
 				duration_minutes: movie.duration_minutes,
-				poster_url: movie.poster_url,
+				poster_url: movie.poster_url ?? null,
+				banner_url: movie.banner_url ?? null,
 			},
 			count: rows.length,
 			rows,
@@ -856,7 +857,7 @@ export class ShowtimeManagementService {
 		const visibleStates = await this._getVisibleLifecycleStates();
 
 		const movie = await this._movies.getById(movieId, {
-			attributes: ['id', 'title', 'duration_minutes', 'poster_url', 'lifecycle_state'],
+			attributes: ['id', 'title', 'duration_minutes', 'poster_url', 'banner_url', 'lifecycle_state'],
 		});
 		if (!movie || !visibleStates.includes(movie.lifecycle_state)) {
 			throw new NotFoundError('Película no encontrada o no está en cartelera');
@@ -1091,7 +1092,8 @@ export class ShowtimeManagementService {
 				id: movie.id,
 				title: movie.title,
 				duration_minutes: movie.duration_minutes,
-				poster_url: movie.poster_url,
+				poster_url: movie.poster_url ?? null,
+				banner_url: movie.banner_url ?? null,
 			},
 			selected_date: targetDate,
 			available_dates: availableDates,
