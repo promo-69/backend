@@ -1,0 +1,32 @@
+meta {
+  name: Redemption Pickup (product pickup)
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/orders/redemption-pickup/{{receiptQr}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+vars:pre-request {
+  receiptQr: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+}
+
+docs {
+  Retiro en taquilla de un producto/combo canjeado (Fase B).
+  Escanea el QR del recibo del canje, descuenta inventario de la sucursal
+  y marca el canje como entregado. Solo funciona una vez.
+
+  Requisitos:
+  - El QR debe corresponder a un canje de PRODUCT o COMBO
+  - El canje no debe haber sido retirado antes
+  - Debe haber stock disponible en la sucursal
+
+  Permiso: CRUD:UPDATE:ORDER-DETAILS
+}

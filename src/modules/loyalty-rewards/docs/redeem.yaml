@@ -49,6 +49,10 @@
                                             type: integer
                                         new_balance:
                                             type: integer
+                                        receipt_qr:
+                                            type: string
+                                            nullable: true
+                                            description: QR de la orden del canje (para producto/combo; retiro en taquilla)
                                         vouchers:
                                             type: array
                                             items:

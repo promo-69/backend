@@ -49,6 +49,10 @@ export class OrdersController extends ControllerBase {
 	async validateQr() {
 		return await OrdersService.validateQr(this.requireParam('qrCode'), this.getBody(), this.getSession());
 	}
+
+	async fulfillRedemptionPickup() {
+		return await OrdersService.fulfillRedemptionPickup(this.requireParam('qrCode'), this.getSession());
+	}
 }
 
 export default new OrdersController();
