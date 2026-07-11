@@ -39,7 +39,7 @@ interface CreateRewardBody {
 	isActive?: boolean;
 }
 
-type UpdateRewardBody = Partial<CreateRewardBody>;
+interface UpdateRewardBody extends Partial<CreateRewardBody> {}
 
 export class LoyaltyRewardsService extends BaseService {
 	constructor() {
@@ -76,12 +76,11 @@ export class LoyaltyRewardsService extends BaseService {
 
 	// ---------------------------------------------------------------------------
 	// Scoping por sucursal
-	// Empleado: su usuario está anclado a una sucursal (session.cinemaId) y NO puede
-	// cambiarla. Superadmin: no tiene cinemaId, debe indicar la sucursal en la que
-	// está "parado" (provided). Mismo patrón que createQuote / showtimes.
 	// ---------------------------------------------------------------------------
 	private _resolveAdminCinema(session: any, provided?: number | null): number {
-		const cinema = session?.cinemaId ?? provided ?? null;
+		const isSuperAdmin = session?.roleCode === 'SUPER_ADMIN';
+		// Empleado normal: anclado a su sucursal. Superadmin: elige (body), aunque tenga una asignada.
+		const cinema = isSuperAdmin ? (provided ?? session?.cinemaId ?? null) : (session?.cinemaId ?? provided ?? null);
 		if (!cinema)
 			throw new ValidationError('La sucursal es requerida: indica en qué sucursal estás configurando el premio', [
 				'cinema',
@@ -91,7 +90,8 @@ export class LoyaltyRewardsService extends BaseService {
 
 	// El empleado solo puede tocar premios de su sucursal.
 	private _assertSameBranch(session: any, reward: any): void {
-		if (session?.cinemaId && Number(reward.cinema) !== Number(session.cinemaId))
+		const isSuperAdmin = session?.roleCode === 'SUPER_ADMIN';
+		if (!isSuperAdmin && session?.cinemaId && Number(reward.cinema) !== Number(session.cinemaId))
 			throw new ForbiddenError('No puedes gestionar premios de otra sucursal');
 	}
 
@@ -182,10 +182,14 @@ export class LoyaltyRewardsService extends BaseService {
 	}
 
 	async listRewards(session: any, query?: { cinema?: number }) {
-		// Empleado: forzado a su sucursal. Superadmin: filtra por la indicada, o ve todas.
-		const cinema = session?.cinemaId ?? query?.cinema ?? null;
+		// Empleado: forzado a su sucursal. Superadmin: filtra por la indicada (?cinema), o ve todas.
+		const isSuperAdmin = session?.roleCode === 'SUPER_ADMIN';
+		const cinema = isSuperAdmin ? (query?.cinema ?? null) : (session?.cinemaId ?? query?.cinema ?? null);
 		const where = cinema ? { cinema: Number(cinema) } : {};
-		return this._loyaltyRewards.getAll({ count: false, order: [['required_loyalty_level', 'ASC']] }, where);
+		return this._loyaltyRewards.getAll(
+			{ count: false, order: [['required_loyalty_level', 'ASC']] },
+			where,
+		);
 	}
 
 	async getRewardById(id: number, session: any) {
@@ -212,8 +216,7 @@ export class LoyaltyRewardsService extends BaseService {
 		if (body.product !== undefined) updateData.product = body.product;
 		if (body.combo !== undefined) updateData.combo = body.combo;
 		if (body.quantity !== undefined) updateData.quantity = body.quantity;
-		if (body.startDate !== undefined)
-			updateData.start_date = body.startDate ? new Date(body.startDate as any) : null;
+		if (body.startDate !== undefined) updateData.start_date = body.startDate ? new Date(body.startDate as any) : null;
 		if (body.endDate !== undefined) updateData.end_date = body.endDate ? new Date(body.endDate as any) : null;
 		if (body.isActive !== undefined) updateData.is_active = body.isActive;
 		// La sucursal de un premio no se reasigna desde update.
@@ -253,13 +256,7 @@ export class LoyaltyRewardsService extends BaseService {
 
 		const now = new Date();
 		const rewards: any[] = await this._loyaltyRewards.getAll(
-			{
-				count: false,
-				order: [
-					['required_loyalty_level', 'ASC'],
-					['points_cost', 'ASC'],
-				],
-			},
+			{ count: false, order: [['required_loyalty_level', 'ASC'], ['points_cost', 'ASC']] },
 			{ is_active: true, cinema },
 		);
 
@@ -384,7 +381,7 @@ export class LoyaltyRewardsService extends BaseService {
 			} else if (reward.reward_type === REWARD_TYPE.PRODUCT || reward.reward_type === REWARD_TYPE.COMBO) {
 				// Se registra la entrega como línea de orden (precio 0: pagado con puntos), para que
 				// aparezca en el recibo/historial. El inventario NO se descuenta aquí: se descuenta en
-				// el retiro en taquilla (Fase B), cuando el cliente muestra el QR del recibo.
+				// el retiro en taquilla, cuando el cliente muestra el QR del recibo.
 				const baseRate = await this._exchangeRates.getOne(
 					{ currency: order.system_base_currency },
 					{ order: [['id', 'DESC']], transaction },
@@ -440,7 +437,7 @@ export class LoyaltyRewardsService extends BaseService {
 	}
 
 	// ---------------------------------------------------------------------------
-	// Boleto en blanco: validación (Fase B, taquilla)
+	// Boleto en blanco: validación
 	// ---------------------------------------------------------------------------
 	async getBlankTicketByCode(code: string) {
 		const bt = await this._blankTickets.getOne({ code });
@@ -508,7 +505,10 @@ export class LoyaltyRewardsService extends BaseService {
 	// Helpers de saldo y vigencia
 	// ---------------------------------------------------------------------------
 	private async _getBalance(customerId: number): Promise<number> {
-		const last = await this._loyaltyLedgers.getOne({ customer: customerId }, { order: [['created_at', 'DESC']] });
+		const last = await this._loyaltyLedgers.getOne(
+			{ customer: customerId },
+			{ order: [['created_at', 'DESC']] },
+		);
 		return last?.points_balance ?? 0;
 	}
 
