@@ -61,3 +61,20 @@ export const TAX_SCOPE = {
 	PRODUCTS: 2,
 	BOTH: 3,
 };
+
+export const REWARD_TYPE = {
+	PRODUCT: 'PRODUCT',
+	COMBO: 'COMBO',
+	BLANK_TICKET: 'BLANK_TICKET',
+	TWO_FOR_ONE: 'TWO_FOR_ONE',
+};
+
+export const BLANK_TICKET_STATUS = {
+	ISSUED: 'ISSUED',
+	REDEEMED: 'REDEEMED',
+	EXPIRED: 'EXPIRED',
+	REVERSED: 'REVERSED',
+};
+
+// Vigencia por defecto del boleto en blanco (días) desde su emisión
+export const BLANK_TICKET_VALIDITY_DAYS = 30;

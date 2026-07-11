@@ -1,0 +1,65 @@
+/loyalty-rewards/{id}/redeem:
+    post:
+        summary: Redeem a reward with CinePuntos (client)
+        description: >
+            Canjea un premio con CinePuntos en una sucursal. Valida nivel, saldo y que el premio
+            pertenezca a la sucursal indicada; crea una orden (total 0), descuenta puntos (SPEND,
+            sin afectar el progreso de nivel) y, para boleto en blanco / 2x1, emite los vales con
+            código y 30 días de vigencia.
+        tags:
+            - Loyalty Rewards
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        required:
+                            - cinema
+                        properties:
+                            cinema:
+                                type: integer
+                                description: Sucursal donde se canjea (debe coincidir con la del premio)
+        responses:
+            '200':
+                description: Canje realizado exitosamente
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                data:
+                                    type: object
+                                    properties:
+                                        order_id:
+                                            type: integer
+                                        reward_id:
+                                            type: integer
+                                        reward_type:
+                                            type: string
+                                        points_spent:
+                                            type: integer
+                                        new_balance:
+                                            type: integer
+                                        vouchers:
+                                            type: array
+                                            items:
+                                                type: object
+                                                properties:
+                                                    code:
+                                                        type: string
+                                                    expires_at:
+                                                        type: string
+                                                        format: date-time
+            '400':
+                description: Nivel/saldo insuficiente, sucursal incorrecta o premio no vigente
+            '404':
+                description: Premio no encontrado o inactivo

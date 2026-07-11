@@ -107,10 +107,14 @@ export default class PriceModifiersModel extends SequelizeModelBase {
 				type: DataTypes.BOOLEAN,
 				defaultValue: false,
 			},
+			min_loyalty_level: {
+				allowNull: true,
+				type: DataTypes.INTEGER,
+			},
 			deleted_at: {
 				allowNull: true,
 				type: DataTypes.DATE,
-			}
+			},
 		};
 	}
 
@@ -130,6 +134,11 @@ export default class PriceModifiersModel extends SequelizeModelBase {
 
 	static override relations(): RelationsReturn {
 		return [
+			{
+				type: 'belongsTo',
+				target: 'LoyaltyLevels',
+				options: { foreignKey: 'min_loyalty_level', targetKey: 'id', as: '_MinLoyaltyLevel' },
+			},
 			{
 				type: 'belongsTo',
 				target: 'ModifierScopes',

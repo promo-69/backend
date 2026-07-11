@@ -1,0 +1,223 @@
+/loyalty-rewards:
+    get:
+        summary: List loyalty rewards (admin)
+        description: >
+            Lista los premios de fidelidad de una sucursal. El empleado ve los de su sucursal
+            (anclada a su usuario); el superadmin filtra por ?cinema o ve todas.
+            Permisos necesarios: 'CRUD:READ:LOYALTY-REWARDS'.
+        tags:
+            - Loyalty Rewards
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: cinema
+              in: query
+              required: false
+              schema:
+                  type: integer
+              description: Sucursal a filtrar (obligatorio para el superadmin si quiere acotar)
+        responses:
+            '200':
+                description: Premios obtenidos correctamente
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                data:
+                                    type: array
+                                    items:
+                                        type: object
+                                        properties:
+                                            id:
+                                                type: integer
+                                            name:
+                                                type: string
+                                            description:
+                                                type: string
+                                                nullable: true
+                                            image_url:
+                                                type: string
+                                                nullable: true
+                                            points_cost:
+                                                type: integer
+                                            required_loyalty_level:
+                                                type: integer
+                                            cinema:
+                                                type: integer
+                                            reward_type:
+                                                type: string
+                                                enum: [PRODUCT, COMBO, BLANK_TICKET, TWO_FOR_ONE]
+                                            product:
+                                                type: integer
+                                                nullable: true
+                                            combo:
+                                                type: integer
+                                                nullable: true
+                                            quantity:
+                                                type: integer
+                                            start_date:
+                                                type: string
+                                                format: date
+                                                nullable: true
+                                            end_date:
+                                                type: string
+                                                format: date
+                                                nullable: true
+                                            is_active:
+                                                type: boolean
+    post:
+        summary: Create loyalty reward (admin)
+        description: >
+            Crea un premio en una sucursal. El empleado lo crea en su sucursal (session.cinemaId);
+            el superadmin debe indicar 'cinema'. Tipos: PRODUCT, COMBO, BLANK_TICKET, TWO_FOR_ONE.
+            Permisos necesarios: 'CRUD:CREATE:LOYALTY-REWARDS'.
+        tags:
+            - Loyalty Rewards
+        security:
+            - bearerAuth: []
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        required:
+                            - name
+                            - pointsCost
+                            - requiredLoyaltyLevel
+                            - rewardType
+                        properties:
+                            name:
+                                type: string
+                            description:
+                                type: string
+                            imageUrl:
+                                type: string
+                            pointsCost:
+                                type: integer
+                            requiredLoyaltyLevel:
+                                type: integer
+                            cinema:
+                                type: integer
+                                description: Requerido solo para el superadmin (el empleado usa la suya)
+                            rewardType:
+                                type: string
+                                enum: [PRODUCT, COMBO, BLANK_TICKET, TWO_FOR_ONE]
+                            product:
+                                type: integer
+                                nullable: true
+                            combo:
+                                type: integer
+                                nullable: true
+                            quantity:
+                                type: integer
+                            startDate:
+                                type: string
+                                format: date
+                            endDate:
+                                type: string
+                                format: date
+                            isActive:
+                                type: boolean
+        responses:
+            '201':
+                description: Premio creado exitosamente
+            '400':
+                description: Datos inválidos o sucursal no indicada
+
+/loyalty-rewards/{id}:
+    get:
+        summary: Get loyalty reward by id (admin)
+        description: "Permisos necesarios: 'CRUD:READ:LOYALTY-REWARDS'."
+        tags:
+            - Loyalty Rewards
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Premio encontrado
+            '403':
+                description: El premio pertenece a otra sucursal
+            '404':
+                description: Premio no encontrado
+    put:
+        summary: Update loyalty reward (admin)
+        description: "Permisos necesarios: 'CRUD:UPDATE:LOYALTY-REWARDS'."
+        tags:
+            - Loyalty Rewards
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            name:
+                                type: string
+                            description:
+                                type: string
+                            imageUrl:
+                                type: string
+                            pointsCost:
+                                type: integer
+                            requiredLoyaltyLevel:
+                                type: integer
+                            rewardType:
+                                type: string
+                                enum: [PRODUCT, COMBO, BLANK_TICKET, TWO_FOR_ONE]
+                            product:
+                                type: integer
+                                nullable: true
+                            combo:
+                                type: integer
+                                nullable: true
+                            quantity:
+                                type: integer
+                            startDate:
+                                type: string
+                                format: date
+                            endDate:
+                                type: string
+                                format: date
+                            isActive:
+                                type: boolean
+        responses:
+            '200':
+                description: Premio actualizado
+            '403':
+                description: El premio pertenece a otra sucursal
+            '404':
+                description: Premio no encontrado
+    delete:
+        summary: Deactivate loyalty reward (admin, soft delete)
+        description: "Permisos necesarios: 'CRUD:DELETE:LOYALTY-REWARDS'."
+        tags:
+            - Loyalty Rewards
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Premio desactivado
+            '403':
+                description: El premio pertenece a otra sucursal

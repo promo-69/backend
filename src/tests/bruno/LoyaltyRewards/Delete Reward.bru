@@ -1,0 +1,14 @@
+meta {
+  name: Delete Reward
+  type: http
+  seq: 7
+}
+
+delete {
+  url: {{baseUrl}}/loyalty-rewards/{{rewardId}}
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

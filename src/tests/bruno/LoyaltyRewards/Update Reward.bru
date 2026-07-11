@@ -1,0 +1,22 @@
+meta {
+  name: Update Reward
+  type: http
+  seq: 6
+}
+
+put {
+  url: {{baseUrl}}/loyalty-rewards/{{rewardId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "pointsCost": 2500,
+    "isActive": true
+  }
+}
