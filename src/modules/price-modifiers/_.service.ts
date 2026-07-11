@@ -40,6 +40,7 @@ interface CreatePriceModifierBody {
 	currency?: number;
 	targetCurrency?: number;
 	targetCurrencyCondition?: boolean;
+	minLoyaltyLevel?: number | null;
 }
 
 interface UpdatePriceModifierBody {
@@ -167,6 +168,7 @@ export class PriceModifiersService extends BaseService {
 			currency: currency ?? null,
 			target_currency: body.targetCurrency ?? null,
 			target_currency_condition: body.targetCurrencyCondition ?? false,
+			min_loyalty_level: body.minLoyaltyLevel ?? null,
 		});
 
 		await PricingCacheService.invalidateCache();
@@ -199,6 +201,7 @@ export class PriceModifiersService extends BaseService {
 		if (isPercentage !== undefined) updateData.is_percentage = isPercentage;
 		if (operationType !== undefined) updateData.operation_type = operationType;
 		if (body.currency !== undefined) updateData.currency = body.currency;
+		if ((body as any).minLoyaltyLevel !== undefined) updateData.min_loyalty_level = (body as any).minLoyaltyLevel;
 
 		const finalIsPercentage = isPercentage ?? modifier.is_percentage;
 		const finalCurrency = body.currency !== undefined ? body.currency : modifier.currency;

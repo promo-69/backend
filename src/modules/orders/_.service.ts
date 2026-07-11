@@ -2,6 +2,7 @@ import { BaseService } from '@bases/service.base.js';
 import { Database, Ops } from '@database/index.js';
 import { CacheDatabaseProvider } from '@providers/cache-database.provider.js';
 import { QueueProvider } from '@providers/queue.provider.js';
+import OrderReceiptService from '@services/order-receipt.service.js';
 import { RealtimeProvider } from '@providers/realtime.provider.js';
 import { NotFoundError, ValidationError, BadRequestError, ForbiddenError, ConflictError } from '@errors/index.js';
 import { Transaction } from 'sequelize';
@@ -21,6 +22,7 @@ import {
 	SHOPPING_SESSION_STATUS,
 	TTL_SECONDS,
 	INVENTORY_OPERATION,
+	BLANK_TICKET_STATUS,
 } from '@constants/magic-vars.constant.js';
 
 export class OrdersService extends BaseService {
@@ -88,6 +90,15 @@ export class OrdersService extends BaseService {
 	private get _loyaltyLedgers() {
 		return Database.repository('main', 'loyalty-ledgers') as any;
 	}
+	private get _loyaltyLevels() {
+		return Database.repository('main', 'loyalty-levels') as any;
+	}
+	private get _blankTickets() {
+		return Database.repository('main', 'blank-tickets') as any;
+	}
+	private get _rewardRedemptions() {
+		return Database.repository('main', 'reward-redemptions') as any;
+	}
 	private get _cinemas() {
 		return Database.repository('main', 'cinemas') as any;
 	}
@@ -102,8 +113,7 @@ export class OrdersService extends BaseService {
 	}
 
 	private async _getCustomerEmail(customerId: number | null, session: any): Promise<string | null> {
-		if (!session.roleCode && session.email)
-			return session.email;
+		if (!session.roleCode && session.email) return session.email;
 
 		if (customerId) {
 			const customer = await this._customers.getById(customerId, {
@@ -119,8 +129,7 @@ export class OrdersService extends BaseService {
 					if (verifiedUser && verifiedUser.email) return verifiedUser.email;
 				}
 
-				if (customer._People.personal_email)
-					return customer._People.personal_email;
+				if (customer._People.personal_email) return customer._People.personal_email;
 			}
 		}
 
@@ -150,7 +159,8 @@ export class OrdersService extends BaseService {
 		if (finalCustomerId) {
 			const customerExists = await this._customers.count({ id: finalCustomerId });
 
-			if (!customerExists) throw new NotFoundError('El ID de cliente proporcionado no existe en la base de datos.');
+			if (!customerExists)
+				throw new NotFoundError('El ID de cliente proporcionado no existe en la base de datos.');
 		}
 
 		// Verifica si el usuario ya tiene una sesion de compra activa
@@ -168,18 +178,14 @@ export class OrdersService extends BaseService {
 
 		// Mapeamos las monedas a un arreglo de promesas
 		const ratePromises = currencies.map(async (c: any) => {
-			const latestRate = await this._exchangeRates.getOne(
-				{ currency: c.id },
-				{ order: [['id', 'DESC']] }
-			);
+			const latestRate = await this._exchangeRates.getOne({ currency: c.id }, { order: [['id', 'DESC']] });
 			return { currencyId: c.id, rate: latestRate };
 		});
 
 		// Ejecutamos todas las consultas de red simultáneamente
 		const results = await Promise.all(ratePromises);
 
-		for (const result of results)
-			if (result.rate) exchangeRatesDict[result.currencyId] = result.rate;
+		for (const result of results) if (result.rate) exchangeRatesDict[result.currencyId] = result.rate;
 
 		const baseCurrency = await this._currencies.getOne({
 			is_base_currency: true,
@@ -409,6 +415,18 @@ export class OrdersService extends BaseService {
 					{ cinema: [quoteData.cinema, null] },
 				);
 
+				// Nivel de fidelidad del cliente para modificadores condicionados por nivel (Vía A).
+				// Sin cliente (p. ej. walk-in de taquilla) => nivel 0 => no aplican esos modificadores.
+				const _levelCustomerId = quoteData.customerId ? Number(quoteData.customerId) : null;
+				let customerLevel = 0;
+				if (_levelCustomerId) {
+					const _lc = await this._customers.getById(_levelCustomerId, {
+						attributes: ['id', 'loyalty_level'],
+						transaction,
+					});
+					customerLevel = Number(_lc?.loyalty_level ?? 0);
+				}
+
 				// Extrae tipos de operacion requeridos por los modificadores
 				const opTypeIds = [...new Set(activeModifiers.map((m: any) => m.operation_type))].filter(Boolean);
 				const loadedOpTypes = opTypeIds.length
@@ -422,7 +440,8 @@ export class OrdersService extends BaseService {
 				if (hasConcessions) {
 					// Obtiene productos y combos involucrados para calcular precios base
 					const productIdsForPrice =
-						concessions.filter((c: any) => c.line_type === LINE_TYPE.PRODUCT).map((c: any) => c.product) || [];
+						concessions.filter((c: any) => c.line_type === LINE_TYPE.PRODUCT).map((c: any) => c.product) ||
+						[];
 					const comboIdsForPrice =
 						concessions.filter((c: any) => c.line_type === LINE_TYPE.COMBO).map((c: any) => c.combo) || [];
 					const loadedProducts = productIdsForPrice.length
@@ -459,6 +478,7 @@ export class OrdersService extends BaseService {
 						productPriceMap,
 						comboPriceMap,
 						orderTaxesCollector,
+						customerLevel,
 					);
 					subtotalBase += result.subtotalBase;
 					taxesBase += result.taxesBase;
@@ -497,6 +517,7 @@ export class OrdersService extends BaseService {
 						bookingsMap,
 						seatsMap,
 						orderTaxesCollector,
+						customerLevel,
 					);
 					subtotalBase += result.subtotalBase;
 					taxesBase += result.taxesBase;
@@ -674,7 +695,8 @@ export class OrdersService extends BaseService {
 				if (!paymentCurrency) paymentCurrency = quoteData.system_base_currency;
 
 				const rateDb = exchangeRatesDict[paymentCurrency];
-				if (!rateDb) throw new BadRequestError('No se encontró tasa de cambio en la cotización para esta moneda.');
+				if (!rateDb)
+					throw new BadRequestError('No se encontró tasa de cambio en la cotización para esta moneda.');
 
 				const exchangeRateValue = Number(rateDb.rate);
 				const quotedExchangeRateId = rateDb.id;
@@ -693,7 +715,12 @@ export class OrdersService extends BaseService {
 				// Ramificación según método de pago
 				if (paymentMethodId === PAYMENT_METHOD.LOYALTY_POINTS) {
 					const ledgers = await this._loyaltyLedgers.getAll(
-						{ count: false, order: [['id', 'DESC']], limit: 1, operation: { transaction, lock: transaction.LOCK.UPDATE } },
+						{
+							count: false,
+							order: [['id', 'DESC']],
+							limit: 1,
+							operation: { transaction, lock: transaction.LOCK.UPDATE },
+						},
 						{ customer: session.customerId },
 					);
 
@@ -711,25 +738,36 @@ export class OrdersService extends BaseService {
 						},
 						{ transaction },
 					);
-				} else if ([PAYMENT_METHOD.POS, PAYMENT_METHOD.MOBILE_PAYMENT, PAYMENT_METHOD.BANK_TRANSFER].includes(paymentMethodId) || bypass === true) {
+				} else if (
+					[PAYMENT_METHOD.POS, PAYMENT_METHOD.MOBILE_PAYMENT, PAYMENT_METHOD.BANK_TRANSFER].includes(
+						paymentMethodId,
+					) ||
+					bypass === true
+				) {
 					if (!currency) throw new BadRequestError('La moneda es obligatoria para este método de pago');
 
 					if (bypass !== true) {
-						if (!reference_number) throw new BadRequestError('El número de referencia es obligatorio para este método de pago');
-						if (!bank) throw new BadRequestError('El banco destino es obligatorio para este método de pago');
+						if (!reference_number)
+							throw new BadRequestError(
+								'El número de referencia es obligatorio para este método de pago',
+							);
+						if (!bank)
+							throw new BadRequestError('El banco destino es obligatorio para este método de pago');
 
 						// Obtener cuenta bancaria para validar si acepta el pago y si requiere validación con Banky
-						const searchParams: any = { payment_method: paymentMethodId, currency, bank};
+						const searchParams: any = { payment_method: paymentMethodId, currency, bank };
 						const acceptedAccounts = await this._bankAccounts.getAll(
 							{
 								count: false,
 								operation: { transaction },
-								relations: [{ association: '_Banks' }]
+								relations: [{ association: '_Banks' }],
 							},
-							searchParams
+							searchParams,
 						);
 						if (acceptedAccounts.length === 0)
-							throw new BadRequestError('No se encontró una cuenta bancaria destino válida para este método de pago y moneda.');
+							throw new BadRequestError(
+								'No se encontró una cuenta bancaria destino válida para este método de pago y moneda.',
+							);
 
 						const targetAccount = acceptedAccounts[0];
 						const apiUrl = targetAccount._Banks?.api_url;
@@ -740,17 +778,26 @@ export class OrdersService extends BaseService {
 								const response = await fetch(`${apiUrl}/external/transactions/${reference_number}`, {
 									method: 'GET',
 									headers: {
-										'Authorization': `Bearer ${apiKey}`,
-										'Accept': 'application/json'
-									}
+										Authorization: `Bearer ${apiKey}`,
+										Accept: 'application/json',
+									},
 								});
 								const data: any = await response.json();
 
-								if (!response.ok || !data.success) throw new BadRequestError(`El pago no pudo ser validado. Banco dice: ${data.message || 'Transacción fallida o no encontrada'}`);
-								if (Number(data.data.amount) !== Number(amount)) throw new BadRequestError(`El monto de la transacción no coincide con el monto descrito.`);
+								if (!response.ok || !data.success)
+									throw new BadRequestError(
+										`El pago no pudo ser validado. Banco dice: ${data.message || 'Transacción fallida o no encontrada'}`,
+									);
+								if (Number(data.data.amount) !== Number(amount))
+									throw new BadRequestError(
+										`El monto de la transacción no coincide con el monto descrito.`,
+									);
 							} catch (error: any) {
 								if (error instanceof BadRequestError) throw error;
-								throw new BadRequestError(`Error al comprobar la transacción con la entidad bancaria`, error);
+								throw new BadRequestError(
+									`Error al comprobar la transacción con la entidad bancaria`,
+									error,
+								);
 							}
 						} else {
 							// Para otros bancos/monedas que no son Banky, se confía en la referencia por el momento (o pasará a validación manual)
@@ -759,7 +806,7 @@ export class OrdersService extends BaseService {
 						const existingPayment = await this._orderPayments.getOne(
 							{
 								reference_number,
-								payment_method: paymentMethodId
+								payment_method: paymentMethodId,
 							},
 							{
 								attributes: ['id'],
@@ -769,21 +816,57 @@ export class OrdersService extends BaseService {
 										attributes: ['id'],
 										association: '_Orders',
 										required: true,
-										where: { order_status: { [Ops.in]: [1, 2, 4] } }
+										where: { order_status: { [Ops.in]: [1, 2, 4] } },
 									},
 									{
 										attributes: ['id'],
 										association: '_ExchangeRates',
 										required: true,
-										where: { currency: currency }
-									}
-								]
-							}
+										where: { currency: currency },
+									},
+								],
+							},
 						);
 
-						if (existingPayment) throw new BadRequestError(`La referencia ${reference_number} ya fue procesada previamente.`);
+						if (existingPayment)
+							throw new BadRequestError(
+								`La referencia ${reference_number} ya fue procesada previamente.`,
+							);
 					}
-				} else if (paymentMethodId === PAYMENT_METHOD.CASH) {}
+				} else if (paymentMethodId === PAYMENT_METHOD.BLANK_TICKET) {
+					// Conversión de boleto en blanco (Fase B): el vale cubre el total del ticket,
+					// válido para cualquier función y sin diferencia de precio. Un vale = una orden de ticket.
+					const code = payment.code || reference_number;
+					if (!code) throw new BadRequestError('Debe indicar el código del boleto en blanco');
+
+					const bt = await this._blankTickets.getOne(
+						{ code },
+						{ transaction, lock: transaction.LOCK.UPDATE },
+					);
+					if (!bt) throw new NotFoundError('Boleto en blanco no encontrado');
+					if (bt.status !== BLANK_TICKET_STATUS.ISSUED)
+						throw new BadRequestError('El boleto en blanco no está disponible (ya usado o vencido)');
+					if (new Date(bt.expires_at) < new Date()) {
+						await this._blankTickets.update(
+							bt.id,
+							{ status: BLANK_TICKET_STATUS.EXPIRED },
+							{ transaction },
+						);
+						throw new BadRequestError('El boleto en blanco está vencido');
+					}
+
+					// El vale cubre el total de la orden del ticket.
+					amountBase = Number(order.total_amount_base_currency);
+
+					await this._blankTickets.update(
+						bt.id,
+						{ status: BLANK_TICKET_STATUS.REDEEMED, redeemed_order: order_id, redeemed_at: new Date() },
+						{ transaction },
+					);
+				} else if (paymentMethodId === PAYMENT_METHOD.CASH) {
+					// El pago en efectivo no requiere validación adicional
+					// Se registra directamente sin procesamiento extra
+				}
 
 				await this._orderPayments.create(
 					{
@@ -819,7 +902,11 @@ export class OrdersService extends BaseService {
 				const isEmployee = !!session.roleCode;
 
 				if (isEmployee) {
-					await this._orders.update({ id: order_id }, { order_status: ORDER_STATUS.PAID, qr_code: qrCode }, { transaction });
+					await this._orders.update(
+						{ id: order_id },
+						{ order_status: ORDER_STATUS.PAID, qr_code: qrCode },
+						{ transaction },
+					);
 					orderData = { ...order, qr_code: qrCode, order_status: ORDER_STATUS.PAID, is_employee: true };
 				} else {
 					// Si es un cliente directo, genera factura automatica usando sus datos de sesion
@@ -833,8 +920,17 @@ export class OrdersService extends BaseService {
 						address: '',
 					};
 					await this._generateInvoice(order_id, billingData, order.cinema, transaction);
-					await this._orders.update({ id: order_id }, { order_status: ORDER_STATUS.ONLINE_PAID, qr_code: qrCode }, { transaction });
-					orderData = { ...order, qr_code: qrCode, order_status: ORDER_STATUS.ONLINE_PAID, is_employee: false };
+					await this._orders.update(
+						{ id: order_id },
+						{ order_status: ORDER_STATUS.ONLINE_PAID, qr_code: qrCode },
+						{ transaction },
+					);
+					orderData = {
+						...order,
+						qr_code: qrCode,
+						order_status: ORDER_STATUS.ONLINE_PAID,
+						is_employee: false,
+					};
 				}
 
 				// Actualiza inventario
@@ -849,7 +945,10 @@ export class OrdersService extends BaseService {
 		});
 
 		// Acciones posteriores si la orden fue pagada completamente (o requiere billing)
-		if (orderData && (orderData.order_status === ORDER_STATUS.PAID || orderData.order_status === ORDER_STATUS.ONLINE_PAID)) {
+		if (
+			orderData &&
+			(orderData.order_status === ORDER_STATUS.PAID || orderData.order_status === ORDER_STATUS.ONLINE_PAID)
+		) {
 			if (orderData.is_employee) {
 				// Extiende la sesion 24 horas para obligar al empleado a facturar
 				quoteData.status = SHOPPING_SESSION_STATUS.PENDING_BILLING;
@@ -951,7 +1050,8 @@ export class OrdersService extends BaseService {
 			);
 
 			if (!order) throw new NotFoundError('Orden no encontrada.');
-			if (order.order_status !== ORDER_STATUS.PAID) throw new BadRequestError('La orden no se encuentra en estado pagada.');
+			if (order.order_status !== ORDER_STATUS.PAID)
+				throw new BadRequestError('La orden no se encuentra en estado pagada.');
 
 			let billingData = { name: billing_name, document: billing_document, address: billing_address };
 
@@ -972,7 +1072,11 @@ export class OrdersService extends BaseService {
 			}
 
 			await this._generateInvoice(quoteData.order_id, billingData, order.cinema, transaction);
-			await this._orders.update({ id: quoteData.order_id }, { order_status: ORDER_STATUS.ONLINE_PAID }, { transaction });
+			await this._orders.update(
+				{ id: quoteData.order_id },
+				{ order_status: ORDER_STATUS.ONLINE_PAID },
+				{ transaction },
+			);
 		});
 
 		// Limpia la sesion y emite el success final
@@ -1096,13 +1200,50 @@ export class OrdersService extends BaseService {
 		return { success: true };
 	}
 
+	// Retiro en taquilla de un premio de producto/combo (Fase B): valida el QR del recibo,
+	// confirma que es un canje, descuenta inventario de la sucursal y marca como entregado.
+	async fulfillRedemptionPickup(qrCode: string, session: any) {
+		const secret = AppConfig.load().security.jwtCommonSecret;
+		try {
+			JWTUtil.verifyToken(qrCode, secret);
+		} catch {
+			throw new BadRequestError('Código QR inválido o expirado');
+		}
+
+		const order = await this._orders.getOne({ qr_code: qrCode });
+		if (!order) throw new NotFoundError('Código QR inválido');
+
+		const redemption = await this._rewardRedemptions.getOne({ order: order.id });
+		if (!redemption) throw new BadRequestError('El QR no corresponde a un canje de premio');
+
+		if (order.concessions_validated_at) throw new ConflictError('Este canje ya fue retirado');
+
+		const lines = await this._orderLines.getAll({ count: false }, { order: order.id });
+		if (!lines || lines.length === 0) throw new BadRequestError('El canje no tiene productos para entregar');
+
+		await this._orders.transaction(async (transaction: Transaction) => {
+			const concessions = lines.map((l: any) => ({
+				line_type: l.line_type,
+				product: l.product,
+				combo: l.combo,
+				quantity: l.quantity,
+			}));
+			await this._deductPhysicalInventory(concessions, order, session.userId, transaction);
+			await this._orders.update({ id: order.id }, { concessions_validated_at: new Date() }, { transaction });
+		});
+
+		return { success: true, order_id: order.id };
+	}
+
 	/**
 	 * Verifica si hay stock suficiente de confiteria para una orden.
 	 * Descompone combos en productos individuales y calcula el stock disponible restando reservaciones.
 	 */
 	private async _checkInventoryForConcessions(concessions: any[], cinema: number, transaction: Transaction) {
 		const requiredProducts: Record<number, number> = {};
-		const comboIds = concessions.filter((c: any) => c.line_type === LINE_TYPE.COMBO && c.combo).map((c: any) => c.combo);
+		const comboIds = concessions
+			.filter((c: any) => c.line_type === LINE_TYPE.COMBO && c.combo)
+			.map((c: any) => c.combo);
 
 		// Carga la definicion de los combos para conocer los productos que los componen
 		let allComboParts: any[] = [];
@@ -1144,7 +1285,7 @@ export class OrdersService extends BaseService {
 			// Busca ordenes pendientes de otros usuarios para reservar inventario logico
 			const comboPartsOfInterest = await this._comboProducts.getAll(
 				{ count: false, attributes: ['combo', 'product', 'quantity'], operation: { transaction } },
-				{ product: productIds }
+				{ product: productIds },
 			);
 			const comboIdsOfInterest = [...new Set(comboPartsOfInterest.map((c: any) => c.combo))];
 
@@ -1155,25 +1296,24 @@ export class OrdersService extends BaseService {
 					operation: { transaction },
 				},
 				{
-					[Ops.or]: [
-						{ product: productIds },
-						{ combo: comboIdsOfInterest }
-					]
-				}
+					[Ops.or]: [{ product: productIds }, { combo: comboIdsOfInterest }],
+				},
 			);
 
 			// Valida que el stock disponible alcance a cubrir la cantidad solicitada
 			for (const inv of inventories) {
 				const requiredQty = requiredProducts[inv.product];
 				const pendingLines = allPendingLines.filter(
-					(line: any) => line.product === inv.product || comboIdsOfInterest.includes(line.combo)
+					(line: any) => line.product === inv.product || comboIdsOfInterest.includes(line.combo),
 				);
 				let pendingQty = 0;
 				for (const line of pendingLines) {
 					if (line.product === inv.product) {
 						pendingQty += line.quantity;
 					} else if (line.combo) {
-						const parts = comboPartsOfInterest.filter((p: any) => p.combo === line.combo && p.product === inv.product);
+						const parts = comboPartsOfInterest.filter(
+							(p: any) => p.combo === line.combo && p.product === inv.product,
+						);
 						for (const part of parts) pendingQty += line.quantity * part.quantity;
 					}
 				}
@@ -1208,6 +1348,7 @@ export class OrdersService extends BaseService {
 		productPriceMap: Map<number, any>,
 		comboPriceMap: Map<number, any>,
 		orderTaxesCollector: Record<number, any>,
+		customerLevel: number = 0,
 	) {
 		const now = new Date();
 		const currentDate = now.toISOString().split('T')[0];
@@ -1234,6 +1375,7 @@ export class OrdersService extends BaseService {
 				product_category: productData ? productData.product_category : null,
 				product: item.product,
 				combo: item.combo,
+				customerLevel,
 			};
 
 			const { finalPrice: finalPriceInItemCurrency, appliedModifiers } = PricingService.calculateFinalPrice(
@@ -1259,7 +1401,8 @@ export class OrdersService extends BaseService {
 			const itemTaxes = activeTaxes.filter((t: any) => {
 				if (t.tax_scope !== TAX_SCOPE.PRODUCTS && t.tax_scope !== TAX_SCOPE.BOTH) return false;
 				if (t.line_type && t.line_type !== item.line_type) return false;
-				if (t.product_category && (!productData || t.product_category !== productData.product_category)) return false;
+				if (t.product_category && (!productData || t.product_category !== productData.product_category))
+					return false;
 				if (t.product && t.product !== item.product) return false;
 				if (t.combo && t.combo !== item.combo) return false;
 				return true;
@@ -1303,6 +1446,7 @@ export class OrdersService extends BaseService {
 		bookingsMap: Map<number, any>,
 		seatsMap: Map<number, any>,
 		orderTaxesCollector: Record<number, any>,
+		customerLevel: number = 0,
 	) {
 		const now = new Date();
 		const currentDate = now.toISOString().split('T')[0];
@@ -1333,6 +1477,7 @@ export class OrdersService extends BaseService {
 				seat_category: seatData?.seat_category,
 				room_type: bookingDb?._Rooms?.room_type,
 				audienceCategoryId: ticket.audienceCategoryId,
+				customerLevel,
 			};
 
 			const { finalPrice: finalPriceInItemCurrency, appliedModifiers } = PricingService.calculateFinalPrice(
@@ -1359,7 +1504,7 @@ export class OrdersService extends BaseService {
 					t.product === null &&
 					t.combo === null &&
 					t.product_category === null &&
-					t.line_type === null
+					t.line_type === null,
 			);
 			const uniqueTaxesMap = new Map<number, any>();
 			for (const t of ticketTaxes) {
@@ -1510,7 +1655,7 @@ export class OrdersService extends BaseService {
 	private async _awardLoyaltyPoints(order: any, transaction: Transaction) {
 		if (order.customer && Number(order.generated_points) > 0) {
 			const customer = await this._customers.getById(order.customer, {
-				attributes: ['id', 'level_progress_points'],
+				attributes: ['id', 'level_progress_points', 'loyalty_level'],
 				transaction,
 				lock: transaction.LOCK.UPDATE,
 			});
@@ -1519,7 +1664,12 @@ export class OrdersService extends BaseService {
 			const newLevelPoints = currentLevelPoints + earnedPoints;
 
 			const ledgers = await this._loyaltyLedgers.getAll(
-				{ count: false, order: [['id', 'DESC']], limit: 1, operation: { transaction, lock: transaction.LOCK.UPDATE } },
+				{
+					count: false,
+					order: [['id', 'DESC']],
+					limit: 1,
+					operation: { transaction, lock: transaction.LOCK.UPDATE },
+				},
 				{ customer: order.customer },
 			);
 			const currentSpendableBalance = ledgers.length > 0 ? Number(ledgers[0].points_balance) : 0;
@@ -1536,60 +1686,39 @@ export class OrdersService extends BaseService {
 				},
 				{ transaction },
 			);
-			await this._customers.update(order.customer, { level_progress_points: newLevelPoints }, { transaction });
+
+			// El progreso es absoluto y el nivel sube con él. Nunca se degrada: se toma el mayor
+			// entre el nivel actual y el calculado desde el nuevo progreso.
+			const currentLevelId = Number(customer?.loyalty_level ?? 1);
+			const computedLevelId = await this._computeLoyaltyLevelId(newLevelPoints, transaction);
+			const newLevelId = Math.max(currentLevelId, computedLevelId);
+
+			await this._customers.update(
+				order.customer,
+				{ level_progress_points: newLevelPoints, loyalty_level: newLevelId },
+				{ transaction },
+			);
 		}
 	}
 
+	// Devuelve el id del nivel más alto cuyo umbral (required_points) se alcanza con `points`.
+	// Asume loyalty_levels ordenados de forma ascendente por required_points.
+	private async _computeLoyaltyLevelId(points: number, transaction: Transaction): Promise<number> {
+		const levels = await this._loyaltyLevels.getAll(
+			{ count: false, order: [['required_points', 'ASC']], operation: { transaction } },
+			{},
+		);
+		const list: any[] = Array.isArray(levels) ? levels : (levels?.rows ?? []);
+		let targetLevel = list[0]?.id ?? 1;
+		for (const level of list) {
+			if (points >= Number(level.required_points ?? 0)) targetLevel = level.id;
+			else break;
+		}
+		return targetLevel;
+	}
+
 	private _generateOrderQrCode(order: any, tickets: any[], concessions: any[]): string {
-		const secret = AppConfig.load().security.jwtCommonSecret;
-		const hasTickets = tickets && tickets.length > 0;
-		const hasConcessions = concessions && concessions.length > 0;
-		let t_exp: number | null = null;
-		let c_exp: number | null = null;
-		let expiresInSeconds = 86400;
-
-		if (hasTickets) {
-			const ticketData = tickets[0];
-			const endTime = ticketData?._RoomBookings?.end_time || new Date(Date.now() + 7200000);
-			t_exp = Math.floor(new Date(endTime).getTime() / 1000);
-			expiresInSeconds = Math.max(t_exp - Math.floor(Date.now() / 1000), 0);
-		}
-		if (hasConcessions) {
-			const endOfDay = new Date();
-			endOfDay.setHours(23, 59, 59, 999);
-			c_exp = Math.floor(endOfDay.getTime() / 1000);
-			expiresInSeconds = Math.max(expiresInSeconds, Math.max(c_exp - Math.floor(Date.now() / 1000), 0));
-		}
-
-		const cinemaName = (order as any)._Cinemas?.name || 'Cine Central';
-		let bkg: any = undefined;
-		if (hasTickets) {
-			const roomBooking = tickets[0]._RoomBookings;
-			let dateFormatted = '';
-			if (roomBooking?.start_time) {
-				const d = new Date(roomBooking.start_time);
-				dateFormatted = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-			}
-			bkg = {
-				title: roomBooking?._Movies?.title || roomBooking?.name || 'Evento',
-				room: roomBooking?._Rooms?.name || 'Sala',
-				date: dateFormatted,
-				sts: tickets.map((t: any) => `${t._Seats?.row_identifier || ''}-${t._Seats?.column_number || ''}`),
-			};
-		}
-		let cnc: any[] | undefined = undefined;
-		if (hasConcessions) {
-			cnc = concessions.map((c: any) => ({
-				n: c.line_type === LINE_TYPE.PRODUCT ? c._Products?.name : c._Combos?.name,
-				q: c.quantity,
-			}));
-		}
-		const payload: any = { sub: order.id, cin: cinemaName };
-		if (bkg) payload.bkg = bkg;
-		if (cnc) payload.cnc = cnc;
-		if (t_exp) payload.t_exp = t_exp;
-		if (c_exp) payload.c_exp = c_exp;
-		return JWTUtil.generateToken(payload, secret, expiresInSeconds);
+		return OrderReceiptService.generateOrderQr(order, tickets, concessions);
 	}
 
 	private async _generateInvoice(order_id: number, billingData: any, cinema: number, transaction: Transaction) {

@@ -1,4 +1,4 @@
-import { MathUtil } from "@utils/math.util.js";
+import { MathUtil } from '@utils/math.util.js';
 
 export class PricingService {
 	/**
@@ -59,6 +59,8 @@ export class PricingService {
 			if (m.product && m.product !== context.product) return false;
 
 			if (m.combo && m.combo !== context.combo) return false;
+
+			if (m.min_loyalty_level && (context.customerLevel ?? 0) < m.min_loyalty_level) return false;
 
 			return true;
 		});

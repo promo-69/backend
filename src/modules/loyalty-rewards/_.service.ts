@@ -6,10 +6,12 @@ import { NotFoundError, ValidationError, BadRequestError, ForbiddenError } from 
 import {
 	ORDER_STATUS,
 	LOYALTY_OPERATION,
+	LINE_TYPE,
 	REWARD_TYPE,
 	BLANK_TICKET_STATUS,
 	BLANK_TICKET_VALIDITY_DAYS,
 } from '@constants/magic-vars.constant.js';
+import OrderReceiptService from '@services/order-receipt.service.js';
 
 // Código legible/tecleable para el boleto en blanco (sin caracteres ambiguos)
 const generateBlankCode = customAlphabet('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 10);
@@ -37,7 +39,7 @@ interface CreateRewardBody {
 	isActive?: boolean;
 }
 
-interface UpdateRewardBody extends Partial<CreateRewardBody> {}
+type UpdateRewardBody = Partial<CreateRewardBody>;
 
 export class LoyaltyRewardsService extends BaseService {
 	constructor() {
@@ -64,6 +66,12 @@ export class LoyaltyRewardsService extends BaseService {
 	}
 	private get _orders() {
 		return Database.repository('main', 'orders') as any;
+	}
+	private get _orderLines() {
+		return Database.repository('main', 'order-lines') as any;
+	}
+	private get _exchangeRates() {
+		return Database.repository('main', 'exchange-rates') as any;
 	}
 
 	// ---------------------------------------------------------------------------
@@ -177,10 +185,7 @@ export class LoyaltyRewardsService extends BaseService {
 		// Empleado: forzado a su sucursal. Superadmin: filtra por la indicada, o ve todas.
 		const cinema = session?.cinemaId ?? query?.cinema ?? null;
 		const where = cinema ? { cinema: Number(cinema) } : {};
-		return this._loyaltyRewards.getAll(
-			{ count: false, order: [['required_loyalty_level', 'ASC']] },
-			where,
-		);
+		return this._loyaltyRewards.getAll({ count: false, order: [['required_loyalty_level', 'ASC']] }, where);
 	}
 
 	async getRewardById(id: number, session: any) {
@@ -207,7 +212,8 @@ export class LoyaltyRewardsService extends BaseService {
 		if (body.product !== undefined) updateData.product = body.product;
 		if (body.combo !== undefined) updateData.combo = body.combo;
 		if (body.quantity !== undefined) updateData.quantity = body.quantity;
-		if (body.startDate !== undefined) updateData.start_date = body.startDate ? new Date(body.startDate as any) : null;
+		if (body.startDate !== undefined)
+			updateData.start_date = body.startDate ? new Date(body.startDate as any) : null;
 		if (body.endDate !== undefined) updateData.end_date = body.endDate ? new Date(body.endDate as any) : null;
 		if (body.isActive !== undefined) updateData.is_active = body.isActive;
 		// La sucursal de un premio no se reasigna desde update.
@@ -247,7 +253,13 @@ export class LoyaltyRewardsService extends BaseService {
 
 		const now = new Date();
 		const rewards: any[] = await this._loyaltyRewards.getAll(
-			{ count: false, order: [['required_loyalty_level', 'ASC'], ['points_cost', 'ASC']] },
+			{
+				count: false,
+				order: [
+					['required_loyalty_level', 'ASC'],
+					['points_cost', 'ASC'],
+				],
+			},
 			{ is_active: true, cinema },
 		);
 
@@ -370,9 +382,26 @@ export class LoyaltyRewardsService extends BaseService {
 			if (reward.reward_type === REWARD_TYPE.BLANK_TICKET || reward.reward_type === REWARD_TYPE.TWO_FOR_ONE) {
 				vouchers = await this._issueBlankTickets(reward, customerId, order.id, transaction);
 			} else if (reward.reward_type === REWARD_TYPE.PRODUCT || reward.reward_type === REWARD_TYPE.COMBO) {
-				// TODO (integración inventario - decisión 4): registrar la entrega del producto/combo
-				// como línea de orden y descontar stock de ESTA sucursal reutilizando la lógica de
-				// inventario del módulo de órdenes (_deductPhysicalInventory / inventory_movements).
+				// Se registra la entrega como línea de orden (precio 0: pagado con puntos), para que
+				// aparezca en el recibo/historial. El inventario NO se descuenta aquí: se descuenta en
+				// el retiro en taquilla (Fase B), cuando el cliente muestra el QR del recibo.
+				const baseRate = await this._exchangeRates.getOne(
+					{ currency: order.system_base_currency },
+					{ order: [['id', 'DESC']], transaction },
+				);
+				await this._orderLines.create(
+					{
+						order: order.id,
+						line_type: reward.reward_type === REWARD_TYPE.PRODUCT ? LINE_TYPE.PRODUCT : LINE_TYPE.COMBO,
+						product: reward.product ?? null,
+						combo: reward.combo ?? null,
+						quantity: reward.quantity ?? 1,
+						original_unit_price: 0,
+						unit_price: 0,
+						quoted_exchange_rate: baseRate?.id ?? order.system_base_currency,
+					},
+					{ transaction },
+				);
 			}
 
 			// 6) Registro de auditoría del canje
@@ -397,10 +426,43 @@ export class LoyaltyRewardsService extends BaseService {
 			};
 		});
 
-		// TODO (respaldo): enviar el/los vale(s) por correo reutilizando la infraestructura de
-		// facturas (email.provider / pdfkit), fuera de la transacción.
+		// Fuera de la transacción: genera el QR del recibo en la orden y encola el correo
+		// (reutiliza order-email-queue). El cliente presenta este QR en taquilla para el retiro.
+		let receiptQr = '';
+		try {
+			const email = await OrderReceiptService.resolveCustomerEmail(customerId, session);
+			receiptQr = await OrderReceiptService.issueRedemptionReceipt(result.order_id, email);
+		} catch (err) {
+			console.error('No se pudo emitir el recibo del canje', err);
+		}
 
-		return result;
+		return { ...result, receipt_qr: receiptQr || null };
+	}
+
+	// ---------------------------------------------------------------------------
+	// Boleto en blanco: validación (Fase B, taquilla)
+	// ---------------------------------------------------------------------------
+	async getBlankTicketByCode(code: string) {
+		const bt = await this._blankTickets.getOne({ code });
+		if (!bt) throw new NotFoundError('Boleto en blanco no encontrado');
+
+		// Vencimiento perezoso: si ya pasó la vigencia, se marca EXPIRED.
+		let status = bt.status;
+		if (status === BLANK_TICKET_STATUS.ISSUED && new Date(bt.expires_at) < new Date()) {
+			status = BLANK_TICKET_STATUS.EXPIRED;
+			await this._blankTickets.update(bt.id, { status });
+		}
+
+		return {
+			id: bt.id,
+			code: bt.code,
+			status,
+			issued_at: bt.issued_at,
+			expires_at: bt.expires_at,
+			customer: bt.customer,
+			reward: bt.reward,
+			redeemable: status === BLANK_TICKET_STATUS.ISSUED,
+		};
 	}
 
 	private async _issueBlankTickets(
@@ -446,10 +508,7 @@ export class LoyaltyRewardsService extends BaseService {
 	// Helpers de saldo y vigencia
 	// ---------------------------------------------------------------------------
 	private async _getBalance(customerId: number): Promise<number> {
-		const last = await this._loyaltyLedgers.getOne(
-			{ customer: customerId },
-			{ order: [['created_at', 'DESC']] },
-		);
+		const last = await this._loyaltyLedgers.getOne({ customer: customerId }, { order: [['created_at', 'DESC']] });
 		return last?.points_balance ?? 0;
 	}
 

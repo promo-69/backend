@@ -31,4 +31,11 @@ router.post(
 	OrdersController.validateQr,
 );
 
+router.post(
+	'/redemption-pickup/:qrCode',
+	verifySession,
+	verifyPermission('CRUD:UPDATE:ORDER-DETAILS'),
+	OrdersController.fulfillRedemptionPickup,
+);
+
 export default router;
