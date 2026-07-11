@@ -1,0 +1,21 @@
+meta {
+  name: Available Rewards (client)
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/loyalty-rewards/available?cinema={{cinemaId}}
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{customerAccessToken}}
+}
+
+tests {
+  test("devuelve secciones por nivel", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().data).to.have.property("sections");
+  });
+}
