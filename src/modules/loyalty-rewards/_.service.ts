@@ -13,7 +13,6 @@ import {
 } from '@constants/magic-vars.constant.js';
 import OrderReceiptService from '@services/order-receipt.service.js';
 
-// Código legible/tecleable para el boleto en blanco (sin caracteres ambiguos)
 const generateBlankCode = customAlphabet('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 10);
 
 const REDEEMABLE_TYPES = new Set([
@@ -185,10 +184,11 @@ export class LoyaltyRewardsService extends BaseService {
 		// Empleado: forzado a su sucursal. Superadmin: filtra por la indicada (?cinema), o ve todas.
 		const isSuperAdmin = session?.roleCode === 'SUPER_ADMIN';
 		const cinema = isSuperAdmin ? (query?.cinema ?? null) : (session?.cinemaId ?? query?.cinema ?? null);
-		const where = cinema ? { cinema: Number(cinema) } : {};
-		return this._loyaltyRewards.getAll(
-			{ count: false, order: [['required_loyalty_level', 'ASC']] },
-			where,
+		const rewards: any[] = cinema
+			? await this._loyaltyRewards.getAll({ count: false }, { cinema: Number(cinema) })
+			: await this._loyaltyRewards.getAll({ count: false });
+		return rewards.sort(
+			(a, b) => (a.required_loyalty_level ?? 0) - (b.required_loyalty_level ?? 0),
 		);
 	}
 
@@ -256,7 +256,7 @@ export class LoyaltyRewardsService extends BaseService {
 
 		const now = new Date();
 		const rewards: any[] = await this._loyaltyRewards.getAll(
-			{ count: false, order: [['required_loyalty_level', 'ASC'], ['points_cost', 'ASC']] },
+			{ count: false },
 			{ is_active: true, cinema },
 		);
 
