@@ -99,6 +99,9 @@ export class OrdersService extends BaseService {
 	private get _rewardRedemptions() {
 		return Database.repository('main', 'reward-redemptions') as any;
 	}
+	private get _loyaltyRewards() {
+		return Database.repository('main', 'loyalty-rewards') as any;
+	}
 	private get _cinemas() {
 		return Database.repository('main', 'cinemas') as any;
 	}
@@ -1116,7 +1119,35 @@ export class OrdersService extends BaseService {
 			if (order.customer !== session.customerId)
 				throw new ForbiddenError('No tienes permiso para ver esta orden');
 
-		return order;
+		// Si la orden proviene de un canje de CinePuntos, adjuntamos el premio y
+		// el/los vale(s) emitidos (boleto en blanco / 2x1) para que el cliente
+		// pueda recuperarlos después desde "Mis Compras", no solo justo al canjear.
+		// El QR de retiro de producto/combo ya viaja en `order.qr_code` (se genera
+		// igual que en una compra normal, ver `issueRedemptionReceipt`).
+		const redemption = await this._rewardRedemptions.getOne({ order: orderId }).catch(() => null);
+
+		let redemptionInfo = null;
+		let vouchers: any[] = [];
+		if (redemption) {
+			const reward = await this._loyaltyRewards.getById(redemption.reward).catch(() => null);
+			redemptionInfo = {
+				reward_id: redemption.reward,
+				reward_name: reward?.name ?? null,
+				reward_type: reward?.reward_type ?? null,
+				points_spent: redemption.points_spent,
+				redeemed_at: redemption.redeemed_at,
+			};
+
+			const tickets = await this._blankTickets.getAll({ count: false }, { issue_order: orderId }).catch(() => []);
+			vouchers = (tickets || []).map((t: any) => ({
+				code: t.code,
+				status: t.status,
+				expires_at: t.expires_at,
+				redeemed_at: t.redeemed_at,
+			}));
+		}
+
+		return { ...order, redemption: redemptionInfo, vouchers };
 	}
 
 	async getConcessionsByQr(qrCode: string) {
