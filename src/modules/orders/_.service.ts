@@ -604,20 +604,28 @@ export class OrdersService extends BaseService {
 		let paymentsInput: any[] = [];
 
 		if (Array.isArray(body)) paymentsInput = body;
-		else if (body && body.payment_method && body.amount !== undefined) paymentsInput = [body];
+		else if (body && body.payment_method) paymentsInput = [body];
 		else throw new BadRequestError('Formato de pagos inválido');
 
 		if (paymentsInput.length === 0) throw new BadRequestError('Debe enviar al menos un pago');
 
 		for (const payment of paymentsInput) {
-			this.validateRequired(payment, ['payment_method', 'amount', 'currency']);
+			const pm = payment.payment_method;
+			const isBankMethod = pm === PAYMENT_METHOD.MOBILE_PAYMENT || pm === PAYMENT_METHOD.BANK_TRANSFER;
 
-			if (!['string', 'number'].includes(typeof payment.amount) || payment.amount <= 0)
+			if (isBankMethod && payment.bypass !== true) {
+				this.validateRequired(payment, ['payment_method', 'currency']);
+			} else {
+				this.validateRequired(payment, ['payment_method', 'amount', 'currency']);
+			}
+
+			if (!(isBankMethod && payment.bypass !== true) && (!['string', 'number'].includes(typeof payment.amount) || payment.amount <= 0))
 				throw new BadRequestError('El monto del pago debe ser un número mayor a cero');
+
 			if (!['string', 'number'].includes(typeof payment.currency))
 				throw new BadRequestError('Debe especificar una moneda correcta');
 
-			payment.amount = Number(payment.amount);
+			if (payment.amount !== undefined) payment.amount = Number(payment.amount);
 			payment.currency = Number(payment.currency);
 		}
 
@@ -685,8 +693,8 @@ export class OrdersService extends BaseService {
 
 			const ptsCurrency = await this._currencies.getOne({ code: 'PTS' });
 
-			for (const payment of paymentsInput) {
-				const { payment_method, amount, currency, reference_number, bank, bypass } = payment;
+			for (let payment of paymentsInput) {
+				let { payment_method, amount, currency, reference_number, bank, bypass } = payment;
 				const paymentMethodId = payment_method;
 
 				let paymentCurrency = currency;
@@ -704,7 +712,7 @@ export class OrdersService extends BaseService {
 				const exchangeRateValue = Number(rateDb.rate);
 				const quotedExchangeRateId = rateDb.id;
 
-				let amountBase = MathUtil.roundMoney(amount * exchangeRateValue);
+				let amountBase = amount !== undefined ? MathUtil.roundMoney(amount * exchangeRateValue) : 0;
 
 				// Pago con Cinepuntos: como los puntos son indivisibles, el monto
 				// convertido puede exceder el total por unos céntimos al redondear
@@ -749,6 +757,30 @@ export class OrdersService extends BaseService {
 				) {
 					if (!currency) throw new BadRequestError('La moneda es obligatoria para este método de pago');
 
+					// Validación global de referencia duplicada para órdenes válidas
+					if (reference_number) {
+						const existingPayment = await this._orderPayments.getOne(
+							{ reference_number },
+							{
+								attributes: ['id'],
+								transaction,
+								relations: [
+									{
+										attributes: ['id'],
+										association: '_Orders',
+										required: true,
+										where: { order_status: { [Ops.in]: [ORDER_STATUS.PENDING, ORDER_STATUS.PAID, ORDER_STATUS.ONLINE_PAID] } },
+									},
+								],
+							},
+						);
+
+						if (existingPayment)
+							throw new BadRequestError(
+								`La referencia ${reference_number} ya fue procesada previamente en una orden válida.`,
+							);
+					}
+
 					if (bypass !== true) {
 						if (!reference_number)
 							throw new BadRequestError(
@@ -791,10 +823,10 @@ export class OrdersService extends BaseService {
 									throw new BadRequestError(
 										`El pago no pudo ser validado. Banco dice: ${data.message || 'Transacción fallida o no encontrada'}`,
 									);
-								if (Number(data.data.amount) !== Number(amount))
-									throw new BadRequestError(
-										`El monto de la transacción no coincide con el monto descrito.`,
-									);
+								
+								// Obtener monto desde Banky y actualizar el monto base del pago
+								amount = Number(data.data.amount);
+								amountBase = MathUtil.roundMoney(amount * exchangeRateValue);
 							} catch (error: any) {
 								if (error instanceof BadRequestError) throw error;
 								throw new BadRequestError(
@@ -805,36 +837,6 @@ export class OrdersService extends BaseService {
 						} else {
 							// Para otros bancos/monedas que no son Banky, se confía en la referencia por el momento (o pasará a validación manual)
 						}
-
-						const existingPayment = await this._orderPayments.getOne(
-							{
-								reference_number,
-								payment_method: paymentMethodId,
-							},
-							{
-								attributes: ['id'],
-								transaction,
-								relations: [
-									{
-										attributes: ['id'],
-										association: '_Orders',
-										required: true,
-										where: { order_status: { [Ops.in]: [1, 2, 4] } },
-									},
-									{
-										attributes: ['id'],
-										association: '_ExchangeRates',
-										required: true,
-										where: { currency: currency },
-									},
-								],
-							},
-						);
-
-						if (existingPayment)
-							throw new BadRequestError(
-								`La referencia ${reference_number} ya fue procesada previamente.`,
-							);
 					}
 				} else if (paymentMethodId === PAYMENT_METHOD.BLANK_TICKET) {
 					// Conversión de boleto en blanco (Fase B): el vale cubre el total del ticket,
