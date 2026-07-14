@@ -8,6 +8,8 @@ import { NotFoundError, ValidationError, BadRequestError, ForbiddenError, Confli
 import { Transaction } from 'sequelize';
 import { JWTUtil } from '@utils/jwt.util.js';
 import { MathUtil } from '@utils/math.util.js';
+import { Logger } from '@utils/logger.util.js';
+import { nanoid } from 'nanoid';
 import { AppConfig } from '@config/app.config.js';
 import { PricingService } from '@services/pricing.service.js';
 import shoppingSessionService from '@services/shopping-session.service.js';
@@ -598,9 +600,125 @@ export class OrdersService extends BaseService {
 
 	/**
 	 * Registra el pago de una orden y finaliza el proceso de compra.
-	 * Genera los codigos QR y notifica al cliente cuando el pago esta completo.
+	 * Registra el pago de una orden de forma asíncrona, encolando el proceso
+	 * o emitiendo al POS si es necesario.
 	 */
 	async registerPayment(body: any, session: any) {
+		let paymentsInput: any[] = [];
+		if (Array.isArray(body)) paymentsInput = body;
+		else if (body && body.payment_method) paymentsInput = [body];
+		else throw new BadRequestError('Formato de pagos inválido');
+
+		if (paymentsInput.length === 0) throw new BadRequestError('Debe enviar al menos un pago');
+
+		for (const payment of paymentsInput) {
+			const pm = payment.payment_method;
+			const isBankMethod = pm === PAYMENT_METHOD.MOBILE_PAYMENT || pm === PAYMENT_METHOD.BANK_TRANSFER;
+			const isPos = pm === PAYMENT_METHOD.POS;
+
+			if ((isBankMethod || isPos) && payment.bypass !== true) {
+				this.validateRequired(payment, ['payment_method', 'currency']);
+			} else {
+				this.validateRequired(payment, ['payment_method', 'amount', 'currency']);
+			}
+
+			if (!((isBankMethod || isPos) && payment.bypass !== true) && (!['string', 'number'].includes(typeof payment.amount) || payment.amount <= 0))
+				throw new BadRequestError('El monto del pago debe ser un número mayor a cero');
+
+			if (!['string', 'number'].includes(typeof payment.currency))
+				throw new BadRequestError('Debe especificar una moneda correcta');
+		}
+
+		const userQueueKey = `queue:usr:${session.userId}`;
+		const quoteRaw = await this._redis.get(userQueueKey);
+		if (!quoteRaw) throw new BadRequestError('El tiempo para pagar ha expirado o no existe sesión de compra.');
+
+		const quoteData = JSON.parse(quoteRaw);
+		if (quoteData.status !== SHOPPING_SESSION_STATUS.PENDING_PAYMENT)
+			throw new BadRequestError('La sesión no se encuentra en la etapa de pago o ya ha sido procesada.');
+
+		const order_id = quoteData.order_id;
+		if (!order_id) throw new ForbiddenError('No hay una orden asociada a esta sesión de compra.');
+
+		const hasPos = paymentsInput.some((p) => p.payment_method === PAYMENT_METHOD.POS && p.bypass !== true);
+
+		if (hasPos) {
+			const posPayment = paymentsInput.find((p) => p.payment_method === PAYMENT_METHOD.POS && p.bypass !== true);
+			if (!posPayment.bank) throw new BadRequestError('El banco destino es obligatorio para este método de pago');
+
+			// Si no enviaron el amount, calculamos el monto restante
+			if (!posPayment.amount) {
+				const order = await this._orders.getOne({ id: order_id });
+				const totalBase = Number(order.total_amount_base_currency);
+				
+				let otherPaymentsBase = 0;
+				const exchangeRatesDict = quoteData.exchange_rates || {};
+				
+				for (const p of paymentsInput) {
+					if (p === posPayment) continue;
+					const currency = p.currency || quoteData.system_base_currency;
+					const rateDb = exchangeRatesDict[currency];
+					const rate = rateDb ? Number(rateDb.rate) : 1;
+					otherPaymentsBase += (Number(p.amount) * rate);
+				}
+				
+				const remainingBase = totalBase - otherPaymentsBase;
+				const posCurrency = posPayment.currency || quoteData.system_base_currency;
+				const posRateDb = exchangeRatesDict[posCurrency];
+				const posRate = posRateDb ? Number(posRateDb.rate) : 1;
+				
+				posPayment.amount = MathUtil.roundMoney(remainingBase / posRate);
+			}
+
+			const searchParams: any = { payment_method: PAYMENT_METHOD.POS, currency: posPayment.currency, bank: posPayment.bank };
+			const acceptedAccounts = await this._bankAccounts.getAll(
+				{ count: false, relations: [{ association: '_Banks' }] },
+				searchParams,
+			);
+			if (acceptedAccounts.length === 0)
+				throw new BadRequestError('No se encontró una cuenta bancaria destino válida para el POS y moneda.');
+
+			const targetAccount = acceptedAccounts[0];
+			const paymentDetails = targetAccount.payment_details || {};
+			
+			const ticketId = nanoid(12);
+			const ticketKey = `pos_ticket:${ticketId}`;
+			await this._redis.set(ticketKey, JSON.stringify({ session, orderId: order_id, body }), 'EX', 60);
+
+			const posPayload = {
+				orderId: order_id,
+				amount: posPayment.amount,
+				document: paymentDetails.document || paymentDetails.document_id || '',
+				accountNumber: paymentDetails.account_number || paymentDetails.phone || '',
+				ticketId
+			};
+
+			RealtimeProvider.getInstance().emitToRoom('pos_devices', 'pos:process_payment', posPayload);
+
+			QueueProvider.getInstance().add(
+				'pos-timeout-queue',
+				'check-pos-timeout',
+				{ ticketId, userId: session.userId, orderId: order_id },
+				{ delay: 60000 }
+			).catch((err: any) => Logger.error('Error in pos-timeout-queue', err));
+
+			return { message: 'Se está realizando el pago' };
+		} else {
+			QueueProvider.getInstance().add(
+				'order-payment-queue',
+				'process-order-payment',
+				{ body, session }
+			).catch((err: any) => Logger.error('Error in order-payment-queue', err));
+
+			return { message: 'Se está procesando el pago' };
+		}
+	}
+
+	/**
+	 * Función original que procesa transaccionalmente la orden.
+	 * Ahora será llamada desde el background worker (order-payment.worker).
+	 */
+	async executePaymentTransaction(body: any, session: any) {
 		let paymentsInput: any[] = [];
 
 		if (Array.isArray(body)) paymentsInput = body;
@@ -963,7 +1081,7 @@ export class OrdersService extends BaseService {
 				});
 			} else {
 				await this._redis.del(userQueueKey);
-				RealtimeProvider.getInstance().emitToRoom(`usr_${session.userId}`, 'payment_success', {
+				RealtimeProvider.getInstance().emitToRoom(`usr_${session.userId}`, 'payment_completed', {
 					orderId: order_id,
 					qrCode: orderData.qr_code,
 				});
@@ -1020,6 +1138,10 @@ export class OrdersService extends BaseService {
 				}
 			}
 		} else if (remaining_balance !== null && remaining_balance > 0) {
+			RealtimeProvider.getInstance().emitToRoom(`usr_${session.userId}`, 'payment_success', {
+				remaining_balance,
+				message: 'Pago parcial registrado exitosamente'
+			});
 			return { remaining_balance, message: 'Pago parcial registrado exitosamente' };
 		}
 
@@ -1086,7 +1208,7 @@ export class OrdersService extends BaseService {
 		await this._redis.del(userQueueKey);
 		const finalOrder = await this._orders.getById(quoteData.order_id);
 
-		RealtimeProvider.getInstance().emitToRoom(`usr_${session.userId}`, 'payment_success', {
+		RealtimeProvider.getInstance().emitToRoom(`usr_${session.userId}`, 'payment_completed', {
 			orderId: quoteData.order_id,
 			qrCode: finalOrder.qr_code,
 		});

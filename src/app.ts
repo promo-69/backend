@@ -65,6 +65,9 @@ export class App {
         await RealtimeProvider.getInstance().attach(server);
         const { BookingSocketService } = await import('./shared/services/booking-socket.service.js');
         BookingSocketService.initialize();
+        
+        const { PosSocketService } = await import('./shared/services/pos-socket.service.js');
+        PosSocketService.initialize();
     }
 
     private async setupBackgroundTasks(): Promise<void> {

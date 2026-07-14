@@ -10,6 +10,7 @@
 		"forceConsistentCasingInFileNames": true,
 		"resolveJsonModule": true,
 		"outDir": "./build",
+		"ignoreDeprecations": "6.0",
 		"rootDir": "./src",
 		"baseUrl": "./src",
 		"declaration": true,

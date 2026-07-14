@@ -36,6 +36,7 @@ export interface IAppConfig {
 		jwtCookieRefreshName: string;
 		authTransport: string;
 		bcryptRounds: number;
+		posApiKey: string;
 	};
 	limits: {
 		requestSize: string;
@@ -81,7 +82,6 @@ export interface IAppConfig {
 		timezone: string;
 	};
 	clientWebAppUrl: string;
-	bankyPersonalApiKey: string;
 }
 
 export class AppConfig {
@@ -140,6 +140,7 @@ export class AppConfig {
 				jwtCookieRefreshName: process.env.JWT_COOKIE_REFRESH_NAME || 'RT',
 				authTransport: process.env.AUTH_TRANSPORT || 'bearer',
 				bcryptRounds: parseInt(process.env.BCRYPT_ROUNDS || '10', 10),
+				posApiKey: process.env.POS_API_KEY || 'default-pos-secret-key',
 			},
 			limits: {
 				requestSize: process.env.REQUEST_SIZE_LIMIT || '10mb',
@@ -198,7 +199,6 @@ export class AppConfig {
 			},
 			clientWebAppUrl: process.env.CLIENT_WEB_APP_URL || '',
 			isDocker: !!process.env.RUNNING_IN_DOCKER,
-			bankyPersonalApiKey: process.env.BANKY_PERSONAL_API_KEY || '',
 		};
 		this._configCache = config;
 
