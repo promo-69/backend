@@ -129,6 +129,13 @@ export class RealtimeProvider {
 		const cache = CacheDatabaseProvider.getInstance();
 		this._io.adapter(redisAdapterPkg.createAdapter(cache.pubClient, cache.subClient));
 
+		// Loggear cualquier intento de conexión entrante antes de autenticar
+		this._io.use((socket, next) => {
+			const ip = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address;
+			Logger.info(ANSI.info(`[Socket.io] Intento de conexión entrante desde IP: ${ip} (Socket ID: ${socket.id})`));
+			next();
+		});
+
 		this._io.use(socketAuth);
 
 		this._io.on('connection', (socket: Socket) => {
