@@ -12,7 +12,7 @@ export default function orderPaymentWorker() {
 				Logger.warn(`Trabajo incompleto en order-payment-queue para job ${job.id}`);
 				return;
 			}
-			
+
 			await processOrderPaymentTask(body, session);
 		},
 		on: {

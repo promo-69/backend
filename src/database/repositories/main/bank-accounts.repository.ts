@@ -6,7 +6,7 @@ export interface BankAccountsAttributes {
 	bank: number;
 	currency: number;
 	payment_method: number;
-	payment_details: Array<{ label: string; value: string }>;
+	payment_details: Array<{ label: string; value: string; name?: string }>;
 	api_key?: string;
 	deleted_at?: Date;
 }

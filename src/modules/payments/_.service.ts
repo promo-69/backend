@@ -71,7 +71,7 @@ export class PaymentsService extends BaseService {
 	async createBankAccount(body: BankAccountsAttributes) {
 		this.validateRequired(body as Record<string, any>, ['bank', 'currency', 'payment_method', 'payment_details']);
 
-		if (!Array.isArray(body.payment_details)) throw new ValidationError('payment_details debe ser un arreglo de objetos { label, value }');
+		if (!Array.isArray(body.payment_details)) throw new ValidationError('payment_details debe ser un arreglo de objetos { label, value, name? }');
 
 		const account = await this._bankAccounts.getOne({ bank: body.bank, currency: body.currency, payment_method: body.payment_method });
 		if (account) throw new ConflictError('Cuenta bancaria ya existente');
@@ -93,7 +93,7 @@ export class PaymentsService extends BaseService {
 	}
 
 	async updateBankAccount(id: number, body: any) {
-		if (body.payment_details && !Array.isArray(body.payment_details)) throw new ValidationError('payment_details debe ser un arreglo de objetos { label, value }');
+		if (body.payment_details && !Array.isArray(body.payment_details)) throw new ValidationError('payment_details debe ser un arreglo de objetos { label, value, name? }');
 
 		const account = await this._bankAccounts.getById(id);
 		if (!account) throw new NotFoundError('Cuenta bancaria no encontrada');

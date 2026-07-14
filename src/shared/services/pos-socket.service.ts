@@ -26,7 +26,7 @@ export class PosSocketService {
 
         realtime.registerEventHandler('pos:payment_result', async (socket: Socket, data: any) => {
             try {
-                const { ticketId, success, reference_number, message } = data;
+                const { ticketId, amount, success, reference_number, message } = data;
                 if (!ticketId) {
                     Logger.warn(`Mensaje POS recibido sin ticketId de ${socket.id}`);
                     return;
@@ -47,13 +47,15 @@ export class PosSocketService {
                 // Borrar el ticket para cancelar el timeout
                 await redis.del(ticketKey);
 
-                if (success) {
+                if (success === true || success === 'true') {
                     // Actualizar el body con la referencia que entregó el POS
                     let paymentsInput = Array.isArray(body) ? body : [body];
                     const posPayment = paymentsInput.find(p => p.payment_method === PAYMENT_METHOD.POS);
 
                     if (posPayment) {
                         posPayment.reference_number = reference_number || `POS-${ticketId}`;
+					    posPayment.amount = amount;
+                        posPayment.bypass = true;
                     }
 
                     // Encolar para procesamiento final

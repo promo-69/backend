@@ -32,7 +32,6 @@ script:post-response {
   if (res.getStatus() === 200 && resBody && resBody.data && resBody.data.tokens) {
     bru.setEnvVar('accessToken', resBody.data.tokens.accessToken);
     bru.setEnvVar('refreshToken', resBody.data.tokens.refreshToken);
-    console.log('Token de administrador guardado');
   }
 }
 

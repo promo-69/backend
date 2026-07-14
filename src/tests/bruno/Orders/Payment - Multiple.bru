@@ -1,5 +1,5 @@
 meta {
-  name: Payment - Split (Cash & POS)
+  name: Payment - Multiple
   type: http
   seq: 7
 }
@@ -17,9 +17,33 @@ auth:bearer {
 body:json {
   [
     {
+      "payment_method": 3,
+      "currency": 2,
+      "bank": 20,
+      "amount": 30,
+      "reference_number": "48785030253343299267"
+    },
+    {
+      "payment_method": 4,
+      "currency": 2,
+      "bank": 20,
+      "amount": 40,
+      "reference_number": "97171091776634673500"
+    },
+    {
+      "payment_method": 1,
+      "currency": 2,
+      "amount": 10
+    },
+    {
       "payment_method": 2,
       "currency": 2,
-      "bank": 20
+      "bank": 20,
+      "amount": 20
+    },
+    {
+      "payment_method": 5,
+      "amount": 50
     }
   ]
 }

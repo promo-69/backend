@@ -47,9 +47,6 @@ export class OrdersService extends BaseService {
 	private get _orderPayments() {
 		return Database.repository('main', 'order-payments') as any;
 	}
-	private get _paymentMethods() {
-		return Database.repository('main', 'payment-methods') as any;
-	}
 	private get _exchangeRates() {
 		return Database.repository('main', 'exchange-rates') as any;
 	}
@@ -226,10 +223,6 @@ export class OrdersService extends BaseService {
 		};
 	}
 
-	/**
-	 * Consulta el estado actual de la sesion de compra activa.
-	 * Retorna la informacion de tiempo restante, sucursal y estado.
-	 */
 	async getShoppingSessionState(session: any) {
 		const userQueueKey = `queue:usr:${session.userId}`;
 		const quoteRaw = await this._redis.get(userQueueKey);
@@ -238,6 +231,23 @@ export class OrdersService extends BaseService {
 
 		const currentTtl = await this._redis.ttl(userQueueKey);
 		const quoteData = JSON.parse(quoteRaw);
+
+		let total = 0;
+		let payments: any[] = [];
+		let remaining = 0;
+
+		if (quoteData.order_id) {
+			const order = await this._orders.getById(quoteData.order_id);
+			if (order) {
+				total = Number(order.total_amount_base_currency || 0);
+				payments = await this._orderPayments.getAll(
+					{ count: false },
+					{ order: quoteData.order_id },
+				);
+				const totalPaid = payments.reduce((acc: number, p: any) => acc + Number(p.amount), 0);
+				remaining = MathUtil.roundMoney(Math.max(0, total - totalPaid));
+			}
+		}
 
 		return {
 			cinema: quoteData.cinema,
@@ -248,13 +258,13 @@ export class OrdersService extends BaseService {
 			expires_in: currentTtl,
 			exchange_rates: quoteData.exchange_rates,
 			system_base_currency: quoteData.system_base_currency,
+			order_id: quoteData.order_id,
+			total,
+			payments,
+			remaining,
 		};
 	}
 
-	/**
-	 * Obtiene el detalle de la cotización/sesión de compra activa,
-	 * incluyendo las relaciones de orden si ya fue creada.
-	 */
 	async getShoppingSessionDetails(session: any) {
 		const sessionState = await this.getShoppingSessionState(session);
 		if (!sessionState) return { session: null, order: null };
@@ -262,7 +272,7 @@ export class OrdersService extends BaseService {
 		const customerId = sessionState.customerId ? Number(sessionState.customerId) : null;
 
 		// Busca si ya existe una orden pendiente asociada al cliente
-		const pendingOrder = customerId
+		let pendingOrder = customerId
 			? await this._orders.getOne(
 					{ customer: customerId, cinema: sessionState.cinema, order_status: ORDER_STATUS.PENDING },
 					{
@@ -287,6 +297,23 @@ export class OrdersService extends BaseService {
 				)
 			: null;
 
+		if (pendingOrder) {
+			const payments = await this._orderPayments.getAll(
+				{ count: false },
+				{ order: pendingOrder.id, is_approved: true },
+			);
+			const totalPaid = MathUtil.roundMoney(payments.reduce((acc: number, p: any) => acc + Number(p.amount), 0));
+			const total = Number(pendingOrder.total_amount_base_currency || 0);
+			const remaining = MathUtil.roundMoney(Math.max(0, total - totalPaid));
+
+			pendingOrder = {
+				...pendingOrder,
+				_OrderPayments: payments,
+				payments_total: totalPaid,
+				remaining_balance: remaining
+			};
+		}
+
 		return {
 			session: sessionState,
 			order: pendingOrder || null,
@@ -299,22 +326,14 @@ export class OrdersService extends BaseService {
 		if (!sessionFound) throw new NotFoundError('No existe una sesión de compra activa.');
 
 		if (customerId) {
-			await this._orders.transaction(async (transaction: Transaction) => {
-				const pendingOrders = await this._orders.getAll(
-					{ count: false, operation: { transaction } },
-					{ customer: customerId, order_status: ORDER_STATUS.PENDING },
-				);
+			const pendingOrders = await this._orders.getAll(
+				{ count: false },
+				{ customer: customerId, order_status: ORDER_STATUS.PENDING },
+			);
 
-				for (const order of pendingOrders) {
-					// Borramos los boletos de la orden pendiente antes de cancelarla.
-					await this._tickets.delete({ order: order.id }, { transaction });
-					await this._orders.update(
-						{ id: order.id },
-						{ order_status: ORDER_STATUS.CANCELLED },
-						{ transaction },
-					);
-				}
-			});
+			for (const order of pendingOrders) {
+				await shoppingSessionService.expirePendingOrder(order.id, session.userId);
+			}
 		}
 
 		return { message: 'Sesión de compra cancelada exitosamente y recursos devueltos.' };
@@ -612,22 +631,34 @@ export class OrdersService extends BaseService {
 		if (paymentsInput.length === 0) throw new BadRequestError('Debe enviar al menos un pago');
 
 		for (const payment of paymentsInput) {
-			const pm = payment.payment_method;
-			const isBankMethod = pm === PAYMENT_METHOD.MOBILE_PAYMENT || pm === PAYMENT_METHOD.BANK_TRANSFER;
-			const isPos = pm === PAYMENT_METHOD.POS;
+			const pm = Number(payment.payment_method);
 
-			if ((isBankMethod || isPos) && payment.bypass !== true) {
-				this.validateRequired(payment, ['payment_method', 'currency']);
+			if (pm === PAYMENT_METHOD.LOYALTY_POINTS) {
+				this.validateRequired(payment, ['payment_method', 'amount']);
+				if (!['string', 'number'].includes(typeof payment.amount) || payment.amount <= 0)
+					throw new BadRequestError('El monto del pago debe ser un número mayor a cero');
+			} else if (pm === PAYMENT_METHOD.BLANK_TICKET) {
+				this.validateRequired(payment, ['payment_method']);
 			} else {
-				this.validateRequired(payment, ['payment_method', 'amount', 'currency']);
+				const isBankMethod = pm === PAYMENT_METHOD.MOBILE_PAYMENT || pm === PAYMENT_METHOD.BANK_TRANSFER;
+
+				if (isBankMethod && payment.bypass !== true) {
+					this.validateRequired(payment, ['payment_method', 'currency']);
+				} else {
+					this.validateRequired(payment, ['payment_method', 'amount', 'currency']);
+				}
+
+				if (!(isBankMethod && payment.bypass !== true) && (!['string', 'number'].includes(typeof payment.amount) || payment.amount <= 0))
+					throw new BadRequestError('El monto del pago debe ser un número mayor a cero');
+
+				if (!['string', 'number'].includes(typeof payment.currency))
+					throw new BadRequestError('Debe especificar una moneda correcta');
 			}
-
-			if (!((isBankMethod || isPos) && payment.bypass !== true) && (!['string', 'number'].includes(typeof payment.amount) || payment.amount <= 0))
-				throw new BadRequestError('El monto del pago debe ser un número mayor a cero');
-
-			if (!['string', 'number'].includes(typeof payment.currency))
-				throw new BadRequestError('Debe especificar una moneda correcta');
 		}
+
+		const posPaymentsCount = paymentsInput.filter((p) => p.payment_method === PAYMENT_METHOD.POS && p.bypass !== true).length;
+		if (posPaymentsCount > 1)
+			throw new BadRequestError('No se puede procesar más de un pago por Punto de Venta simultáneamente en la misma petición.');
 
 		const userQueueKey = `queue:usr:${session.userId}`;
 		const quoteRaw = await this._redis.get(userQueueKey);
@@ -645,30 +676,7 @@ export class OrdersService extends BaseService {
 		if (hasPos) {
 			const posPayment = paymentsInput.find((p) => p.payment_method === PAYMENT_METHOD.POS && p.bypass !== true);
 			if (!posPayment.bank) throw new BadRequestError('El banco destino es obligatorio para este método de pago');
-
-			// Si no enviaron el amount, calculamos el monto restante
-			if (!posPayment.amount) {
-				const order = await this._orders.getOne({ id: order_id });
-				const totalBase = Number(order.total_amount_base_currency);
-				
-				let otherPaymentsBase = 0;
-				const exchangeRatesDict = quoteData.exchange_rates || {};
-				
-				for (const p of paymentsInput) {
-					if (p === posPayment) continue;
-					const currency = p.currency || quoteData.system_base_currency;
-					const rateDb = exchangeRatesDict[currency];
-					const rate = rateDb ? Number(rateDb.rate) : 1;
-					otherPaymentsBase += (Number(p.amount) * rate);
-				}
-				
-				const remainingBase = totalBase - otherPaymentsBase;
-				const posCurrency = posPayment.currency || quoteData.system_base_currency;
-				const posRateDb = exchangeRatesDict[posCurrency];
-				const posRate = posRateDb ? Number(posRateDb.rate) : 1;
-				
-				posPayment.amount = MathUtil.roundMoney(remainingBase / posRate);
-			}
+			if (!posPayment.amount) throw new BadRequestError('El monto a cobrar es obligatorio para el punto de venta');
 
 			const searchParams: any = { payment_method: PAYMENT_METHOD.POS, currency: posPayment.currency, bank: posPayment.bank };
 			const acceptedAccounts = await this._bankAccounts.getAll(
@@ -679,17 +687,21 @@ export class OrdersService extends BaseService {
 				throw new BadRequestError('No se encontró una cuenta bancaria destino válida para el POS y moneda.');
 
 			const targetAccount = acceptedAccounts[0];
-			const paymentDetails = targetAccount.payment_details || {};
-			
+			const paymentDetails = Array.isArray(targetAccount.payment_details) ? targetAccount.payment_details : [];
+
 			const ticketId = nanoid(12);
 			const ticketKey = `pos_ticket:${ticketId}`;
-			await this._redis.set(ticketKey, JSON.stringify({ session, orderId: order_id, body }), 'EX', 60);
+			// Solo guardamos el posPayment en el ticket. Así la lógica del POS se encarga exclusivamente de él.
+			await this._redis.set(ticketKey, JSON.stringify({ session, orderId: order_id, body: [posPayment] }), 'EX', 60);
+
+			const documentDetail = paymentDetails.find((d: any) => d.name === 'identity_document');
+			const accountDetail = paymentDetails.find((d: any) => d.name === 'account_number');
 
 			const posPayload = {
 				orderId: order_id,
 				amount: posPayment.amount,
-				document: paymentDetails.document || paymentDetails.document_id || '',
-				accountNumber: paymentDetails.account_number || paymentDetails.phone || '',
+				document: documentDetail?.value,
+				accountNumber: accountDetail?.value,
 				ticketId
 			};
 
@@ -701,6 +713,16 @@ export class OrdersService extends BaseService {
 				{ ticketId, userId: session.userId, orderId: order_id },
 				{ delay: 60000 }
 			).catch((err: any) => Logger.error('Error in pos-timeout-queue', err));
+
+			// Procesar el resto de pagos inmediatamente sin esperar al POS
+			const otherPayments = paymentsInput.filter((p: any) => p !== posPayment);
+			if (otherPayments.length > 0) {
+				QueueProvider.getInstance().add(
+					'order-payment-queue',
+					'process-order-payment',
+					{ body: otherPayments, session }
+				).catch((err: any) => Logger.error('Error in order-payment-queue', err));
+			}
 
 			return { message: 'Se está realizando el pago' };
 		} else {
@@ -728,23 +750,34 @@ export class OrdersService extends BaseService {
 		if (paymentsInput.length === 0) throw new BadRequestError('Debe enviar al menos un pago');
 
 		for (const payment of paymentsInput) {
-			const pm = payment.payment_method;
-			const isBankMethod = pm === PAYMENT_METHOD.MOBILE_PAYMENT || pm === PAYMENT_METHOD.BANK_TRANSFER;
+			const pm = Number(payment.payment_method);
 
-			if (isBankMethod && payment.bypass !== true) {
-				this.validateRequired(payment, ['payment_method', 'currency']);
+			if (pm === PAYMENT_METHOD.LOYALTY_POINTS) {
+				this.validateRequired(payment, ['payment_method', 'amount']);
+				if (!['string', 'number'].includes(typeof payment.amount) || payment.amount <= 0)
+					throw new BadRequestError('El monto del pago debe ser un número mayor a cero');
+			} else if (pm === PAYMENT_METHOD.BLANK_TICKET) {
+				this.validateRequired(payment, ['payment_method']);
 			} else {
-				this.validateRequired(payment, ['payment_method', 'amount', 'currency']);
+				const isBankMethod = pm === PAYMENT_METHOD.MOBILE_PAYMENT || pm === PAYMENT_METHOD.BANK_TRANSFER;
+				const isPos = pm === PAYMENT_METHOD.POS;
+
+				if (isBankMethod && payment.bypass !== true) {
+					this.validateRequired(payment, ['payment_method', 'currency']);
+				} else {
+					this.validateRequired(payment, ['payment_method', 'amount', 'currency']);
+				}
+
+				if (!(isBankMethod && payment.bypass !== true) && (!['string', 'number'].includes(typeof payment.amount) || payment.amount <= 0))
+					throw new BadRequestError('El monto del pago debe ser un número mayor a cero');
+
+				if (!['string', 'number'].includes(typeof payment.currency))
+					throw new BadRequestError('Debe especificar una moneda correcta');
+
+				payment.currency = Number(payment.currency);
 			}
 
-			if (!(isBankMethod && payment.bypass !== true) && (!['string', 'number'].includes(typeof payment.amount) || payment.amount <= 0))
-				throw new BadRequestError('El monto del pago debe ser un número mayor a cero');
-
-			if (!['string', 'number'].includes(typeof payment.currency))
-				throw new BadRequestError('Debe especificar una moneda correcta');
-
 			if (payment.amount !== undefined) payment.amount = Number(payment.amount);
-			payment.currency = Number(payment.currency);
 		}
 
 		const userQueueKey = `queue:usr:${session.userId}`;
@@ -764,308 +797,311 @@ export class OrdersService extends BaseService {
 		let remaining_balance: number | null = null;
 		const exchangeRatesDict = quoteData.exchange_rates || {};
 
-		// Inicia transaccion para registrar el pago con seguridad
-		await this._orders.transaction(async (transaction: Transaction) => {
-			const lockedOrder = await this._orders.getOne(
-				{ id: order_id },
-				{ transaction, lock: transaction.LOCK.UPDATE },
-			);
+		// Procesamos CADA pago en una transacción separada para que si uno falla (ej: POS fallido),
+		// los demás (ej: efectivo) sí se registren exitosamente sin hacer rollback general.
+		let successfulPayments = 0;
+		let lastError: any = null;
 
-			if (!lockedOrder) throw new NotFoundError('Orden no encontrada');
+		for (let payment of paymentsInput) {
+			// Si la orden ya se completó en iteraciones previas (sobrepagos), saltamos pagos extras
+			if (orderData) break;
 
-			if (lockedOrder.order_status !== ORDER_STATUS.PENDING)
-				throw new BadRequestError('La orden no admite pagos en este momento');
-
-			const order = await this._orders.getOne(
-				{ id: order_id },
-				{
-					transaction,
-					relations: [
-						{ association: '_Cinemas', required: false },
-						{
-							association: '_OrderLines',
-							required: false,
-							nested: [
-								{ association: '_Products', required: false },
-								{ association: '_Combos', required: false },
-							],
-						},
-						{
-							association: '_Tickets',
-							required: false,
-							nested: [
-								{
-									association: '_RoomBookings',
-									required: false,
-									nested: [
-										{ association: '_Showtimes', required: false },
-										{ association: '_RoomEvents', required: false },
-									],
-								},
-								{ association: '_Seats', required: false },
-							],
-						},
-					],
-				},
-			);
-
-			const ptsCurrency = await this._currencies.getOne({ code: 'PTS' });
-
-			for (let payment of paymentsInput) {
-				let { payment_method, amount, currency, reference_number, bank, bypass } = payment;
-				const paymentMethodId = payment_method;
-
-				let paymentCurrency = currency;
-				if (paymentMethodId === PAYMENT_METHOD.LOYALTY_POINTS) {
-					if (!ptsCurrency) throw new BadRequestError('La moneda de Cinepuntos (PTS) no está configurada.');
-					paymentCurrency = ptsCurrency.id;
-				}
-
-				if (!paymentCurrency) paymentCurrency = quoteData.system_base_currency;
-
-				const rateDb = exchangeRatesDict[paymentCurrency];
-				if (!rateDb)
-					throw new BadRequestError('No se encontró tasa de cambio en la cotización para esta moneda.');
-
-				const exchangeRateValue = Number(rateDb.rate);
-				const quotedExchangeRateId = rateDb.id;
-
-				let amountBase = amount !== undefined ? MathUtil.roundMoney(amount * exchangeRateValue) : 0;
-
-				// Pago con Cinepuntos: como los puntos son indivisibles, el monto
-				// convertido puede exceder el total por unos céntimos al redondear
-				// hacia arriba. Topamos el monto al total de la orden para que el
-				// pago cubra exactamente sin "exceder", sin cobrar de más.
-				if (paymentMethodId === PAYMENT_METHOD.LOYALTY_POINTS) {
-					const orderTotal = Number(order.total_amount_base_currency);
-					if (amountBase > orderTotal) amountBase = orderTotal;
-				}
-
-				// Ramificación según método de pago
-				if (paymentMethodId === PAYMENT_METHOD.LOYALTY_POINTS) {
-					const ledgers = await this._loyaltyLedgers.getAll(
-						{
-							count: false,
-							order: [['id', 'DESC']],
-							limit: 1,
-							operation: { transaction, lock: transaction.LOCK.UPDATE },
-						},
-						{ customer: session.customerId },
-					);
-
-					const currentBalance = ledgers.length > 0 ? Number(ledgers[0].points_balance) : 0;
-					if (amount > currentBalance) throw new BadRequestError('Saldo de puntos insuficiente');
-
-					// Descontar puntos de una vez con un registro decremental
-					await this._loyaltyLedgers.create(
-						{
-							operation_type: LOYALTY_OPERATION.SPEND,
-							customer: session.customerId,
-							points: amount,
-							points_balance: currentBalance - amount,
-							description: `Pago parcial de orden ${order_id}`,
-						},
-						{ transaction },
-					);
-				} else if (
-					[PAYMENT_METHOD.POS, PAYMENT_METHOD.MOBILE_PAYMENT, PAYMENT_METHOD.BANK_TRANSFER].includes(
-						paymentMethodId,
-					) ||
-					bypass === true
-				) {
-					if (!currency) throw new BadRequestError('La moneda es obligatoria para este método de pago');
-
-					// Validación global de referencia duplicada para órdenes válidas
-					if (reference_number) {
-						const existingPayment = await this._orderPayments.getOne(
-							{ reference_number },
-							{
-								attributes: ['id'],
-								transaction,
-								relations: [
-									{
-										attributes: ['id'],
-										association: '_Orders',
-										required: true,
-										where: { order_status: { [Ops.in]: [ORDER_STATUS.PENDING, ORDER_STATUS.PAID, ORDER_STATUS.ONLINE_PAID] } },
-									},
-								],
-							},
-						);
-
-						if (existingPayment)
-							throw new BadRequestError(
-								`La referencia ${reference_number} ya fue procesada previamente en una orden válida.`,
-							);
-					}
-
-					if (bypass !== true) {
-						if (!reference_number)
-							throw new BadRequestError(
-								'El número de referencia es obligatorio para este método de pago',
-							);
-						if (!bank)
-							throw new BadRequestError('El banco destino es obligatorio para este método de pago');
-
-						// Obtener cuenta bancaria para validar si acepta el pago y si requiere validación con Banky
-						const searchParams: any = { payment_method: paymentMethodId, currency, bank };
-						const acceptedAccounts = await this._bankAccounts.getAll(
-							{
-								count: false,
-								operation: { transaction },
-								relations: [{ association: '_Banks' }],
-							},
-							searchParams,
-						);
-						if (acceptedAccounts.length === 0)
-							throw new BadRequestError(
-								'No se encontró una cuenta bancaria destino válida para este método de pago y moneda.',
-							);
-
-						const targetAccount = acceptedAccounts[0];
-						const apiUrl = targetAccount._Banks?.api_url;
-
-						if (apiUrl) {
-							try {
-								const apiKey = targetAccount.api_key;
-								const response = await fetch(`${apiUrl}/external/transactions/${reference_number}`, {
-									method: 'GET',
-									headers: {
-										Authorization: `Bearer ${apiKey}`,
-										Accept: 'application/json',
-									},
-								});
-								const data: any = await response.json();
-
-								if (!response.ok || !data.success)
-									throw new BadRequestError(
-										`El pago no pudo ser validado. Banco dice: ${data.message || 'Transacción fallida o no encontrada'}`,
-									);
-								
-								// Obtener monto desde Banky y actualizar el monto base del pago
-								amount = Number(data.data.amount);
-								amountBase = MathUtil.roundMoney(amount * exchangeRateValue);
-							} catch (error: any) {
-								if (error instanceof BadRequestError) throw error;
-								throw new BadRequestError(
-									`Error al comprobar la transacción con la entidad bancaria`,
-									error,
-								);
-							}
-						} else {
-							// Para otros bancos/monedas que no son Banky, se confía en la referencia por el momento (o pasará a validación manual)
-						}
-					}
-				} else if (paymentMethodId === PAYMENT_METHOD.BLANK_TICKET) {
-					// Conversión de boleto en blanco (Fase B): el vale cubre el total del ticket,
-					// válido para cualquier función y sin diferencia de precio. Un vale = una orden de ticket.
-					const code = payment.code || reference_number;
-					if (!code) throw new BadRequestError('Debe indicar el código del boleto en blanco');
-
-					const bt = await this._blankTickets.getOne(
-						{ code },
+			try {
+				await this._orders.transaction(async (transaction: Transaction) => {
+					const lockedOrder = await this._orders.getOne(
+						{ id: order_id },
 						{ transaction, lock: transaction.LOCK.UPDATE },
 					);
-					if (!bt) throw new NotFoundError('Boleto en blanco no encontrado');
-					if (bt.status !== BLANK_TICKET_STATUS.ISSUED)
-						throw new BadRequestError('El boleto en blanco no está disponible (ya usado o vencido)');
-					if (new Date(bt.expires_at) < new Date()) {
-						await this._blankTickets.update(
-							bt.id,
-							{ status: BLANK_TICKET_STATUS.EXPIRED },
-							{ transaction },
-						);
-						throw new BadRequestError('El boleto en blanco está vencido');
+
+					if (!lockedOrder) throw new NotFoundError('Orden no encontrada');
+
+					if (lockedOrder.order_status !== ORDER_STATUS.PENDING)
+						throw new BadRequestError('La orden no admite pagos en este momento');
+
+					const order = await this._orders.getOne(
+						{ id: order_id },
+						{
+							transaction,
+							relations: [
+								{ association: '_Cinemas', required: false },
+								{
+									association: '_OrderLines',
+									required: false,
+									nested: [
+										{ association: '_Products', required: false },
+										{ association: '_Combos', required: false },
+									],
+								},
+								{
+									association: '_Tickets',
+									required: false,
+									nested: [
+										{
+											association: '_RoomBookings',
+											required: false,
+											nested: [
+												{ association: '_Showtimes', required: false },
+												{ association: '_RoomEvents', required: false },
+											],
+										},
+										{ association: '_Seats', required: false },
+									],
+								},
+							],
+						},
+					);
+
+					const ptsCurrency = await this._currencies.getOne({ code: 'PTS' });
+
+					let { payment_method, amount, currency, reference_number, bank, bypass } = payment;
+					const paymentMethodId = Number(payment_method);
+
+					let paymentCurrency = currency;
+					if (paymentMethodId === PAYMENT_METHOD.LOYALTY_POINTS) {
+						if (!ptsCurrency) throw new BadRequestError('La moneda de Cinepuntos (PTS) no está configurada.');
+						paymentCurrency = ptsCurrency.id;
 					}
 
-					// El vale cubre el total de la orden del ticket.
-					amountBase = Number(order.total_amount_base_currency);
+					if (!paymentCurrency) paymentCurrency = quoteData.system_base_currency;
 
-					await this._blankTickets.update(
-						bt.id,
-						{ status: BLANK_TICKET_STATUS.REDEEMED, redeemed_order: order_id, redeemed_at: new Date() },
+					const rateDb = exchangeRatesDict[paymentCurrency];
+					if (!rateDb)
+						throw new BadRequestError('No se encontró tasa de cambio en la cotización para esta moneda.');
+
+					const exchangeRateValue = Number(rateDb.rate);
+					const quotedExchangeRateId = rateDb.id;
+
+					let amountBase = amount !== undefined ? MathUtil.roundMoney(amount * exchangeRateValue) : 0;
+
+					if (paymentMethodId === PAYMENT_METHOD.LOYALTY_POINTS) {
+						const orderTotal = Number(order.total_amount_base_currency);
+						if (amountBase > orderTotal) amountBase = orderTotal;
+					}
+
+					if (paymentMethodId === PAYMENT_METHOD.LOYALTY_POINTS) {
+						const customerToCharge = quoteData.customerId ? Number(quoteData.customerId) : null;
+						if (!customerToCharge) throw new BadRequestError('No se puede pagar con puntos sin un cliente asociado');
+
+						const ledgers = await this._loyaltyLedgers.getAll(
+							{
+								count: false,
+								order: [['id', 'DESC']],
+								limit: 1,
+								operation: { transaction, lock: transaction.LOCK.UPDATE },
+							},
+							{ customer: customerToCharge },
+						);
+
+						const currentBalance = ledgers.length > 0 ? Number(ledgers[0].points_balance) : 0;
+						if (amount > currentBalance) throw new BadRequestError('Saldo de puntos insuficiente');
+
+						try {
+							await this._loyaltyLedgers.create(
+								{
+									operation_type: LOYALTY_OPERATION.SPEND,
+									customer: customerToCharge,
+									order: order.id,
+									points: amount,
+									points_balance: currentBalance - amount,
+									remarks: `Pago parcial de orden ${order_id}`,
+								},
+								{ transaction },
+							);
+						} catch (ledgerError) {
+							console.error('ERROR CRITICO insertando loyalty_ledgers:', ledgerError);
+							throw ledgerError;
+						}
+					} else if (
+						[PAYMENT_METHOD.POS, PAYMENT_METHOD.MOBILE_PAYMENT, PAYMENT_METHOD.BANK_TRANSFER].includes(paymentMethodId) || bypass === true
+					) {
+						if (!reference_number) throw new BadRequestError('El número de referencia es obligatorio para este método de pago');
+						if (!bank) throw new BadRequestError('El banco destino es obligatorio para este método de pago');
+						if (!currency) throw new BadRequestError('La moneda es obligatoria para este método de pago');
+
+						if (reference_number) {
+							const existingPayment = await this._orderPayments.getOne(
+								{ reference_number },
+								{
+									attributes: ['id'],
+									transaction,
+									relations: [
+										{
+											attributes: ['id'],
+											association: '_Orders',
+											required: true,
+											where: { order_status: { [Ops.in]: [ORDER_STATUS.PENDING, ORDER_STATUS.PAID, ORDER_STATUS.ONLINE_PAID] } },
+										},
+									],
+								},
+							);
+
+							if (existingPayment) throw new BadRequestError(`La referencia ${reference_number} ya fue procesada previamente en una orden válida.`);
+						}
+
+						if (bypass !== true) {
+							const searchParams: any = { payment_method: paymentMethodId, currency, bank };
+							const acceptedAccounts = await this._bankAccounts.getAll(
+								{
+									count: false,
+									operation: { transaction },
+									relations: [{ association: '_Banks' }],
+								},
+								searchParams,
+							);
+							if (acceptedAccounts.length === 0)
+								throw new BadRequestError(
+									'No se encontró una cuenta bancaria destino válida para este método de pago y moneda.',
+								);
+
+							const targetAccount = acceptedAccounts[0];
+							const apiUrl = targetAccount._Banks?.api_url;
+
+							if (apiUrl) {
+								try {
+									const apiKey = targetAccount.api_key;
+									const response = await fetch(`${apiUrl}/external/transactions/${reference_number}`, {
+										method: 'GET',
+										headers: {
+											Authorization: `Bearer ${apiKey}`,
+											Accept: 'application/json',
+										},
+									});
+									const data: any = await response.json();
+
+									if (!response.ok || !data.success)
+										throw new BadRequestError(
+											`El pago no pudo ser validado. Banco dice: ${data.message || 'Transacción fallida o no encontrada'}`,
+										);
+
+									amount = Number(data.data.amount);
+									amountBase = MathUtil.roundMoney(amount * exchangeRateValue);
+								} catch (error: any) {
+									if (error instanceof BadRequestError) throw error;
+									throw new BadRequestError(
+										`Error al comprobar la transacción con la entidad bancaria`,
+										error,
+									);
+								}
+							}
+						} else {
+							amount = Number(amount);
+							amountBase = MathUtil.roundMoney(amount * exchangeRateValue);
+						}
+					} else if (paymentMethodId === PAYMENT_METHOD.BLANK_TICKET) {
+						const code = payment.code || reference_number;
+						if (!code) throw new BadRequestError('Debe indicar el código del boleto en blanco');
+
+						const bt = await this._blankTickets.getOne(
+							{ code },
+							{ transaction, lock: transaction.LOCK.UPDATE },
+						);
+						if (!bt) throw new NotFoundError('Boleto en blanco no encontrado');
+						if (bt.status !== BLANK_TICKET_STATUS.ISSUED)
+							throw new BadRequestError('El boleto en blanco no está disponible (ya usado o vencido)');
+						if (new Date(bt.expires_at) < new Date()) {
+							await this._blankTickets.update(
+								bt.id,
+								{ status: BLANK_TICKET_STATUS.EXPIRED },
+								{ transaction },
+							);
+							throw new BadRequestError('El boleto en blanco está vencido');
+						}
+
+						amountBase = Number(order.total_amount_base_currency);
+
+						await this._blankTickets.update(
+							bt.id,
+							{ status: BLANK_TICKET_STATUS.REDEEMED, redeemed_order: order_id, redeemed_at: new Date() },
+							{ transaction },
+						);
+					} else if (paymentMethodId === PAYMENT_METHOD.CASH) {
+						// Efectivo
+					}
+
+					await this._orderPayments.create(
+						{
+							order: order_id,
+							payment_method: paymentMethodId,
+							amount: amountBase,
+							quoted_exchange_rate: quotedExchangeRateId,
+							reference_number,
+							is_approved: true,
+						},
 						{ transaction },
 					);
-				} else if (paymentMethodId === PAYMENT_METHOD.CASH) {
-					// El pago en efectivo no requiere validación adicional
-					// Se registra directamente sin procesamiento extra
-				}
 
-				await this._orderPayments.create(
-					{
-						order: order_id,
-						payment_method: paymentMethodId,
-						amount: amountBase,
-						quoted_exchange_rate: quotedExchangeRateId,
-						reference_number,
-						is_approved: true,
-					},
-					{ transaction },
-				);
+					// Recalcular el total pagado hasta el momento en esta iteración transaccional
+					const currentPayments = await this._orderPayments.getAll(
+						{ count: false, operation: { transaction } },
+						{ order: order_id, is_approved: true },
+					);
+					const totalPaid = MathUtil.roundMoney(currentPayments.reduce((acc: number, p: any) => acc + Number(p.amount), 0));
+
+					if (totalPaid > Number(order.total_amount_base_currency))
+						throw new BadRequestError('El monto pagado excede el total de la orden');
+
+					if (totalPaid >= Number(order.total_amount_base_currency)) {
+						const tickets = (order as any)._Tickets || [];
+						const concessions = (order as any)._OrderLines || [];
+						const qrCode = this._generateOrderQrCode(order, tickets, concessions);
+						const isEmployee = !!session.roleCode;
+
+						if (isEmployee) {
+							await this._orders.update(
+								{ id: order_id },
+								{ order_status: ORDER_STATUS.PAID, qr_code: qrCode },
+								{ transaction },
+							);
+							orderData = { ...order, qr_code: qrCode, order_status: ORDER_STATUS.PAID, is_employee: true };
+						} else {
+							const customer = await this._customers.getById(session.customerId, {
+								relations: this._customers._relations,
+								transaction,
+							});
+							const billingData = {
+								name: `${customer._People.first_name}${customer._People?.last_name ? ` ${customer._People.last_name}` : ''}`.trim(),
+								document: customer._People.document_number,
+								address: '',
+							};
+							await this._generateInvoice(order_id, billingData, order.cinema, transaction);
+							await this._orders.update(
+								{ id: order_id },
+								{ order_status: ORDER_STATUS.ONLINE_PAID, qr_code: qrCode },
+								{ transaction },
+							);
+							orderData = {
+								...order,
+								qr_code: qrCode,
+								order_status: ORDER_STATUS.ONLINE_PAID,
+								is_employee: false,
+							};
+						}
+
+						if (concessions.length > 0)
+							await this._deductPhysicalInventory(concessions, order, session.userId, transaction);
+
+						await this._awardLoyaltyPoints(order, transaction);
+					} else {
+						remaining_balance = MathUtil.roundMoney(Number(order.total_amount_base_currency) - totalPaid);
+					}
+				});
+
+				successfulPayments++;
+			} catch (error: any) {
+				Logger.error(`Error procesando pago individual de forma asíncrona:`, error);
+				lastError = error;
+
+				// Notifica el error específico para ESTE pago, pero el bucle prosigue para procesar el resto
+				RealtimeProvider.getInstance().emitToRoom(`usr_${session.userId}`, 'payment_failed', {
+					orderId: order_id,
+					message: error.message || 'Error procesando un pago',
+				});
 			}
+		}
 
-			// Calcula el total pagado y verifica si cubre el monto de la orden
-			const payments = await this._orderPayments.getAll(
-				{ count: false, operation: { transaction } },
-				{ order: order_id },
-			);
-			const totalPaid = payments.reduce((acc: number, p: any) => acc + Number(p.amount), 0);
-
-			if (totalPaid > Number(order.total_amount_base_currency))
-				throw new BadRequestError('El monto pagado excede el total de la orden');
-
-			if (totalPaid >= Number(order.total_amount_base_currency)) {
-				const tickets = (order as any)._Tickets || [];
-				const concessions = (order as any)._OrderLines || [];
-
-				// Genera el codigo QR para el acceso
-				const qrCode = this._generateOrderQrCode(order, tickets, concessions);
-
-				// Verifica el rol para decidir si se completa la orden directamente o se requiere facturacion manual
-				const isEmployee = !!session.roleCode;
-
-				if (isEmployee) {
-					await this._orders.update(
-						{ id: order_id },
-						{ order_status: ORDER_STATUS.PAID, qr_code: qrCode },
-						{ transaction },
-					);
-					orderData = { ...order, qr_code: qrCode, order_status: ORDER_STATUS.PAID, is_employee: true };
-				} else {
-					// Si es un cliente directo, genera factura automatica usando sus datos de sesion
-					const customer = await this._customers.getById(session.customerId, {
-						relations: this._customers._relations,
-						transaction,
-					});
-					const billingData = {
-						name: `${customer._People.first_name}${customer._People?.last_name ? ` ${customer._People.last_name}` : ''}`.trim(),
-						document: customer._People.document_number,
-						address: '',
-					};
-					await this._generateInvoice(order_id, billingData, order.cinema, transaction);
-					await this._orders.update(
-						{ id: order_id },
-						{ order_status: ORDER_STATUS.ONLINE_PAID, qr_code: qrCode },
-						{ transaction },
-					);
-					orderData = {
-						...order,
-						qr_code: qrCode,
-						order_status: ORDER_STATUS.ONLINE_PAID,
-						is_employee: false,
-					};
-				}
-
-				// Actualiza inventario
-				if (concessions.length > 0)
-					await this._deductPhysicalInventory(concessions, order, session.userId, transaction);
-
-				// Otorga puntos de lealtad
-				await this._awardLoyaltyPoints(order, transaction);
-			} else {
-				remaining_balance = MathUtil.roundMoney(Number(order.total_amount_base_currency) - totalPaid);
-			}
-		});
+		if (successfulPayments === 0 && lastError) {
+			throw lastError; // Si NINGÚN pago tuvo éxito, lanzamos error general.
+		}
 
 		// Acciones posteriores si la orden fue pagada completamente (o requiere billing)
 		if (
@@ -1167,18 +1203,25 @@ export class OrdersService extends BaseService {
 			throw new BadRequestError('La sesión no se encuentra en etapa de facturación.');
 
 		await this._orders.transaction(async (transaction: Transaction) => {
-			const order = await this._orders.getOne(
+			const lockedOrder = await this._orders.getOne(
 				{ id: quoteData.order_id },
 				{
 					transaction,
 					lock: transaction.LOCK.UPDATE,
-					relations: [{ association: '_Customers', nested: [{ association: '_People' }] }],
 				},
 			);
 
-			if (!order) throw new NotFoundError('Orden no encontrada.');
-			if (order.order_status !== ORDER_STATUS.PAID)
+			if (!lockedOrder) throw new NotFoundError('Orden no encontrada.');
+			if (lockedOrder.order_status !== ORDER_STATUS.PAID)
 				throw new BadRequestError('La orden no se encuentra en estado pagada.');
+
+			const order = await this._orders.getOne(
+				{ id: quoteData.order_id },
+				{
+					transaction,
+					relations: [{ association: '_Customers', nested: [{ association: '_People' }] }],
+				},
+			);
 
 			let billingData = { name: billing_name, document: billing_document, address: billing_address };
 
