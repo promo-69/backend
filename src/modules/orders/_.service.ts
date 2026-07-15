@@ -807,6 +807,8 @@ export class OrdersService extends BaseService {
 			if (orderData) break;
 
 			try {
+				let amountBase, referenceNumber;
+
 				await this._orders.transaction(async (transaction: Transaction) => {
 					const lockedOrder = await this._orders.getOne(
 						{ id: order_id },
@@ -855,6 +857,7 @@ export class OrdersService extends BaseService {
 
 					let { payment_method, amount, currency, reference_number, bank, bypass } = payment;
 					const paymentMethodId = Number(payment_method);
+					referenceNumber = reference_number;
 
 					let paymentCurrency = currency;
 					if (paymentMethodId === PAYMENT_METHOD.LOYALTY_POINTS) {
@@ -871,7 +874,7 @@ export class OrdersService extends BaseService {
 					const exchangeRateValue = Number(rateDb.rate);
 					const quotedExchangeRateId = rateDb.id;
 
-					let amountBase = amount !== undefined ? MathUtil.roundMoney(amount * exchangeRateValue) : 0;
+					amountBase = amount !== undefined ? MathUtil.roundMoney(amount * exchangeRateValue) : 0;
 
 					if (paymentMethodId === PAYMENT_METHOD.LOYALTY_POINTS) {
 						const orderTotal = Number(order.total_amount_base_currency);
@@ -1087,6 +1090,20 @@ export class OrdersService extends BaseService {
 				});
 
 				successfulPayments++;
+
+				if (!orderData && remaining_balance !== null && remaining_balance > 0) {
+					RealtimeProvider.getInstance().emitToRoom(`usr_${session.userId}`, 'payment_success', {
+						remaining_balance,
+						payment,
+						amount_base: amountBase,
+						reference_number: referenceNumber,
+						message: 'Pago parcial registrado exitosamente'
+					});
+				} else if (orderData) {
+					remaining_balance = 0;
+				}
+				amountBase = null;
+				referenceNumber = null;
 			} catch (error: any) {
 				Logger.error(`Error procesando pago individual de forma asíncrona:`, error);
 				lastError = error;
@@ -1099,9 +1116,7 @@ export class OrdersService extends BaseService {
 			}
 		}
 
-		if (successfulPayments === 0 && lastError) {
-			throw lastError; // Si NINGÚN pago tuvo éxito, lanzamos error general.
-		}
+		if (successfulPayments === 0 && lastError) throw lastError;
 
 		// Acciones posteriores si la orden fue pagada completamente (o requiere billing)
 		if (
@@ -1176,10 +1191,6 @@ export class OrdersService extends BaseService {
 				}
 			}
 		} else if (remaining_balance !== null && remaining_balance > 0) {
-			RealtimeProvider.getInstance().emitToRoom(`usr_${session.userId}`, 'payment_success', {
-				remaining_balance,
-				message: 'Pago parcial registrado exitosamente'
-			});
 			return { remaining_balance, message: 'Pago parcial registrado exitosamente' };
 		}
 
