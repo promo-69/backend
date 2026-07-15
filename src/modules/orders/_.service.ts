@@ -1317,7 +1317,7 @@ export class OrdersService extends BaseService {
 		return { ...order, redemption: redemptionInfo, vouchers };
 	}
 
-	async getAllOrders(filters: any, query: any, session: any) {
+	async getAllOrders(filters: any, query: any) {
 		const { document, name, status } = query;
 
 		const conditions: any = {};
