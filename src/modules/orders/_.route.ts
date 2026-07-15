@@ -4,6 +4,7 @@ import { verifySession, verifyPermission } from '@middlewares/auth.middleware.js
 
 const router = Router();
 
+router.get('/', verifySession, verifyPermission('CRUD:READ:ORDERS'), OrdersController.getAllOrders);
 router.get('/session', verifySession, OrdersController.getShoppingSessionState);
 router.get('/session/details', verifySession, OrdersController.getShoppingSessionDetails);
 router.delete('/session', verifySession, OrdersController.cancelShoppingSession);

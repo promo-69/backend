@@ -1,0 +1,23 @@
+meta {
+  name: Get All Orders
+  type: http
+  seq: 19
+}
+
+get {
+  url: {{baseUrl}}/orders
+  body: none
+  auth: bearer
+}
+
+params:query {
+  ~document: V1234
+  ~name: Juan
+  ~status: 1
+  ~page: 1
+  ~limit: 10
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

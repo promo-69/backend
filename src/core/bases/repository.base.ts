@@ -61,6 +61,9 @@ export const WhereOperators = {
 	// Lógicos (para composición)
 	and: Symbol('and'),
 	or: Symbol('or'),
+	
+	// Escape hatch for raw ORM conditions
+	iRegexp: Symbol('iRegexp'),
 } as const;
 
 export type WhereOperator = (typeof WhereOperators)[keyof typeof WhereOperators];
