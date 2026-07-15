@@ -16,17 +16,14 @@ auth:bearer {
 
 body:json {
   {
-    "payment_method": 3,
+    "payment_method": 1,
     "amount": {{partialAmount}},
-    "currency": 2,
-    "reference_number": "{{refNumber}}",
-    "bank": 1,
-    "bypass": true
+    "currency": 2
   }
 }
 
 vars:pre-request {
-  partialAmount: 1000.5
+  partialAmount: 4999.5
 }
 
 script:pre-request {

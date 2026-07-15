@@ -1317,6 +1317,54 @@ export class OrdersService extends BaseService {
 		return { ...order, redemption: redemptionInfo, vouchers };
 	}
 
+	async getAllOrders(filters: any, query: any, session: any) {
+		const { document, name, status } = query;
+
+		const conditions: any = {};
+		if (status) conditions.order_status = status;
+
+		const peopleWhere: any = {};
+		const andConditions: any[] = [];
+
+		if (document) andConditions.push({ document_number: { [Ops.contains]: document } });
+		if (name) {
+			const regexPattern = name
+				.toLowerCase()
+				.split('')
+				.map((c: string) => {
+					const map: any = { a: '[aáàäâ]', e: '[eéèëê]', i: '[iíìïî]', o: '[oóòöô]', u: '[uúùüû]', n: '[nñ]' };
+					return map[c] || c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+				})
+				.join('');
+
+			andConditions.push({
+				[Ops.or]: [
+					{ first_name: { [Ops.iRegexp]: regexPattern } },
+					{ last_name: { [Ops.iRegexp]: regexPattern } }
+				]
+			});
+		}
+		if (andConditions.length > 0) peopleWhere[Ops.and] = andConditions;
+
+		const relations: any[] = [];
+		relations.push({
+			association: '_Customers',
+			required: andConditions.length > 0,
+			nested: [
+				{
+					association: '_People',
+					required: andConditions.length > 0,
+					...(andConditions.length > 0 ? { where: peopleWhere } : {}),
+				},
+			],
+		});
+
+		return await this._orders.getAll(
+			{ ...filters, relations, count: true },
+			conditions
+		);
+	}
+
 	async getConcessionsByQr(qrCode: string) {
 		const order = await this._orders.getOne({ qr_code: qrCode });
 		if (!order) throw new NotFoundError('Código QR inválido');

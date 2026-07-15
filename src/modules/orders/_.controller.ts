@@ -6,6 +6,10 @@ export class OrdersController extends ControllerBase {
 		super();
 	}
 
+	async getAllOrders() {
+		return await OrdersService.getAllOrders(this.getQueryFilters(), this.getQuery(), this.getSession());
+	}
+
 	async createQuote() {
 		return await OrdersService.createQuote(this.getBody(), this.getSession());
 	}

@@ -243,6 +243,7 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
 			[WhereOperators.between, Op.between],
 			[WhereOperators.isNull, Op.is],
 			[WhereOperators.isNotNull, Op.not],
+			[WhereOperators.iRegexp, Op.iRegexp],
 		]);
 
 		return symbolMap.get(symbol);
