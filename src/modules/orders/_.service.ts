@@ -1187,36 +1187,27 @@ export class OrdersService extends BaseService {
 	}
 
 	async processBilling(body: any, session: any) {
-		const { use_customer_data, billing_name, billing_document, billing_address } = body;
-		const userQueueKey = `queue:usr:${session.userId}`;
+		const { use_customer_data, billing_name, billing_document, billing_address, orderId, order_id } = body;
+		const targetOrderId = orderId || order_id;
+
+		if (!targetOrderId) throw new BadRequestError('El ID de la orden (orderId) es obligatorio.');
 
 		// Verifica que el usuario sea empleado
 		if (!session.roleCode)
 			throw new ForbiddenError('Solo los empleados pueden facturar ordenes mediante este endpoint.');
 
-		// Valida que la orden exista y pertenezca a la sesion o al menos este en proceso
-		const quoteRaw = await this._redis.get(userQueueKey);
-		if (!quoteRaw) throw new NotFoundError('No existe una sesión de compra activa.');
-		const quoteData = JSON.parse(quoteRaw);
-
-		if (quoteData.status !== SHOPPING_SESSION_STATUS.PENDING_BILLING)
-			throw new BadRequestError('La sesión no se encuentra en etapa de facturación.');
-
 		await this._orders.transaction(async (transaction: Transaction) => {
 			const lockedOrder = await this._orders.getOne(
-				{ id: quoteData.order_id },
-				{
-					transaction,
-					lock: transaction.LOCK.UPDATE,
-				},
+				{ id: targetOrderId },
+				{ transaction, lock: transaction.LOCK.UPDATE },
 			);
 
 			if (!lockedOrder) throw new NotFoundError('Orden no encontrada.');
-			if (lockedOrder.order_status !== ORDER_STATUS.PAID)
+			if (lockedOrder.order_status != ORDER_STATUS.PAID)
 				throw new BadRequestError('La orden no se encuentra en estado pagada.');
 
 			const order = await this._orders.getOne(
-				{ id: quoteData.order_id },
+				{ id: targetOrderId },
 				{
 					transaction,
 					relations: [{ association: '_Customers', nested: [{ association: '_People' }] }],
@@ -1235,42 +1226,38 @@ export class OrdersService extends BaseService {
 				billingData = {
 					name: `${person.first_name} ${person.last_name ?? ''}`.trim(),
 					document: person.document_number,
-					address: '',
+					address: billing_address || '',
 				};
 			} else if (!billing_name || !billing_document) {
 				throw new BadRequestError('Debe proporcionar nombre y documento para la factura.');
 			}
 
-			await this._generateInvoice(quoteData.order_id, billingData, order.cinema, transaction);
+			await this._generateInvoice(targetOrderId, billingData, order.cinema, transaction);
 			await this._orders.update(
-				{ id: quoteData.order_id },
+				{ id: targetOrderId },
 				{ order_status: ORDER_STATUS.ONLINE_PAID },
 				{ transaction },
 			);
 		});
 
-		// Limpia la sesion y emite el success final
-		await this._redis.del(userQueueKey);
-		const finalOrder = await this._orders.getById(quoteData.order_id);
-
-		RealtimeProvider.getInstance().emitToRoom(`usr_${session.userId}`, 'payment_completed', {
-			orderId: quoteData.order_id,
-			qrCode: finalOrder.qr_code,
-		});
-
 		// Envia correo
+		const finalOrder = await this._orders.getById(targetOrderId);
 		const customerEmail = await this._getCustomerEmail(finalOrder.customer, session);
 		if (customerEmail) {
 			QueueProvider.getInstance()
 				.add('order-email-queue', 'send-order-email', {
-					orderId: quoteData.order_id,
+					orderId: targetOrderId,
 					qrCode: finalOrder.qr_code,
 					email: customerEmail,
 				})
 				.catch((err) => console.error(err));
 		}
 
-		return { message: 'Facturación completada exitosamente y orden finalizada.' };
+		return {
+			success: true,
+			message: 'Facturación completada exitosamente y orden finalizada.',
+			orderId: targetOrderId,
+		};
 	}
 
 	async getOrderById(id: number | string, session: any) {
