@@ -132,7 +132,7 @@ export class AssistantService extends BaseService {
 		if (date && this.isValidDateString(date)) return date;
 
 		const normalized = message.toLowerCase();
-		const today = new Date();
+		const today = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Caracas" }));
 
 		if (/\bhoy\b/.test(normalized)) return this.formatDate(today);
 		if (/\b(mañana|manana)\b/.test(normalized))
@@ -249,9 +249,10 @@ export class AssistantService extends BaseService {
 	}
 
 	private formatDate(date: Date): string {
-		const year = date.getFullYear();
-		const month = String(date.getMonth() + 1).padStart(2, '0');
-		const day = String(date.getDate()).padStart(2, '0');
+        const caracasDate = new Date(date.toLocaleString("en-US", { timeZone: "America/Caracas" }));
+		const year = caracasDate.getFullYear();
+		const month = String(caracasDate.getMonth() + 1).padStart(2, '0');
+		const day = String(caracasDate.getDate()).padStart(2, '0');
 		return `${year}-${month}-${day}`;
 	}
 
