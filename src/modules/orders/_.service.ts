@@ -806,9 +806,9 @@ export class OrdersService extends BaseService {
 			// Si la orden ya se completó en iteraciones previas (sobrepagos), saltamos pagos extras
 			if (orderData) break;
 
-			try {
-				let amountBase, referenceNumber;
+			let amountBase, referenceNumber;
 
+			try {
 				await this._orders.transaction(async (transaction: Transaction) => {
 					const lockedOrder = await this._orders.getOne(
 						{ id: order_id },
@@ -1094,7 +1094,7 @@ export class OrdersService extends BaseService {
 				if (!orderData && remaining_balance !== null && remaining_balance > 0) {
 					RealtimeProvider.getInstance().emitToRoom(`usr_${session.userId}`, 'payment_success', {
 						remaining_balance,
-						payment,
+						...payment,
 						amount_base: amountBase,
 						reference_number: referenceNumber,
 						message: 'Pago parcial registrado exitosamente'
@@ -1111,9 +1111,13 @@ export class OrdersService extends BaseService {
 				// Notifica el error específico para ESTE pago, pero el bucle prosigue para procesar el resto
 				RealtimeProvider.getInstance().emitToRoom(`usr_${session.userId}`, 'payment_failed', {
 					orderId: order_id,
+					...payment,
 					message: error.message || 'Error procesando un pago',
 				});
 			}
+
+			amountBase = null;
+			referenceNumber = null;
 		}
 
 		if (successfulPayments === 0 && lastError) throw lastError;
