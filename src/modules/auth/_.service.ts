@@ -150,7 +150,8 @@ export class AuthService extends BaseService {
 		email: string,
 		password: string,
 		expectedUserType: number,
-		device?: string,
+		deviceId?: string,
+		deviceInfo?: string,
 	): Promise<LoginResponse> {
 		if (!email || !password) throw new ValidationError('Las credenciales están incompletas', []);
 		if (!REGEX.EMAIL.test(email) || !REGEX.PASSWORD.test(password))
@@ -180,12 +181,28 @@ export class AuthService extends BaseService {
 
 		const loginResponse = await this._buildLoginResponse(foundUser);
 
-		await this._usersLogins.create({
-			user: foundUser.id,
-			device: device ?? 'Unknown Device',
-			jti: loginResponse.refreshToken,
-			expires_at: new Date(Date.now() + JWTUtil.getRefreshExpiresInMs()),
-		});
+		const actualDeviceId = deviceId ?? 'Unknown Device';
+		const existingSession = await this._usersLogins.getOne({ user: foundUser.id, device_id: actualDeviceId });
+
+		if (existingSession) {
+			await tokenBlacklistService.blacklistToken(existingSession.jti);
+			await this._usersLogins.update(
+				{ id: existingSession.id },
+				{
+					jti: loginResponse.refreshToken,
+					expires_at: new Date(Date.now() + JWTUtil.getRefreshExpiresInMs()),
+					device: deviceInfo ?? existingSession.device,
+				},
+			);
+		} else {
+			await this._usersLogins.create({
+				user: foundUser.id,
+				device_id: actualDeviceId,
+				device: deviceInfo,
+				jti: loginResponse.refreshToken,
+				expires_at: new Date(Date.now() + JWTUtil.getRefreshExpiresInMs()),
+			});
+		}
 
 		return loginResponse;
 	}
@@ -193,13 +210,13 @@ export class AuthService extends BaseService {
 	// --- Métodos públicos de login (un método por canal, sin duplicación) ---
 
 	/** POST /auth/login — exclusivo para clientes (user_type = 2, role IS NULL) */
-	async authenticateCustomer(body: LoginBody, device?: string): Promise<LoginResponse> {
-		return this._authenticate(body.email, body.password, USER_TYPE.CUSTOMER, device);
+	async authenticateCustomer(body: LoginBody, deviceId?: string, deviceInfo?: string): Promise<LoginResponse> {
+		return this._authenticate(body.email, body.password, USER_TYPE.CUSTOMER, deviceId, deviceInfo);
 	}
 
 	/** POST /auth/login/admin — exclusivo para empleados (user_type = 1, role IS NOT NULL) */
-	async authenticateEmployee(body: LoginBody, device?: string): Promise<LoginResponse> {
-		return this._authenticate(body.email, body.password, USER_TYPE.EMPLOYEE, device);
+	async authenticateEmployee(body: LoginBody, deviceId?: string, deviceInfo?: string): Promise<LoginResponse> {
+		return this._authenticate(body.email, body.password, USER_TYPE.EMPLOYEE, deviceId, deviceInfo);
 	}
 
 	// --- Resto de métodos (sin cambios lógicos, solo números mágicos reemplazados) ---

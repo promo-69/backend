@@ -255,7 +255,7 @@ export class AuthMiddleware {
 		};
 	}
 
-	static async preventAuthenticatedAccess(req: Request, _res: Response, next: NextFunction): Promise<void> {
+	static async preventAuthenticatedAccess(req: Request, res: Response, next: NextFunction): Promise<void> {
 		try {
 			const token = this.extractToken(req, 'access');
 
@@ -265,8 +265,21 @@ export class AuthMiddleware {
 
 			const isBlacklisted = await tokenBlacklistService.isBlacklisted(token);
 
-			if (session && !isBlacklisted)
-				return next(new ConflictError('Ya tienes una sesión activa', 'ACTIVE_SESSION_EXISTS'));
+			if (session && !isBlacklisted) {
+				// En lugar de bloquear al usuario (lo cual causa bugs si el frontend perdió el estado),
+				// invalidamos inteligentemente la sesión anterior usando Redis y permitimos que proceda.
+				await tokenBlacklistService.blacklistToken(token);
+				
+				const refreshToken = this.extractToken(req, 'refresh');
+				if (refreshToken) {
+					await tokenBlacklistService.blacklistToken(refreshToken);
+				}
+
+				// Limpiamos las cookies preventivamente para evitar conflictos
+				const security = AppConfig.load().security;
+				res.clearCookie(security.jwtCookieAccessName || 'AT');
+				res.clearCookie(security.jwtCookieRefreshName || 'RT', { path: `${req.baseUrl}` });
+			}
 
 			next();
 		} catch (error) {
