@@ -4,6 +4,13 @@
         description: Endpoint for customer authentication. Only users with user_type = 2 (customer) are allowed. Returns tokens based on client channel (cookie for web, bearer for mobile).
         tags:
             - Auth
+        parameters:
+            - in: header
+              name: x-device-id
+              schema:
+                  type: string
+              required: false
+              description: Unique identifier for the client device to restrict concurrent sessions per device. If omitted, a random identifier will be generated as fallback. User-Agent header is also captured as hardware info.
         requestBody:
             required: true
             content:

@@ -118,7 +118,7 @@ export class AppConfig {
 				origin: process.env.CORS_ORIGIN?.split(',')
 					.map((r: string) => String(r).trim())
 					.filter((r: string) => r !== ''),
-				allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Client-Channel'],
+				allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Client-Channel', 'X-Device-ID'],
 			},
 			enableCors: process.env.ENABLE_CORS === 'true',
 			enableHelmet: process.env.ENABLE_HELMET === 'true',
