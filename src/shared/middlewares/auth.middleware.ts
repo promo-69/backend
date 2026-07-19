@@ -171,9 +171,29 @@ export class AuthMiddleware {
 
 			req.session = result.session;
 			req.token = result.token;
-		} catch (error) {}
+		} catch (error) {
+			/*/ /*/
+		}
 
 		next();
+	}
+
+	static async optionalAuthStrict(req: Request, _res: Response, next: NextFunction): Promise<void> {
+		const token = this.extractToken(req, 'access');
+
+		// Sin token → petición anónima válida (ruta pública)
+		if (!token) return next();
+
+		try {
+			const result = await this.validateToken(token);
+
+			req.session = result.session;
+			req.token = result.token;
+			next();
+		} catch (error) {
+			// Token presente pero inválido/expirado → 401 para forzar refresh
+			next(error);
+		}
 	}
 
 	static verifyPermission(permission: string | string[]) {
@@ -258,6 +278,7 @@ export class AuthMiddleware {
 export const socketAuth = AuthMiddleware.socketAuth.bind(AuthMiddleware);
 export const verifySession = AuthMiddleware.verifySession.bind(AuthMiddleware);
 export const optionalAuth = AuthMiddleware.optionalAuth.bind(AuthMiddleware);
+export const optionalAuthStrict = AuthMiddleware.optionalAuthStrict.bind(AuthMiddleware);
 export const verifyPermission = AuthMiddleware.verifyPermission;
 export const verifyRole = AuthMiddleware.verifyRole;
 export const preventAuthenticatedAccess = AuthMiddleware.preventAuthenticatedAccess.bind(AuthMiddleware);
