@@ -174,7 +174,8 @@ export class EmployeesService extends BaseService {
 
 	async createEmployee(employeeData: any, session: any) {
 		let cinemaId: number;
-		if (session.cinemaId) {
+		const roleCode = session.roleCode || '';
+		if (session.cinemaId && roleCode !== 'GENERAL_MANAGER' && roleCode !== 'SUPER_ADMIN') {
 			cinemaId = session.cinemaId;
 		} else if (employeeData.cinema) {
 			cinemaId = employeeData.cinema;
