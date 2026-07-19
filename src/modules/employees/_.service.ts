@@ -301,6 +301,19 @@ export class EmployeesService extends BaseService {
 			if (!employee) throw new NotFoundError('Empleado no encontrado');
 
 			const peopleUpdate: Record<string, any> = {};
+			if (employeeData.documentNumber !== undefined) {
+				if (!employeeData.documentNumber?.trim()) {
+					throw new ValidationError('El número de documento no puede estar vacío');
+				}
+				if (!REGEX.DOCUMENT_NUMBER.test(employeeData.documentNumber)) {
+					throw new ValidationError('El número de documento no tiene un formato válido');
+				}
+				const existingPerson = await this._people.getByDocumentNumber(employeeData.documentNumber);
+				if (existingPerson && existingPerson.id !== employee.person) {
+					throw new ValidationError('El número de documento ya está en uso por otra persona');
+				}
+				peopleUpdate.document_number = employeeData.documentNumber;
+			}
 			if (employeeData.firstName !== undefined) peopleUpdate.first_name = employeeData.firstName;
 			if (employeeData.lastName !== undefined) peopleUpdate.last_name = employeeData.lastName;
 			if (employeeData.phoneNumber !== undefined) peopleUpdate.phone_number = employeeData.phoneNumber;
