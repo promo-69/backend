@@ -109,6 +109,9 @@
                     schema:
                         type: object
                         properties:
+                            documentNumber:
+                                type: string
+                                example: V-12345678
                             employeeCode:
                                 type: string
                                 example: EMP-002
