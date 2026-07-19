@@ -46,6 +46,18 @@ class RentalsController extends ControllerBase {
     async create() {
         const session = this.getSession<any>();
         const body = this.getBody();
+
+        // Usuario autenticado sin perfil de cliente vinculado en la sesión:
+        // completamos los datos de contacto desde la sesión activa para no
+        // exigirlos en el formulario (la web y el móvil no los muestran).
+        if (session && !session.customerId) {
+            const sessionName = [session.firstName, session.lastName].filter(Boolean).join(' ').trim();
+            if (!body.contact_name?.trim() && sessionName) body.contact_name = sessionName;
+            if (!body.contact_email?.trim() && session.email) body.contact_email = session.email;
+            if (!body.contact_phone?.trim() && session.phoneNumber) body.contact_phone = session.phoneNumber;
+            if (!body.document_number?.trim() && session.documentNumber) body.document_number = session.documentNumber;
+        }
+
         const data = await RentalsService.createRequest(body, session?.customerId);
         return this.created(data, 'Solicitud de alquiler enviada a revisión.');
     }
