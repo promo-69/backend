@@ -121,6 +121,7 @@ export class RentalManagementService {
 				? { id: raw._EventTypes.id, description: raw._EventTypes.description }
 				: { id: raw.event_type },
 			requested_start_time: raw.requested_start_time,
+			requested_end_time: raw.requested_end_time ?? null,
 			status: raw._Statuses
 				? { id: raw._Statuses.id, description: raw._Statuses.description }
 				: { id: raw.status },
