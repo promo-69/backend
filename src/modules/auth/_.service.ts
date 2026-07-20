@@ -95,12 +95,20 @@ export class AuthService extends BaseService {
 		let payload: AdminUserSession | CustomerUserSession | undefined;
 
 		if (foundUser.user_type === USER_TYPE.CUSTOMER) {
-			const customer = await this._customers.getOne(
-				{ person: foundUser.person },
-				{
-					attributes: ['id', 'loyalty_level', 'level_progress_points'],
-				},
-			);
+			// GUARD CRÍTICO: si el usuario no tiene People vinculado (person NULL),
+			// NO buscamos el customer con { person: null } — Sequelize lo traduce a
+			// WHERE person IS NULL y devuelve un customer huérfano ARBITRARIO que
+			// terminan compartiendo todos los usuarios sin People (órdenes y
+			// solicitudes de personas distintas mezcladas bajo el mismo cliente).
+			const customer =
+				foundUser.person != null
+					? await this._customers.getOne(
+							{ person: foundUser.person },
+							{
+								attributes: ['id', 'loyalty_level', 'level_progress_points'],
+							},
+						)
+					: null;
 
 			if (customer) {
 				const level = await this._loyaltyLevels.getById(customer.loyalty_level, {
@@ -150,8 +158,7 @@ export class AuthService extends BaseService {
 		email: string,
 		password: string,
 		expectedUserType: number,
-		deviceId?: string,
-		deviceInfo?: string,
+		device?: string,
 	): Promise<LoginResponse> {
 		if (!email || !password) throw new ValidationError('Las credenciales están incompletas', []);
 		if (!REGEX.EMAIL.test(email) || !REGEX.PASSWORD.test(password))
@@ -181,30 +188,12 @@ export class AuthService extends BaseService {
 
 		const loginResponse = await this._buildLoginResponse(foundUser);
 
-		const actualDeviceId = deviceId ?? 'Unknown Device';
-		const existingSession = await this._usersLogins.getOne({ user: foundUser.id, device_id: actualDeviceId });
-
-		if (existingSession) {
-			await tokenBlacklistService.blacklistToken(existingSession.jti);
-			await this._usersLogins.update(
-				{ id: existingSession.id },
-				{
-					jti: loginResponse.refreshToken,
-					expires_at: new Date(Date.now() + JWTUtil.getRefreshExpiresInMs()),
-					device: deviceInfo ?? existingSession.device,
-				},
-			);
-		} else {
-			await this._usersLogins.create({
-				user: foundUser.id,
-				device_id: actualDeviceId,
-				device: deviceInfo,
-				jti: loginResponse.refreshToken,
-				expires_at: new Date(Date.now() + JWTUtil.getRefreshExpiresInMs()),
-			});
-		}
-
-		console.log('aaaaaaaaaaaaaaaaaaaaaaaaaaaaa', loginResponse);
+		await this._usersLogins.create({
+			user: foundUser.id,
+			device: device ?? 'Unknown Device',
+			jti: loginResponse.refreshToken,
+			expires_at: new Date(Date.now() + JWTUtil.getRefreshExpiresInMs()),
+		});
 
 		return loginResponse;
 	}
@@ -212,13 +201,13 @@ export class AuthService extends BaseService {
 	// --- Métodos públicos de login (un método por canal, sin duplicación) ---
 
 	/** POST /auth/login — exclusivo para clientes (user_type = 2, role IS NULL) */
-	async authenticateCustomer(body: LoginBody, deviceId?: string, deviceInfo?: string): Promise<LoginResponse> {
-		return this._authenticate(body.email, body.password, USER_TYPE.CUSTOMER, deviceId, deviceInfo);
+	async authenticateCustomer(body: LoginBody, device?: string): Promise<LoginResponse> {
+		return this._authenticate(body.email, body.password, USER_TYPE.CUSTOMER, device);
 	}
 
 	/** POST /auth/login/admin — exclusivo para empleados (user_type = 1, role IS NOT NULL) */
-	async authenticateEmployee(body: LoginBody, deviceId?: string, deviceInfo?: string): Promise<LoginResponse> {
-		return this._authenticate(body.email, body.password, USER_TYPE.EMPLOYEE, deviceId, deviceInfo);
+	async authenticateEmployee(body: LoginBody, device?: string): Promise<LoginResponse> {
+		return this._authenticate(body.email, body.password, USER_TYPE.EMPLOYEE, device);
 	}
 
 	// --- Resto de métodos (sin cambios lógicos, solo números mágicos reemplazados) ---
