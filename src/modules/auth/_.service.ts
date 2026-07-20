@@ -95,11 +95,6 @@ export class AuthService extends BaseService {
 		let payload: AdminUserSession | CustomerUserSession | undefined;
 
 		if (foundUser.user_type === USER_TYPE.CUSTOMER) {
-			// GUARD CRÍTICO: si el usuario no tiene People vinculado (person NULL),
-			// NO buscamos el customer con { person: null } — Sequelize lo traduce a
-			// WHERE person IS NULL y devuelve un customer huérfano ARBITRARIO que
-			// terminan compartiendo todos los usuarios sin People (órdenes y
-			// solicitudes de personas distintas mezcladas bajo el mismo cliente).
 			const customer =
 				foundUser.person != null
 					? await this._customers.getOne(

@@ -312,11 +312,6 @@ export class RentalManagementService {
 		const created = await this._rentalRequests.transaction(async (transaction: Transaction) => {
 			let customerId = existingCustomerId;
 
-			// Auto-reparación: si el cliente de la sesión existe pero no tiene
-			// People vinculado (usuarios registrados sin persona, p. ej. flujos
-			// antiguos o sociales), le creamos/vinculamos el People con los
-			// datos de contacto de la sesión para que sus solicitudes muestren
-			// nombre, correo y teléfono en el backoffice.
 			if (customerId && contact_name?.trim()) {
 				const existingCustomer = await this._customers.getById(customerId, {
 					attributes: ['id', 'person'],
