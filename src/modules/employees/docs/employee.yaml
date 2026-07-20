@@ -30,18 +30,56 @@
                                         id:
                                             type: integer
                                         person:
-                                            type: integer
-                                        employee_code:
-                                            type: string
-                                        people:
                                             type: object
-                                        _EmployeePositions:
-                                            type: array
-                                            items:
-                                                type: object
-                                        _User:
+                                            properties:
+                                                id:
+                                                    type: integer
+                                                document_number:
+                                                    type: string
+                                                first_name:
+                                                    type: string
+                                                last_name:
+                                                    type: string
+                                                gender:
+                                                    type: integer
+                                                phone_number:
+                                                    type: string
+                                                personal_email:
+                                                    type: string
+                                                birth_date:
+                                                    type: string
+                                                    format: date
+                                        employee:
+                                            type: object
+                                            properties:
+                                                employee_code:
+                                                    type: string
+                                                positions:
+                                                    type: array
+                                                    items:
+                                                        type: object
+                                        user:
                                             type: object
                                             nullable: true
+                                            properties:
+                                                id:
+                                                    type: integer
+                                                email:
+                                                    type: string
+                                                    format: email
+                                                user_type:
+                                                    type: integer
+                                                role:
+                                                    type: integer
+                                                    nullable: true
+                                                role_desc:
+                                                    type: string
+                                                    nullable: true
+                                                signup_verified_at:
+                                                    type: string
+                                                    nullable: true
+                                                is_active:
+                                                    type: boolean
             '401':
                 description: Unauthorized
             '404':
@@ -71,6 +109,9 @@
                     schema:
                         type: object
                         properties:
+                            documentNumber:
+                                type: string
+                                example: V-12345678
                             employeeCode:
                                 type: string
                                 example: EMP-002

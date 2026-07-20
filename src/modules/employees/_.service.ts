@@ -85,14 +85,28 @@ export class EmployeesService extends BaseService {
 	private async _attachUser(formatted: any, personId: number) {
 		if (!formatted) return null;
 		try {
-			const user = await this._users.getOne({ person: personId }, { paranoid: false });
+			const user = await this._users.getOne(
+				{ person: personId },
+				{
+					paranoid: false,
+					relations: [
+						{
+							association: '_Roles',
+							attributes: ['id', 'code', 'name', 'description'],
+							required: false,
+						},
+					],
+				},
+			);
 			formatted.user = user
 				? {
 						id: user.id,
 						email: user.email,
 						user_type: user.user_type,
+						role: user.role ?? null,
+						role_desc: user._Roles?.name ?? null,
 						signup_verified_at: user.signup_verified_at ?? null,
-						is_active: user.deleted_at == null, // false = cuenta baneada
+						is_active: user.deleted_at == null,
 					}
 				: null;
 		} catch {
@@ -174,7 +188,8 @@ export class EmployeesService extends BaseService {
 
 	async createEmployee(employeeData: any, session: any) {
 		let cinemaId: number;
-		if (session.cinemaId) {
+		const roleCode = session.roleCode || '';
+		if (session.cinemaId && roleCode !== 'GENERAL_MANAGER' && roleCode !== 'SUPER_ADMIN') {
 			cinemaId = session.cinemaId;
 		} else if (employeeData.cinema) {
 			cinemaId = employeeData.cinema;
@@ -286,6 +301,19 @@ export class EmployeesService extends BaseService {
 			if (!employee) throw new NotFoundError('Empleado no encontrado');
 
 			const peopleUpdate: Record<string, any> = {};
+			if (employeeData.documentNumber !== undefined) {
+				if (!employeeData.documentNumber?.trim()) {
+					throw new ValidationError('El número de documento no puede estar vacío');
+				}
+				if (!REGEX.DOCUMENT_NUMBER.test(employeeData.documentNumber)) {
+					throw new ValidationError('El número de documento no tiene un formato válido');
+				}
+				const existingPerson = await this._people.getByDocumentNumber(employeeData.documentNumber);
+				if (existingPerson && existingPerson.id !== employee.person) {
+					throw new ValidationError('El número de documento ya está en uso por otra persona');
+				}
+				peopleUpdate.document_number = employeeData.documentNumber;
+			}
 			if (employeeData.firstName !== undefined) peopleUpdate.first_name = employeeData.firstName;
 			if (employeeData.lastName !== undefined) peopleUpdate.last_name = employeeData.lastName;
 			if (employeeData.phoneNumber !== undefined) peopleUpdate.phone_number = employeeData.phoneNumber;

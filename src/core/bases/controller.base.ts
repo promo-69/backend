@@ -339,6 +339,7 @@ export abstract class ControllerBase {
 			httpOnly: true,
 			secure: true,
 			sameSite: 'none',
+			partitioned: true,
 			path: '/',
 		};
 
