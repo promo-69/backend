@@ -47,10 +47,9 @@ class RentalsController extends ControllerBase {
         const session = this.getSession<any>();
         const body = this.getBody();
 
-        // Usuario autenticado sin perfil de cliente vinculado en la sesión:
-        // completamos los datos de contacto desde la sesión activa para no
-        // exigirlos en el formulario (la web y el móvil no los muestran).
-        if (session && !session.customerId) {
+        // Usuario autenticado: completamos los datos de contacto faltantes
+        // desde la sesión activa
+        if (session) {
             const sessionName = [session.firstName, session.lastName].filter(Boolean).join(' ').trim();
             if (!body.contact_name?.trim() && sessionName) body.contact_name = sessionName;
             if (!body.contact_email?.trim() && session.email) body.contact_email = session.email;
