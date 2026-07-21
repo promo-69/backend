@@ -356,6 +356,7 @@ export class UsersService extends BaseService {
 						nested: [
 							{ association: '_Rooms', required: false },
 							{ 
+								// @ts-ignore
 								association: '_Showtimes', 
 								required: false,
 								nested: [
