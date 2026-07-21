@@ -1043,7 +1043,7 @@ export class OrdersService extends BaseService {
 					if (totalPaid > Number(order.total_amount_base_currency))
 						throw new BadRequestError('El monto pagado excede el total de la orden');
 
-					if (totalPaid >= Number(order.total_amount_base_currency)) {
+					if (totalPaid >= Number(order.total_amount_base_currency) || Number(order.total_amount_base_currency) - totalPaid < 0.10) {
 						const tickets = (order as any)._Tickets || [];
 						const concessions = (order as any)._OrderLines || [];
 						const qrCode = this._generateOrderQrCode(order, tickets, concessions);
@@ -1086,6 +1086,10 @@ export class OrdersService extends BaseService {
 						await this._awardLoyaltyPoints(order, transaction);
 					} else {
 						remaining_balance = MathUtil.roundMoney(Number(order.total_amount_base_currency) - totalPaid);
+						// Tolerancia de redondeo: saldos < 0.05 se consideran pago completo
+						if (remaining_balance > 0 && remaining_balance < 0.10) {
+							remaining_balance = 0;
+						}
 					}
 				});
 
