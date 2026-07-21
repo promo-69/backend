@@ -321,7 +321,7 @@ export class UsersService extends BaseService {
 	async getMyOrders(session: CustomerUserSession, query: Record<string, any>) {
 		if (!session.customerId) throw new AuthError('No tiene un perfil de cliente.');
 
-		const conditions: any = { customer: session.customerId };
+		const conditions: any = { customer: session.customerId, order_status: 4 };
 
 		if (query.from || query.to) {
 			const from = query.from ? new Date(String(query.from)) : null;
@@ -366,6 +366,7 @@ export class UsersService extends BaseService {
 			},
 			{ association: '_Cinemas' },
 			{ association: '_Customers' },
+			{ association: '_OrderStatuses' },
 		];
 
 		const result = await this._orders.getAll(
