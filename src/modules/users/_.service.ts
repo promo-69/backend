@@ -321,7 +321,7 @@ export class UsersService extends BaseService {
 	async getMyOrders(session: CustomerUserSession, query: Record<string, any>) {
 		if (!session.customerId) throw new AuthError('No tiene un perfil de cliente.');
 
-		const conditions: any = { customer: session.customerId };
+		const conditions: any = { customer: session.customerId, order_status: 4 };
 
 		if (query.from || query.to) {
 			const from = query.from ? new Date(String(query.from)) : null;
@@ -333,15 +333,59 @@ export class UsersService extends BaseService {
 			else if (to) conditions.created_at = { [WhereOperators.lte]: to.toISOString() };
 		}
 
+		const page = Number(query.page) || 1;
+		const limit = Number(query.limit) || 10;
+		const offset = (page - 1) * limit;
+
+		const relations: any[] = [
+			{
+				association: '_OrderLines',
+				separate: true,
+				nested: [
+					{ association: '_Products', required: false },
+					{ association: '_Combos', required: false },
+				],
+			},
+			{
+				association: '_Tickets',
+				separate: true,
+				nested: [
+					{ 
+						association: '_RoomBookings', 
+						required: false,
+						nested: [{ association: '_Rooms', required: false }]
+					},
+					{ association: '_Seats', required: false },
+					{ association: '_AudienceCategories', required: false }
+				],
+			},
+			{ 
+				association: '_OrderPayments', 
+				separate: true,
+				nested: [{ association: '_PaymentMethods', required: false }]
+			},
+			{ association: '_Cinemas' },
+			{ association: '_Customers' },
+			{ association: '_OrderStatuses' },
+		];
+
 		const result = await this._orders.getAll(
-			{ relations: ['_OrderLines', '_Tickets', '_OrderPayments', '_Cinemas', '_Customers'] },
+			{ 
+				relations,
+				operation: {
+					limit,
+					offset,
+					order: [['created_at', 'DESC']]
+				}
+			},
 			conditions,
 		);
 
 		// --- BLOQUE TEMPORAL PARA TESTING DE CORREO ---
 		try {
-			if (result && result.length > 0) {
-				const testOrder = result[0];
+			const rows = (result as any).rows ? (result as any).rows : result;
+			if (rows && rows.length > 0) {
+				const testOrder = rows[0];
 
 				let movieData = null;
 				if (testOrder._Tickets && testOrder._Tickets.length > 0) {
