@@ -353,7 +353,19 @@ export class UsersService extends BaseService {
 					{ 
 						association: '_RoomBookings', 
 						required: false,
-						nested: [{ association: '_Rooms', required: false }]
+						nested: [
+							{ association: '_Rooms', required: false },
+							{ 
+								association: '_Showtimes', 
+								required: false,
+								nested: [
+									{ association: '_Movies', required: false },
+									{ association: '_SpecialEvents', required: false },
+									{ association: '_Languages', required: false },
+									{ association: '_ProjectionTypes', required: false }
+								]
+							}
+						]
 					},
 					{ association: '_Seats', required: false },
 					{ association: '_AudienceCategories', required: false }
