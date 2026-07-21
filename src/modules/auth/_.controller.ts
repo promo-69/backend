@@ -81,12 +81,14 @@ class AuthController extends ControllerBase {
 
 	async login() {
 		const deviceData = this._getDeviceData();
-		return this._sendLoginResponse(await AuthService.authenticateCustomer(this.getBody(), deviceData.deviceId, deviceData.deviceInfo));
+		const deviceString = deviceData.deviceId + (deviceData.deviceInfo ? ` - ${deviceData.deviceInfo}` : '');
+		return this._sendLoginResponse(await AuthService.authenticateCustomer(this.getBody(), deviceString));
 	}
 
 	async loginAdmin() {
 		const deviceData = this._getDeviceData();
-		return this._sendLoginResponse(await AuthService.authenticateEmployee(this.getBody(), deviceData.deviceId, deviceData.deviceInfo));
+		const deviceString = deviceData.deviceId + (deviceData.deviceInfo ? ` - ${deviceData.deviceInfo}` : '');
+		return this._sendLoginResponse(await AuthService.authenticateEmployee(this.getBody(), deviceString));
 	}
 
 	async refresh() {
