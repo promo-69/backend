@@ -2,8 +2,8 @@ import { ControllerBase } from '@bases/controller.base.js';
 import { AppConfig } from '@config/app.config.js';
 import JWTUtil from '@utils/jwt.util.js';
 import AuthService from './_.service.js';
-import RbacCacheService from '@services/rbac-cache.service.js';
-import { UserSession, type AdminUserSession } from '@rules/api.type.js';
+import { UserSession } from '@rules/api.type.js';
+import { nanoid } from 'nanoid';
 
 class AuthController extends ControllerBase {
 	constructor() {
@@ -38,7 +38,6 @@ class AuthController extends ControllerBase {
 				path: `${req.baseUrl}`,
 				maxAge: JWTUtil.getRefreshExpiresInMs(),
 			});
-
 			return this.success({ user }, 'Autenticación exitosa');
 		}
 
@@ -49,6 +48,18 @@ class AuthController extends ControllerBase {
 		const data = (this.getRequest().session as UserSession).permissions;
 
 		return this.success({ permissions: data }, 'Permisos obtenidos correctamente');
+	}
+
+	private _getDeviceData(): { deviceId: string; deviceInfo: string } {
+		const req = this.getRequest();
+		let deviceId = req.headers['x-device-id'];
+		if (!deviceId || typeof deviceId !== 'string') deviceId = nanoid();
+
+		const userAgent = req.headers['user-agent'] || 'Unknown-Agent';
+		const ip = req.ip || 'Unknown-IP';
+		const deviceInfo = `${userAgent}-${ip}`;
+
+		return { deviceId, deviceInfo };
 	}
 
 	// --- Auth & Session ---
@@ -69,11 +80,13 @@ class AuthController extends ControllerBase {
 	}
 
 	async login() {
-		return this._sendLoginResponse(await AuthService.authenticateCustomer(this.getBody()));
+		const deviceData = this._getDeviceData();
+		return this._sendLoginResponse(await AuthService.authenticateCustomer(this.getBody(), deviceData.deviceId, deviceData.deviceInfo));
 	}
 
 	async loginAdmin() {
-		return this._sendLoginResponse(await AuthService.authenticateEmployee(this.getBody()));
+		const deviceData = this._getDeviceData();
+		return this._sendLoginResponse(await AuthService.authenticateEmployee(this.getBody(), deviceData.deviceId, deviceData.deviceInfo));
 	}
 
 	async refresh() {
@@ -125,7 +138,7 @@ class AuthController extends ControllerBase {
 
 		if (this._getExpectedTransport() === 'cookie') {
 			this.clearCookie(accessName);
-			this.clearCookie(refreshName, { path: `${req.baseUrl}/refresh` });
+			this.clearCookie(refreshName, { path: `${req.baseUrl}` });
 		}
 
 		return this.success(null, 'Sesión finalizada exitosamente');

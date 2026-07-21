@@ -171,9 +171,29 @@ export class AuthMiddleware {
 
 			req.session = result.session;
 			req.token = result.token;
-		} catch (error) {}
+		} catch (error) {
+			/*/ /*/
+		}
 
 		next();
+	}
+
+	static async optionalAuthStrict(req: Request, _res: Response, next: NextFunction): Promise<void> {
+		const token = this.extractToken(req, 'access');
+
+		// Sin token → petición anónima válida (ruta pública)
+		if (!token) return next();
+
+		try {
+			const result = await this.validateToken(token);
+
+			req.session = result.session;
+			req.token = result.token;
+			next();
+		} catch (error) {
+			// Token presente pero inválido/expirado → 401 para forzar refresh
+			next(error);
+		}
 	}
 
 	static verifyPermission(permission: string | string[]) {
@@ -235,7 +255,7 @@ export class AuthMiddleware {
 		};
 	}
 
-	static async preventAuthenticatedAccess(req: Request, _res: Response, next: NextFunction): Promise<void> {
+	static async preventAuthenticatedAccess(req: Request, res: Response, next: NextFunction): Promise<void> {
 		try {
 			const token = this.extractToken(req, 'access');
 
@@ -245,8 +265,21 @@ export class AuthMiddleware {
 
 			const isBlacklisted = await tokenBlacklistService.isBlacklisted(token);
 
-			if (session && !isBlacklisted)
-				return next(new ConflictError('Ya tienes una sesión activa', 'ACTIVE_SESSION_EXISTS'));
+			if (session && !isBlacklisted) {
+				// En lugar de bloquear al usuario (lo cual causa bugs si el frontend perdió el estado),
+				// invalidamos inteligentemente la sesión anterior usando Redis y permitimos que proceda.
+				await tokenBlacklistService.blacklistToken(token);
+				
+				const refreshToken = this.extractToken(req, 'refresh');
+				if (refreshToken) {
+					await tokenBlacklistService.blacklistToken(refreshToken);
+				}
+
+				// Limpiamos las cookies preventivamente para evitar conflictos
+				const security = AppConfig.load().security;
+				res.clearCookie(security.jwtCookieAccessName || 'AT');
+				res.clearCookie(security.jwtCookieRefreshName || 'RT', { path: `${req.baseUrl}` });
+			}
 
 			next();
 		} catch (error) {
@@ -258,6 +291,7 @@ export class AuthMiddleware {
 export const socketAuth = AuthMiddleware.socketAuth.bind(AuthMiddleware);
 export const verifySession = AuthMiddleware.verifySession.bind(AuthMiddleware);
 export const optionalAuth = AuthMiddleware.optionalAuth.bind(AuthMiddleware);
+export const optionalAuthStrict = AuthMiddleware.optionalAuthStrict.bind(AuthMiddleware);
 export const verifyPermission = AuthMiddleware.verifyPermission;
 export const verifyRole = AuthMiddleware.verifyRole;
 export const preventAuthenticatedAccess = AuthMiddleware.preventAuthenticatedAccess.bind(AuthMiddleware);

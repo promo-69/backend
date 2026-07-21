@@ -18,6 +18,10 @@ export default class UsersLoginsModel extends SequelizeModelBase {
 				allowNull: true,
 				type: DataTypes.STRING(500),
 			},
+			device_id: {
+				allowNull: true,
+				type: DataTypes.STRING(255),
+			},
 			jti: {
 				allowNull: false,
 				type: DataTypes.STRING(255),
