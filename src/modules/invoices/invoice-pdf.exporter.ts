@@ -1,10 +1,14 @@
 import PDFDocument from 'pdfkit';
+import QRCode from 'qrcode';
 
 const PRIMARY = '#231640';
 const ACCENT = '#d9982f';
 const LIGHT = '#f9f9f9';
 const GRAY = '#666666';
 const RED = '#DC2626';
+
+const fmtDate = (d: Date | string) =>
+    new Date(d).toLocaleString('es-VE', { timeZone: 'America/Caracas' });
 
 export class InvoicePDFExporter {
     static async toPDF(invoice: any): Promise<Buffer> {
@@ -54,7 +58,7 @@ export class InvoicePDFExporter {
         doc.fontSize(8.5)
             .font('Helvetica')
             .fillColor(GRAY)
-            .text(`Emitida: ${new Date(invoice.issued_at).toLocaleString('es-VE')}`, ML + 8, y + 27, {
+            .text(`Emitida: ${fmtDate(invoice.issued_at)}`, ML + 8, y + 27, {
                 width: halfW,
                 lineBreak: false,
             });
@@ -63,7 +67,7 @@ export class InvoicePDFExporter {
             doc.fontSize(8)
                 .fillColor(GRAY)
                 .text(
-                    `Orden #${invoice.order.id} — ${new Date(invoice.order.created_at).toLocaleString('es-VE')}`,
+                    `Orden #${invoice.order.id} — ${fmtDate(invoice.order.created_at)}`,
                     ML + 8,
                     y + 39,
                     { width: halfW, lineBreak: false },
@@ -328,16 +332,37 @@ export class InvoicePDFExporter {
 
         // ── QR ────────────────────────────────────────────────────────────────
         if (invoice.order?.qr_code) {
-            doc.rect(ML, y, INNER, 50).fill(LIGHT).stroke('#e5e7eb');
+            const QR_SIZE = 96;
+            const boxH = QR_SIZE + 24;
+            doc.rect(ML, y, INNER, boxH).fill(LIGHT).stroke('#e5e7eb');
             doc.fontSize(8)
                 .font('Helvetica')
                 .fillColor(GRAY)
                 .text('Código QR de validación:', ML + 8, y + 8, { lineBreak: false });
-            doc.fontSize(9)
-                .font('Helvetica-Bold')
-                .fillColor(ACCENT)
-                .text(invoice.order.qr_code, ML + 8, y + 22, { width: INNER - 16 });
-            y += 60;
+            try {
+                // Renderizamos el QR como IMAGEN escaneable (antes se imprimía
+                // el string plano, imposible de escanear en taquilla).
+                const qrPng = await QRCode.toBuffer(invoice.order.qr_code, {
+                    type: 'png',
+                    width: QR_SIZE * 3, // 3x para nitidez al imprimir
+                    margin: 1,
+                });
+                doc.image(qrPng, ML + 8, y + 18, { width: QR_SIZE, height: QR_SIZE });
+                // String de respaldo junto al QR, por si el escáner falla
+                doc.fontSize(8)
+                    .font('Helvetica-Bold')
+                    .fillColor(ACCENT)
+                    .text(invoice.order.qr_code, ML + QR_SIZE + 20, y + 18 + QR_SIZE / 2 - 4, {
+                        width: INNER - QR_SIZE - 28,
+                    });
+            } catch {
+                // Respaldo: si la generación del QR falla, imprimimos el string
+                doc.fontSize(9)
+                    .font('Helvetica-Bold')
+                    .fillColor(ACCENT)
+                    .text(invoice.order.qr_code, ML + 8, y + 22, { width: INNER - 16 });
+            }
+            y += boxH + 10;
         }
 
         // ── ANULACIÓN ─────────────────────────────────────────────────────────
@@ -365,7 +390,7 @@ export class InvoicePDFExporter {
         doc.fontSize(7.5)
             .font('Helvetica')
             .fillColor('#999999')
-            .text(`Generado el ${new Date().toLocaleString('es-VE')} — Cineflix`, ML, y + 10, {
+            .text(`Generado el ${fmtDate(new Date())} — Cineflix`, ML, y + 10, {
                 width: INNER,
                 align: 'center',
                 lineBreak: false,
