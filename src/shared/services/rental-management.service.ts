@@ -121,6 +121,7 @@ export class RentalManagementService {
 				? { id: raw._EventTypes.id, description: raw._EventTypes.description }
 				: { id: raw.event_type },
 			requested_start_time: raw.requested_start_time,
+			requested_end_time: raw.requested_end_time ?? null,
 			status: raw._Statuses
 				? { id: raw._Statuses.id, description: raw._Statuses.description }
 				: { id: raw.status },
@@ -310,6 +311,36 @@ export class RentalManagementService {
 
 		const created = await this._rentalRequests.transaction(async (transaction: Transaction) => {
 			let customerId = existingCustomerId;
+
+			if (customerId && contact_name?.trim()) {
+				const existingCustomer = await this._customers.getById(customerId, {
+					attributes: ['id', 'person'],
+					transaction,
+					lock: transaction.LOCK.UPDATE,
+				});
+				if (existingCustomer && existingCustomer.person == null) {
+					let person = document_number?.trim()
+						? await this._people.getOne(
+								{ document_number: document_number.trim() },
+								{ transaction, lock: transaction.LOCK.UPDATE },
+							)
+						: null;
+					if (!person) {
+						const parts = contact_name.trim().split(' ');
+						person = await this._people.create(
+							{
+								document_number: document_number?.trim() ?? null,
+								first_name: parts[0] ?? contact_name.trim(),
+								last_name: parts.slice(1).join(' ') || parts[0],
+								personal_email: contact_email?.trim() ?? null,
+								phone_number: contact_phone?.trim() ?? null,
+							},
+							{ transaction },
+						);
+					}
+					await this._customers.update(existingCustomer.id, { person: person.id }, { transaction });
+				}
+			}
 
 			if (!customerId) {
 				let person = await this._people.getOne(

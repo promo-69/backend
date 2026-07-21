@@ -240,10 +240,7 @@ export class OrdersService extends BaseService {
 			const order = await this._orders.getById(quoteData.order_id);
 			if (order) {
 				total = Number(order.total_amount_base_currency || 0);
-				payments = await this._orderPayments.getAll(
-					{ count: false },
-					{ order: quoteData.order_id },
-				);
+				payments = await this._orderPayments.getAll({ count: false }, { order: quoteData.order_id });
 				const totalPaid = payments.reduce((acc: number, p: any) => acc + Number(p.amount), 0);
 				remaining = MathUtil.roundMoney(Math.max(0, total - totalPaid));
 			}
@@ -310,7 +307,7 @@ export class OrdersService extends BaseService {
 				...pendingOrder,
 				_OrderPayments: payments,
 				payments_total: totalPaid,
-				remaining_balance: remaining
+				remaining_balance: remaining,
 			};
 		}
 
@@ -648,7 +645,10 @@ export class OrdersService extends BaseService {
 					this.validateRequired(payment, ['payment_method', 'amount', 'currency']);
 				}
 
-				if (!(isBankMethod && payment.bypass !== true) && (!['string', 'number'].includes(typeof payment.amount) || payment.amount <= 0))
+				if (
+					!(isBankMethod && payment.bypass !== true) &&
+					(!['string', 'number'].includes(typeof payment.amount) || payment.amount <= 0)
+				)
 					throw new BadRequestError('El monto del pago debe ser un número mayor a cero');
 
 				if (!['string', 'number'].includes(typeof payment.currency))
@@ -656,9 +656,13 @@ export class OrdersService extends BaseService {
 			}
 		}
 
-		const posPaymentsCount = paymentsInput.filter((p) => p.payment_method === PAYMENT_METHOD.POS && p.bypass !== true).length;
+		const posPaymentsCount = paymentsInput.filter(
+			(p) => p.payment_method === PAYMENT_METHOD.POS && p.bypass !== true,
+		).length;
 		if (posPaymentsCount > 1)
-			throw new BadRequestError('No se puede procesar más de un pago por Punto de Venta simultáneamente en la misma petición.');
+			throw new BadRequestError(
+				'No se puede procesar más de un pago por Punto de Venta simultáneamente en la misma petición.',
+			);
 
 		const userQueueKey = `queue:usr:${session.userId}`;
 		const quoteRaw = await this._redis.get(userQueueKey);
@@ -676,9 +680,14 @@ export class OrdersService extends BaseService {
 		if (hasPos) {
 			const posPayment = paymentsInput.find((p) => p.payment_method === PAYMENT_METHOD.POS && p.bypass !== true);
 			if (!posPayment.bank) throw new BadRequestError('El banco destino es obligatorio para este método de pago');
-			if (!posPayment.amount) throw new BadRequestError('El monto a cobrar es obligatorio para el punto de venta');
+			if (!posPayment.amount)
+				throw new BadRequestError('El monto a cobrar es obligatorio para el punto de venta');
 
-			const searchParams: any = { payment_method: PAYMENT_METHOD.POS, currency: posPayment.currency, bank: posPayment.bank };
+			const searchParams: any = {
+				payment_method: PAYMENT_METHOD.POS,
+				currency: posPayment.currency,
+				bank: posPayment.bank,
+			};
 			const acceptedAccounts = await this._bankAccounts.getAll(
 				{ count: false, relations: [{ association: '_Banks' }] },
 				searchParams,
@@ -692,7 +701,12 @@ export class OrdersService extends BaseService {
 			const ticketId = nanoid(12);
 			const ticketKey = `pos_ticket:${ticketId}`;
 			// Solo guardamos el posPayment en el ticket. Así la lógica del POS se encarga exclusivamente de él.
-			await this._redis.set(ticketKey, JSON.stringify({ session, orderId: order_id, body: [posPayment] }), 'EX', 60);
+			await this._redis.set(
+				ticketKey,
+				JSON.stringify({ session, orderId: order_id, body: [posPayment] }),
+				'EX',
+				60,
+			);
 
 			const documentDetail = paymentDetails.find((d: any) => d.name === 'identity_document');
 			const accountDetail = paymentDetails.find((d: any) => d.name === 'account_number');
@@ -702,35 +716,33 @@ export class OrdersService extends BaseService {
 				amount: posPayment.amount,
 				document: documentDetail?.value,
 				accountNumber: accountDetail?.value,
-				ticketId
+				ticketId,
 			};
 
 			RealtimeProvider.getInstance().emitToRoom('pos_devices', 'pos:process_payment', posPayload);
 
-			QueueProvider.getInstance().add(
-				'pos-timeout-queue',
-				'check-pos-timeout',
-				{ ticketId, userId: session.userId, orderId: order_id },
-				{ delay: 60000 }
-			).catch((err: any) => Logger.error('Error in pos-timeout-queue', err));
+			QueueProvider.getInstance()
+				.add(
+					'pos-timeout-queue',
+					'check-pos-timeout',
+					{ ticketId, userId: session.userId, orderId: order_id },
+					{ delay: 60000 },
+				)
+				.catch((err: any) => Logger.error('Error in pos-timeout-queue', err));
 
 			// Procesar el resto de pagos inmediatamente sin esperar al POS
 			const otherPayments = paymentsInput.filter((p: any) => p !== posPayment);
 			if (otherPayments.length > 0) {
-				QueueProvider.getInstance().add(
-					'order-payment-queue',
-					'process-order-payment',
-					{ body: otherPayments, session }
-				).catch((err: any) => Logger.error('Error in order-payment-queue', err));
+				QueueProvider.getInstance()
+					.add('order-payment-queue', 'process-order-payment', { body: otherPayments, session })
+					.catch((err: any) => Logger.error('Error in order-payment-queue', err));
 			}
 
 			return { message: 'Se está realizando el pago' };
 		} else {
-			QueueProvider.getInstance().add(
-				'order-payment-queue',
-				'process-order-payment',
-				{ body, session }
-			).catch((err: any) => Logger.error('Error in order-payment-queue', err));
+			QueueProvider.getInstance()
+				.add('order-payment-queue', 'process-order-payment', { body, session })
+				.catch((err: any) => Logger.error('Error in order-payment-queue', err));
 
 			return { message: 'Se está procesando el pago' };
 		}
@@ -768,7 +780,10 @@ export class OrdersService extends BaseService {
 					this.validateRequired(payment, ['payment_method', 'amount', 'currency']);
 				}
 
-				if (!(isBankMethod && payment.bypass !== true) && (!['string', 'number'].includes(typeof payment.amount) || payment.amount <= 0))
+				if (
+					!(isBankMethod && payment.bypass !== true) &&
+					(!['string', 'number'].includes(typeof payment.amount) || payment.amount <= 0)
+				)
 					throw new BadRequestError('El monto del pago debe ser un número mayor a cero');
 
 				if (!['string', 'number'].includes(typeof payment.currency))
@@ -861,7 +876,8 @@ export class OrdersService extends BaseService {
 
 					let paymentCurrency = currency;
 					if (paymentMethodId === PAYMENT_METHOD.LOYALTY_POINTS) {
-						if (!ptsCurrency) throw new BadRequestError('La moneda de Cinepuntos (PTS) no está configurada.');
+						if (!ptsCurrency)
+							throw new BadRequestError('La moneda de Cinepuntos (PTS) no está configurada.');
 						paymentCurrency = ptsCurrency.id;
 					}
 
@@ -883,7 +899,8 @@ export class OrdersService extends BaseService {
 
 					if (paymentMethodId === PAYMENT_METHOD.LOYALTY_POINTS) {
 						const customerToCharge = quoteData.customerId ? Number(quoteData.customerId) : null;
-						if (!customerToCharge) throw new BadRequestError('No se puede pagar con puntos sin un cliente asociado');
+						if (!customerToCharge)
+							throw new BadRequestError('No se puede pagar con puntos sin un cliente asociado');
 
 						const ledgers = await this._loyaltyLedgers.getAll(
 							{
@@ -915,10 +932,17 @@ export class OrdersService extends BaseService {
 							throw ledgerError;
 						}
 					} else if (
-						[PAYMENT_METHOD.POS, PAYMENT_METHOD.MOBILE_PAYMENT, PAYMENT_METHOD.BANK_TRANSFER].includes(paymentMethodId) || bypass === true
+						[PAYMENT_METHOD.POS, PAYMENT_METHOD.MOBILE_PAYMENT, PAYMENT_METHOD.BANK_TRANSFER].includes(
+							paymentMethodId,
+						) ||
+						bypass === true
 					) {
-						if (!reference_number) throw new BadRequestError('El número de referencia es obligatorio para este método de pago');
-						if (!bank) throw new BadRequestError('El banco destino es obligatorio para este método de pago');
+						if (!reference_number)
+							throw new BadRequestError(
+								'El número de referencia es obligatorio para este método de pago',
+							);
+						if (!bank)
+							throw new BadRequestError('El banco destino es obligatorio para este método de pago');
 						if (!currency) throw new BadRequestError('La moneda es obligatoria para este método de pago');
 
 						if (reference_number) {
@@ -932,13 +956,24 @@ export class OrdersService extends BaseService {
 											attributes: ['id'],
 											association: '_Orders',
 											required: true,
-											where: { order_status: { [Ops.in]: [ORDER_STATUS.PENDING, ORDER_STATUS.PAID, ORDER_STATUS.ONLINE_PAID] } },
+											where: {
+												order_status: {
+													[Ops.in]: [
+														ORDER_STATUS.PENDING,
+														ORDER_STATUS.PAID,
+														ORDER_STATUS.ONLINE_PAID,
+													],
+												},
+											},
 										},
 									],
 								},
 							);
 
-							if (existingPayment) throw new BadRequestError(`La referencia ${reference_number} ya fue procesada previamente en una orden válida.`);
+							if (existingPayment)
+								throw new BadRequestError(
+									`La referencia ${reference_number} ya fue procesada previamente en una orden válida.`,
+								);
 						}
 
 						if (bypass !== true) {
@@ -962,13 +997,16 @@ export class OrdersService extends BaseService {
 							if (apiUrl) {
 								try {
 									const apiKey = targetAccount.api_key;
-									const response = await fetch(`${apiUrl}/external/transactions/${reference_number}`, {
-										method: 'GET',
-										headers: {
-											Authorization: `Bearer ${apiKey}`,
-											Accept: 'application/json',
+									const response = await fetch(
+										`${apiUrl}/external/transactions/${reference_number}`,
+										{
+											method: 'GET',
+											headers: {
+												Authorization: `Bearer ${apiKey}`,
+												Accept: 'application/json',
+											},
 										},
-									});
+									);
 									const data: any = await response.json();
 
 									if (!response.ok || !data.success)
@@ -1038,12 +1076,14 @@ export class OrdersService extends BaseService {
 						{ count: false, operation: { transaction } },
 						{ order: order_id, is_approved: true },
 					);
-					const totalPaid = MathUtil.roundMoney(currentPayments.reduce((acc: number, p: any) => acc + Number(p.amount), 0));
+					const totalPaid = MathUtil.roundMoney(
+						currentPayments.reduce((acc: number, p: any) => acc + Number(p.amount), 0),
+					);
 
 					if (totalPaid > Number(order.total_amount_base_currency))
 						throw new BadRequestError('El monto pagado excede el total de la orden');
 
-					if (totalPaid >= Number(order.total_amount_base_currency)) {
+					if (totalPaid >= Number(order.total_amount_base_currency) || Number(order.total_amount_base_currency) - totalPaid < 0.10) {
 						const tickets = (order as any)._Tickets || [];
 						const concessions = (order as any)._OrderLines || [];
 						const qrCode = this._generateOrderQrCode(order, tickets, concessions);
@@ -1055,7 +1095,12 @@ export class OrdersService extends BaseService {
 								{ order_status: ORDER_STATUS.PAID, qr_code: qrCode },
 								{ transaction },
 							);
-							orderData = { ...order, qr_code: qrCode, order_status: ORDER_STATUS.PAID, is_employee: true };
+							orderData = {
+								...order,
+								qr_code: qrCode,
+								order_status: ORDER_STATUS.PAID,
+								is_employee: true,
+							};
 						} else {
 							const customer = await this._customers.getById(session.customerId, {
 								relations: this._customers._relations,
@@ -1086,6 +1131,10 @@ export class OrdersService extends BaseService {
 						await this._awardLoyaltyPoints(order, transaction);
 					} else {
 						remaining_balance = MathUtil.roundMoney(Number(order.total_amount_base_currency) - totalPaid);
+						// Tolerancia de redondeo: saldos < 0.05 se consideran pago completo
+						if (remaining_balance > 0 && remaining_balance < 0.10) {
+							remaining_balance = 0;
+						}
 					}
 				});
 
@@ -1097,7 +1146,7 @@ export class OrdersService extends BaseService {
 						...payment,
 						amount_base: amountBase,
 						reference_number: referenceNumber,
-						message: 'Pago parcial registrado exitosamente'
+						message: 'Pago parcial registrado exitosamente',
 					});
 				} else if (orderData) {
 					remaining_balance = 0;
@@ -1334,7 +1383,14 @@ export class OrdersService extends BaseService {
 				.toLowerCase()
 				.split('')
 				.map((c: string) => {
-					const map: any = { a: '[aáàäâ]', e: '[eéèëê]', i: '[iíìïî]', o: '[oóòöô]', u: '[uúùüû]', n: '[nñ]' };
+					const map: any = {
+						a: '[aáàäâ]',
+						e: '[eéèëê]',
+						i: '[iíìïî]',
+						o: '[oóòöô]',
+						u: '[uúùüû]',
+						n: '[nñ]',
+					};
 					return map[c] || c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 				})
 				.join('');
@@ -1342,8 +1398,8 @@ export class OrdersService extends BaseService {
 			andConditions.push({
 				[Ops.or]: [
 					{ first_name: { [Ops.iRegexp]: regexPattern } },
-					{ last_name: { [Ops.iRegexp]: regexPattern } }
-				]
+					{ last_name: { [Ops.iRegexp]: regexPattern } },
+				],
 			});
 		}
 		if (andConditions.length > 0) peopleWhere[Ops.and] = andConditions;
@@ -1361,10 +1417,7 @@ export class OrdersService extends BaseService {
 			],
 		});
 
-		return await this._orders.getAll(
-			{ ...filters, relations, count: true },
-			conditions
-		);
+		return await this._orders.getAll({ ...filters, relations, count: true }, conditions);
 	}
 
 	async getConcessionsByQr(qrCode: string) {
@@ -1373,15 +1426,15 @@ export class OrdersService extends BaseService {
 
 		// Regla 1: Usar relations en lugar de include
 		const lines = await this._orderLines.getAll(
-			{ count: false },
-			{ order: order.id },
 			{
+				count: false,
 				relations: [
 					{ association: '_Products', required: false },
 					{ association: '_Combos', required: false },
 					{ association: '_LineTypes', required: false },
 				],
 			},
+			{ order: order.id },
 		);
 		return { concessions: lines, concessions_used: order.concessions_validated_at !== null };
 	}
@@ -1392,14 +1445,18 @@ export class OrdersService extends BaseService {
 
 		// Regla 1: Usar relations en lugar de include
 		const tickets = await this._tickets.getAll(
-			{ count: false },
-			{ order: order.id },
 			{
+				count: false,
 				relations: [
 					{ association: '_Seats', required: false },
-					{ association: '_RoomBookings', required: false },
+					{
+						association: '_RoomBookings',
+						required: false,
+						nested: [{ association: '_Showtimes', required: false }],
+					},
 				],
 			},
+			{ order: order.id },
 		);
 		return { tickets, tickets_used: order.tickets_validated_at !== null };
 	}

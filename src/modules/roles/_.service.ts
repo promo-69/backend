@@ -1,6 +1,7 @@
 import { BaseService } from '@bases/service.base.js';
 import { Database } from '@database/index.js';
 import { ValidationError, NotFoundError } from '@errors';
+import { Transaction } from 'sequelize';
 
 interface RolePermissionPayload {
 	permissions?: number[];
@@ -35,16 +36,23 @@ class RolesService extends BaseService {
 	}
 
 	async createRole(body: Record<string, any>) {
-		this.validateRequired(body, ['code', 'name', 'description']);
+        return this._roles.transaction((transaction: Transaction) => {
+            try {
+                this.validateRequired(body, ['code', 'name', 'description']);
 
-		const payload = {
-			code: body.code,
-			name: body.name,
-			description: body.description,
-		};
+                const payload = {
+                    code: body.code,
+                    name: body.name,
+                    description: body.description,
+                };
 
-		return this._roles.create(payload);
-	}
+                const res = this._roles.create(payload);
+            } catch (error: any) {
+                console.log('errorcreating role: ', error)
+                throw error;
+            }
+        });
+    }
 
 	async updateRole(id: number, body: Record<string, any>) {
 		const updateData = this.sanitizeData(body, ['code', 'name', 'description']);
