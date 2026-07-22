@@ -142,6 +142,17 @@ export class AssistantService extends BaseService {
 
 			const messageText = this.buildShowtimeResponseText(recommendations, cinemaId, date, showtimePreference);
 
+			if (!recommendations.length) {
+				return {
+					intent,
+					message: messageText,
+					suggestedAction: 'ask_more',
+					followUpQuestions: this.buildFollowUpQuestions(intent),
+					recommendations,
+					data: { showtimes, showtimePreference },
+				};
+			}
+
 			const llmContext = this.buildAssistantContext({
 				session,
 				request: {
@@ -166,7 +177,7 @@ export class AssistantService extends BaseService {
 			return {
 				intent,
 				message: llmMessage || messageText,
-				suggestedAction: recommendations.length ? 'view_showtimes' : 'ask_more',
+				suggestedAction: 'view_showtimes',
 				followUpQuestions: this.buildFollowUpQuestions(intent),
 				recommendations,
 				data: { showtimes, showtimePreference },
@@ -177,6 +188,17 @@ export class AssistantService extends BaseService {
 		const recommendations = movies.map(this.buildMovieCard);
 
 		const messageText = this.buildMovieResponseText(recommendations, genreId, cinemaId, date);
+
+		if (!recommendations.length) {
+			return {
+				intent,
+				message: messageText,
+				suggestedAction: 'ask_more',
+				followUpQuestions: this.buildFollowUpQuestions(intent),
+				recommendations,
+				data: { movies },
+			};
+		}
 
 		const llmContext = this.buildAssistantContext({
 			session,
@@ -196,7 +218,7 @@ export class AssistantService extends BaseService {
 		return {
 			intent,
 			message: llmMessage || messageText,
-			suggestedAction: recommendations.length ? 'browse_movies' : 'ask_more',
+			suggestedAction: 'browse_movies',
 			followUpQuestions: this.buildFollowUpQuestions(intent),
 			recommendations,
 			data: { movies },
