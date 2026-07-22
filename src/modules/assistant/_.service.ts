@@ -138,7 +138,7 @@ export class AssistantService extends BaseService {
 		if (intent === 'showtimes' || intent === 'get_showtimes') {
 			const showtimePreference = this.resolveShowtimePreference(message);
 			const showtimes = await this.findShowtimeRecommendations(cinemaId, date, showtimePreference);
-			const recommendations = showtimes.map(this.buildShowtimeCard);
+			const recommendations = showtimes.map((entry) => this.buildShowtimeCard(entry));
 
 			const messageText = this.buildShowtimeResponseText(recommendations, cinemaId, date, showtimePreference);
 
@@ -185,7 +185,7 @@ export class AssistantService extends BaseService {
 		}
 
 		const movies = await this.findMovieRecommendations(genreId, cinemaId);
-		const recommendations = movies.map(this.buildMovieCard);
+		const recommendations = movies.map((movie) => this.buildMovieCard(movie));
 
 		const messageText = this.buildMovieResponseText(recommendations, genreId, cinemaId, date);
 
@@ -856,11 +856,11 @@ export class AssistantService extends BaseService {
 		try {
 			if (intent === 'showtimes') {
 				const showtimes = await this.findShowtimeRecommendations(cinemaId, date);
-				return showtimes.map(this.buildShowtimeCard);
+				return showtimes.map((entry) => this.buildShowtimeCard(entry));
 			}
 
 			const movies = await this.findMovieRecommendations(genreId, cinemaId);
-			return movies.map(this.buildMovieCard);
+			return movies.map((movie) => this.buildMovieCard(movie));
 		} catch (error) {
 			throw this.wrapAssistantError(error, 'resolve recommendations');
 		}
