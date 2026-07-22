@@ -1470,7 +1470,7 @@ export class OrdersService extends BaseService {
 	 * Valida un codigo QR para el acceso a confiteria o boletos.
 	 * Verifica la firma del JWT, expiracion y previene el doble uso.
 	 */
-	async validateQr(qrCode: string, body: any) {
+	async validateQr(qrCode: string, body: any, session?: any) {
 		const { validation_type } = body; // 1 = CONCESSIONS, 2 = TICKETS
 
 		// Verifica la validez criptografica del codigo QR
