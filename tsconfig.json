@@ -12,7 +12,7 @@
 		"outDir": "./build",
 		"rootDir": "./src",
 		"baseUrl": "./src",
-		"ignoreDeprecations": "6.0",
+		"ignoreDeprecations": "5.0",
 		"declaration": true,
 		"declarationMap": true,
 		"sourceMap": true,
