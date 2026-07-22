@@ -389,6 +389,10 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
 				if (options?.relations) findOpts.include = this.getFkRelation(options.relations);
 
 				if (shouldCount) {
+					// Con includes, findAndCountAll cuenta las filas del JOIN (no los
+					// registros): un listado de 3 facturas reportaba count=52.
+					// distinct fuerza COUNT(DISTINCT pk) y devuelve el total real.
+					if (findOpts.include) findOpts.distinct = true;
 					const results = await this._model.findAndCountAll(findOpts);
 
 					return {
