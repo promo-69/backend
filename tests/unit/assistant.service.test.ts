@@ -154,6 +154,31 @@ describe('AssistantService LLM context injection', () => {
 		expect(createChatCompletion).not.toHaveBeenCalled();
 	});
 
+	it('devuelve mensajes apropiados cuando no hay películas ni funciones disponibles', async () => {
+		const createChatCompletion = jest.fn().mockResolvedValue('Respuesta mock');
+		jest.spyOn(LLMProvider, 'getInstance').mockReturnValue({
+			createChatCompletion,
+		} as unknown as LLMProvider);
+
+		jest.spyOn(AssistantService as any, 'findMovieRecommendations').mockResolvedValue([]);
+		jest.spyOn(AssistantService as any, 'findShowtimeRecommendations').mockResolvedValue([]);
+
+		const movieResponse = await AssistantService.processChatMessage(
+			{ message: 'Quiero una película de terror' },
+			{ userId: 7, firstName: 'Ana', roleCode: 'CUSTOMER' },
+			{ path: '/assistant/chat', method: 'POST' },
+		);
+		const showtimeResponse = await AssistantService.processChatMessage(
+			{ message: '¿Qué funciones hay hoy?' },
+			{ userId: 7, firstName: 'Ana', roleCode: 'CUSTOMER' },
+			{ path: '/assistant/chat', method: 'POST' },
+		);
+
+		expect(movieResponse.message).toContain('No pude encontrar recomendaciones');
+		expect(showtimeResponse.message).toContain('No encontré funciones disponibles');
+		expect(createChatCompletion).not.toHaveBeenCalled();
+	});
+
 	it('identifica preferencias de primera o última función y momento del día', () => {
 		const firstPreference = (AssistantService as any).resolveShowtimePreference('¿Cuál es la primera función hoy?');
 		const lastPreference = (AssistantService as any).resolveShowtimePreference(
