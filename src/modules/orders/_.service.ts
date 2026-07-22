@@ -870,6 +870,7 @@ export class OrdersService extends BaseService {
 					const ptsCurrency = await this._currencies.getOne({ code: 'PTS' });
 
 					const { payment_method, currency, reference_number, bank, bypass } = payment;
+					let { amount } = payment;
 					const paymentMethodId = Number(payment_method);
 					referenceNumber = reference_number;
 
@@ -1082,7 +1083,10 @@ export class OrdersService extends BaseService {
 					if (totalPaid > Number(order.total_amount_base_currency))
 						throw new BadRequestError('El monto pagado excede el total de la orden');
 
-					if (totalPaid >= Number(order.total_amount_base_currency) || Number(order.total_amount_base_currency) - totalPaid < 0.10) {
+					if (
+						totalPaid >= Number(order.total_amount_base_currency) ||
+						Number(order.total_amount_base_currency) - totalPaid < 0.1
+					) {
 						const tickets = (order as any)._Tickets || [];
 						const concessions = (order as any)._OrderLines || [];
 						const qrCode = this._generateOrderQrCode(order, tickets, concessions);
@@ -1131,7 +1135,7 @@ export class OrdersService extends BaseService {
 					} else {
 						remaining_balance = MathUtil.roundMoney(Number(order.total_amount_base_currency) - totalPaid);
 						// Tolerancia de redondeo: saldos < 0.05 se consideran pago completo
-						if (remaining_balance > 0 && remaining_balance < 0.10) {
+						if (remaining_balance > 0 && remaining_balance < 0.1) {
 							remaining_balance = 0;
 						}
 					}
@@ -1321,9 +1325,7 @@ export class OrdersService extends BaseService {
 			success: true,
 			message: 'Facturación completada exitosamente y orden finalizada.',
 			orderId: targetOrderId,
-			invoice: createdInvoice
-				? { id: createdInvoice.id, invoice_number: createdInvoice.invoice_number }
-				: null,
+			invoice: createdInvoice ? { id: createdInvoice.id, invoice_number: createdInvoice.invoice_number } : null,
 		};
 	}
 
