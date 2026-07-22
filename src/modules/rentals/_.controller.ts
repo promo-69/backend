@@ -82,6 +82,38 @@ class RentalsController extends ControllerBase {
         await RentalsService.confirmPayment(Number(id), session?.customerId, session.roleCode === 'SUPER_ADMIN' ? undefined : session?.cinemaId);
         return this.success(null, 'Pago confirmado. La reserva de sala está activa.');
     }
+
+    // GET /rentals/pos/payable  (taquilla: solicitudes por cobrar, buscables)
+    async findPayable() {
+        const session = this.getSession<any>();
+        const query = this.getQuery();
+        const cinemaId = session.roleCode === 'SUPER_ADMIN' ? undefined : session.cinemaId;
+        const data = await RentalsService.findPayableForPOS(
+            query.q as string | undefined,
+            cinemaId,
+            this.getQueryFilters(),
+        );
+        return this.success(data, 'Solicitudes de alquiler por cobrar obtenidas exitosamente');
+    }
+
+    // POST /rentals/pos/:id/pay  (taquilla: registrar el pago y marcar pagada)
+    async payFromPOS() {
+        const session = this.getSession<any>();
+        const { id } = this.getParams();
+        const body = this.getBody();
+        const cinemaId = session.roleCode === 'SUPER_ADMIN' ? undefined : session.cinemaId;
+        const data = await RentalsService.registerPOSPayment(
+            Number(id),
+            {
+                payment_method: body.payment_method !== undefined ? Number(body.payment_method) : undefined,
+                reference: body.reference,
+                amount: body.amount !== undefined ? Number(body.amount) : undefined,
+            },
+            session?.employeeId,
+            cinemaId,
+        );
+        return this.success(data, 'Pago de alquiler registrado. La reserva de sala está confirmada.');
+    }
 }
 
 export default new RentalsController();
