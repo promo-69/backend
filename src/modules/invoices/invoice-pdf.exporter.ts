@@ -7,7 +7,7 @@ const LIGHT = '#f9f9f9';
 const GRAY = '#666666';
 const RED = '#DC2626';
 
-const fmtDate = s(d: Date | string) =>
+const fmtDate = (d: Date | string) =>
     new Date(d).toLocaleString('es-VE', { timeZone: 'America/Caracas' });
 
 export class InvoicePDFExporter {
@@ -114,8 +114,6 @@ export class InvoicePDFExporter {
             y += 14;
 
             const cashierParts: string[] = [];
-            // Sin empleado = venta autogestionada por el cliente (web o app).
-            // Lo especificamos para que la factura documente el canal de venta.
             if (invoice.employee?.name) cashierParts.push(invoice.employee.name);
             else cashierParts.push('Compra en línea (Web/App)');
             if (invoice.cinema?.name) cashierParts.push(`— ${invoice.cinema.name}`);
