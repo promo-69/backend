@@ -1,4 +1,14 @@
-export type AssistantIntent = 'recommendation' | 'showtimes' | 'unknown';
+export type AssistantIntent =
+	| 'recommendation'
+	| 'showtimes'
+	| 'get_showtimes'
+	| 'search_movies'
+	| 'concession_menu'
+	| 'pricing_promos'
+	| 'policy_and_rules'
+	| 'purchase_support'
+	| 'unsupported_request'
+	| 'unknown';
 
 export interface AssistantChatRequest {
 	message: string;
@@ -19,14 +29,30 @@ export interface AssistantRecommendation {
 	metadata?: Record<string, unknown>;
 }
 
+export type AssistantSuggestedAction =
+	| 'browse_movies'
+	| 'view_showtimes'
+	| 'ask_more'
+	| 'policy_help'
+	| 'purchase_help'
+	| 'concession_help'
+	| 'pricing_help'
+	| 'safety_refusal';
+
 export interface AssistantChatResponse {
 	intent: AssistantIntent;
 	message: string;
-	suggestedAction: 'browse_movies' | 'view_showtimes' | 'ask_more';
+	suggestedAction: AssistantSuggestedAction;
 	followUpQuestions: string[];
 	recommendations: AssistantRecommendation[];
 	data?: {
 		movies?: any[];
 		showtimes?: any[];
+		showtimePreference?: {
+			kind?: 'first' | 'last';
+			timeWindow?: 'afternoon' | 'evening' | 'morning';
+		};
+		policies?: string[];
+		supportTips?: string[];
 	};
 }
