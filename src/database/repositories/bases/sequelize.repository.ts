@@ -208,7 +208,7 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
 		return { [field]: condition };
 	}
 
-	private processSimpleOperatorValue(symbol: Symbol, value: any): any {
+	private processSimpleOperatorValue(symbol: symbol, value: any): any {
 		if (symbol === WhereOperators.contains && typeof value === 'string') {
 			return `%${value}%`;
 		}
@@ -227,8 +227,8 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
 		return value;
 	}
 
-	private mapSymbolToSequelizeOperator(symbol: Symbol): any {
-		const symbolMap = new Map<Symbol, any>([
+	private mapSymbolToSequelizeOperator(symbol: symbol): any {
+		const symbolMap = new Map<symbol, any>([
 			[WhereOperators.eq, Op.eq],
 			[WhereOperators.ne, Op.ne],
 			[WhereOperators.gt, Op.gt],

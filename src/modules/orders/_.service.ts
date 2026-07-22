@@ -772,7 +772,6 @@ export class OrdersService extends BaseService {
 				this.validateRequired(payment, ['payment_method']);
 			} else {
 				const isBankMethod = pm === PAYMENT_METHOD.MOBILE_PAYMENT || pm === PAYMENT_METHOD.BANK_TRANSFER;
-				const isPos = pm === PAYMENT_METHOD.POS;
 
 				if (isBankMethod && payment.bypass !== true) {
 					this.validateRequired(payment, ['payment_method', 'currency']);
@@ -817,7 +816,7 @@ export class OrdersService extends BaseService {
 		let successfulPayments = 0;
 		let lastError: any = null;
 
-		for (let payment of paymentsInput) {
+		for (const payment of paymentsInput) {
 			// Si la orden ya se completó en iteraciones previas (sobrepagos), saltamos pagos extras
 			if (orderData) break;
 
@@ -870,7 +869,7 @@ export class OrdersService extends BaseService {
 
 					const ptsCurrency = await this._currencies.getOne({ code: 'PTS' });
 
-					let { payment_method, amount, currency, reference_number, bank, bypass } = payment;
+					const { payment_method, currency, reference_number, bank, bypass } = payment;
 					const paymentMethodId = Number(payment_method);
 					referenceNumber = reference_number;
 
@@ -1260,6 +1259,7 @@ export class OrdersService extends BaseService {
 		if (!session.roleCode)
 			throw new ForbiddenError('Solo los empleados pueden facturar ordenes mediante este endpoint.');
 
+		let createdInvoice: any = null;
 		await this._orders.transaction(async (transaction: Transaction) => {
 			const lockedOrder = await this._orders.getOne(
 				{ id: targetOrderId },
@@ -1296,7 +1296,7 @@ export class OrdersService extends BaseService {
 				throw new BadRequestError('Debe proporcionar nombre y documento para la factura.');
 			}
 
-			await this._generateInvoice(targetOrderId, billingData, order.cinema, transaction);
+			createdInvoice = await this._generateInvoice(targetOrderId, billingData, order.cinema, transaction);
 			await this._orders.update(
 				{ id: targetOrderId },
 				{ order_status: ORDER_STATUS.ONLINE_PAID },
@@ -1321,6 +1321,9 @@ export class OrdersService extends BaseService {
 			success: true,
 			message: 'Facturación completada exitosamente y orden finalizada.',
 			orderId: targetOrderId,
+			invoice: createdInvoice
+				? { id: createdInvoice.id, invoice_number: createdInvoice.invoice_number }
+				: null,
 		};
 	}
 
@@ -1465,7 +1468,7 @@ export class OrdersService extends BaseService {
 	 * Valida un codigo QR para el acceso a confiteria o boletos.
 	 * Verifica la firma del JWT, expiracion y previene el doble uso.
 	 */
-	async validateQr(qrCode: string, body: any, session: any) {
+	async validateQr(qrCode: string, body: any) {
 		const { validation_type } = body; // 1 = CONCESSIONS, 2 = TICKETS
 
 		// Verifica la validez criptografica del codigo QR
@@ -1473,7 +1476,7 @@ export class OrdersService extends BaseService {
 		let payload: any;
 		try {
 			payload = JWTUtil.verifyToken(qrCode, secret);
-		} catch (error) {
+		} catch {
 			throw new BadRequestError('Código QR inválido o expirado');
 		}
 
@@ -2037,18 +2040,21 @@ export class OrdersService extends BaseService {
 		const nextValue = sequence.current_value + 1;
 		const invoiceNumber = `${sequence.prefix}${nextValue.toString().padStart(6, '0')}`;
 
-		await this._invoices.create(
+		const invoice = await this._invoices.create(
 			{
 				order: order_id,
 				invoice_number: invoiceNumber,
 				billing_document: billingData.document,
 				billing_name: billingData.name,
 				billing_address: billingData.address || '',
+				issued_at: new Date(),
 			},
 			{ transaction },
 		);
 
 		await this._invoiceSequences.update({ id: sequence.id }, { current_value: nextValue }, { transaction });
+
+		return invoice;
 	}
 }
 
