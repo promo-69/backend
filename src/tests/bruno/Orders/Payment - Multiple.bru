@@ -1,0 +1,67 @@
+meta {
+  name: Payment - Multiple
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/orders/payments
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  [
+    {
+      "payment_method": 3,
+      "currency": 2,
+      "bank": 20,
+      "amount": 30,
+      "reference_number": "48785030253343299267"
+    },
+    {
+      "payment_method": 4,
+      "currency": 2,
+      "bank": 20,
+      "amount": 40,
+      "reference_number": "97171091776634673500"
+    },
+    {
+      "payment_method": 1,
+      "currency": 2,
+      "amount": 10
+    },
+    {
+      "payment_method": 2,
+      "currency": 2,
+      "bank": 20,
+      "amount": 20
+    },
+    {
+      "payment_method": 5,
+      "amount": 50
+    }
+  ]
+}
+
+vars:pre-request {
+  cashAmount: 1000
+  posAmount: 3005.34
+}
+
+script:pre-request {
+  bru.setVar("refNumber", "POS-" + Math.floor(Math.random() * 1000000000));
+}
+
+script:post-response {
+  if (res.status === 200 || res.status === 202) {
+    const data = res.getBody();
+    // NOTA: El endpoint ahora es asíncrono.
+    // El qr_code no se devuelve en la respuesta HTTP.
+    // Debes escuchar el evento 'payment_completed' vía WebSockets.
+  }
+}

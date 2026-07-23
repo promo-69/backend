@@ -1,0 +1,190 @@
+/currencies:
+    get:
+        summary: List Currencies
+        description: Retrieve a list of all currencies. Permisos necesarios: 'CRUD:READ:CURRENCIES'
+        tags:
+            - Currencies
+        security:
+            - bearerAuth: []
+        responses:
+            '200':
+                description: Currencies retrieved successfully
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                data:
+                                    type: array
+                                    items:
+                                        type: object
+                                        properties:
+                                            id:
+                                                type: integer
+                                            code:
+                                                type: string
+                                            description:
+                                                type: string
+                                            symbol:
+                                                type: string
+                                            is_base_currency:
+                                                type: boolean
+            '401':
+                description: Unauthorized
+            '500':
+                description: Internal server error
+    post:
+        summary: Create Currency
+        description: Create a new currency. Permisos necesarios: 'CRUD:CREATE:CURRENCIES'
+        tags:
+            - Currencies
+        security:
+            - bearerAuth: []
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        required:
+                            - code
+                            - description
+                            - symbol
+                        properties:
+                            code:
+                                type: string
+                                example: 'USD'
+                            description:
+                                type: string
+                                example: 'Dólar Estadounidense'
+                            symbol:
+                                type: string
+                                example: '$'
+        responses:
+            '201':
+                description: Currency created successfully
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                data:
+                                    type: object
+                                    properties:
+                                        id:
+                                            type: integer
+            '400':
+                description: Bad request (validation errors)
+            '401':
+                description: Unauthorized
+            '500':
+                description: Internal server error
+
+/currencies/{id}:
+    get:
+        summary: Get Currency by Id
+        description: Retrieve a single currency by its identifier. Permisos necesarios: 'CRUD:READ:CURRENCIES'
+        tags:
+            - Currencies
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Currency retrieved successfully
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                data:
+                                    type: object
+                                    properties:
+                                        id:
+                                            type: integer
+                                        code:
+                                            type: string
+                                        description:
+                                            type: string
+                                        symbol:
+                                            type: string
+                                        is_base_currency:
+                                            type: boolean
+            '401':
+                description: Unauthorized
+            '404':
+                description: Currency not found
+            '500':
+                description: Internal server error
+    patch:
+        summary: Update Currency
+        description: Update the code, description, symbol, or base currency status of an existing currency. Setting is_base_currency to true will automatically unset the previous base currency. Permisos necesarios: 'CRUD:UPDATE:CURRENCIES'
+        tags:
+            - Currencies
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            code:
+                                type: string
+                                example: 'USD'
+                            description:
+                                type: string
+                                example: 'Dólar Estadounidense Actualizado'
+                            symbol:
+                                type: string
+                                example: '$'
+                            is_base_currency:
+                                type: boolean
+                                example: true
+        responses:
+            '200':
+                description: Currency updated successfully
+            '400':
+                description: Bad request (validation errors)
+            '401':
+                description: Unauthorized
+            '404':
+                description: Currency not found
+            '500':
+                description: Internal server error
+    delete:
+        summary: Delete Currency
+        description: Soft-delete a currency. Will fail if the currency is the base currency or if it is currently in use by products, combos, showtimes, or active rental requests. Permisos necesarios: 'CRUD:DELETE:CURRENCIES'
+        tags:
+            - Currencies
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Currency deleted successfully
+            '400':
+                description: Bad request (validation errors - currency in use or is base currency)
+            '401':
+                description: Unauthorized
+            '404':
+                description: Currency not found
+            '500':
+                description: Internal server error

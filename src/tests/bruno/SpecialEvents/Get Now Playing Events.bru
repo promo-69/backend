@@ -1,0 +1,20 @@
+meta {
+  name: Get Now Playing Events
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/special-events/now-playing
+  body: none
+  auth: none
+}
+
+params:query {
+  page: 1
+  limit: 10
+}
+
+docs {
+  Retorna eventos especiales con lifecycle_state = 3 (En Cartelera - Regular).
+}

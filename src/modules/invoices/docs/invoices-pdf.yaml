@@ -1,0 +1,45 @@
+/invoices/{id}/pdf:
+    get:
+        summary: Descargar PDF de factura
+        description: |
+            Genera y descarga el PDF de la factura.
+
+            **Disposición:**
+            - `inline` → muestra el PDF en el navegador (vista previa)
+            - `attachment` → fuerza la descarga del archivo
+
+            **Permiso:** CRUD:READ:INVOICES
+        tags:
+            - Invoices
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: path
+              name: id
+              required: true
+              schema:
+                  type: integer
+              description: ID de la factura
+            - in: query
+              name: disposition
+              schema:
+                  type: string
+                  enum: [inline, attachment]
+                  default: inline
+              description: |
+                  - `inline`: mostrar en navegador
+                  - `attachment`: forzar descarga
+        responses:
+            '200':
+                description: PDF de la factura
+                content:
+                    application/pdf:
+                        schema:
+                            type: string
+                            format: binary
+            '401':
+                description: No autorizado
+            '403':
+                description: Permisos insuficientes
+            '404':
+                description: Factura no encontrada

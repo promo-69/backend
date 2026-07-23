@@ -28,6 +28,7 @@ class RentalRequestsRepository extends SequelizeRepositoryBase<RentalRequestsAtt
 	get listRelations() {
 		return [
 			{ association: '_Statuses', attributes: ['id', 'description'] },
+			{ association: '_EventTypes', attributes: ['id', 'description'] },
 			{
 				association: '_Customers',
 				attributes: ['id', 'person'],

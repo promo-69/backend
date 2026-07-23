@@ -13,22 +13,30 @@ const imageUpload = uploadFields(
     { maxSizeMB: 10 },
 );
 
-// =============================================================================
-//  RUTAS ESTÁTICAS — todas antes de cualquier /:id para evitar colisiones
-// =============================================================================
+//  RUTAS ESTÁTICAS GLOBALES — catálogo sin filtro de sucursal
 
-//  Públicas
+// lifecycle_states 2, 3, 4 con funciones reales — global, sin cinemaId
+router.get('/active', optionalAuth, specialEventsController.getActiveWithShowtimes);
 
-// GET /api/v1/special-events/billboard?cinemaId=
-router.get('/billboard', optionalAuth, specialEventsController.getBillboard);
-
-// GET /api/v1/special-events/upcoming
+// GET /special-events/upcoming — lifecycle_state = 1 (global)
 router.get('/upcoming', optionalAuth, specialEventsController.getUpcoming);
 
-// GET /api/v1/special-events
+// GET /special-events/premiere — lifecycle_state = 2 (global)
+router.get('/premiere', optionalAuth, specialEventsController.getOnPremiere);
+
+// GET /special-events/now-playing — lifecycle_state = 3 (global)
+router.get('/now-playing', optionalAuth, specialEventsController.getInBillboard);
+
+// GET /special-events/last-days — lifecycle_state = 4 (global)
+router.get('/last-days', optionalAuth, specialEventsController.getLastDays);
+
+// GET /special-events/showtimes/billboard?cinemaId= — cartelera de funciones reales
+router.get('/showtimes/billboard', optionalAuth, specialEventsController.getBillboard);
+
+// GET /special-events — listado completo del catálogo
 router.get('/', optionalAuth, specialEventsController.findAll);
 
-// POST /api/v1/special-events
+// POST /special-events
 router.post(
     '/',
     verifySession,
@@ -37,9 +45,23 @@ router.post(
     specialEventsController.create,
 );
 
-//  Administrativas estáticas — ANTES de /:id y /admin/:id
+//  RUTAS POR SUCURSAL — /special-events/by-cinema/:cinemaId/*
 
-// GET /api/v1/special-events/admin/showtimes?cinemaId=&eventId=&startDate=&endDate=&onlyFuture=
+// lifecycle_state = 1 por sucursal
+router.get('/by-cinema/:cinemaId/upcoming', optionalAuth, specialEventsController.getUpcomingByCinema);
+
+// lifecycle_state = 2 por sucursal
+router.get('/by-cinema/:cinemaId/premiere', optionalAuth, specialEventsController.getOnPremiereByCinema);
+
+// lifecycle_state = 3 por sucursal
+router.get('/by-cinema/:cinemaId/now-playing', optionalAuth, specialEventsController.getInBillboardByCinema);
+
+// lifecycle_state = 4 por sucursal
+router.get('/by-cinema/:cinemaId/last-days', optionalAuth, specialEventsController.getLastDaysByCinema);
+
+//  RUTAS ADMINISTRATIVAS ESTÁTICAS — antes de /:id y /admin/:id
+
+// GET /special-events/admin/showtimes?cinemaId=&eventId=&startDate=&endDate=&onlyFuture=
 router.get(
     '/admin/showtimes',
     verifySession,
@@ -47,25 +69,18 @@ router.get(
     specialEventsController.getAdminShowtimes,
 );
 
-// GET /api/v1/special-events/admin
-router.get(
-    '/admin',
-    verifySession,
-    verifyPermission('CRUD:READ:SPECIAL_EVENTS'),
-    specialEventsController.findAllAdmin,
-);
+// GET /special-events/admin
+router.get('/admin', verifySession, verifyPermission('CRUD:READ:SPECIAL_EVENTS'), specialEventsController.findAllAdmin);
 
-// =============================================================================
 //  RUTAS DINÁMICAS — con :id, siempre al final
-// =============================================================================
 
-// GET /api/v1/special-events/:id
+// GET /special-events/:id
 router.get('/:id', optionalAuth, specialEventsController.findById);
 
-// GET /api/v1/special-events/:id/showtimes?cinemaId=
+// GET /special-events/:id/showtimes?cinemaId=
 router.get('/:id/showtimes', optionalAuth, specialEventsController.getPublicShowtimes);
 
-// GET /api/v1/special-events/admin/:id
+// GET /special-events/admin/:id
 router.get(
     '/admin/:id',
     verifySession,
@@ -73,7 +88,7 @@ router.get(
     specialEventsController.findByIdAdmin,
 );
 
-// PATCH /api/v1/special-events/:id
+// PATCH /special-events/:id
 router.patch(
     '/:id',
     verifySession,
@@ -82,12 +97,7 @@ router.patch(
     specialEventsController.update,
 );
 
-// DELETE /api/v1/special-events/:id
-router.delete(
-    '/:id',
-    verifySession,
-    verifyPermission('CRUD:DELETE:SPECIAL_EVENTS'),
-    specialEventsController.remove,
-);
+// DELETE /special-events/:id
+router.delete('/:id', verifySession, verifyPermission('CRUD:DELETE:SPECIAL_EVENTS'), specialEventsController.remove);
 
 export default router;

@@ -2,6 +2,8 @@ import { ControllerBase } from '@bases/controller.base.js';
 import { AppConfig } from '@config/app.config.js';
 import JWTUtil from '@utils/jwt.util.js';
 import AuthService from './_.service.js';
+import { UserSession } from '@rules/api.type.js';
+import { nanoid } from 'nanoid';
 
 class AuthController extends ControllerBase {
 	constructor() {
@@ -33,20 +35,38 @@ class AuthController extends ControllerBase {
 
 			this.setCookie(accessName, accessToken, { maxAge: JWTUtil.getAccessExpiresInMs() });
 			this.setCookie(refreshName, refreshToken, {
-				path: `${req.baseUrl}/refresh`,
+				path: `${req.baseUrl}`,
 				maxAge: JWTUtil.getRefreshExpiresInMs(),
 			});
-
 			return this.success({ user }, 'Autenticación exitosa');
 		}
 
 		return this.success({ user, tokens: { accessToken, refreshToken } }, 'Autenticación exitosa');
 	}
 
+	async getEmployeePermissions() {
+		const data = (this.getRequest().session as UserSession).permissions;
+
+		return this.success({ permissions: data }, 'Permisos obtenidos correctamente');
+	}
+
+	private _getDeviceData(): { deviceId: string; deviceInfo: string } {
+		const req = this.getRequest();
+		let deviceId = req.headers['x-device-id'];
+		if (!deviceId || typeof deviceId !== 'string') deviceId = nanoid();
+
+		const userAgent = req.headers['user-agent'] || 'Unknown-Agent';
+		const ip = req.ip || 'Unknown-IP';
+		const deviceInfo = `${userAgent}-${ip}`;
+
+		return { deviceId, deviceInfo };
+	}
+
 	// --- Auth & Session ---
 
 	async signup() {
 		await AuthService.registerUser(this.getBody());
+
 		return this.created(
 			{},
 			'Usuario registrado exitosamente. Por favor verifica tu correo electrónico con el código enviado.',
@@ -54,21 +74,21 @@ class AuthController extends ControllerBase {
 	}
 
 	async verifySignup() {
-		const { email, code } = this.getBody();
-		await AuthService.verifySignupCode(email, code);
+		await AuthService.verifySignupCode(this.getBody());
+
 		return this.success({}, 'Cuenta verificada y autenticada exitosamente');
 	}
 
-	// POST /auth/login — exclusivo para clientes (user_type = 2, role IS NULL)
 	async login() {
-		const loginResponse = await AuthService.authenticateCustomer(this.getBody());
-		return this._sendLoginResponse(loginResponse);
+		const deviceData = this._getDeviceData();
+		const deviceString = deviceData.deviceId + (deviceData.deviceInfo ? ` - ${deviceData.deviceInfo}` : '');
+		return this._sendLoginResponse(await AuthService.authenticateCustomer(this.getBody(), deviceString));
 	}
 
-	// POST /auth/login/admin — exclusivo para empleados (user_type = 1, role IS NOT NULL)
 	async loginAdmin() {
-		const loginResponse = await AuthService.authenticateEmployee(this.getBody());
-		return this._sendLoginResponse(loginResponse);
+		const deviceData = this._getDeviceData();
+		const deviceString = deviceData.deviceId + (deviceData.deviceInfo ? ` - ${deviceData.deviceInfo}` : '');
+		return this._sendLoginResponse(await AuthService.authenticateEmployee(this.getBody(), deviceString));
 	}
 
 	async refresh() {
@@ -91,7 +111,7 @@ class AuthController extends ControllerBase {
 			const accessName = security.jwtCookieAccessName || 'AT';
 			this.setCookie(accessName, accessToken, { maxAge: JWTUtil.getAccessExpiresInMs() });
 			this.setCookie(refreshName, refreshToken, {
-				path: `${req.baseUrl}/refresh`,
+				path: `${req.baseUrl}`,
 				maxAge: JWTUtil.getRefreshExpiresInMs(),
 			});
 			return this.success({ user }, 'Sesión renovada');
@@ -120,7 +140,7 @@ class AuthController extends ControllerBase {
 
 		if (this._getExpectedTransport() === 'cookie') {
 			this.clearCookie(accessName);
-			this.clearCookie(refreshName, { path: `${req.baseUrl}/refresh` });
+			this.clearCookie(refreshName, { path: `${req.baseUrl}` });
 		}
 
 		return this.success(null, 'Sesión finalizada exitosamente');
@@ -138,8 +158,7 @@ class AuthController extends ControllerBase {
 		const { accountType } = this.getRequest().params || {};
 		if (!accountType) throw new Error('El tipo de cuenta es requerido');
 
-		const { email } = this.getBody();
-		const result = await AuthService.forgotPassword(this._parseAccountType(accountType as string), email);
+		const result = await AuthService.forgotPassword(this._parseAccountType(accountType as string), this.getBody());
 
 		return this.success(null, result.message);
 	}
@@ -148,8 +167,7 @@ class AuthController extends ControllerBase {
 		const { accountType } = this.getRequest().params || {};
 		if (!accountType) throw new Error('El tipo de cuenta es requerido');
 
-		const { email, code } = this.getBody();
-		const result = await AuthService.verifyResetCode(this._parseAccountType(accountType as string), email, code);
+		const result = await AuthService.verifyResetCode(this._parseAccountType(accountType as string), this.getBody());
 
 		return this.success(result, 'Código verificado correctamente');
 	}
@@ -158,13 +176,7 @@ class AuthController extends ControllerBase {
 		const { accountType } = this.getRequest().params || {};
 		if (!accountType) throw new Error('El tipo de cuenta es requerido');
 
-		const { email, resetToken, newPassword } = this.getBody();
-		const result = await AuthService.resetPassword(
-			this._parseAccountType(accountType as string),
-			email,
-			resetToken,
-			newPassword,
-		);
+		const result = await AuthService.resetPassword(this._parseAccountType(accountType as string), this.getBody());
 
 		return this.success(null, result.message);
 	}

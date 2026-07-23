@@ -1,0 +1,26 @@
+meta {
+  name: Sales Report
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/reports/sales
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  from: {{fromDate}}
+  to: {{toDate}}
+  channel: all
+}
+
+docs {
+  Reporte de ventas consolidado de la sucursal del empleado.
+  Permiso: CRUD:READ:REPORTS-SALES
+}

@@ -1,0 +1,19 @@
+meta {
+  name: Get Movie Subscription By Id
+  type: http
+  seq: 25
+}
+
+get {
+  url: {{baseUrl}}/users/me/movie-subscriptions/{{moveId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+vars:pre-request {
+  moveId: 1
+}

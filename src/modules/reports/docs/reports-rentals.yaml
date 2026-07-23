@@ -1,9 +1,11 @@
 /reports/rentals:
     get:
-        summary: Get rentals report (employee)
+        summary: Reporte de alquileres
         description: |
-            Retrieve rental requests statistics for the employee's cinema.
-            Required permission: **CRUD:READ:REPORTS-RENTALS**
+            Permisos necesarios: 'CRUD:READ:REPORTS-RENTALS'
+            Solicitudes de alquiler, estado, ingresos confirmados y proyectados.
+            - Empleado: cinemaId del JWT.
+            - Superadmin: ?cinemaId opcional.
         tags:
             - Reports
         security:
@@ -14,16 +16,19 @@
               schema:
                   type: string
                   format: date
-              description: Start date (YYYY-MM-DD)
             - in: query
               name: to
               schema:
                   type: string
                   format: date
-              description: End date (YYYY-MM-DD)
+            - in: query
+              name: cinemaId
+              schema:
+                  type: integer
+              description: ID de sucursal (opcional, solo superadmin)
         responses:
             '200':
-                description: Rentals report
+                description: Reporte generado
                 content:
                     application/json:
                         schema:
@@ -118,48 +123,6 @@
                                                             symbol:
                                                                 type: string
             '401':
-                description: Unauthorized
+                description: No autorizado
             '403':
-                description: Insufficient permissions
-
-/reports/cinemas/{cinemaId}/rentals:
-    get:
-        summary: Get rentals report for a specific cinema (superadmin)
-        tags:
-            - Reports Admin
-        security:
-            - bearerAuth: []
-        parameters:
-            - in: path
-              name: cinemaId
-              required: true
-              schema:
-                  type: integer
-            - in: query
-              name: from
-              schema:
-                  type: string
-                  format: date
-            - in: query
-              name: to
-              schema:
-                  type: string
-                  format: date
-        responses:
-            '200':
-                description: Rentals report for the specified cinema
-                content:
-                    application/json:
-                        schema:
-                            type: object
-                            properties:
-                                success:
-                                    type: boolean
-                                message:
-                                    type: string
-                                data:
-                                    type: object
-            '401':
-                description: Unauthorized
-            '403':
-                description: Insufficient permissions
+                description: Permisos insuficientes

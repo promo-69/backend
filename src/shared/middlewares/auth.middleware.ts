@@ -3,8 +3,10 @@ import { AppConfig } from '@config/app.config.js';
 import { JWTPayload, JWTUtil } from '@utils/jwt.util.js';
 import { AuthError, ForbiddenError, ConflictError, ValidationError } from '@errors';
 import { SessionNotFoundError } from '@errors/auth.error.js';
-import { UserSession } from '@rules/api.type.js';
+import { UserSession, AdminUserSession } from '@rules/api.type.js';
 import { tokenBlacklistService } from '@services/token-blacklist.service.js';
+import { USER_TYPE } from '@constants/magic-vars.constant.js';
+import RbacCacheService from '@services/rbac-cache.service.js';
 
 interface AuthConfig {
 	cookieNames?: string[];
@@ -20,7 +22,7 @@ export class AuthMiddleware {
 	private static config: AuthConfig = this.DEFAULT_CONFIG;
 
 	static buildSession(_session: any): UserSession {
-		const session: Partial<UserSession> = {
+		const session: Partial<UserSession & AdminUserSession> = {
 			userId: _session.userId || _session.sub,
 			documentNumber: _session.documentNumber,
 			firstName: _session.firstName,
@@ -124,21 +126,21 @@ export class AuthMiddleware {
 	}
 
 	static async socketAuth(socket: any, next: (err?: any) => void): Promise<void> {
+		if (!socket.data) socket.data = {};
+
 		try {
 			const token = AuthMiddleware.extractTokenFromSocket(socket, 'access');
-			const result = await AuthMiddleware.validateToken(token as string);
+			if (!token) {
+				socket.data.session = null;
+				return next();
+			}
 
-			if (!socket.data) socket.data = {};
+			const result = await AuthMiddleware.validateToken(token);
 			socket.data.session = result.session;
-
 			next();
-		} catch (error: any) {
-			const socketError: any = new Error(error.message || 'Falló la autenticación');
-			socketError.data = {
-				code: error.code || 'AUTH_FAILED',
-				details: error.details || error.message,
-			};
-			next(socketError);
+		} catch {
+			socket.data.session = null;
+			next();
 		}
 	}
 
@@ -148,6 +150,14 @@ export class AuthMiddleware {
 
 			req.session = result.session;
 			req.token = result.token;
+
+			if (req.session.userType === USER_TYPE.EMPLOYEE) {
+				const adminSession = req.session as AdminUserSession;
+				adminSession.permissions = await RbacCacheService.getSessionPermissions(
+					adminSession.userId,
+					adminSession.roleCode,
+				);
+			}
 
 			next();
 		} catch (error) {
@@ -161,9 +171,29 @@ export class AuthMiddleware {
 
 			req.session = result.session;
 			req.token = result.token;
-		} catch (error) {}
+		} catch (error) {
+			/*/ /*/
+		}
 
 		next();
+	}
+
+	static async optionalAuthStrict(req: Request, _res: Response, next: NextFunction): Promise<void> {
+		const token = this.extractToken(req, 'access');
+
+		// Sin token → petición anónima válida (ruta pública)
+		if (!token) return next();
+
+		try {
+			const result = await this.validateToken(token);
+
+			req.session = result.session;
+			req.token = result.token;
+			next();
+		} catch (error) {
+			// Token presente pero inválido/expirado → 401 para forzar refresh
+			next(error);
+		}
 	}
 
 	static verifyPermission(permission: string | string[]) {
@@ -172,11 +202,11 @@ export class AuthMiddleware {
 				if (!req.session) throw new SessionNotFoundError();
 
 				// Bypass para SUPER_ADMIN
-				if (req.session.roleCode === 'SUPER_ADMIN') {
-					return next();
-				}
+				if ((req.session as AdminUserSession).roleCode === 'SUPER_ADMIN') return next();
 
-				const userPermissions = (req.session.permissions || []).map((p: any) => p.toUpperCase());
+				const userPermissions = ((req.session as AdminUserSession).permissions || []).map((p: any) =>
+					p.toUpperCase(),
+				);
 
 				let requiredPermissions: string[] = [];
 				if (typeof permission === 'string') requiredPermissions.push(permission.toUpperCase());
@@ -189,7 +219,7 @@ export class AuthMiddleware {
 				const hasAllPermissions = requiredPermissions.every((perm) => userPermissions.includes(perm));
 
 				if (!hasAllPermissions)
-					throw new ForbiddenError('Usuario no tiene los permisos necesarios para realizar esta acción', {
+					throw new ForbiddenError('No tiene los permisos necesarios para realizar esta acción', {
 						code: 'INSUFFICIENT_PERMISSIONS',
 					});
 
@@ -205,16 +235,16 @@ export class AuthMiddleware {
 			try {
 				if (!req.session) throw new SessionNotFoundError();
 
-				if (!req.session.roleCode)
-					throw new ForbiddenError('Usuario no tiene rol asignado', { code: 'NO_ROLE_ASSIGNED' });
+				if (!(req.session as AdminUserSession).roleCode)
+					throw new ForbiddenError('No tiene rol asignado', { code: 'NO_ROLE_ASSIGNED' });
 
 				const requiredRoles = Array.isArray(role) ? role : [role];
-				const userRole = req.session.roleCode.toUpperCase();
+				const userRole = (req.session as AdminUserSession).roleCode.toUpperCase();
 
 				const hasRequiredRole = requiredRoles.some((r) => r.toUpperCase() === userRole);
 
 				if (!hasRequiredRole)
-					throw new ForbiddenError(`Usuario no tiene el rol necesario para realizar esta acción`, {
+					throw new ForbiddenError(`No tiene el rol necesario para realizar esta acción`, {
 						code: 'INSUFFICIENT_ROLE',
 					});
 
@@ -225,7 +255,7 @@ export class AuthMiddleware {
 		};
 	}
 
-	static async preventAuthenticatedAccess(req: Request, _res: Response, next: NextFunction): Promise<void> {
+	static async preventAuthenticatedAccess(req: Request, res: Response, next: NextFunction): Promise<void> {
 		try {
 			const token = this.extractToken(req, 'access');
 
@@ -235,8 +265,21 @@ export class AuthMiddleware {
 
 			const isBlacklisted = await tokenBlacklistService.isBlacklisted(token);
 
-			if (session && !isBlacklisted)
-				return next(new ConflictError('Ya tienes una sesión activa', 'ACTIVE_SESSION_EXISTS'));
+			if (session && !isBlacklisted) {
+				// En lugar de bloquear al usuario (lo cual causa bugs si el frontend perdió el estado),
+				// invalidamos inteligentemente la sesión anterior usando Redis y permitimos que proceda.
+				await tokenBlacklistService.blacklistToken(token);
+				
+				const refreshToken = this.extractToken(req, 'refresh');
+				if (refreshToken) {
+					await tokenBlacklistService.blacklistToken(refreshToken);
+				}
+
+				// Limpiamos las cookies preventivamente para evitar conflictos
+				const security = AppConfig.load().security;
+				res.clearCookie(security.jwtCookieAccessName || 'AT');
+				res.clearCookie(security.jwtCookieRefreshName || 'RT', { path: `${req.baseUrl}` });
+			}
 
 			next();
 		} catch (error) {
@@ -248,6 +291,7 @@ export class AuthMiddleware {
 export const socketAuth = AuthMiddleware.socketAuth.bind(AuthMiddleware);
 export const verifySession = AuthMiddleware.verifySession.bind(AuthMiddleware);
 export const optionalAuth = AuthMiddleware.optionalAuth.bind(AuthMiddleware);
+export const optionalAuthStrict = AuthMiddleware.optionalAuthStrict.bind(AuthMiddleware);
 export const verifyPermission = AuthMiddleware.verifyPermission;
 export const verifyRole = AuthMiddleware.verifyRole;
 export const preventAuthenticatedAccess = AuthMiddleware.preventAuthenticatedAccess.bind(AuthMiddleware);

@@ -24,7 +24,6 @@ class CinemasController extends ControllerBase {
 
     // GET /cinemas/rooms-available — gerencia general
     async findAllWithRooms() {
-		console.log('by rooms')
         const data = await CinemasService.findAllWithRooms(this.getQueryFilters());
         return data;
     }
@@ -33,7 +32,8 @@ class CinemasController extends ControllerBase {
     async create() {
         const body = this.getBody();
         const session = this.getSession<any>();
-        const data = await CinemasService.createCinema(body, session?.userId);
+        const rawFiles = this.getRequest().files as Express.Multer.File[] | { [fieldname: string]: Express.Multer.File[] } | undefined;
+        const data = await CinemasService.createCinema(body, session?.userId, rawFiles);
         return this.created(data, 'Sucursal registrada exitosamente');
     }
 
@@ -42,7 +42,8 @@ class CinemasController extends ControllerBase {
         const { id } = this.getParams();
         const body = this.getBody();
         const session = this.getSession<any>();
-        await CinemasService.updateCinema(Number(id), body, session.userId, false);
+        const rawFiles = this.getRequest().files as Express.Multer.File[] | { [fieldname: string]: Express.Multer.File[] } | undefined;
+        await CinemasService.updateCinema(Number(id), body, session.userId, false, rawFiles);
         return this.success(null, 'Sucursal actualizada exitosamente');
     }
 
@@ -51,7 +52,8 @@ class CinemasController extends ControllerBase {
         const session = this.getSession<any>();
         if (!session.cinemaId) throw new ValidationError('No tienes una sucursal asignada en tu sesión', []);
         const body = this.getBody();
-        await CinemasService.updateCinema(session.cinemaId, body, session.userId, true);
+        const rawFiles = this.getRequest().files as Express.Multer.File[] | { [fieldname: string]: Express.Multer.File[] } | undefined;
+        await CinemasService.updateCinema(session.cinemaId, body, session.userId, true, rawFiles);
         return this.success(null, 'Sucursal actualizada exitosamente');
     }
 

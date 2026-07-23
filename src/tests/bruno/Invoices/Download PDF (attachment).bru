@@ -1,0 +1,26 @@
+meta {
+  name: Download PDF (attachment)
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/invoices/{{invoice_id}}/pdf?disposition=attachment
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+vars:pre-request {
+  invoice_id: 1
+}
+
+docs {
+  Descarga el PDF de la factura forzando la descarga.
+  El navegador descargará el archivo en lugar de mostrarlo.
+
+  Permiso: CRUD:READ:INVOICES
+}

@@ -1,0 +1,25 @@
+meta {
+  name: Dashboard Global
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/reports/dashboard?from={{fromDate}}&to={{toDate}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  from: {{fromDate}}
+  to: {{toDate}}
+}
+
+docs {
+  Dashboard consolidado con datos de todas las sucursales (vista global).
+  Permiso: CRUD:READ:REPORTS-DASHBOARD
+}

@@ -1,0 +1,40 @@
+meta {
+  name: Payment - Mobile Payment (Partial)
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/orders/payments
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "payment_method": 1,
+    "amount": {{partialAmount}},
+    "currency": 2
+  }
+}
+
+vars:pre-request {
+  partialAmount: 4999.5
+}
+
+script:pre-request {
+  bru.setVar("refNumber", "PM-" + Math.floor(Math.random() * 1000000000));
+}
+
+script:post-response {
+  if (res.status === 200 || res.status === 202) {
+    const data = res.getBody();
+    // NOTA: El endpoint ahora es asíncrono.
+    // El qr_code no se devuelve en la respuesta HTTP.
+    // Debes escuchar el evento 'payment_completed' vía WebSockets.
+  }
+}

@@ -51,7 +51,7 @@
                 description: Internal server error
     post:
         summary: Create Combo
-        description: Register a new combo with optional image.
+        description: Register a new combo with optional image. Permisos necesarios: 'CRUD:CREATE:COMBOS'
         tags:
             - Concessions
         security:

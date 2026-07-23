@@ -6,6 +6,10 @@ export class OrdersController extends ControllerBase {
 		super();
 	}
 
+	async getAllOrders() {
+		return await OrdersService.getAllOrders(this.getQueryFilters(), this.getQuery());
+	}
+
 	async createQuote() {
 		return await OrdersService.createQuote(this.getBody(), this.getSession());
 	}
@@ -49,4 +53,10 @@ export class OrdersController extends ControllerBase {
 	async validateQr() {
 		return await OrdersService.validateQr(this.requireParam('qrCode'), this.getBody(), this.getSession());
 	}
+
+	async fulfillRedemptionPickup() {
+		return await OrdersService.fulfillRedemptionPickup(this.requireParam('qrCode'), this.getSession());
+	}
 }
+
+export default new OrdersController();

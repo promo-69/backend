@@ -16,6 +16,7 @@ import { fileURLToPath } from 'url';
 import { buildSwaggerDocs } from './docs/swagger.bundler.js';
 import { RealtimeProvider } from '@providers/realtime.provider.js';
 import { startBackgroundProcesses } from './background/orchestrator.js';
+import { TerminalStreamer } from './terminal.js';
 
 const __dirnameApp = path.dirname(fileURLToPath(import.meta.url));
 
@@ -64,6 +65,9 @@ export class App {
         await RealtimeProvider.getInstance().attach(server);
         const { BookingSocketService } = await import('./shared/services/booking-socket.service.js');
         BookingSocketService.initialize();
+        
+        const { PosSocketService } = await import('./shared/services/pos-socket.service.js');
+        PosSocketService.initialize();
     }
 
     private async setupBackgroundTasks(): Promise<void> {
@@ -205,9 +209,11 @@ export class App {
                 health: `See ${this.appConfig.protocol}://${interfaceIp}/health for check the health of the API`,
                 ...(this.appConfig.appEnv == 'development'
                     ? {
-                          development: {
-                              routes: `See ${this.appConfig.protocol}://${interfaceIp}/api/v[version-number]/[module]: API endpoints`,
-                          },
+						development: {
+							monitor: `${this.appConfig.protocol}://${interfaceIp}/api/system/terminal`,
+							server_time: new Date().toLocaleString('en-US', { timeZoneName: 'short' }) + ' | ' + new Date().toLocaleString('es-VE', { timeZoneName: 'short', timeZone: 'America/Caracas' }),
+							routes: `See ${this.appConfig.protocol}://${interfaceIp}/api/v[version-number]/[module]: API endpoints`,
+						},
                       }
                     : {}),
             };
@@ -215,6 +221,7 @@ export class App {
             res.json(welcome);
         });
 
+        this.app.use('/api/system/terminal', TerminalStreamer);
         this.app.use(routerEssentialApi);
 
         // Ruta para mostrar todos los endpoints disponibles

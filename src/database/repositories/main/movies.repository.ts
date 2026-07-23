@@ -9,6 +9,8 @@ export interface MoviesAttributes {
 	duration_minutes: number;
 	age_classification: number;
 	lifecycle_state: number;
+	lifecycle_state_changed_at?: Date;
+	lifecycle_state_next_change_at?: Date;
 	synopsis: string;
 	trailer_url?: string;
 	poster_url?: string;
@@ -158,6 +160,27 @@ class MoviesRepository extends SequelizeRepositoryBase<MoviesAttributes, number>
 	async getByTitle(title: string): Promise<MoviesAttributes | null> {
 		const result = await this.getOne({ title });
 		return this.parseResponse(result) as MoviesAttributes | null;
+	}
+
+	async getByGenres(genreIds: number[], filters?: any): Promise<{ rows: MovieFull[]; count: number }> {
+		// Subquery: IDs de películas activas (lifecycle 2, 3, 4) que tengan al menos uno de los géneros pedidos
+		const activeMovieIdsLiteral = literal(
+			`(SELECT DISTINCT mg."movie" FROM "movie_genres" mg WHERE mg."genre" IN (${genreIds.join(',')}) AND mg."deleted_at" IS NULL)`,
+		);
+
+		const result = (await this.getAll(
+			{ ...filters, count: true, relations: this._relations },
+			{
+				id: { [Ops.in]: activeMovieIdsLiteral },
+				lifecycle_state: { [Ops.in]: [2, 3, 4] },
+				deleted_at: null,
+			},
+		)) as { rows: any[]; count: number };
+
+		return {
+			count: result.count,
+			rows: this.parseResponse(result.rows) as MovieFull[],
+		};
 	}
 
 	async getWithShowtimes(filters?: any): Promise<{ rows: MovieFull[]; count: number }> {

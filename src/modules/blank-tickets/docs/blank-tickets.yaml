@@ -1,0 +1,46 @@
+/blank-tickets/{code}:
+    get:
+        summary: Validate a blank ticket voucher
+        description: >
+            Valida un vale de boleto en blanco por su código. Devuelve su estado y si es
+            canjeable. Marca EXPIRED de forma perezosa si ya venció. Requiere sesión de staff.
+        tags:
+            - Blank Tickets
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: code
+              in: path
+              required: true
+              schema:
+                  type: string
+        responses:
+            '200':
+                description: Estado del vale
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                data:
+                                    type: object
+                                    properties:
+                                        code:
+                                            type: string
+                                        status:
+                                            type: string
+                                            enum: [ISSUED, REDEEMED, EXPIRED, REVERSED]
+                                        issued_at:
+                                            type: string
+                                            format: date-time
+                                        expires_at:
+                                            type: string
+                                            format: date-time
+                                        redeemable:
+                                            type: boolean
+            '404':
+                description: Vale no encontrado
+            '401':
+                description: No autorizado
+            '403':
+                description: Permisos insuficientes

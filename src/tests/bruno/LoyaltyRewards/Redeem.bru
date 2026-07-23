@@ -1,0 +1,29 @@
+meta {
+  name: Redeem Reward (client)
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/loyalty-rewards/{{rewardId}}/redeem
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{customerAccessToken}}
+}
+
+body:json {
+  {
+    "cinema": {{cinemaId}}
+  }
+}
+
+tests {
+  test("canjea y devuelve saldo/orden", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().data).to.have.property("order_id");
+    expect(res.getBody().data).to.have.property("new_balance");
+  });
+}

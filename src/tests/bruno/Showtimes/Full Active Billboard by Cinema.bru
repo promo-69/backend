@@ -1,0 +1,19 @@
+meta {
+  name: Full Active Billboard by Cinema
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/showtimes/billboard/full?cinemaId={{cinemaId}}
+  body: none
+  auth: none
+}
+
+vars:pre-request {
+  cinemaId: 1
+}
+
+docs {
+  Devuelve películas y eventos especiales con lifecycle_state = 2, 3 o 4 que tienen funciones futuras en la sucursal especificada.
+}

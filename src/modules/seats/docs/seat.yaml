@@ -1,7 +1,7 @@
 /seats/{id}:
     get:
         summary: Get Seat by ID
-        description: Retrieve a single seat with its associated room, category and condition.
+        description: Retrieve a single seat with its associated room, category and condition. Permisos necesarios: 'CRUD:READ:SEATS'
         tags:
             - Seats
         security:
@@ -49,7 +49,7 @@
                 description: Internal server error
     patch:
         summary: Update Seat
-        description: Update the condition or category of a seat. Cannot modify a seat that has future sold tickets.
+        description: Update the condition or category of a seat. Cannot modify a seat that has future sold tickets. Permisos necesarios: 'CRUD:UPDATE:SEATS'
         tags:
             - Seats
         security:
@@ -88,7 +88,7 @@
                 description: Internal server error
     delete:
         summary: Delete Seat
-        description: Soft-delete a seat. Cannot delete a seat that has future sold tickets.
+        description: Soft-delete a seat. Cannot delete a seat that has future sold tickets. Permisos necesarios: 'CRUD:DELETE:SEATS'
         tags:
             - Seats
         security:
@@ -118,7 +118,7 @@
             Soft-delete all seats belonging to a room in a single atomic operation.
             If any seat has future sold tickets, the entire operation is rejected and
             the response includes the IDs of the conflicting seats.
-            Required permission: **CRUD:DELETE:SEATS**
+            Permisos necesarios: "CRUD:DELETE:SEATS"
         tags:
             - Seats
         security:

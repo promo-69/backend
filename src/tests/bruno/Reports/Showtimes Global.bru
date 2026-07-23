@@ -1,0 +1,25 @@
+meta {
+  name: Showtimes Global
+  type: http
+  seq: 23
+}
+
+get {
+  url: {{baseUrl}}/reports/showtimes?from={{fromDate}}&to={{toDate}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  from: {{fromDate}}
+  to: {{toDate}}
+}
+
+docs {
+  Reporte de funciones de todas las sucursales.
+  Permiso: CRUD:READ:REPORTS-SHOWTIMES
+}

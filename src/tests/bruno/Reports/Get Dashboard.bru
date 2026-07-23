@@ -1,0 +1,25 @@
+meta {
+  name: Get Dashboard
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/reports/dashboard
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  from: {{fromDate}}
+  to: {{toDate}}
+}
+
+docs {
+  Dashboard consolidado para el cine del empleado autenticado.
+  Permiso: CRUD:READ:REPORTS-DASHBOARD
+}

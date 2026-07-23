@@ -1,0 +1,26 @@
+meta {
+  name: Create Reward (Product)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/loyalty-rewards
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "name": "Cotufas medianas gratis",
+    "pointsCost": 500,
+    "requiredLoyaltyLevel": 1,
+    "rewardType": "PRODUCT",
+    "product": {{productId}},
+    "cinema": {{cinemaId}}
+  }
+}

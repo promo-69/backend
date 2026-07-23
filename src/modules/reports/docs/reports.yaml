@@ -3,7 +3,7 @@
         summary: Export any report
         description: |
             Export a report in JSON, CSV, XLSX, or PDF format.
-            Required permission: **CRUD:READ:REPORTS-EXPORT**
+            Permisos necesarios: "CRUD:READ:REPORTS-EXPORT"
         tags:
             - Reports Export
         security:

@@ -1,0 +1,25 @@
+meta {
+  name: Inventory Global
+  type: http
+  seq: 21
+}
+
+get {
+  url: {{baseUrl}}/reports/inventory?from={{fromDate}}&to={{toDate}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  from: {{fromDate}}
+  to: {{toDate}}
+}
+
+docs {
+  Reporte de inventario de todas las sucursales.
+  Permiso: CRUD:READ:REPORTS-INVENTORY
+}

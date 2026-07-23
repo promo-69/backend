@@ -3,6 +3,7 @@ import { NotFoundError, ValidationError, ConflictError } from '@errors';
 import { QueueProvider } from '@providers/queue.provider.js';
 import { Transaction } from 'sequelize';
 import { Logger } from '@utils/logger.util.js';
+import { emailService } from '@services/email.service.js';
 
 export const RENTAL_STATUS = {
 	PENDING_REVIEW: 1,
@@ -52,6 +53,9 @@ export class RentalManagementService {
 		return {
 			id: raw.id,
 			event_name: raw.event_name,
+			event_type: raw._EventTypes
+				? { id: raw._EventTypes.id, description: raw._EventTypes.description }
+				: { id: raw.event_type },
 			contact_name: contact?.name ?? null,
 			requested_start_time: raw.requested_start_time,
 			cinema_name: cinema?.name ?? null,
@@ -113,7 +117,11 @@ export class RentalManagementService {
 		return {
 			id: raw.id,
 			event_name: raw.event_name,
+			event_type: raw._EventTypes
+				? { id: raw._EventTypes.id, description: raw._EventTypes.description }
+				: { id: raw.event_type },
 			requested_start_time: raw.requested_start_time,
+			requested_end_time: raw.requested_end_time ?? null,
 			status: raw._Statuses
 				? { id: raw._Statuses.id, description: raw._Statuses.description }
 				: { id: raw.status },
@@ -192,6 +200,7 @@ export class RentalManagementService {
 				attributes: ['id', 'event_name', 'requested_start_time', 'status', 'price'],
 				relations: [
 					{ association: '_Statuses', attributes: ['id', 'description'] },
+					{ association: '_EventTypes', attributes: ['id', 'description'] },
 					{
 						association: '_Customers',
 						attributes: ['id', 'person'],
@@ -302,6 +311,36 @@ export class RentalManagementService {
 
 		const created = await this._rentalRequests.transaction(async (transaction: Transaction) => {
 			let customerId = existingCustomerId;
+
+			if (customerId && contact_name?.trim()) {
+				const existingCustomer = await this._customers.getById(customerId, {
+					attributes: ['id', 'person'],
+					transaction,
+					lock: transaction.LOCK.UPDATE,
+				});
+				if (existingCustomer && existingCustomer.person == null) {
+					let person = document_number?.trim()
+						? await this._people.getOne(
+								{ document_number: document_number.trim() },
+								{ transaction, lock: transaction.LOCK.UPDATE },
+							)
+						: null;
+					if (!person) {
+						const parts = contact_name.trim().split(' ');
+						person = await this._people.create(
+							{
+								document_number: document_number?.trim() ?? null,
+								first_name: parts[0] ?? contact_name.trim(),
+								last_name: parts.slice(1).join(' ') || parts[0],
+								personal_email: contact_email?.trim() ?? null,
+								phone_number: contact_phone?.trim() ?? null,
+							},
+							{ transaction },
+						);
+					}
+					await this._customers.update(existingCustomer.id, { person: person.id }, { transaction });
+				}
+			}
 
 			if (!customerId) {
 				let person = await this._people.getOne(
@@ -465,6 +504,148 @@ export class RentalManagementService {
 
 	// ── Confirmación de pago ──────────────────────────────────────────────────
 
+	/**
+	 * Búsqueda para TAQUILLA: solicitudes en estado "Pendiente de Pago" (ya
+	 * aprobadas por el backoffice) que el cajero puede cobrar. Filtrable por
+	 * texto libre `q` que cruza cédula, nombre/apellido, correo o nº de
+	 * referencia de pago previamente registrado.
+	 *
+	 * @param cinemaId  Si el cajero tiene cine asignado, restringe a su sucursal.
+	 *                  undefined (superadmin) = todas las sucursales.
+	 */
+	async findPayableForPOS(q: string | undefined, cinemaId: number | undefined, filters?: any) {
+		const where: any = { status: RENTAL_STATUS.PENDING_PAYMENT };
+		if (cinemaId !== undefined) where.cinema = cinemaId;
+
+		const term = (q ?? '').trim();
+		// El término puede casar por referencia de pago (guardada en options),
+		// por lo que armamos condiciones OR sobre la solicitud y sus relaciones.
+		const peopleWhere = term
+			? {
+					[Ops.or]: [
+						{ document_number: { [Ops.contains]: term } },
+						{ first_name: { [Ops.contains]: term } },
+						{ last_name: { [Ops.contains]: term } },
+						{ personal_email: { [Ops.contains]: term } },
+					],
+				}
+			: undefined;
+
+		const result = await this._rentalRequests.getAll(
+			{
+				count: true,
+				attributes: ['id', 'event_name', 'requested_start_time', 'requested_end_time', 'status', 'price', 'currency', 'payment_reference'],
+				relations: [
+					{ association: '_Statuses', attributes: ['id', 'description'] },
+					{ association: '_EventTypes', attributes: ['id', 'description'] },
+					{
+						association: '_Customers',
+						attributes: ['id', 'person'],
+						include: [
+							{
+								association: '_People',
+								attributes: ['document_number', 'first_name', 'last_name', 'personal_email', 'phone_number'],
+								// Si hay término de búsqueda, exigimos que la persona
+								// case (required:true actúa como INNER JOIN filtrante).
+								...(peopleWhere ? { where: peopleWhere, required: true } : {}),
+							},
+						],
+					},
+					{
+						association: '_Rooms',
+						attributes: ['id', 'name'],
+						include: [{ association: '_Cinemas', attributes: ['id', 'name'] }],
+					},
+					{ association: '_Cinemas', attributes: ['id', 'name'] },
+				],
+				...(filters || {}),
+			},
+			where,
+		);
+
+		let list = Array.isArray(result) ? result : result.rows;
+
+		// Con término de búsqueda, el INNER JOIN sobre _People ya restringió por
+		// datos personales. Añadimos las solicitudes cuya referencia de pago case
+		// (columna payment_reference), que el JOIN filtrante habría excluido.
+		if (term) {
+			const t = term.toLowerCase();
+			list = list.filter((r: any) => {
+				const p = r._Customers?._People;
+				const personMatched =
+					p &&
+					[p.document_number, p.first_name, p.last_name, p.personal_email]
+						.filter(Boolean)
+						.some((v: string) => String(v).toLowerCase().includes(t));
+				const refMatched = String(r.payment_reference ?? '').toLowerCase().includes(t);
+				return personMatched || refMatched;
+			});
+		}
+
+		const count = Array.isArray(result) ? list.length : result.count;
+		return { count, rows: list.map((r: any) => this._formatPayable(r)) };
+	}
+
+	private _formatPayable(raw: any) {
+		const base = this._formatAdminList(raw);
+		const people = raw._Customers?._People;
+		return {
+			...base,
+			customer_document: people?.document_number ?? null,
+			customer_phone: people?.phone_number ?? null,
+			currency: raw.currency ?? null,
+			payment_reference: raw.payment_reference ?? null,
+		};
+	}
+
+	/**
+	 * Registra el pago de una solicitud de alquiler desde TAQUILLA y la marca
+	 * como pagada. Guarda el rastro del pago (método, referencia, cajero) en
+	 * `options.payment` sin requerir migración de esquema.
+	 */
+	async registerPOSPayment(
+		id: number,
+		payment: { payment_method?: number; reference?: string; amount?: number },
+		employeeId: number | undefined,
+		cinemaId: number | undefined,
+	) {
+		await this._rentalRequests.transaction(async (transaction: Transaction) => {
+			const request = await this._rentalRequests.getById(id, {
+				transaction,
+				lock: transaction.LOCK.UPDATE,
+			});
+			if (!request) throw new NotFoundError('Solicitud de alquiler no encontrada');
+
+			if (cinemaId !== undefined && request.cinema !== cinemaId) {
+				throw new NotFoundError('Solicitud de alquiler no encontrada en este cine');
+			}
+
+			if (request.status !== RENTAL_STATUS.PENDING_PAYMENT) {
+				throw new ValidationError(
+					request.status === RENTAL_STATUS.PAID
+						? 'La solicitud ya fue pagada'
+						: request.status === RENTAL_STATUS.CANCELLED
+							? 'La solicitud fue cancelada (la proforma expiró o fue cancelada manualmente)'
+							: 'La solicitud no está en estado "Pendiente de Pago"',
+				);
+			}
+
+			await this._rentalRequests.update(
+				id,
+				{
+					status: RENTAL_STATUS.PAID,
+					payment_method: payment.payment_method ?? null,
+					payment_reference: payment.reference?.trim() ?? null,
+					paid_by_employee: employeeId ?? null,
+					paid_at: new Date(),
+				},
+				{ transaction },
+			);
+		});
+
+		return { id, status: RENTAL_STATUS.PAID };
+	}
+
 	async confirmPayment(id: number, verifiedCustomerId?: number, cinemaId?: number) {
 		await this._rentalRequests.transaction(async (transaction: Transaction) => {
 			const request = await this._rentalRequests.getById(id, {
@@ -535,8 +716,6 @@ export class RentalManagementService {
 			const roomName = room?.name ?? 'Sala no especificada';
 			const cinemaName = room?._Cinemas?.name ?? 'Cine no especificado';
 
-			const { emailService } = await import('@services/email.service.js');
-
 			await emailService.sendRentalApproval(email, request.event_name, roomName, cinemaName, price, request.id);
 		} catch (err) {
 			const error = err instanceof Error ? err : new Error(String(err));
@@ -552,8 +731,6 @@ export class RentalManagementService {
 
 			const email = customer?._People?.personal_email;
 			if (!email) return;
-
-			const { emailService } = await import('@services/email.service.js');
 
 			await emailService.sendRentalRejection(email, request.event_name, request.id);
 		} catch (err) {

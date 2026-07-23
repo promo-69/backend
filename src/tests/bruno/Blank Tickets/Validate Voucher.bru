@@ -1,0 +1,27 @@
+meta {
+  name: Validate Blank Ticket Voucher
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/blank-tickets/{{blankCode}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+vars:pre-request {
+  blankCode: SQNA5ZD7QV
+}
+
+docs {
+  Valida un vale de boleto en blanco en taquilla (Fase B).
+  Devuelve el estado (ISSUED, REDEEMED, EXPIRED, REVERSED) y si es redeemable.
+  Requiere token de empleado con permisos de taquilla.
+
+  Permiso: CRUD:READ:INVOICES
+}

@@ -1,0 +1,19 @@
+meta {
+  name: Remove My Movie Genres (Bulk)
+  type: http
+  seq: 6
+}
+
+delete {
+  url: {{baseUrl}}/users/me/movie-genres
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  [1, 2, 3]
+}

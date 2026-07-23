@@ -1,0 +1,26 @@
+meta {
+  name: Download PDF (inline)
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/invoices/{{invoice_id}}/pdf?disposition=inline
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+vars:pre-request {
+  invoice_id: 1
+}
+
+docs {
+  Descarga el PDF de la factura con disposición inline.
+  El navegador mostrará el PDF para vista previa e impresión.
+
+  Permiso: CRUD:READ:INVOICES
+}

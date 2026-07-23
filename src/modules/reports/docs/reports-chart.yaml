@@ -1,0 +1,100 @@
+/reports/{reportType}/chart:
+    get:
+        summary: Obtener datos para gráfico
+        description: |
+            Permisos necesarios: 'CRUD:READ:REPORTS-CHARTS'
+            Devuelve datos normalizados para Recharts/Chart.js.
+            Tipos: sales, movies, events, inventory, showtimes, rentals.
+            - Empleado: cinemaId del JWT.
+            - Superadmin: ?cinemaId opcional.
+        tags:
+            - Reports Charts
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: path
+              name: reportType
+              required: true
+              schema:
+                  type: string
+                  enum: [sales, movies, events, inventory, showtimes, rentals]
+            - in: query
+              name: from
+              schema:
+                  type: string
+                  format: date
+            - in: query
+              name: to
+              schema:
+                  type: string
+                  format: date
+            - in: query
+              name: groupBy
+              schema:
+                  type: string
+                  enum: [day, week, month]
+                  default: day
+              description: Solo para sales
+            - in: query
+              name: channel
+              schema:
+                  type: string
+                  enum: [all, taquilla, web, app]
+              description: Solo para sales
+            - in: query
+              name: cinemaId
+              schema:
+                  type: integer
+              description: ID de sucursal (opcional, solo superadmin)
+        responses:
+            '200':
+                description: Datos de gráfico generados
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                success:
+                                    type: boolean
+                                message:
+                                    type: string
+                                data:
+                                    type: object
+                                    properties:
+                                        type:
+                                            type: string
+                                            enum: [line, bar, pie, area]
+                                        period:
+                                            type: object
+                                            properties:
+                                                from:
+                                                    type: string
+                                                    format: date
+                                                to:
+                                                    type: string
+                                                    format: date
+                                        groupBy:
+                                            type: string
+                                            enum: [day, week, month]
+                                        datasets:
+                                            type: array
+                                            items:
+                                                type: object
+                                                properties:
+                                                    label:
+                                                        type: string
+                                                    key:
+                                                        type: string
+                                                    data:
+                                                        type: array
+                                                        items:
+                                                            type: object
+                                                            properties:
+                                                                label:
+                                                                    type: string
+                                                                value:
+                                                                    type: number
+            '401':
+                description: No autorizado
+            '403':
+                description: Permisos insuficientes

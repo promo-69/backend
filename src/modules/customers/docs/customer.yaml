@@ -2,6 +2,7 @@
     get:
         summary: Get Customer By ID
         description: |
+            Permisos necesarios: 'CRUD:READ:CUSTOMERS'
             Retrieves a customer's full profile including biographical data and
             loyalty summary. Response shape matches _formatCustomerResponse.
         tags:
@@ -80,6 +81,7 @@
     patch:
         summary: Update Customer Biographical Data
         description: |
+            Permisos necesarios: 'CRUD:UPDATE:CUSTOMERS'
             Corrects the customer's biographical information stored in the
             people table (name, phone, email, birth date, gender).
         tags:

@@ -3,6 +3,8 @@ import { Database } from '@database/index.js';
 import { RealtimeProvider } from '@providers/realtime.provider.js';
 import { Logger } from '@utils/logger.util.js';
 import { Transaction } from 'sequelize';
+import { MathUtil } from '@utils/math.util.js';
+import { PAYMENT_METHOD, LOYALTY_OPERATION } from '@constants/magic-vars.constant.js';
 
 export class ShoppingSessionService {
 	private get _redis() {
@@ -17,6 +19,14 @@ export class ShoppingSessionService {
 		return Database.repository('main', 'tickets') as any;
 	}
 
+	private get _orderPayments() {
+		return Database.repository('main', 'order-payments') as any;
+	}
+
+	private get _loyaltyLedgers() {
+		return Database.repository('main', 'loyalty-ledgers') as any;
+	}
+
 	async getActiveQuote(userId: number) {
 		const userQueueKey = `queue:usr:${userId}`;
 		const quoteRaw = await this._redis.get(userQueueKey);
@@ -27,7 +37,7 @@ export class ShoppingSessionService {
 	async clearSessionAndLocks(session: any) {
 		const userQueueKey = `queue:usr:${session.userId}`;
 		const quoteRaw = await this._redis.get(userQueueKey);
-		
+
 		await this._redis.del(userQueueKey);
 
 		let customerId = session.customerId ? Number(session.customerId) : null;
@@ -64,6 +74,41 @@ export class ShoppingSessionService {
 			if (!order || order.order_status !== 1) return; // Ya fue pagada o procesada, abortar limpieza
 
 			await this._orders.update({ id: orderId }, { order_status: 3 }, { transaction }); // Cancelado
+
+			// Reembolso de cinepuntos pagados parcialmente si los hubo
+			const payments = await this._orderPayments.getAll(
+				{ count: false, operation: { transaction }, relations: [{ association: '_ExchangeRates' }] },
+				{ order: orderId, is_approved: true }
+			);
+
+			for (const p of payments) {
+				if (p.payment_method === PAYMENT_METHOD.LOYALTY_POINTS) {
+					const ledgers = await this._loyaltyLedgers.getAll(
+						{
+							count: false,
+							order: [['id', 'DESC']],
+							limit: 1,
+							operation: { transaction, lock: transaction.LOCK.UPDATE },
+						},
+						{ customer: order.customer },
+					);
+					const currentBalance = ledgers.length > 0 ? Number(ledgers[0].points_balance) : 0;
+					
+					const rate = p._ExchangeRates ? Number(p._ExchangeRates.rate) : 1;
+					const refundedPoints = MathUtil.roundMoney(Number(p.amount) / rate);
+
+					await this._loyaltyLedgers.create(
+						{
+							operation_type: LOYALTY_OPERATION.EARN, // Reintegro
+							customer: order.customer,
+							points: refundedPoints,
+							points_balance: MathUtil.roundMoney(currentBalance + refundedPoints),
+							description: `Reintegro por pago parcial en orden ${orderId} anulada`,
+						},
+						{ transaction },
+					);
+				}
+			}
 
 			// Requerimos los tickets para liberar los asientos masivamente
 			const tickets = await this._tickets.getAll(

@@ -1,0 +1,21 @@
+meta {
+  name: Get Upcoming Movies
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/movies/upcoming
+  body: none
+  auth: none
+}
+
+params:query {
+  page: 1
+  limit: 10
+}
+
+docs {
+  Retorna películas con lifecycle_state = 1 (Próximamente).
+  Soporta paginación: page, limit.
+}

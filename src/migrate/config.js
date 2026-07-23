@@ -54,6 +54,8 @@ module.exports = {
 	port: process.env[`${prefix}_PORT`],
 	dialect: 'postgres',
 	logging: true,
+	seederStorage: "sequelize",
+  	seederStorageTableName: "SequelizeData",
 	...(process.env[`${prefix}_SSL`] === 'true'
 		? {
 				dialectOptions: {

@@ -1,0 +1,36 @@
+meta {
+  name: Payment - Loyalty Points
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/orders/payments
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "payment_method": 5,
+    "amount": {{pointsToSpend}},
+    "currency": 1
+  }
+}
+
+vars:pre-request {
+  pointsToSpend: 500
+}
+
+script:post-response {
+  if (res.status === 200 || res.status === 202) {
+    const data = res.getBody();
+    // NOTA: El endpoint ahora es asíncrono.
+    // El qr_code no se devuelve en la respuesta HTTP.
+    // Debes escuchar el evento 'payment_completed' vía WebSockets.
+  }
+}

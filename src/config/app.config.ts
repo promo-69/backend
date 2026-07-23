@@ -36,6 +36,7 @@ export interface IAppConfig {
 		jwtCookieRefreshName: string;
 		authTransport: string;
 		bcryptRounds: number;
+		posApiKey: string;
 	};
 	limits: {
 		requestSize: string;
@@ -67,6 +68,18 @@ export interface IAppConfig {
 		publicKey: string;
 		privateKey: string;
 		urlEndpoint: string;
+	};
+	llm: {
+		provider: string;
+		apiKey: string;
+		model: string;
+		baseUrl: string;
+	};
+	movieLifecycle: {
+		syncCron: string;
+		lastDaysWeekday: number;
+		lastDaysHour: number;
+		timezone: string;
 	};
 	clientWebAppUrl: string;
 }
@@ -105,7 +118,7 @@ export class AppConfig {
 				origin: process.env.CORS_ORIGIN?.split(',')
 					.map((r: string) => String(r).trim())
 					.filter((r: string) => r !== ''),
-				allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Client-Channel'],
+				allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Client-Channel', 'X-Device-ID'],
 			},
 			enableCors: process.env.ENABLE_CORS === 'true',
 			enableHelmet: process.env.ENABLE_HELMET === 'true',
@@ -127,6 +140,7 @@ export class AppConfig {
 				jwtCookieRefreshName: process.env.JWT_COOKIE_REFRESH_NAME || 'RT',
 				authTransport: process.env.AUTH_TRANSPORT || 'bearer',
 				bcryptRounds: parseInt(process.env.BCRYPT_ROUNDS || '10', 10),
+				posApiKey: process.env.POS_API_KEY || 'default-pos-secret-key',
 			},
 			limits: {
 				requestSize: process.env.REQUEST_SIZE_LIMIT || '10mb',
@@ -161,6 +175,27 @@ export class AppConfig {
 				publicKey: process.env.IMAGECLOUD_PUBLIC_KEY || '',
 				privateKey: process.env.IMAGECLOUD_PRIVATE_KEY || '',
 				urlEndpoint: process.env.IMAGECLOUD_URL_ENDPOINT || '',
+			},
+			llm: {
+				provider: process.env.LLM_PROVIDER || 'openai',
+				apiKey:
+					(process.env.LLM_PROVIDER || 'openai').toLowerCase() === 'google'
+						? process.env.GOOGLE_API_KEY || ''
+						: process.env.OPENAI_API_KEY || '',
+				model:
+					(process.env.LLM_PROVIDER || 'openai').toLowerCase() === 'google'
+						? process.env.GOOGLE_AI_MODEL || 'gemini-2.5-flash'
+						: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+				baseUrl:
+					(process.env.LLM_PROVIDER || 'openai').toLowerCase() === 'google'
+						? process.env.GOOGLE_AI_API_BASE_URL || 'https://generativelanguage.googleapis.com/v1beta2'
+						: process.env.OPENAI_API_BASE_URL || 'https://api.openai.com',
+			},
+			movieLifecycle: {
+				syncCron: process.env.MOVIE_LIFECYCLE_SYNC_CRON || '0 * * * *',
+				lastDaysWeekday: parseInt(process.env.MOVIE_LIFECYCLE_LAST_DAYS_WEEKDAY || '5', 10),
+				lastDaysHour: parseInt(process.env.MOVIE_LIFECYCLE_LAST_DAYS_HOUR || '17', 10),
+				timezone: process.env.MOVIE_LIFECYCLE_TIMEZONE || 'America/Caracas',
 			},
 			clientWebAppUrl: process.env.CLIENT_WEB_APP_URL || '',
 			isDocker: !!process.env.RUNNING_IN_DOCKER,

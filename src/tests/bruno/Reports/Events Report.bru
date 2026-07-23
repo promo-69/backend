@@ -1,0 +1,25 @@
+meta {
+  name: Events Report
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{baseUrl}}/reports/events
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  from: {{fromDate}}
+  to: {{toDate}}
+}
+
+docs {
+  Reporte de eventos especiales.
+  Permiso: CRUD:READ:REPORTS-EVENTS
+}

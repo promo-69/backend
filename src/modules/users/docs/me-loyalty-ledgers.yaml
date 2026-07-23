@@ -1,21 +1,21 @@
 /users/me/loyalty/ledgers:
     get:
         tags:
-        - Users (Self-Service)
+            - Users (Self-Service)
         summary: Get my loyalty ledgers
         description: Paginated list of loyalty ledger entries for the authenticated user.
         security:
-        -   cookieAuth: []
-        -   bearerAuth: []
+            - cookieAuth: []
+            - bearerAuth: []
         parameters:
-        -   in: query
-            name: page
-            schema:
-                type: integer
-        -   in: query
-            name: limit
-            schema:
-                type: integer
+            - in: query
+              name: page
+              schema:
+                  type: integer
+            - in: query
+              name: limit
+              schema:
+                  type: integer
         responses:
             '200':
                 description: Loyalty ledgers retrieved successfully.
@@ -34,6 +34,42 @@
                                     type: array
                                     items:
                                         type: object
+                                        properties:
+                                            id:
+                                                type: integer
+                                            operation_type:
+                                                type: integer
+                                            points:
+                                                type: integer
+                                                description: Positivo si fue una ganancia, negativo si fue un canje
+                                            points_balance:
+                                                type: integer
+                                                description: Saldo del cliente inmediatamente después del movimiento
+                                            remarks:
+                                                type: string
+                                                nullable: true
+                                            order:
+                                                type: integer
+                                                nullable: true
+                                            created_at:
+                                                type: string
+                                                format: date-time
+                                            _OperationTypes:
+                                                type: object
+                                                nullable: true
+                                                properties:
+                                                    id:
+                                                        type: integer
+                                                    description:
+                                                        type: string
+                                                    is_increment:
+                                                        type: boolean
+                                            _Orders:
+                                                type: object
+                                                nullable: true
+                                                properties:
+                                                    id:
+                                                        type: integer
                                 metadata:
                                     type: object
                                     properties:

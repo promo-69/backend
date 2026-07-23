@@ -1,0 +1,23 @@
+meta {
+  name: Assistant Chat
+  type: http
+  seq: …
+}
+
+post {
+  url: {{baseUrl}}/assistant/chat
+  body: json
+  auth: none
+}
+
+script:pre-request {
+  const baseUrl = bru.getEnvVar('baseUrl') || 'https://backend-jog6.onrender.com/api/v1/test';
+  bru.setVar('baseUrl', baseUrl);
+}
+
+body:json {
+  {
+    "message": "Recomiéndame películas de acción para este fin de semana",
+    "cinemaId": 1
+  }
+}

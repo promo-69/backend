@@ -1,0 +1,25 @@
+meta {
+  name: Inventory Chart Global
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/reports/inventory/chart?from={{fromDate}}&to={{toDate}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  from: {{fromDate}}
+  to: {{toDate}}
+}
+
+docs {
+  Datos normalizados para gráfico de inventario (todas las sedes).
+  Permiso: CRUD:READ:REPORTS-CHARTS
+}

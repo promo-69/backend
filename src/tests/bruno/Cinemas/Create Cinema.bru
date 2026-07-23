@@ -6,7 +6,7 @@ meta {
 
 post {
   url: {{baseUrl}}/cinemas
-  body: json
+  body: multipartForm
   auth: bearer
 }
 
@@ -14,14 +14,13 @@ auth:bearer {
   token: {{accessToken}}
 }
 
-body:json {
-  {
-    "name": "Test Cinema Bruno",
-    "address": "123 Test Ave",
-    "phone": "+1234567890",
-    "openingTime": "09:00",
-    "closingTime": "23:00"
-  }
+body:multipart-form {
+  name: Test Cinema Bruno
+  address: 123 Test Ave
+  phone: +1234567890
+  openingTime: 09:00
+  closingTime: 23:00
+  ~image: @file(/path/to/image.jpg)
 }
 
 script:pre-request {

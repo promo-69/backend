@@ -1,0 +1,42 @@
+meta {
+  name: Pay with Blank Ticket (convert voucher)
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/orders/payments
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "payment_method": 6,
+    "code": "{{blankCode}}",
+    "amount": 1,
+    "currency": 1
+  }
+}
+
+vars:pre-request {
+  blankCode: SQNA5ZD7QV
+}
+
+docs {
+  Paga una orden de ticket usando un boleto en blanco (Fase B).
+  El vale cubre el total de la orden. Marca el vale como REDEEMED y emite el ticket real.
+
+  Requisitos previos:
+  1. Haber creado una cotización (POST /orders/quote)
+  2. Haber hecho checkout (POST /orders/checkout) con los tickets seleccionados
+  3. El asiento debe estar bloqueado por el usuario en Redis
+
+  El vale debe estar en estado ISSUED y no vencido.
+
+  Permiso: CRUD:UPDATE:ORDERS
+}

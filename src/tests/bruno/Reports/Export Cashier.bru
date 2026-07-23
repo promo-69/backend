@@ -1,0 +1,27 @@
+meta {
+  name: Export Cashier
+  type: http
+  seq: 19
+}
+
+get {
+  url: {{baseUrl}}/reports/cashier/export
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+params:query {
+  format: json
+  from: {{fromDate}}
+  to: {{toDate}}
+}
+
+docs {
+  Exporta el reporte de caja del empleado.
+  format: json | csv | xlsx | pdf
+  Permiso: CRUD:READ:REPORTS-EXPORT
+}

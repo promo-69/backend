@@ -71,13 +71,17 @@ export class ComboManagementService {
 	}
 
 	async findAllCombos(filters?: any, userId?: number) {
+		const { cinemaId, ...restFilters } = filters || {};
 		const options: any = {
 			count: true,
-			...filters,
+			relations: [{ association: '_ComboProducts', attributes: ['id', 'combo', 'product', 'quantity'] }],
+			...restFilters,
 		};
-		if (filters?.cinemaId) options.where = { cinema: filters.cinemaId };
 
-		const rawCombos = await this._combos.getAll(options);
+		const where: any = {};
+		if (cinemaId) where.cinema = cinemaId;
+
+		const rawCombos = await this._combos.getAll(options, where);
 		let comboList = Array.isArray(rawCombos) ? rawCombos : rawCombos.rows || [];
 
 		let activeQuote = null;

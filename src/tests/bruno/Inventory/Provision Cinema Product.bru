@@ -1,0 +1,37 @@
+meta {
+  name: Provision Cinema Product
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/cinemas/{{cinemaId}}/inventory/products/{{productId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "minimumStock": 10
+  }
+}
+
+vars:pre-request {
+  cinemaId: 1
+  productId: 1
+}
+
+script:post-response {
+  const body = res.getBody();
+  if (res.getStatus() === 201 && body?.data?.id) {
+    bru.setEnvVar('inventoryId', body.data.id);
+  }
+}
+
+docs {
+  Habilita un producto en el inventario de una sucursal específica.
+}

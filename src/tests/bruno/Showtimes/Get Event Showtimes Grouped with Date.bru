@@ -1,0 +1,20 @@
+meta {
+  name: Get Event Showtimes Grouped by Cinema (with date)
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/showtimes/by-content/event/{{eventId}}?date={{date}}
+  body: none
+  auth: none
+}
+
+vars:pre-request {
+  eventId: 1
+  date: 2026-06-15
+}
+
+docs {
+  Filtra las funciones del evento especial para una fecha específica.
+}

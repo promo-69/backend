@@ -15,17 +15,18 @@ auth:bearer {
 }
 
 body:json {
-  {
-    "payment_method": 1,
-    "amount": {{orderTotalBase}},
-    "currency": 1,
-    "reference_number": "{{refNumber}}"
-  }
+  [
+    {
+      "payment_method": 5,
+      "amount": {{orderTotalBase}},
+      "currency": 1
+    }
+  ]
 }
 
 vars:pre-request {
-  refNumber: 1
-  orderTotalBase: 300
+  refNumber: 25898019776310567804
+  orderTotalBase: 100
 }
 
 script:pre-request {
@@ -33,10 +34,10 @@ script:pre-request {
 }
 
 script:post-response {
-  if (res.status === 200 || res.status === 201) {
+  if (res.status === 200 || res.status === 202) {
     const data = res.getBody();
-    if (data.data && data.data.qr_code) {
-      bru.setEnvVar("orderQrCode", data.data.qr_code);
-    }
+    // NOTA: El endpoint ahora es asíncrono.
+    // El qr_code no se devuelve en la respuesta HTTP.
+    // Debes escuchar el evento 'payment_completed' vía WebSockets.
   }
 }

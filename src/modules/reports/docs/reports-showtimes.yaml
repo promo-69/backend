@@ -1,9 +1,11 @@
 /reports/showtimes:
     get:
-        summary: Get showtimes report (employee)
+        summary: Reporte de funciones
         description: |
-            Retrieve occupancy and revenue per showtime for the employee's cinema.
-            Required permission: **CRUD:READ:REPORTS-SHOWTIMES**
+            Permisos necesarios: 'CRUD:READ:REPORTS-SHOWTIMES'
+            Ocupación e ingresos por función.
+            - Empleado: cinemaId del JWT.
+            - Superadmin: ?cinemaId opcional.
         tags:
             - Reports
         security:
@@ -14,16 +16,19 @@
               schema:
                   type: string
                   format: date
-              description: Start date (YYYY-MM-DD)
             - in: query
               name: to
               schema:
                   type: string
                   format: date
-              description: End date (YYYY-MM-DD)
+            - in: query
+              name: cinemaId
+              schema:
+                  type: integer
+              description: ID de sucursal (opcional, solo superadmin)
         responses:
             '200':
-                description: Showtimes report
+                description: Reporte generado
                 content:
                     application/json:
                         schema:
@@ -86,48 +91,6 @@
                                                     revenue:
                                                         type: number
             '401':
-                description: Unauthorized
+                description: No autorizado
             '403':
-                description: Insufficient permissions
-
-/reports/cinemas/{cinemaId}/showtimes:
-    get:
-        summary: Get showtimes report for a specific cinema (superadmin)
-        tags:
-            - Reports Admin
-        security:
-            - bearerAuth: []
-        parameters:
-            - in: path
-              name: cinemaId
-              required: true
-              schema:
-                  type: integer
-            - in: query
-              name: from
-              schema:
-                  type: string
-                  format: date
-            - in: query
-              name: to
-              schema:
-                  type: string
-                  format: date
-        responses:
-            '200':
-                description: Showtimes report for the specified cinema
-                content:
-                    application/json:
-                        schema:
-                            type: object
-                            properties:
-                                success:
-                                    type: boolean
-                                message:
-                                    type: string
-                                data:
-                                    type: object
-            '401':
-                description: Unauthorized
-            '403':
-                description: Insufficient permissions
+                description: Permisos insuficientes

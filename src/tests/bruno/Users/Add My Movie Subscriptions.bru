@@ -1,0 +1,21 @@
+meta {
+  name: Add My Movie Subscriptions
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/users/me/movie-subscriptions
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "movie": 1
+  }
+}

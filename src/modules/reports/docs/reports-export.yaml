@@ -1,0 +1,65 @@
+/reports/{reportType}/export:
+    get:
+        summary: Exportar cualquier reporte
+        description: |
+            Permisos necesarios: 'CRUD:READ:REPORTS-EXPORT'
+            Exporta un reporte en JSON, CSV, XLSX o PDF.
+            - Empleado: cinemaId del JWT.
+            - Superadmin: ?cinemaId opcional (global si se omite).
+            - Para exportar caja de empleado específico, enviar ?employeeId (solo superadmin).
+        tags:
+            - Reports Export
+        security:
+            - bearerAuth: []
+        parameters:
+            - in: path
+              name: reportType
+              required: true
+              schema:
+                  type: string
+                  enum: [sales, movies, events, inventory, cashier, showtimes, rentals]
+            - in: query
+              name: format
+              schema:
+                  type: string
+                  enum: [json, csv, xlsx, pdf]
+                  default: json
+            - in: query
+              name: from
+              schema:
+                  type: string
+                  format: date
+            - in: query
+              name: to
+              schema:
+                  type: string
+                  format: date
+            - in: query
+              name: channel
+              schema:
+                  type: string
+                  enum: [all, taquilla, web, app]
+            - in: query
+              name: cinemaId
+              schema:
+                  type: integer
+              description: ID de sucursal (opcional, solo superadmin)
+            - in: query
+              name: employeeId
+              schema:
+                  type: integer
+              description: ID de empleado (requerido para exportar caja de otro empleado, solo superadmin)
+        responses:
+            '200':
+                description: Archivo exportado
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                    text/csv: {}
+                    application/vnd.openxmlformats-officedocument.spreadsheetml.sheet: {}
+                    application/pdf: {}
+            '401':
+                description: No autorizado
+            '403':
+                description: Permisos insuficientes

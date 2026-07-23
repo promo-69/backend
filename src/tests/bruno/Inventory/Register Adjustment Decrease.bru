@@ -1,0 +1,35 @@
+meta {
+  name: Register Adjustment (Decrease)
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/inventory/{{inventoryId}}/movements
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  [
+    {
+      "operationType": {{opTypeOut}},
+      "quantity": 3,
+      "adjustmentDirection": "decrease",
+      "remarks": "Ajuste por merma"
+    }
+  ]
+}
+
+vars:pre-request {
+  inventoryId: 1
+  opTypeOut: 4
+}
+
+docs {
+  Ajuste manual que DECREMENTA el stock.
+}

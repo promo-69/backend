@@ -1,0 +1,76 @@
+/loyalty-rewards/available:
+    get:
+        summary: Available rewards catalog (client)
+        description: >
+            Catálogo de premios activos y vigentes de una sucursal, agrupado por nivel, con
+            banderas 'unlocked' (nivel alcanzado), 'affordable' (saldo suficiente) y 'claimable'.
+            Requiere sesión y el parámetro 'cinema'.
+        tags:
+            - Loyalty Rewards
+        security:
+            - bearerAuth: []
+        parameters:
+            - name: cinema
+              in: query
+              required: true
+              schema:
+                  type: integer
+        responses:
+            '200':
+                description: Catálogo obtenido correctamente
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                data:
+                                    type: object
+                                    properties:
+                                        customer:
+                                            type: object
+                                            properties:
+                                                loyalty_level:
+                                                    type: integer
+                                                points_balance:
+                                                    type: integer
+                                        cinema:
+                                            type: integer
+                                        sections:
+                                            type: array
+                                            items:
+                                                type: object
+                                                properties:
+                                                    level:
+                                                        type: object
+                                                        properties:
+                                                            id:
+                                                                type: integer
+                                                            name:
+                                                                type: string
+                                                            required_points:
+                                                                type: integer
+                                                    unlocked:
+                                                        type: boolean
+                                                    rewards:
+                                                        type: array
+                                                        items:
+                                                            type: object
+                                                            properties:
+                                                                id:
+                                                                    type: integer
+                                                                name:
+                                                                    type: string
+                                                                points_cost:
+                                                                    type: integer
+                                                                reward_type:
+                                                                    type: string
+                                                                quantity:
+                                                                    type: integer
+                                                                unlocked:
+                                                                    type: boolean
+                                                                affordable:
+                                                                    type: boolean
+                                                                claimable:
+                                                                    type: boolean
+            '400':
+                description: Falta la sucursal (cinema)

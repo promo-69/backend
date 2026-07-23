@@ -4,7 +4,7 @@
         description: |
             Returns all employees with an active position in the specified cinema.
             Explicit context for general management.
-            Required permission: **CRUD:READ:CINEMAS-EMPLOYEES**
+            Permisos necesarios: "CRUD:READ:CINEMAS-EMPLOYEES"
         tags:
             - Cinemas
         security:
@@ -27,7 +27,7 @@
         description: |
             Creates a new employee and assigns them directly to the specified cinema.
             Explicit context for general management.
-            Required permission: **CRUD:CREATE:EMPLOYEES**
+            Permisos necesarios: "CRUD:CREATE:EMPLOYEES"
         tags:
             - Cinemas
         security:
@@ -93,7 +93,7 @@
         summary: Remove Employee from Cinema
         description: |
             Soft‑deletes an employee and closes their active position in the specified cinema.
-            Required permission: **CRUD:DELETE:EMPLOYEES**
+            Permisos necesarios: "CRUD:DELETE:EMPLOYEES"
         tags:
             - Cinemas
         security:

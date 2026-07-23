@@ -208,7 +208,7 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
 		return { [field]: condition };
 	}
 
-	private processSimpleOperatorValue(symbol: Symbol, value: any): any {
+	private processSimpleOperatorValue(symbol: symbol, value: any): any {
 		if (symbol === WhereOperators.contains && typeof value === 'string') {
 			return `%${value}%`;
 		}
@@ -227,8 +227,8 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
 		return value;
 	}
 
-	private mapSymbolToSequelizeOperator(symbol: Symbol): any {
-		const symbolMap = new Map<Symbol, any>([
+	private mapSymbolToSequelizeOperator(symbol: symbol): any {
+		const symbolMap = new Map<symbol, any>([
 			[WhereOperators.eq, Op.eq],
 			[WhereOperators.ne, Op.ne],
 			[WhereOperators.gt, Op.gt],
@@ -243,6 +243,7 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
 			[WhereOperators.between, Op.between],
 			[WhereOperators.isNull, Op.is],
 			[WhereOperators.isNotNull, Op.not],
+			[WhereOperators.iRegexp, Op.iRegexp],
 		]);
 
 		return symbolMap.get(symbol);
@@ -307,9 +308,10 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
 						const filter: Record<string, unknown> = {};
 						ignoreFields.forEach((field) => {
 							const fieldValue = (item as Record<string, unknown>)[field as string];
-							if (fieldValue == null) {
-								throw new Error(`Field '${String(field)}' is required for duplicate check`);
-							}
+							if (fieldValue == null)
+								throw new Error(
+									`Campo '${String(field)}' es requerido para la verificación de duplicado`,
+								);
 							filter[field as string] = fieldValue;
 						});
 						return filter;
@@ -319,6 +321,7 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
 						where: { [Op.or]: filters },
 						attributes: ignoreFields as string[],
 						transaction: options.transaction,
+						raw: true,
 					});
 
 					const fingerprints = new Set(
@@ -329,12 +332,12 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
 						const itemFingerprint = ignoreFields
 							.map((f) => (item as Record<string, unknown>)[f as string])
 							.join('|');
-						return !fingerprints.has(itemFingerprint);
+						if (fingerprints.has(itemFingerprint)) return false;
+						fingerprints.add(itemFingerprint);
+						return true;
 					});
 
-					if (!toInsert.length) {
-						return [];
-					}
+					if (!toInsert.length) return [];
 
 					data = toInsert;
 				}
@@ -345,13 +348,8 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
 					returning: true,
 				};
 
-				if (ignoreDuplicates) {
-					bulkOptions.ignoreDuplicates = true;
-				}
-
-				if (updateOnDuplicate) {
-					bulkOptions.updateOnDuplicate = updateOnDuplicate;
-				}
+				if (ignoreDuplicates && ignoreFields.length === 0) bulkOptions.ignoreDuplicates = true;
+				if (updateOnDuplicate) bulkOptions.updateOnDuplicate = updateOnDuplicate;
 
 				const created = await this._model.bulkCreate(data as any[], bulkOptions);
 
@@ -385,14 +383,16 @@ export class SequelizeRepositoryBase<T = any, ID extends Identifier = string> ex
 					..._options,
 				};
 
-				console.log(findOpts)
-
 				this.applyOperationOptions(findOpts, operation);
 
 				if (options?.attributes) findOpts.attributes = options.attributes;
 				if (options?.relations) findOpts.include = this.getFkRelation(options.relations);
 
 				if (shouldCount) {
+					// Con includes, findAndCountAll cuenta las filas del JOIN (no los
+					// registros): un listado de 3 facturas reportaba count=52.
+					// distinct fuerza COUNT(DISTINCT pk) y devuelve el total real.
+					if (findOpts.include) findOpts.distinct = true;
 					const results = await this._model.findAndCountAll(findOpts);
 
 					return {

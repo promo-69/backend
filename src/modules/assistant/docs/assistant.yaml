@@ -1,0 +1,114 @@
+openapi: 3.0.0
+info:
+    title: Assistant Module
+    version: 1.0.0
+paths:
+    /assistant/chat:
+        post:
+            summary: Enviar mensaje al asistente virtual
+            description: Procesa el mensaje del usuario y devuelve recomendaciones basadas en el catálogo real de películas y funciones.
+            tags:
+                - Assistant
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            required:
+                                - message
+                            properties:
+                                message:
+                                    type: string
+                                    example: 'Quiero ver una película de terror esta noche'
+                                cinemaId:
+                                    type: integer
+                                    example: 1
+                                date:
+                                    type: string
+                                    format: date
+                                    example: 2026-07-01
+                                sessionId:
+                                    type: string
+                                    example: 'chat-session-uuid-1234'
+                                userId:
+                                    type: integer
+                                    example: 45
+            responses:
+                '200':
+                    description: Respuesta del asistente virtual
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    success:
+                                        type: boolean
+                                    message:
+                                        type: string
+                                    data:
+                                        type: object
+                                        properties:
+                                            intent:
+                                                type: string
+                                            message:
+                                                type: string
+                                            suggestedAction:
+                                                type: string
+                                            followUpQuestions:
+                                                type: array
+                                                items:
+                                                    type: string
+                                            recommendations:
+                                                type: array
+                                                items:
+                                                    type: object
+                                                    properties:
+                                                        id:
+                                                            type: string
+                                                        title:
+                                                            type: string
+                                                        subtitle:
+                                                            type: string
+                                                        type:
+                                                            type: string
+                                                        posterUrl:
+                                                            type: string
+                                                        nextShowtime:
+                                                            type: string
+                                                        metadata:
+                                                            type: object
+                                            data:
+                                                type: object
+                                                properties:
+                                                    movies:
+                                                        type: array
+                                                        items:
+                                                            type: object
+                                                    showtimes:
+                                                        type: array
+                                                        items:
+                                                            type: object
+                                example:
+                                    success: true
+                                    message: 'Respuesta del asistente generada correctamente'
+                                    data:
+                                        intent: 'recommendation'
+                                        message: 'Te comparto algunas películas que están en cartelera ahora mismo:'
+                                        suggestedAction: 'browse_movies'
+                                        followUpQuestions:
+                                            - '¿Prefieres una película de acción, comedia o terror?'
+                                            - '¿Te interesa que sea subtitulada o doblada?'
+                                        recommendations:
+                                            - id: 1
+                                              title: 'La noche del misterio'
+                                              subtitle: 'Terror / Suspenso'
+                                              type: 'movie'
+                                              posterUrl: 'https://example.com/poster.jpg'
+                                              nextShowtime: null
+                                              metadata:
+                                                  lifecycle_state: 3
+                                                  duration_minutes: 95
+                                        data:
+                                            movies: []
+                                            showtimes: []

@@ -1,0 +1,14 @@
+meta {
+  name: List Rewards
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/loyalty-rewards?cinema={{cinemaId}}
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

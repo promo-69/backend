@@ -27,6 +27,11 @@
                                         loyalty_level:
                                             type: integer
                                             nullable: true
+                                            description: Numeric id of the loyalty level
+                                        loyalty_level_name:
+                                            type: string
+                                            nullable: true
+                                            example: Silver
                                         level_progress_points:
                                             type: integer
                                         points_balance:

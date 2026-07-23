@@ -38,7 +38,7 @@ class RentalsController extends ControllerBase {
     async findById() {
         const session = this.getSession<any>();
         const { id } = this.getParams();
-        const data = await RentalsService.findById(Number(id), session.cinemaId);
+        const data = await RentalsService.findById(Number(id), session.roleCode === 'SUPER_ADMIN' ? undefined : session.cinemaId);
         return this.success(data, 'Solicitud de alquiler obtenida exitosamente');
     }
 
@@ -46,6 +46,17 @@ class RentalsController extends ControllerBase {
     async create() {
         const session = this.getSession<any>();
         const body = this.getBody();
+
+        // Usuario autenticado: completamos los datos de contacto faltantes
+        // desde la sesión activa
+        if (session) {
+            const sessionName = [session.firstName, session.lastName].filter(Boolean).join(' ').trim();
+            if (!body.contact_name?.trim() && sessionName) body.contact_name = sessionName;
+            if (!body.contact_email?.trim() && session.email) body.contact_email = session.email;
+            if (!body.contact_phone?.trim() && session.phoneNumber) body.contact_phone = session.phoneNumber;
+            if (!body.document_number?.trim() && session.documentNumber) body.document_number = session.documentNumber;
+        }
+
         const data = await RentalsService.createRequest(body, session?.customerId);
         return this.created(data, 'Solicitud de alquiler enviada a revisión.');
     }
@@ -55,7 +66,7 @@ class RentalsController extends ControllerBase {
         const session = this.getSession<any>();
         const { id } = this.getParams();
         const body = this.getBody();
-        await RentalsService.updateStatus(Number(id), body, session.cinemaId);
+        await RentalsService.updateStatus(Number(id), body, session.roleCode === 'SUPER_ADMIN' ? undefined : session.cinemaId);
         return this.success(
             null,
             body.status === 2
@@ -68,8 +79,40 @@ class RentalsController extends ControllerBase {
     async confirmPayment() {
         const session = this.getSession<any>();
         const { id } = this.getParams();
-        await RentalsService.confirmPayment(Number(id), session?.customerId, session?.cinemaId);
+        await RentalsService.confirmPayment(Number(id), session?.customerId, session.roleCode === 'SUPER_ADMIN' ? undefined : session?.cinemaId);
         return this.success(null, 'Pago confirmado. La reserva de sala está activa.');
+    }
+
+    // GET /rentals/pos/payable  (taquilla: solicitudes por cobrar, buscables)
+    async findPayable() {
+        const session = this.getSession<any>();
+        const query = this.getQuery();
+        const cinemaId = session.roleCode === 'SUPER_ADMIN' ? undefined : session.cinemaId;
+        const data = await RentalsService.findPayableForPOS(
+            query.q as string | undefined,
+            cinemaId,
+            this.getQueryFilters(),
+        );
+        return this.success(data, 'Solicitudes de alquiler por cobrar obtenidas exitosamente');
+    }
+
+    // POST /rentals/pos/:id/pay  (taquilla: registrar el pago y marcar pagada)
+    async payFromPOS() {
+        const session = this.getSession<any>();
+        const { id } = this.getParams();
+        const body = this.getBody();
+        const cinemaId = session.roleCode === 'SUPER_ADMIN' ? undefined : session.cinemaId;
+        const data = await RentalsService.registerPOSPayment(
+            Number(id),
+            {
+                payment_method: body.payment_method !== undefined ? Number(body.payment_method) : undefined,
+                reference: body.reference,
+                amount: body.amount !== undefined ? Number(body.amount) : undefined,
+            },
+            session?.employeeId,
+            cinemaId,
+        );
+        return this.success(data, 'Pago de alquiler registrado. La reserva de sala está confirmada.');
     }
 }
 
